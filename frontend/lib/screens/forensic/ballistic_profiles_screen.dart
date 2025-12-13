@@ -5,16 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/ballistic_profile_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/side_nav.dart';
 
 class BallisticProfilesScreen extends StatefulWidget {
   const BallisticProfilesScreen({Key? key}) : super(key: key);
 
   @override
-  State<BallisticProfilesScreen> createState() => _BallisticProfilesScreenState();
+  State<BallisticProfilesScreen> createState() =>
+      _BallisticProfilesScreenState();
 }
 
-class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with SingleTickerProviderStateMixin {
+class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
   String? _selectedProfileId;
@@ -46,7 +47,6 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
       backgroundColor: const Color(0xFF1A1F2E),
       body: Row(
         children: [
-          const SideNav(activeItem: 'Ballistic'),
           Expanded(
             child: Row(
               children: [
@@ -69,7 +69,8 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
     );
   }
 
-  Widget _buildLeftPanel(BallisticProfileProvider provider, bool isHQCommander) {
+  Widget _buildLeftPanel(
+      BallisticProfileProvider provider, bool isHQCommander) {
     return Container(
       color: const Color(0xFF252A3A),
       child: Column(
@@ -94,7 +95,8 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
         children: [
           const Text(
             'Ballistic Profiles',
-            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           const Text(
@@ -104,12 +106,14 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
           const SizedBox(height: 16),
           TextField(
             controller: _searchController,
-            onChanged: (value) => context.read<BallisticProfileProvider>().setSearchQuery(value),
+            onChanged: (value) =>
+                context.read<BallisticProfileProvider>().setSearchQuery(value),
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Search by serial number, manufacturer...',
               hintStyle: const TextStyle(color: Color(0xFF78909C)),
-              prefixIcon: const Icon(Icons.science, color: Color(0xFF78909C), size: 20),
+              prefixIcon:
+                  const Icon(Icons.science, color: Color(0xFF78909C), size: 20),
               filled: true,
               fillColor: const Color(0xFF2A3040),
               border: OutlineInputBorder(
@@ -233,7 +237,8 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
     );
   }
 
-  Widget _buildFilterChip(String label, String value, BallisticProfileProvider provider) {
+  Widget _buildFilterChip(
+      String label, String value, BallisticProfileProvider provider) {
     final isSelected = provider.firearmTypeFilter == value;
     return InkWell(
       onTap: () => provider.setFirearmTypeFilter(value),
@@ -243,7 +248,8 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
           color: isSelected ? const Color(0xFF1E88E5) : const Color(0xFF2A3040),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
+            color:
+                isSelected ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
           ),
         ),
         child: Text(
@@ -260,7 +266,8 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
 
   Widget _buildProfileList(BallisticProfileProvider provider) {
     if (provider.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
     }
 
     final profiles = provider.filteredProfiles;
@@ -304,11 +311,16 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
           color: const Color(0xFF2A3040),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
+            color:
+                isSelected ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
-              ? [BoxShadow(color: const Color(0xFF1E88E5).withOpacity(0.3), blurRadius: 8)]
+              ? [
+                  BoxShadow(
+                      color: const Color(0xFF1E88E5).withValues(alpha: 0.3),
+                      blurRadius: 8)
+                ]
               : null,
         ),
         child: Row(
@@ -343,15 +355,17 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
                   const SizedBox(height: 4),
                   Text(
                     '${profile['manufacturer']} ${profile['model']}',
-                    style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
+                    style:
+                        const TextStyle(color: Color(0xFF78909C), fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E88E5).withOpacity(0.2),
+                          color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -364,12 +378,14 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Icon(Icons.location_on, size: 12, color: Color(0xFF78909C)),
+                      const Icon(Icons.location_on,
+                          size: 12, color: Color(0xFF78909C)),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           profile['unit_name'] ?? 'No Unit',
-                          style: const TextStyle(color: Color(0xFF78909C), fontSize: 11),
+                          style: const TextStyle(
+                              color: Color(0xFF78909C), fontSize: 11),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -417,7 +433,8 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
           SizedBox(height: 24),
           Text(
             'Select a firearm to view ballistic profile',
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           Text(
@@ -468,16 +485,20 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
                 const SizedBox(height: 4),
                 Text(
                   '${profile['manufacturer']} ${profile['model']}',
-                  style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 16),
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 16),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildBadge('${profile['firearm_type']}', const Color(0xFF1E88E5)),
+                    _buildBadge(
+                        '${profile['firearm_type']}', const Color(0xFF1E88E5)),
                     const SizedBox(width: 8),
-                    _buildBadge('${profile['caliber']}', const Color(0xFF42A5F5)),
+                    _buildBadge(
+                        '${profile['caliber']}', const Color(0xFF42A5F5)),
                     const SizedBox(width: 8),
-                    _buildBadge('${profile['registration_level']}', const Color(0xFF3CCB7F)),
+                    _buildBadge('${profile['registration_level']}',
+                        const Color(0xFF3CCB7F)),
                   ],
                 ),
               ],
@@ -517,7 +538,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -558,14 +579,24 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
         spacing: 16,
         runSpacing: 16,
         children: [
-          _buildCharCard('Barrel Rifling Pattern', profile['rifling_characteristics'], Icons.sync),
-          _buildCharCard('Firing Pin Impression', profile['firing_pin_impression'], Icons.circle),
-          _buildCharCard('Breech Face Marking', profile['breech_face_marking'], Icons.grid_3x3),
-          _buildCharCard('Ejector Mark Pattern', profile['ejector_mark_pattern'], Icons.arrow_forward),
-          _buildCharCard('Extractor Mark Pattern', profile['extractor_mark_pattern'], Icons.curved_arrow_forward),
-          _buildCharCard('Cartridge Case Profile', profile['cartridge_case_profile'], Icons.filter_1),
-          _buildCharCard('Land & Groove Count', profile['land_groove_count']?.toString(), Icons.format_list_numbered),
-          _buildCharCard('Twist Direction', profile['twist_direction'], Icons.rotate_right),
+          _buildCharCard('Barrel Rifling Pattern',
+              profile['rifling_characteristics'], Icons.sync),
+          _buildCharCard('Firing Pin Impression',
+              profile['firing_pin_impression'], Icons.circle),
+          _buildCharCard('Breech Face Marking', profile['breech_face_marking'],
+              Icons.grid_3x3),
+          _buildCharCard('Ejector Mark Pattern',
+              profile['ejector_mark_pattern'], Icons.arrow_forward),
+          _buildCharCard('Extractor Mark Pattern',
+              profile['extractor_mark_pattern'], Icons.arrow_back),
+          _buildCharCard('Cartridge Case Profile',
+              profile['cartridge_case_profile'], Icons.filter_1),
+          _buildCharCard(
+              'Land & Groove Count',
+              profile['land_groove_count']?.toString(),
+              Icons.format_list_numbered),
+          _buildCharCard('Twist Direction', profile['twist_direction'],
+              Icons.rotate_right),
           _buildCharCard('Twist Rate', profile['twist_rate'], Icons.speed),
         ],
       ),
@@ -589,7 +620,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5).withOpacity(0.2),
+                  color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: const Color(0xFF42A5F5), size: 20),
@@ -598,7 +629,8 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
+                  style:
+                      const TextStyle(color: Color(0xFF78909C), fontSize: 13),
                 ),
               ),
             ],
@@ -621,16 +653,24 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
         children: [
           const Text(
             'Analysis Metadata',
-            style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Color(0xFFB0BEC5),
+                fontSize: 16,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           _buildInfoRow('Analysis Date', _formatDate(profile['test_date'])),
-          _buildInfoRow('Analyzed By', profile['analyzed_by'] ?? 'Not specified'),
-          _buildInfoRow('Analysis Location', profile['test_location'] ?? 'Not specified'),
+          _buildInfoRow(
+              'Analyzed By', profile['analyzed_by'] ?? 'Not specified'),
+          _buildInfoRow(
+              'Analysis Location', profile['test_location'] ?? 'Not specified'),
           const SizedBox(height: 24),
           const Text(
             'Analysis Notes',
-            style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Color(0xFFB0BEC5),
+                fontSize: 16,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Container(
@@ -643,13 +683,17 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
             ),
             child: Text(
               profile['analysis_notes'] ?? 'No analysis notes recorded',
-              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14, height: 1.6),
+              style: const TextStyle(
+                  color: Color(0xFFB0BEC5), fontSize: 14, height: 1.6),
             ),
           ),
           const SizedBox(height: 24),
           const Text(
             'Quality Assessment',
-            style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Color(0xFFB0BEC5),
+                fontSize: 16,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           _buildQualityIndicator(profile['quality_assessment'] ?? 'Good'),
@@ -701,7 +745,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color),
       ),
@@ -711,7 +755,8 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
           const SizedBox(width: 12),
           Text(
             'Profile Quality: ${quality.toUpperCase()}',
-            style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: color, fontSize: 15, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -739,7 +784,20 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> with 
     if (date == null) return 'Not specified';
     try {
       final dt = DateTime.parse(date.toString());
-      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ];
       return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
     } catch (e) {
       return date.toString();

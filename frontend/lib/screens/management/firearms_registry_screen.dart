@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../providers/firearm_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/firearm_model.dart';
-import '../../widgets/side_nav.dart';
 import '../../widgets/register_firearm_modal.dart';
 import '../../widgets/firearm_detail_modal.dart';
 
@@ -24,7 +23,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = context.read<AuthProvider>();
-      final unitId = authProvider.userRole == 'station_commander' 
+      final role = authProvider.currentUser?['role'];
+      final unitId = (role != null && role == 'station_commander')
           ? authProvider.currentUser?['unit_id'] 
           : null;
       
@@ -43,8 +43,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   Widget build(BuildContext context) {
     final firearmProvider = context.watch<FirearmProvider>();
     final authProvider = context.watch<AuthProvider>();
-    final isHQCommander = authProvider.userRole == 'hq_firearm_commander';
-    final isStationCommander = authProvider.userRole == 'station_commander';
+    final isHQCommander = authProvider.currentUser?['role'] == 'hq_firearm_commander';
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
@@ -52,7 +51,6 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
         children: [
           Row(
             children: [
-              const SideNav(activeItem: 'Firearms'),
               Expanded(
                 child: Column(
                   children: [
@@ -553,7 +551,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                             style: TextStyle(color: Color(0xFF78909C), fontSize: 11),
                           ),
                           Text(
-                            firearm.assignedUnitId ?? '',
+                            firearm.assignedUnitId!,
                             style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                           ),

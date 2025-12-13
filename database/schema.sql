@@ -37,6 +37,7 @@ CREATE TABLE users (
     unit_id UUID REFERENCES units(unit_id),
     otp_code VARCHAR(6),
     otp_expires_at TIMESTAMP,
+    otp_attempts INTEGER DEFAULT 0,
     otp_verified BOOLEAN DEFAULT false,
     unit_confirmed BOOLEAN DEFAULT false,
     is_active BOOLEAN DEFAULT true,
@@ -79,8 +80,8 @@ CREATE TABLE firearms (
     acquisition_source VARCHAR(200),
     registration_level VARCHAR(10) NOT NULL CHECK (registration_level IN ('hq', 'unit')),
     registered_by UUID NOT NULL REFERENCES users(user_id),
-    assigned_unit_id UUID NOT NULL REFERENCES units(unit_id),
-    current_status VARCHAR(50) DEFAULT 'available' CHECK (current_status IN ('available', 'in_custody', 'maintenance', 'lost', 'stolen', 'destroyed')),
+    assigned_unit_id UUID REFERENCES units(unit_id),
+    current_status VARCHAR(50) DEFAULT 'unassigned' CHECK (current_status IN ('unassigned', 'available', 'in_custody', 'maintenance', 'lost', 'stolen', 'destroyed')),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

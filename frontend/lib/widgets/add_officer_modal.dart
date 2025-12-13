@@ -24,13 +24,14 @@ class AddOfficerModal extends StatefulWidget {
 
 class _AddOfficerModalState extends State<AddOfficerModal> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controllers
-  final TextEditingController _officerNumberController = TextEditingController();
+  final TextEditingController _officerNumberController =
+      TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  
+
   // State
   String _selectedRank = 'constable';
   String? _selectedUnit;
@@ -114,7 +115,9 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
       widget.onSuccess();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.officer == null ? 'Officer added successfully' : 'Officer updated successfully'),
+          content: Text(widget.officer == null
+              ? 'Officer added successfully'
+              : 'Officer updated successfully'),
           backgroundColor: const Color(0xFF3CCB7F),
         ),
       );
@@ -166,15 +169,15 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
                             Expanded(
                               child: Column(
                                 children: [
-                                  _buildPhotoUpload(),
-                                  const SizedBox(height: 20),
                                   _buildTextField(
                                     controller: _officerNumberController,
                                     label: 'Officer Number',
                                     hint: 'e.g., RNP-245789',
                                     required: true,
                                     enabled: widget.officer == null,
-                                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                                    validator: (v) => v == null || v.isEmpty
+                                        ? 'Required'
+                                        : null,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildTextField(
@@ -182,28 +185,50 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
                                     label: 'Full Name',
                                     hint: 'First and Last Name',
                                     required: true,
-                                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                                    validator: (v) => v == null || v.isEmpty
+                                        ? 'Required'
+                                        : null,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildDropdownField(
                                     label: 'Rank',
                                     value: _selectedRank,
                                     items: const [
-                                      {'value': 'constable', 'label': 'Constable'},
-                                      {'value': 'corporal', 'label': 'Corporal'},
-                                      {'value': 'sergeant', 'label': 'Sergeant'},
-                                      {'value': 'inspector', 'label': 'Inspector'},
-                                      {'value': 'superintendent', 'label': 'Superintendent'},
-                                      {'value': 'commissioner', 'label': 'Commissioner'},
+                                      {
+                                        'value': 'constable',
+                                        'label': 'Constable'
+                                      },
+                                      {
+                                        'value': 'corporal',
+                                        'label': 'Corporal'
+                                      },
+                                      {
+                                        'value': 'sergeant',
+                                        'label': 'Sergeant'
+                                      },
+                                      {
+                                        'value': 'inspector',
+                                        'label': 'Inspector'
+                                      },
+                                      {
+                                        'value': 'superintendent',
+                                        'label': 'Superintendent'
+                                      },
+                                      {
+                                        'value': 'commissioner',
+                                        'label': 'Commissioner'
+                                      },
                                     ],
-                                    onChanged: (value) => setState(() => _selectedRank = value!),
+                                    onChanged: (value) =>
+                                        setState(() => _selectedRank = value!),
                                     required: true,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildDateField(
                                     label: 'Date of Birth',
                                     value: _dateOfBirth,
-                                    onChanged: (date) => setState(() => _dateOfBirth = date),
+                                    onChanged: (date) =>
+                                        setState(() => _dateOfBirth = date),
                                     required: false,
                                   ),
                                 ],
@@ -218,11 +243,21 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
                                     label: 'Unit Assignment',
                                     value: _selectedUnit,
                                     items: const [
-                                      {'value': 'unit1', 'label': 'Kigali Central Station'},
-                                      {'value': 'unit2', 'label': 'Nyamirambo Station'},
-                                      {'value': 'unit3', 'label': 'Kicukiro Station'},
+                                      {
+                                        'value': 'unit1',
+                                        'label': 'Kigali Central Station'
+                                      },
+                                      {
+                                        'value': 'unit2',
+                                        'label': 'Nyamirambo Station'
+                                      },
+                                      {
+                                        'value': 'unit3',
+                                        'label': 'Kicukiro Station'
+                                      },
                                     ],
-                                    onChanged: (value) => setState(() => _selectedUnit = value),
+                                    onChanged: (value) =>
+                                        setState(() => _selectedUnit = value),
                                     required: true,
                                   ),
                                   const SizedBox(height: 16),
@@ -232,7 +267,9 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
                                     hint: '+250 788 000 000',
                                     required: true,
                                     prefixIcon: Icons.phone,
-                                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                                    validator: (v) => v == null || v.isEmpty
+                                        ? 'Required'
+                                        : null,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildTextField(
@@ -245,7 +282,8 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
                                   _buildDateField(
                                     label: 'Employment Date',
                                     value: _employmentDate,
-                                    onChanged: (date) => setState(() => _employmentDate = date),
+                                    onChanged: (date) =>
+                                        setState(() => _employmentDate = date),
                                     required: true,
                                   ),
                                   const SizedBox(height: 24),
@@ -281,7 +319,10 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
             children: [
               Text(
                 widget.officer == null ? 'Add New Officer' : 'Edit Officer',
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -294,34 +335,6 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
           IconButton(
             icon: const Icon(Icons.close, color: Color(0xFF78909C)),
             onPressed: widget.onClose,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPhotoUpload() {
-    return Container(
-      width: double.infinity,
-      height: 120,
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        border: Border.all(color: const Color(0xFF37404F), style: BorderStyle.solid, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.camera_alt, color: Color(0xFF78909C), size: 32),
-          SizedBox(height: 8),
-          Text(
-            'Upload Photo',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Optional',
-            style: TextStyle(color: Color(0xFF546E7A), fontSize: 12),
           ),
         ],
       ),
@@ -342,13 +355,15 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
             width: 52,
             height: 28,
             decoration: BoxDecoration(
-              color: _isActive ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
+              color:
+                  _isActive ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
               borderRadius: BorderRadius.circular(14),
             ),
             padding: const EdgeInsets.all(2),
             child: AnimatedAlign(
               duration: const Duration(milliseconds: 200),
-              alignment: _isActive ? Alignment.centerRight : Alignment.centerLeft,
+              alignment:
+                  _isActive ? Alignment.centerRight : Alignment.centerLeft,
               child: Container(
                 width: 24,
                 height: 24,
@@ -384,7 +399,8 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
               foregroundColor: const Color(0xFFB0BEC5),
               side: const BorderSide(color: Color(0xFF37404F)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Cancel', style: TextStyle(fontSize: 15)),
           ),
@@ -395,7 +411,8 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.check_circle, size: 18),
             label: Text(
@@ -406,7 +423,8 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
               backgroundColor: const Color(0xFF1E88E5),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],
@@ -428,7 +446,8 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
       children: [
         Row(
           children: [
-            Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            Text(label,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
             if (required) ...[
               const SizedBox(width: 4),
               const Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
@@ -443,9 +462,12 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(color: Color(0xFF78909C)),
-            prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF78909C), size: 20) : null,
+            prefixIcon: prefixIcon != null
+                ? Icon(prefixIcon, color: const Color(0xFF78909C), size: 20)
+                : null,
             filled: true,
-            fillColor: enabled ? const Color(0xFF2A3040) : const Color(0xFF1A1F2E),
+            fillColor:
+                enabled ? const Color(0xFF2A3040) : const Color(0xFF1A1F2E),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: Color(0xFF37404F)),
@@ -459,9 +481,11 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
               borderSide: const BorderSide(color: Color(0xFF1E88E5), width: 2),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE85C5C), width: 2)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                borderRadius: BorderRadius.circular(8),
+                borderSide:
+                    const BorderSide(color: Color(0xFFE85C5C), width: 2)),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           validator: validator,
         ),
@@ -481,7 +505,8 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
       children: [
         Row(
           children: [
-            Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            Text(label,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
             if (required) ...[
               const SizedBox(width: 4),
               const Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
@@ -500,13 +525,16 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              hint: const Text('Select...', style: TextStyle(color: Color(0xFF78909C))),
+              hint: const Text('Select...',
+                  style: TextStyle(color: Color(0xFF78909C))),
               dropdownColor: const Color(0xFF2A3040),
               style: const TextStyle(color: Colors.white),
-              items: items.map((item) => DropdownMenuItem<String>(
-                value: item['value'],
-                child: Text(item['label']!),
-              )).toList(),
+              items: items
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item['value'],
+                        child: Text(item['label']!),
+                      ))
+                  .toList(),
               onChanged: onChanged,
             ),
           ),
@@ -526,7 +554,8 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
       children: [
         Row(
           children: [
-            Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            Text(label,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
             if (required) ...[
               const SizedBox(width: 4),
               const Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
@@ -553,12 +582,16 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today, color: Color(0xFF78909C), size: 16),
+                const Icon(Icons.calendar_today,
+                    color: Color(0xFF78909C), size: 16),
                 const SizedBox(width: 12),
                 Text(
-                  value != null ? '${value.day}/${value.month}/${value.year}' : 'Select date',
+                  value != null
+                      ? '${value.day}/${value.month}/${value.year}'
+                      : 'Select date',
                   style: TextStyle(
-                    color: value != null ? Colors.white : const Color(0xFF78909C),
+                    color:
+                        value != null ? Colors.white : const Color(0xFF78909C),
                   ),
                 ),
               ],

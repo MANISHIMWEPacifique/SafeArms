@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../../providers/officer_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/officer_model.dart';
-import '../../widgets/side_nav.dart';
 import '../../widgets/add_officer_modal.dart';
 
 class OfficersRegistryScreen extends StatefulWidget {
@@ -47,7 +46,6 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
         children: [
           Row(
             children: [
-              const SideNav(activeItem: 'Officers'),
               Expanded(
                 child: Column(
                   children: [
@@ -63,8 +61,10 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                               const SizedBox(height: 24),
                               _buildFilterBar(officerProvider),
                               const SizedBox(height: 24),
-                              if (_selectedOfficers.isNotEmpty) _buildBulkActionsBar(),
-                              if (_selectedOfficers.isNotEmpty) const SizedBox(height: 16),
+                              if (_selectedOfficers.isNotEmpty)
+                                _buildBulkActionsBar(),
+                              if (_selectedOfficers.isNotEmpty)
+                                const SizedBox(height: 16),
                               _buildOfficersTable(officerProvider),
                             ],
                           ),
@@ -76,6 +76,17 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
               ),
             ],
           ),
+
+          // Add Officer Modal Overlay
+          if (_showAddModal)
+            AddOfficerModal(
+              onClose: () => setState(() => _showAddModal = false),
+              onSuccess: () {
+                setState(() => _showAddModal = false);
+                context.read<OfficerProvider>().loadOfficers();
+                context.read<OfficerProvider>().loadStats();
+              },
+            ),
         ],
       ),
     );
@@ -97,7 +108,10 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
             children: const [
               Text(
                 'Officer Registry',
-                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 4),
               Text(
@@ -122,7 +136,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
               decoration: const InputDecoration(
                 hintText: 'Search by name, badge number, or rank...',
                 hintStyle: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                prefixIcon: Icon(Icons.search, color: Color(0xFF78909C), size: 20),
+                prefixIcon:
+                    Icon(Icons.search, color: Color(0xFF78909C), size: 20),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(vertical: 12),
               ),
@@ -132,12 +147,14 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
           ElevatedButton.icon(
             onPressed: () => setState(() => _showAddModal = true),
             icon: const Icon(Icons.person_add, size: 18),
-            label: const Text('Add New Officer', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            label: const Text('Add New Officer',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E88E5),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
           const SizedBox(width: 12),
@@ -151,7 +168,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
               foregroundColor: const Color(0xFFB0BEC5),
               side: const BorderSide(color: Color(0xFF37404F)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
           const SizedBox(width: 12),
@@ -165,7 +183,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
               foregroundColor: const Color(0xFFB0BEC5),
               side: const BorderSide(color: Color(0xFF37404F)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],
@@ -175,7 +194,7 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
 
   Widget _buildStatsCards(OfficerProvider provider) {
     final stats = provider.stats;
-    
+
     return Row(
       children: [
         Expanded(
@@ -236,7 +255,7 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: iconColor, size: 28),
@@ -256,7 +275,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                 ),
                 Text(
                   label,
-                  style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
                 ),
               ],
             ),
@@ -329,7 +349,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                 },
                 icon: const Icon(Icons.clear, size: 18),
                 label: const Text('Clear Filters'),
-                style: TextButton.styleFrom(foregroundColor: const Color(0xFF64B5F6)),
+                style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF64B5F6)),
               ),
             ],
           ),
@@ -347,7 +368,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
@@ -359,14 +381,17 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF78909C)),
+              icon: const Icon(Icons.keyboard_arrow_down,
+                  color: Color(0xFF78909C)),
               dropdownColor: const Color(0xFF2A3040),
               style: const TextStyle(color: Colors.white, fontSize: 14),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              items: items.map((item) => DropdownMenuItem<String>(
-                value: item['value'],
-                child: Text(item['label']!),
-              )).toList(),
+              items: items
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item['value'],
+                        child: Text(item['label']!),
+                      ))
+                  .toList(),
               onChanged: onChanged,
             ),
           ),
@@ -381,13 +406,15 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E3A5F),
         borderRadius: BorderRadius.circular(8),
-        border: const Border(left: BorderSide(color: Color(0xFF42A5F5), width: 4)),
+        border:
+            const Border(left: BorderSide(color: Color(0xFF42A5F5), width: 4)),
       ),
       child: Row(
         children: [
           Text(
             '${_selectedOfficers.length} officers selected',
-            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
           ),
           const SizedBox(width: 24),
           TextButton.icon(
@@ -396,7 +423,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
             },
             icon: const Icon(Icons.download, size: 18),
             label: const Text('Export Selected'),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF64B5F6)),
+            style:
+                TextButton.styleFrom(foregroundColor: const Color(0xFF64B5F6)),
           ),
           TextButton.icon(
             onPressed: () {
@@ -404,7 +432,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
             },
             icon: const Icon(Icons.edit, size: 18),
             label: const Text('Bulk Edit'),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF64B5F6)),
+            style:
+                TextButton.styleFrom(foregroundColor: const Color(0xFF64B5F6)),
           ),
           TextButton.icon(
             onPressed: () {
@@ -412,13 +441,15 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
             },
             icon: const Icon(Icons.block, size: 18),
             label: const Text('Bulk Deactivate'),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFE85C5C)),
+            style:
+                TextButton.styleFrom(foregroundColor: const Color(0xFFE85C5C)),
           ),
           const Spacer(),
           TextButton(
             onPressed: () => setState(() => _selectedOfficers.clear()),
             child: const Text('Cancel Selection'),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF78909C)),
+            style:
+                TextButton.styleFrom(foregroundColor: const Color(0xFF78909C)),
           ),
         ],
       ),
@@ -427,7 +458,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
 
   Widget _buildOfficersTable(OfficerProvider provider) {
     if (provider.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
     }
 
     final officers = provider.paginatedOfficers;
@@ -448,7 +480,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
           Container(
             decoration: const BoxDecoration(
               color: Color(0xFF252A3A),
-              border: Border(bottom: BorderSide(color: Color(0xFF37404F), width: 2)),
+              border: Border(
+                  bottom: BorderSide(color: Color(0xFF37404F), width: 2)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             child: Row(
@@ -465,10 +498,12 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
               ],
             ),
           ),
-          
+
           // Table rows
-          ...officers.map((officer) => _buildOfficerRow(officer, provider)).toList(),
-          
+          ...officers
+              .map((officer) => _buildOfficerRow(officer, provider))
+              .toList(),
+
           // Pagination
           _buildPagination(provider),
         ],
@@ -478,13 +513,14 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
 
   Widget _buildOfficerRow(OfficerModel officer, OfficerProvider provider) {
     final isSelected = _selectedOfficers.contains(officer.officerId);
-    
+
     return InkWell(
       onTap: () => provider.selectOfficer(officer),
       hoverColor: const Color(0xFF252A3A),
       child: Container(
         decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
+          border:
+              Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
@@ -503,13 +539,13 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                     }
                   });
                 },
-                fillColor: MaterialStateProperty.all(
+                fillColor: WidgetStateProperty.all(
                   isSelected ? const Color(0xFF1E88E5) : Colors.transparent,
                 ),
                 side: const BorderSide(color: Color(0xFF37404F)),
               ),
             ),
-            
+
             // Officer column with avatar
             Expanded(
               flex: 3,
@@ -544,7 +580,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                         if (officer.email != null)
                           Text(
                             officer.email!,
-                            style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                            style: const TextStyle(
+                                color: Color(0xFF78909C), fontSize: 12),
                             overflow: TextOverflow.ellipsis,
                           ),
                       ],
@@ -553,7 +590,7 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                 ],
               ),
             ),
-            
+
             // Officer Number
             Expanded(
               flex: 2,
@@ -566,43 +603,47 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                 ),
               ),
             ),
-            
+
             // Rank
             Expanded(
               flex: 2,
               child: Row(
                 children: [
-                  const Icon(Icons.military_tech, color: Color(0xFF78909C), size: 16),
+                  const Icon(Icons.military_tech,
+                      color: Color(0xFF78909C), size: 16),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       _formatRank(officer.rank),
-                      style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
+                      style: const TextStyle(
+                          color: Color(0xFFB0BEC5), fontSize: 14),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Unit
             Expanded(
               flex: 2,
               child: Row(
                 children: [
-                  const Icon(Icons.business, color: Color(0xFF78909C), size: 16),
+                  const Icon(Icons.business,
+                      color: Color(0xFF78909C), size: 16),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      officer.unitId ?? '—',
-                      style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
+                      officer.unitId,
+                      style: const TextStyle(
+                          color: Color(0xFFB0BEC5), fontSize: 14),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Phone
             Expanded(
               flex: 2,
@@ -611,7 +652,7 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                 style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
               ),
             ),
-            
+
             // Status
             Expanded(
               flex: 1,
@@ -622,14 +663,18 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                     height: 8,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: officer.isActive ? const Color(0xFF3CCB7F) : const Color(0xFF78909C),
+                      color: officer.isActive
+                          ? const Color(0xFF3CCB7F)
+                          : const Color(0xFF78909C),
                     ),
                   ),
                   const SizedBox(width: 6),
                   Text(
                     officer.isActive ? 'Active' : 'Inactive',
                     style: TextStyle(
-                      color: officer.isActive ? const Color(0xFF3CCB7F) : const Color(0xFF78909C),
+                      color: officer.isActive
+                          ? const Color(0xFF3CCB7F)
+                          : const Color(0xFF78909C),
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -637,8 +682,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                 ],
               ),
             ),
-            
-            // Active Custody
+
+            // Active Custody (placeholder - would need backend integration)
             Expanded(
               flex: 1,
               child: Row(
@@ -646,20 +691,20 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                   Icon(
                     Icons.local_police,
                     size: 16,
-                    color: officer.hasActiveCustody ? const Color(0xFF42A5F5) : const Color(0xFF78909C),
+                    color: const Color(0xFF78909C),
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    officer.hasActiveCustody ? 'Yes' : 'No',
-                    style: TextStyle(
-                      color: officer.hasActiveCustody ? const Color(0xFF42A5F5) : const Color(0xFF78909C),
+                    '—',
+                    style: const TextStyle(
+                      color: Color(0xFF78909C),
                       fontSize: 13,
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Actions
             SizedBox(
               width: 100,
@@ -711,8 +756,12 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                color: provider.currentPage > 1 ? const Color(0xFFB0BEC5) : const Color(0xFF37404F),
-                onPressed: provider.currentPage > 1 ? () => provider.previousPage() : null,
+                color: provider.currentPage > 1
+                    ? const Color(0xFFB0BEC5)
+                    : const Color(0xFF37404F),
+                onPressed: provider.currentPage > 1
+                    ? () => provider.previousPage()
+                    : null,
               ),
               ...List.generate(
                 provider.totalPages.clamp(0, 5),
@@ -725,14 +774,18 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: isActive ? const Color(0xFF1E88E5) : Colors.transparent,
+                        color: isActive
+                            ? const Color(0xFF1E88E5)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         '$page',
                         style: TextStyle(
-                          color: isActive ? Colors.white : const Color(0xFFB0BEC5),
-                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                          color:
+                              isActive ? Colors.white : const Color(0xFFB0BEC5),
+                          fontWeight:
+                              isActive ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -766,7 +819,10 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
             const SizedBox(height: 16),
             const Text(
               'No officers found',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -781,7 +837,8 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1E88E5),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -810,15 +867,16 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
   }
 
   String _formatRank(String rank) {
-    return rank.split('_').map((word) => 
-      word[0].toUpperCase() + word.substring(1)
-    ).join(' ');
+    return rank
+        .split('_')
+        .map((word) => word[0].toUpperCase() + word.substring(1))
+        .join(' ');
   }
 }
 
 class _TableHeader extends StatelessWidget {
   final String text;
-  
+
   const _TableHeader(this.text, {Key? key}) : super(key: key);
 
   @override

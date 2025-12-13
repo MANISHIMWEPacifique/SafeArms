@@ -8,6 +8,7 @@ import './auth_service.dart';
 
 class OperationsService {
   final AuthService _authService = AuthService();
+  static const Duration _timeout = Duration(seconds: 30);
 
   Future<Map<String, String>> _getHeaders() async {
     final token = await _authService.getToken();
@@ -18,7 +19,7 @@ class OperationsService {
   }
 
   // ===== LOSS REPORTS =====
-  
+
   Future<List<Map<String, dynamic>>> getLossReports({String? status}) async {
     try {
       final headers = await _getHeaders();
@@ -27,7 +28,8 @@ class OperationsService {
         url += '?status=$status';
       }
 
-      final response = await http.get(Uri.parse(url), headers: headers).timeout(ApiConfig.timeout);
+      final response =
+          await http.get(Uri.parse(url), headers: headers).timeout(_timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -63,11 +65,13 @@ class OperationsService {
         'loss_time': lossTime,
       });
 
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/api/loss-reports'),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/api/loss-reports'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(_timeout);
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -84,10 +88,12 @@ class OperationsService {
   Future<bool> withdrawLossReport(String reportId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.delete(
-        Uri.parse('${ApiConfig.baseUrl}/api/loss-reports/$reportId'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .delete(
+            Uri.parse('${ApiConfig.baseUrl}/api/loss-reports/$reportId'),
+            headers: headers,
+          )
+          .timeout(_timeout);
 
       return response.statusCode == 200;
     } catch (e) {
@@ -96,8 +102,9 @@ class OperationsService {
   }
 
   // ===== DESTRUCTION REQUESTS =====
-  
-  Future<List<Map<String, dynamic>>> getDestructionRequests({String? status}) async {
+
+  Future<List<Map<String, dynamic>>> getDestructionRequests(
+      {String? status}) async {
     try {
       final headers = await _getHeaders();
       var url = '${ApiConfig.baseUrl}/api/destruction-requests';
@@ -105,7 +112,8 @@ class OperationsService {
         url += '?status=$status';
       }
 
-      final response = await http.get(Uri.parse(url), headers: headers).timeout(ApiConfig.timeout);
+      final response =
+          await http.get(Uri.parse(url), headers: headers).timeout(_timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -141,18 +149,21 @@ class OperationsService {
         'witness_2': witness2,
       });
 
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/api/destruction-requests'),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/api/destruction-requests'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(_timeout);
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         return data['data'];
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Failed to create destruction request');
+        throw Exception(
+            error['message'] ?? 'Failed to create destruction request');
       }
     } catch (e) {
       throw Exception('Error creating destruction request: $e');
@@ -160,8 +171,9 @@ class OperationsService {
   }
 
   // ===== PROCUREMENT REQUESTS =====
-  
-  Future<List<Map<String, dynamic>>> getProcurementRequests({String? status}) async {
+
+  Future<List<Map<String, dynamic>>> getProcurementRequests(
+      {String? status}) async {
     try {
       final headers = await _getHeaders();
       var url = '${ApiConfig.baseUrl}/api/procurement-requests';
@@ -169,7 +181,8 @@ class OperationsService {
         url += '?status=$status';
       }
 
-      final response = await http.get(Uri.parse(url), headers: headers).timeout(ApiConfig.timeout);
+      final response =
+          await http.get(Uri.parse(url), headers: headers).timeout(_timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -209,18 +222,21 @@ class OperationsService {
         'operational_context': operationalContext,
       });
 
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/api/procurement-requests'),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/api/procurement-requests'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(_timeout);
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         return data['data'];
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Failed to create procurement request');
+        throw Exception(
+            error['message'] ?? 'Failed to create procurement request');
       }
     } catch (e) {
       throw Exception('Error creating procurement request: $e');
@@ -228,14 +244,16 @@ class OperationsService {
   }
 
   // ===== STATISTICS =====
-  
+
   Future<Map<String, dynamic>> getOperationsStats() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/api/operations/stats'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.baseUrl}/api/operations/stats'),
+            headers: headers,
+          )
+          .timeout(_timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

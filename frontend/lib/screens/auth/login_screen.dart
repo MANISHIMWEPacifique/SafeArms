@@ -80,10 +80,11 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       color: Colors.white,
       child: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(60.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Logo
               Container(

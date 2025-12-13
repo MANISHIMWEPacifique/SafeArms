@@ -34,11 +34,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
       listen: false,
     );
 
-    // Load all dashboard data
+    // Load all dashboard data - single API call gets all stats
     await Future.wait([
       dashboardProvider.loadDashboardStats(),
-      dashboardProvider.loadTotalUsersCount(),
-      dashboardProvider.loadActiveUnitsCount(),
       anomalyProvider.loadAnomalies(limit: 10),
     ]);
   }
@@ -412,10 +410,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildStatsCards() {
     final dashboardProvider = Provider.of<DashboardProvider>(context);
 
-    final totalUsers = dashboardProvider.totalUsersCount ?? 0;
-    final activeUnits = dashboardProvider.activeUnitsCount ?? 0;
-    final anomaliesData =
-        dashboardProvider.dashboardStats?['anomalies'] as List?;
+    final totalUsers = dashboardProvider.totalUsersCount;
+    final activeUnits = dashboardProvider.activeUnitsCount;
+    final anomaliesData = dashboardProvider.anomaliesStats;
 
     int totalAnomalies = 0, critical = 0, high = 0;
     if (anomaliesData != null) {

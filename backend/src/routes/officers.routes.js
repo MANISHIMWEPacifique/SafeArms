@@ -12,6 +12,12 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     res.json({ success: true, data: officers });
 }));
 
+// Get officers statistics
+router.get('/stats', authenticate, asyncHandler(async (req, res) => {
+    const stats = await Officer.getStats();
+    res.json({ success: true, data: stats });
+}));
+
 router.get('/:id', authenticate, asyncHandler(async (req, res) => {
     const officer = await Officer.findById(req.params.id);
     if (!officer) return res.status(404).json({ success: false, message: 'Officer not found' });

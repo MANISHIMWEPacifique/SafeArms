@@ -60,6 +60,60 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         dashboardData.pending_approvals = pendingStats.rows[0];
     }
 
+    // Admin-specific stats: total users and units
+    if (role === 'admin') {
+        const usersCount = await query(`SELECT COUNT(*) as total FROM users WHERE is_active = true`);
+        const unitsCount = await query(`SELECT COUNT(*) as total FROM units WHERE is_active = true`);
+        dashboardData.total_users = parseInt(usersCount.rows[0].total);
+        dashboardData.active_units = parseInt(unitsCount.rows[0].total);
+    }
+
+    // HQ Commander stats: active units nationwide
+    if (role === 'hq_firearm_commander') {
+        const unitsCount = await query(`SELECT COUNT(*) as total FROM units WHERE is_active = true`);
+        dashboardData.active_units = parseInt(unitsCount.rows[0].total);
+    }
+
+    // Station Commander specific stats: officers count and recent custody
+    if (role === 'station_commander') {
+        // Officers in this unit
+        const officersCount = await query(
+            `SELECT COUNT(*) as total FROM officers WHERE unit_id = $1 AND is_active = true`,
+            [unit_id]
+        );
+        dashboardData.officers_count = parseInt(officersCount.rows[0].total);
+
+        // Recent custody activity for this unit
+        const recentCustody = await query(`
+            SELECT 
+                cr.custody_id,
+                cr.checked_out_at,
+                cr.returned_at,
+                cr.purpose,
+                o.full_name as officer_name,
+                f.serial_number,
+                f.firearm_type
+            FROM custody_records cr
+            JOIN officers o ON cr.officer_id = o.officer_id
+            JOIN firearms f ON cr.firearm_id = f.firearm_id
+            WHERE cr.unit_id = $1
+            ORDER BY cr.checked_out_at DESC
+            LIMIT 5
+        `, [unit_id]);
+        dashboardData.recent_custody = recentCustody.rows;
+    }
+
+    // Forensic Analyst specific stats
+    if (role === 'forensic_analyst') {
+        // Ballistic profiles count
+        const ballisticCount = await query(`SELECT COUNT(*) as total FROM ballistic_profiles`);
+        dashboardData.ballistic_profiles_count = parseInt(ballisticCount.rows[0].total);
+
+        // Total custody records (for tracing)
+        const totalCustody = await query(`SELECT COUNT(*) as total FROM custody_records`);
+        dashboardData.total_custody_traces = parseInt(totalCustody.rows[0].total);
+    }
+
     res.json({
         success: true,
         data: dashboardData

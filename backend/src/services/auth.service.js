@@ -55,8 +55,15 @@ const login = async (username, password) => {
             [otp, otpExpiresAt, user.user_id]
         );
 
-        // Send OTP via email
-        await sendOTPEmail(user.email, user.full_name, otp);
+        // In development mode, skip email and log OTP to console
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`\n========================================`);
+            console.log(`🔐 DEV MODE - OTP for ${user.username}: ${otp}`);
+            console.log(`========================================\n`);
+        } else {
+            // Send OTP via email in production
+            await sendOTPEmail(user.email, user.full_name, otp);
+        }
 
         logger.info(`Login initiated for user: ${username}`);
 

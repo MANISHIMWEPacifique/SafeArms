@@ -54,6 +54,18 @@ const Unit = {
             values
         );
         return result.rows[0];
+    },
+
+    async getStats() {
+        const result = await query(`
+            SELECT 
+                COUNT(*) as total_units,
+                COUNT(*) FILTER (WHERE is_active = true) as active_units,
+                COUNT(*) FILTER (WHERE unit_type = 'station') as stations,
+                COUNT(*) FILTER (WHERE unit_type = 'headquarters') as headquarters
+            FROM units
+        `);
+        return result.rows[0];
     }
 };
 

@@ -88,7 +88,7 @@ const extractBehavioralFeatures = async (officerId, firearmId) => {
  * @param {Object} custodyRecord
  * @returns {Promise<Object>}
  */
-const extract PatternFlags = async (custodyRecord) => {
+const extractPatternFlags = async (custodyRecord) => {
     try {
         const { firearm_id, officer_id, unit_id } = custodyRecord;
 

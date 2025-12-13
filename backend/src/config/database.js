@@ -2,15 +2,26 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 // PostgreSQL connection pool configuration
+// Use connection string if provided, otherwise use individual params
+const connectionConfig = process.env.DATABASE_URL 
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    }
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT) || 5432,
+      database: process.env.DB_NAME || 'safearms',
+      user: process.env.DB_USER || 'safearms_user',
+      password: process.env.DB_PASSWORD,
+      ssl: process.env.DB_HOST?.includes('supabase') ? { rejectUnauthorized: false } : false,
+    };
+
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 5432,
-  database: process.env.DB_NAME || 'safearms',
-  user: process.env.DB_USER || 'safearms_user',
-  password: process.env.DB_PASSWORD,
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 2000, // Return error after 2 seconds if connection not available
+  ...connectionConfig,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
 // Test database connection

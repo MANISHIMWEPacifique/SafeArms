@@ -34,11 +34,9 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
     final unitId = authProvider.currentUser?['unit_id']?.toString();
 
-    // Load all dashboard data
+    // Load all dashboard data - single API call gets all stats
     await Future.wait([
       dashboardProvider.loadDashboardStats(),
-      dashboardProvider.loadRecentCustodyActivity(),
-      dashboardProvider.loadOfficersCount(),
       if (unitId != null) anomalyProvider.loadUnitAnomalies(unitId, limit: 10),
     ]);
   }
@@ -322,13 +320,25 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
   Widget _buildStatsCards(DashboardProvider provider) {
     final stats = provider.dashboardStats;
+    final firearms = stats?['firearms'];
+    final totalFirearms = firearms?['total']?.toString() ?? '0';
+    final inCustody = stats?['active_custody']?.toString() ?? '0';
+
+    // Count anomalies
+    int anomalyCount = 0;
+    final anomalies = stats?['anomalies'] as List?;
+    if (anomalies != null) {
+      for (var a in anomalies) {
+        anomalyCount += int.tryParse(a['count']?.toString() ?? '0') ?? 0;
+      }
+    }
 
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
             'Total Firearms',
-            stats?['total_firearms']?.toString() ?? '0',
+            totalFirearms,
             Icons.gavel,
             const Color(0xFF1E88E5),
           ),
@@ -336,8 +346,8 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         const SizedBox(width: 16),
         Expanded(
           child: _buildStatCard(
-            'In Custody',
-            stats?['in_custody']?.toString() ?? '0',
+            'Active Custody',
+            inCustody,
             Icons.sync_alt,
             const Color(0xFF3CCB7F),
           ),
@@ -355,7 +365,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         Expanded(
           child: _buildStatCard(
             'Anomalies',
-            stats?['anomalies']?.toString() ?? '0',
+            anomalyCount.toString(),
             Icons.warning_amber,
             const Color(0xFFE85C5C),
           ),
@@ -450,19 +460,23 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
                 final activity = provider.recentCustodyActivity[index];
                 return ListTile(
                   leading: Icon(
-                    Icons.sync_alt,
-                    color: const Color(0xFF1E88E5),
+                    activity['returned_at'] == null
+                        ? Icons.arrow_forward
+                        : Icons.arrow_back,
+                    color: activity['returned_at'] == null
+                        ? const Color(0xFFE85C5C)
+                        : const Color(0xFF3CCB7F),
                   ),
                   title: Text(
-                    activity['firearm_serial'] ?? 'Unknown',
+                    '${activity['firearm_type'] ?? ''} - ${activity['serial_number'] ?? 'Unknown'}',
                     style: const TextStyle(color: Colors.white),
                   ),
                   subtitle: Text(
-                    '${activity['custody_type'] ?? 'N/A'} - ${activity['officer_name'] ?? 'N/A'}',
+                    '${activity['purpose'] ?? 'N/A'} - ${activity['officer_name'] ?? 'N/A'}',
                     style: const TextStyle(color: Color(0xFF78909C)),
                   ),
                   trailing: Text(
-                    activity['issued_at'] ?? '',
+                    _formatDate(activity['checked_out_at']),
                     style:
                         const TextStyle(color: Color(0xFF78909C), fontSize: 12),
                   ),
@@ -472,6 +486,16 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         ],
       ),
     );
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateStr;
+    }
   }
 }
 

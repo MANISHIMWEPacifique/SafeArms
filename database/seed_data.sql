@@ -32,7 +32,7 @@ INSERT INTO users (
 ) VALUES (
     'b0000000-0000-0000-0000-000000000001'::uuid,
     'admin',
-    '$2b$10$YourHashedPasswordHere', -- Replace with actual bcrypt hash of Admin@123
+    '$2b$10$BA9FK/iSZ.6o17egZxi55ePfHE18HPdIL73vuvlznFpFM8P.9CL1q',
     'System Administrator',
     'admin@rnp.gov.rw',
     '+250788000000',

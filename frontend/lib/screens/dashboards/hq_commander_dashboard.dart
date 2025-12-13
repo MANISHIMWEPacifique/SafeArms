@@ -45,10 +45,9 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
       listen: false,
     );
 
-    // Load all dashboard data
+    // Load all dashboard data - single API call for main stats
     await Future.wait([
       dashboardProvider.loadDashboardStats(),
-      dashboardProvider.loadActiveUnitsCount(),
       firearmsProvider.loadStats(),
       anomalyProvider.loadAnomalies(limit: 10),
       approvalProvider.loadPendingApprovals(),
@@ -512,13 +511,11 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
     final pendingApprovals = approvalProvider.pendingApprovals;
     final lossReports =
         int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ?? 0;
-    final destruction =
-        int.tryParse(
+    final destruction = int.tryParse(
           pendingApprovals?['destruction_requests']?.toString() ?? '0',
         ) ??
         0;
-    final procurement =
-        int.tryParse(
+    final procurement = int.tryParse(
           pendingApprovals?['procurement_requests']?.toString() ?? '0',
         ) ??
         0;
@@ -595,7 +592,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
 
   Widget _buildActiveUnitsCard() {
     final dashboardProvider = Provider.of<DashboardProvider>(context);
-    final activeUnits = dashboardProvider.activeUnitsCount ?? 0;
+    final activeUnits = dashboardProvider.activeUnitsCount;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -652,8 +649,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
           critical = count;
         else if (severity == 'high')
           high = count;
-        else if (severity == 'medium' || severity == 'low')
-          medium += count;
+        else if (severity == 'medium' || severity == 'low') medium += count;
       }
     }
 
@@ -1354,9 +1350,8 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
       children: [
         IconButton(
           icon: const Icon(Icons.chevron_left, color: Color(0xFF78909C)),
-          onPressed: _currentPage > 1
-              ? () => setState(() => _currentPage--)
-              : null,
+          onPressed:
+              _currentPage > 1 ? () => setState(() => _currentPage--) : null,
         ),
         for (int i = 1; i <= 3; i++)
           Padding(
@@ -1387,9 +1382,8 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
           ),
         IconButton(
           icon: const Icon(Icons.chevron_right, color: Color(0xFF78909C)),
-          onPressed: _currentPage < 3
-              ? () => setState(() => _currentPage++)
-              : null,
+          onPressed:
+              _currentPage < 3 ? () => setState(() => _currentPage++) : null,
         ),
       ],
     );

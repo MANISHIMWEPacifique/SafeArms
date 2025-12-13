@@ -68,7 +68,7 @@ const checkRetrainingNeeded = async () => {
         }
 
         const model = modelResult.rows[0];
-        const modelAge Days = Math.floor(
+        const modelAgeDays = Math.floor(
             (new Date() - new Date(model.training_date)) / (1000 * 60 * 60 * 24)
         );
 

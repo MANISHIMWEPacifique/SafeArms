@@ -167,6 +167,23 @@ const User = {
     `);
 
         return result.rows;
+    },
+
+    /**
+     * Get user statistics
+     */
+    async getStats() {
+        const result = await query(`
+            SELECT 
+                COUNT(*) as total_users,
+                COUNT(*) FILTER (WHERE is_active = true) as active_users,
+                COUNT(*) FILTER (WHERE role = 'admin') as admins,
+                COUNT(*) FILTER (WHERE role = 'hq_firearm_commander') as hq_commanders,
+                COUNT(*) FILTER (WHERE role = 'station_commander') as station_commanders,
+                COUNT(*) FILTER (WHERE role = 'forensic_analyst') as forensic_analysts
+            FROM users
+        `);
+        return result.rows[0];
     }
 };
 

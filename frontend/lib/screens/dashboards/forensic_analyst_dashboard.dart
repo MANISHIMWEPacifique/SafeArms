@@ -583,8 +583,8 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
   }
 
   Widget _buildBallisticProfilesCard(Map<String, dynamic>? dashboardStats) {
-    final firearmsData = dashboardStats?['firearms'];
-    final total = firearmsData?['total']?.toString() ?? '1,247';
+    final ballisticCount =
+        dashboardStats?['ballistic_profiles_count']?.toString() ?? '0';
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -599,7 +599,7 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
           const Icon(Icons.fingerprint, color: Color(0xFF42A5F5), size: 36),
           const SizedBox(height: 16),
           Text(
-            total,
+            ballisticCount,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 36,
@@ -700,7 +700,9 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
   }
 
   Widget _buildCustodyTracesCard(Map<String, dynamic>? dashboardStats) {
-    final activeCustody = dashboardStats?['active_custody'] ?? 342;
+    final totalCustody = dashboardStats?['total_custody_traces'] ??
+        dashboardStats?['active_custody'] ??
+        0;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -715,7 +717,7 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
           const Icon(Icons.timeline, color: Color(0xFF3CCB7F), size: 36),
           const SizedBox(height: 16),
           Text(
-            activeCustody.toString(),
+            totalCustody.toString(),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 36,
@@ -837,14 +839,14 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
     final Color statusColor = status == 'Completed'
         ? const Color(0xFF3CCB7F)
         : status == 'In Progress'
-        ? const Color(0xFF42A5F5)
-        : const Color(0xFFFFC857);
+            ? const Color(0xFF42A5F5)
+            : const Color(0xFFFFC857);
 
     final Color priorityColor = investigation['priority'] == 'High'
         ? const Color(0xFFFFC857)
         : investigation['priority'] == 'Medium'
-        ? const Color(0xFF42A5F5)
-        : const Color(0xFF78909C);
+            ? const Color(0xFF42A5F5)
+            : const Color(0xFF78909C);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1069,20 +1071,20 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
           anomalyProvider.isLoading
               ? const Center(child: CircularProgressIndicator())
               : highPriorityAnomalies.isEmpty
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: Text(
-                      'No high-priority anomalies',
-                      style: TextStyle(color: Color(0xFF78909C)),
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Text(
+                          'No high-priority anomalies',
+                          style: TextStyle(color: Color(0xFF78909C)),
+                        ),
+                      ),
+                    )
+                  : Column(
+                      children: highPriorityAnomalies
+                          .map((anomaly) => _buildAnomalyQueueItem(anomaly))
+                          .toList(),
                     ),
-                  ),
-                )
-              : Column(
-                  children: highPriorityAnomalies
-                      .map((anomaly) => _buildAnomalyQueueItem(anomaly))
-                      .toList(),
-                ),
         ],
       ),
     );
@@ -1505,8 +1507,8 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
                 final Color scoreColor = score > 80
                     ? const Color(0xFF3CCB7F)
                     : score > 60
-                    ? const Color(0xFFFFC857)
-                    : const Color(0xFFE85C5C);
+                        ? const Color(0xFFFFC857)
+                        : const Color(0xFFE85C5C);
 
                 return DataRow(
                   cells: [

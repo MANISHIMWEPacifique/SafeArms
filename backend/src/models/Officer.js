@@ -63,6 +63,18 @@ const Officer = {
             values
         );
         return result.rows[0];
+    },
+
+    async getStats() {
+        const result = await query(`
+            SELECT 
+                COUNT(*) as total_officers,
+                COUNT(*) FILTER (WHERE is_active = true) as active_officers,
+                COUNT(*) FILTER (WHERE firearm_certified = true) as certified_officers,
+                COUNT(*) FILTER (WHERE firearm_certified = true AND certification_expiry < CURRENT_DATE) as expired_certifications
+            FROM officers
+        `);
+        return result.rows[0];
     }
 };
 

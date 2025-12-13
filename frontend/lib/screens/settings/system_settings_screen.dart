@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/settings_provider.dart';
-import '../../widgets/side_nav.dart';
 
 class SystemSettingsScreen extends StatefulWidget {
   const SystemSettingsScreen({Key? key}) : super(key: key);
@@ -15,10 +14,12 @@ class SystemSettingsScreen extends StatefulWidget {
 
 class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   String _selectedMenu = 'general';
-  
+
   // General Settings state
-  final TextEditingController _platformNameController = TextEditingController(text: 'SafeArms');
-  final TextEditingController _organizationController = TextEditingController(text: 'Rwanda National Police');
+  final TextEditingController _platformNameController =
+      TextEditingController(text: 'SafeArms');
+  final TextEditingController _organizationController =
+      TextEditingController(text: 'Rwanda National Police');
   String _timeZone = 'Africa/Kigali';
   String _dateFormat = 'DD/MM/YYYY';
   String _timeFormat = '24-hour';
@@ -48,7 +49,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
       backgroundColor: const Color(0xFF1A1F2E),
       body: Row(
         children: [
-          const SideNav(activeItem: 'Settings'),
           Expanded(
             child: Row(
               children: [
@@ -85,7 +85,10 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               children: [
                 const Text(
                   'System Settings',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 const Text(
@@ -94,14 +97,18 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E88E5).withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
                     'Admin Access',
-                    style: TextStyle(color: Color(0xFF1E88E5), fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Color(0xFF1E88E5),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -114,14 +121,16 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               children: [
                 _buildMenuItem('general', Icons.settings, 'General Settings'),
-                _buildMenuItem('security', Icons.shield, 'Security & Authentication'),
+                _buildMenuItem(
+                    'security', Icons.shield, 'Security & Authentication'),
                 _buildMenuItem('ml', Icons.psychology, 'ML.js Configuration'),
                 _buildMenuItem('email', Icons.email, 'Email Settings'),
                 _buildMenuItem('audit', Icons.list_alt, 'Audit Logs'),
                 _buildMenuItem('health', Icons.favorite, 'System Health'),
                 _buildMenuItem('backup', Icons.backup, 'Backup & Recovery'),
                 _buildMenuItem('permissions', Icons.people, 'User Permissions'),
-                _buildMenuItem('notifications', Icons.notifications, 'Notifications'),
+                _buildMenuItem(
+                    'notifications', Icons.notifications, 'Notifications'),
                 _buildMenuItem('advanced', Icons.tune, 'Advanced Settings'),
               ],
             ),
@@ -139,7 +148,9 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF1E88E5).withOpacity(0.1) : Colors.transparent,
+          color: isActive
+              ? const Color(0xFF1E88E5).withOpacity(0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border(
             left: BorderSide(
@@ -152,14 +163,17 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           children: [
             Icon(
               icon,
-              color: isActive ? const Color(0xFF1E88E5) : const Color(0xFF78909C),
+              color:
+                  isActive ? const Color(0xFF1E88E5) : const Color(0xFF78909C),
               size: 20,
             ),
             const SizedBox(width: 12),
             Text(
               label,
               style: TextStyle(
-                color: isActive ? const Color(0xFF1E88E5) : const Color(0xFFB0BEC5),
+                color: isActive
+                    ? const Color(0xFF1E88E5)
+                    : const Color(0xFFB0BEC5),
                 fontSize: 14,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
               ),
@@ -201,7 +215,10 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                 children: const [
                   Text(
                     'General Settings',
-                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 4),
                   Text(
@@ -217,14 +234,15 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E88E5),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
                 child: const Text('Save Changes'),
               ),
             ],
           ),
           const SizedBox(height: 32),
-          
+
           // Platform Information
           _buildSettingsCard(
             'Platform Information',
@@ -244,17 +262,22 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Environment', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+                          const Text('Environment',
+                              style: TextStyle(
+                                  color: Color(0xFFB0BEC5), fontSize: 13)),
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               color: const Color(0xFF3CCB7F).withOpacity(0.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Text(
                               'Production',
-                              style: TextStyle(color: Color(0xFF3CCB7F), fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  color: Color(0xFF3CCB7F),
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
@@ -266,33 +289,45 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Regional Settings
           _buildSettingsCard(
             'Regional Settings',
             Column(
               children: [
-                _buildDropdownField('Time Zone', _timeZone, [
-                  'Africa/Kigali (CAT, UTC+2)',
-                  'UTC',
-                  'America/New_York',
-                ], (value) => setState(() => _timeZone = value!)),
+                _buildDropdownField(
+                    'Time Zone',
+                    _timeZone,
+                    [
+                      'Africa/Kigali (CAT, UTC+2)',
+                      'UTC',
+                      'America/New_York',
+                    ],
+                    (value) => setState(() => _timeZone = value!)),
                 const SizedBox(height: 16),
-                _buildRadioGroup('Date Format', _dateFormat, [
-                  'DD/MM/YYYY',
-                  'MM/DD/YYYY',
-                  'YYYY-MM-DD',
-                ], (value) => setState(() => _dateFormat = value!)),
+                _buildRadioGroup(
+                    'Date Format',
+                    _dateFormat,
+                    [
+                      'DD/MM/YYYY',
+                      'MM/DD/YYYY',
+                      'YYYY-MM-DD',
+                    ],
+                    (value) => setState(() => _dateFormat = value!)),
                 const SizedBox(height: 16),
-                _buildRadioGroup('Time Format', _timeFormat, [
-                  '24-hour',
-                  '12-hour',
-                ], (value) => setState(() => _timeFormat = value!)),
+                _buildRadioGroup(
+                    'Time Format',
+                    _timeFormat,
+                    [
+                      '24-hour',
+                      '12-hour',
+                    ],
+                    (value) => setState(() => _timeFormat = value!)),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Session Management
           _buildSettingsCard(
             'Session Management',
@@ -302,7 +337,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                   'Session Timeout',
                   _sessionTimeout,
                   (value) => setState(() => _sessionTimeout = value),
-                  helperText: 'Users will be logged out after this period of inactivity',
+                  helperText:
+                      'Users will be logged out after this period of inactivity',
                   unit: 'minutes',
                 ),
                 const SizedBox(height: 16),
@@ -335,7 +371,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         children: [
           const Text(
             'Security & Authentication',
-            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Container(
@@ -378,21 +415,30 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             'Two-Factor Authentication (Email OTP)',
             Column(
               children: [
-                _buildToggleField('Enable 2FA', true, (v) {}, 'Email OTP verification for all users'),
+                _buildToggleField('Enable 2FA', true, (v) {},
+                    'Email OTP verification for all users'),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: _buildNumberField('OTP Code Length', 6, (v) {}, unit: 'digits')),
+                    Expanded(
+                        child: _buildNumberField('OTP Code Length', 6, (v) {},
+                            unit: 'digits')),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildNumberField('OTP Validity', 10, (v) {}, unit: 'minutes')),
+                    Expanded(
+                        child: _buildNumberField('OTP Validity', 10, (v) {},
+                            unit: 'minutes')),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: _buildNumberField('Max OTP Attempts', 3, (v) {})),
+                    Expanded(
+                        child:
+                            _buildNumberField('Max OTP Attempts', 3, (v) {})),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildNumberField('Lockout Duration', 15, (v) {}, unit: 'minutes')),
+                    Expanded(
+                        child: _buildNumberField('Lockout Duration', 15, (v) {},
+                            unit: 'minutes')),
                   ],
                 ),
               ],
@@ -405,7 +451,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
 
   Widget _buildMLConfiguration() {
     final settingsProvider = context.watch<SettingsProvider>();
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -419,7 +465,10 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                 children: const [
                   Text(
                     'ML.js Anomaly Detection Configuration',
-                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 4),
                   Text(
@@ -429,18 +478,22 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFF3CCB7F).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: const [
-                    Icon(Icons.check_circle, color: Color(0xFF3CCB7F), size: 16),
+                    Icon(Icons.check_circle,
+                        color: Color(0xFF3CCB7F), size: 16),
                     SizedBox(width: 8),
                     Text(
                       'ML Engine: Active',
-                      style: TextStyle(color: Color(0xFF3CCB7F), fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Color(0xFF3CCB7F),
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -448,25 +501,32 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ],
           ),
           const SizedBox(height: 32),
-          
+
           // Model Status Cards
           Row(
             children: [
-              Expanded(child: _buildStatusCard('Active Model', 'v1.2.3', 'Trained: Dec 8, 2025', Icons.psychology)),
+              Expanded(
+                  child: _buildStatusCard('Active Model', 'v1.2.3',
+                      'Trained: Dec 8, 2025', Icons.psychology)),
               const SizedBox(width: 16),
-              Expanded(child: _buildStatusCard('Detection Status', 'Operational', '0 errors in 24h', Icons.check_circle)),
+              Expanded(
+                  child: _buildStatusCard('Detection Status', 'Operational',
+                      '0 errors in 24h', Icons.check_circle)),
               const SizedBox(width: 16),
-              Expanded(child: _buildStatusCard('Performance', '0.23s', 'Avg detection latency', Icons.speed)),
+              Expanded(
+                  child: _buildStatusCard('Performance', '0.23s',
+                      'Avg detection latency', Icons.speed)),
             ],
           ),
           const SizedBox(height: 24),
-          
+
           _buildSettingsCard(
             'Detection Thresholds',
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Anomaly Detection Threshold', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14)),
+                const Text('Anomaly Detection Threshold',
+                    style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14)),
                 Slider(
                   value: 0.35,
                   min: 0.0,
@@ -482,26 +542,30 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Actions
           Row(
             children: [
               ElevatedButton.icon(
-                onPressed: settingsProvider.isSaving ? null : () {
-                  context.read<SettingsProvider>().trainMLModel();
-                },
+                onPressed: settingsProvider.isSaving
+                    ? null
+                    : () {
+                        context.read<SettingsProvider>().trainMLModel();
+                      },
                 icon: settingsProvider.isSaving
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.play_arrow),
                 label: const Text('Train Model Now'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E88E5),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
               ),
               const SizedBox(width: 12),
@@ -526,9 +590,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   }
 
   Widget _buildSystemHealth() {
-    final settingsProvider = context.watch<SettingsProvider>();
-    final health = settingsProvider.systemHealth;
-    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -539,21 +600,28 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             children: [
               const Text(
                 'System Health Dashboard',
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFF3CCB7F).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: const [
-                    Icon(Icons.check_circle, color: Color(0xFF3CCB7F), size: 16),
+                    Icon(Icons.check_circle,
+                        color: Color(0xFF3CCB7F), size: 16),
                     SizedBox(width: 8),
                     Text(
                       'All Systems Operational',
-                      style: TextStyle(color: Color(0xFF3CCB7F), fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Color(0xFF3CCB7F),
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -561,17 +629,26 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ],
           ),
           const SizedBox(height: 32),
-          
           Wrap(
             spacing: 16,
             runSpacing: 16,
             children: [
-              _buildHealthCard('Database', 'Healthy', '42/100 active connections', Icons.storage, const Color(0xFF3CCB7F)),
-              _buildHealthCard('ML.js Engine', 'Running', 'v1.2.3 - 0 pending', Icons.psychology, const Color(0xFF1E88E5)),
-              _buildHealthCard('Email Service', 'Connected', '148 sent (24h)', Icons.email, const Color(0xFF42A5F5)),
-              _buildHealthCard('API Performance', 'Optimal', '123ms avg response', Icons.api, const Color(0xFF3CCB7F)),
-              _buildHealthCard('Storage', 'Healthy', '2.4 GB database size', Icons.hard_drive, const Color(0xFF1E88E5)),
-              _buildHealthCard('Active Sessions', '87 users', 'Peak: 142 today', Icons.people, const Color(0xFF42A5F5)),
+              _buildHealthCard(
+                  'Database',
+                  'Healthy',
+                  '42/100 active connections',
+                  Icons.storage,
+                  const Color(0xFF3CCB7F)),
+              _buildHealthCard('ML.js Engine', 'Running', 'v1.2.3 - 0 pending',
+                  Icons.psychology, const Color(0xFF1E88E5)),
+              _buildHealthCard('Email Service', 'Connected', '148 sent (24h)',
+                  Icons.email, const Color(0xFF42A5F5)),
+              _buildHealthCard('API Performance', 'Optimal',
+                  '123ms avg response', Icons.api, const Color(0xFF3CCB7F)),
+              _buildHealthCard('Storage', 'Healthy', '2.4 GB database size',
+                  Icons.storage, const Color(0xFF1E88E5)),
+              _buildHealthCard('Active Sessions', '87 users', 'Peak: 142 today',
+                  Icons.people, const Color(0xFF42A5F5)),
             ],
           ),
         ],
@@ -588,7 +665,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           SizedBox(height: 16),
           Text(
             'Coming Soon',
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           Text(
@@ -614,7 +692,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           child,
@@ -627,7 +706,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -649,7 +729,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
@@ -661,18 +742,21 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           ),
           child: Text(
             value,
-            style: const TextStyle(color: Color(0xFF78909C), fontFamily: 'monospace'),
+            style: const TextStyle(
+                color: Color(0xFF78909C), fontFamily: 'monospace'),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDropdownField(String label, String value, List<String> items, Function(String?) onChanged) {
+  Widget _buildDropdownField(String label, String value, List<String> items,
+      Function(String?) onChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -687,7 +771,10 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               isExpanded: true,
               dropdownColor: const Color(0xFF2A3040),
               style: const TextStyle(color: Colors.white),
-              items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+              items: items
+                  .map((item) =>
+                      DropdownMenuItem(value: item, child: Text(item)))
+                  .toList(),
               onChanged: onChanged,
             ),
           ),
@@ -696,57 +783,71 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     );
   }
 
-  Widget _buildRadioGroup(String label, String value, List<String> options, Function(String?) onChanged) {
+  Widget _buildRadioGroup(String label, String value, List<String> options,
+      Function(String?) onChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
         const SizedBox(height: 8),
-        ...options.map((option) => RadioListTile<String>(
-          value: option,
-          groupValue: value,
-          onChanged: onChanged,
-          title: Text(option, style: const TextStyle(color: Colors.white, fontSize: 14)),
-          activeColor: const Color(0xFF1E88E5),
-        )).toList(),
+        ...options
+            .map((option) => RadioListTile<String>(
+                  value: option,
+                  groupValue: value,
+                  onChanged: onChanged,
+                  title: Text(option,
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 14)),
+                  activeColor: const Color(0xFF1E88E5),
+                ))
+            .toList(),
       ],
     );
   }
 
-  Widget _buildNumberField(String label, int value, Function(int) onChanged, {String? helperText, String? unit}) {
+  Widget _buildNumberField(String label, int value, Function(int) onChanged,
+      {String? helperText, String? unit}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2A3040),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFF37404F)),
                 ),
-                child: Text('$value', style: const TextStyle(color: Colors.white)),
+                child:
+                    Text('$value', style: const TextStyle(color: Colors.white)),
               ),
             ),
             if (unit != null) ...[
               const SizedBox(width: 12),
-              Text(unit, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14)),
+              Text(unit,
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14)),
             ],
           ],
         ),
         if (helperText != null) ...[
           const SizedBox(height: 4),
-          Text(helperText, style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
+          Text(helperText,
+              style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
         ],
       ],
     );
   }
 
-  Widget _buildToggleField(String label, bool value, Function(bool) onChanged, String? helperText) {
+  Widget _buildToggleField(
+      String label, bool value, Function(bool) onChanged, String? helperText) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -754,9 +855,12 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
+              Text(label,
+                  style: const TextStyle(color: Colors.white, fontSize: 14)),
               if (helperText != null)
-                Text(helperText, style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
+                Text(helperText,
+                    style: const TextStyle(
+                        color: Color(0xFF78909C), fontSize: 12)),
             ],
           ),
         ),
@@ -769,17 +873,20 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     );
   }
 
-  Widget _buildCheckboxField(String label, bool value, Function(bool?) onChanged) {
+  Widget _buildCheckboxField(
+      String label, bool value, Function(bool?) onChanged) {
     return CheckboxListTile(
       value: value,
       onChanged: onChanged,
-      title: Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
+      title: Text(label,
+          style: const TextStyle(color: Colors.white, fontSize: 14)),
       activeColor: const Color(0xFF1E88E5),
       controlAffinity: ListTileControlAffinity.leading,
     );
   }
 
-  Widget _buildStatusCard(String title, String value, String subtitle, IconData icon) {
+  Widget _buildStatusCard(
+      String title, String value, String subtitle, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -793,7 +900,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
           ),
           Text(
             title,
@@ -809,7 +917,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     );
   }
 
-  Widget _buildHealthCard(String title, String status, String details, IconData icon, Color color) {
+  Widget _buildHealthCard(
+      String title, String status, String details, IconData icon, Color color) {
     return Container(
       width: 280,
       padding: const EdgeInsets.all(20),
@@ -827,7 +936,10 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -840,7 +952,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ),
             child: Text(
               status,
-              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: color, fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 12),

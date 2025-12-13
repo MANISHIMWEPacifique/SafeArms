@@ -4,19 +4,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/custody_provider.dart';
-import '../../widgets/side_nav.dart';
 
 class CustodyManagementScreen extends StatefulWidget {
   const CustodyManagementScreen({Key? key}) : super(key: key);
 
   @override
-  State<CustodyManagementScreen> createState() => _CustodyManagementScreenState();
+  State<CustodyManagementScreen> createState() =>
+      _CustodyManagementScreenState();
 }
 
 class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
+  // ignore: unused_field - used via setState for future modal implementation
   bool _showAssignModal = false;
+  // ignore: unused_field - used via setState for future modal implementation
   bool _showReturnModal = false;
+  // ignore: unused_field - reserved for custody selection
   String? _selectedCustodyId;
 
   @override
@@ -43,7 +46,6 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
       backgroundColor: const Color(0xFF1A1F2E),
       body: Row(
         children: [
-          const SideNav(activeItem: 'Custody'),
           Expanded(
             child: Column(
               children: [
@@ -92,18 +94,21 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
         children: [
           const Text(
             'Custody Management',
-            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
           ElevatedButton.icon(
             onPressed: () => setState(() => _showAssignModal = true),
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Assign Custody', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            label: const Text('Assign Custody',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E88E5),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
           const SizedBox(width: 12),
@@ -115,7 +120,8 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
               foregroundColor: const Color(0xFF1E88E5),
               side: const BorderSide(color: Color(0xFF1E88E5)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
           const SizedBox(width: 12),
@@ -129,7 +135,8 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
               foregroundColor: const Color(0xFFB0BEC5),
               side: const BorderSide(color: Color(0xFF37404F)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
           const SizedBox(width: 24),
@@ -143,12 +150,14 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
     final status = provider.anomalyStatus;
     final isActive = status['active'] == true;
     final count = status['count'] ?? 0;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF1E3A5F),
-        border: Border.all(color: isActive ? const Color(0xFF3CCB7F) : const Color(0xFF78909C)),
+        border: Border.all(
+            color:
+                isActive ? const Color(0xFF3CCB7F) : const Color(0xFF78909C)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -158,19 +167,22 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
             height: 8,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isActive ? const Color(0xFF3CCB7F) : const Color(0xFF78909C),
+              color:
+                  isActive ? const Color(0xFF3CCB7F) : const Color(0xFF78909C),
             ),
           ),
           const SizedBox(width: 8),
           const Text(
             'ML Monitoring',
-            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
           ),
           const SizedBox(width: 12),
           Text(
             '$count anomalies today',
             style: TextStyle(
-              color: count > 0 ? const Color(0xFFE85C5C) : const Color(0xFF3CCB7F),
+              color:
+                  count > 0 ? const Color(0xFFE85C5C) : const Color(0xFF3CCB7F),
               fontSize: 13,
             ),
           ),
@@ -221,7 +233,8 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Search', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+                const Text('Search',
+                    style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
@@ -235,8 +248,10 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: const InputDecoration(
                       hintText: 'Search by officer, firearm, or serial number',
-                      hintStyle: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                      prefixIcon: Icon(Icons.search, color: Color(0xFF78909C), size: 20),
+                      hintStyle:
+                          TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                      prefixIcon: Icon(Icons.search,
+                          color: Color(0xFF78909C), size: 20),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -259,7 +274,8 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
@@ -271,14 +287,17 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF78909C)),
+              icon: const Icon(Icons.keyboard_arrow_down,
+                  color: Color(0xFF78909C)),
               dropdownColor: const Color(0xFF2A3040),
               style: const TextStyle(color: Colors.white, fontSize: 14),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              items: items.map((item) => DropdownMenuItem<String>(
-                value: item['value'],
-                child: Text(item['label']!),
-              )).toList(),
+              items: items
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item['value'],
+                        child: Text(item['label']!),
+                      ))
+                  .toList(),
               onChanged: onChanged,
             ),
           ),
@@ -289,7 +308,8 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
 
   Widget _buildCustodyGrid(CustodyProvider provider) {
     if (provider.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
     }
 
     final custodyRecords = provider.activeCustodyRecords;
@@ -319,7 +339,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
     final duration = assignedDate != null
         ? DateTime.now().difference(assignedDate)
         : Duration.zero;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
@@ -340,7 +360,8 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
                   color: Color(0xFF2A3040),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.local_police, color: Color(0xFF42A5F5), size: 24),
+                child: const Icon(Icons.local_police,
+                    color: Color(0xFF42A5F5), size: 24),
               ),
               const Spacer(),
               if (hasAnomaly)
@@ -350,12 +371,13 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
                     color: Color(0xFFE85C5C),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.warning, color: Colors.white, size: 16),
+                  child:
+                      const Icon(Icons.warning, color: Colors.white, size: 16),
                 ),
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Firearm details
           Text(
             custody['firearm_serial'] ?? 'Unknown',
@@ -373,7 +395,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
             overflow: TextOverflow.ellipsis,
           ),
           const Divider(color: Color(0xFF37404F), height: 24),
-          
+
           // Officer info
           Row(
             children: [
@@ -389,15 +411,16 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           // Custody type badge
           _buildCustodyTypeBadge(custodyType),
           const SizedBox(height: 12),
-          
+
           // Assignment date
           Row(
             children: [
-              const Icon(Icons.calendar_today, color: Color(0xFF78909C), size: 14),
+              const Icon(Icons.calendar_today,
+                  color: Color(0xFF78909C), size: 14),
               const SizedBox(width: 6),
               Text(
                 _formatDate(assignedDate),
@@ -406,7 +429,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          
+
           // Duration counter
           Row(
             children: [
@@ -419,7 +442,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Status indicator
           Row(
             children: [
@@ -443,7 +466,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
             ],
           ),
           const Spacer(),
-          
+
           // Action buttons
           Row(
             children: [
@@ -456,14 +479,17 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
                     foregroundColor: const Color(0xFF1E88E5),
                     side: const BorderSide(color: Color(0xFF1E88E5)),
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6)),
                   ),
-                  child: const Text('View Details', style: TextStyle(fontSize: 13)),
+                  child: const Text('View Details',
+                      style: TextStyle(fontSize: 13)),
                 ),
               ),
               const SizedBox(width: 8),
               IconButton(
-                icon: const Icon(Icons.assignment_return, size: 18, color: Color(0xFF78909C)),
+                icon: const Icon(Icons.assignment_return,
+                    size: 18, color: Color(0xFF78909C)),
                 onPressed: () {
                   setState(() {
                     _selectedCustodyId = custody['custody_id'];
@@ -482,7 +508,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
   Widget _buildCustodyTypeBadge(String type) {
     Color backgroundColor;
     String displayText;
-    
+
     switch (type) {
       case 'permanent':
         backgroundColor = const Color(0xFF3CCB7F);
@@ -500,7 +526,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
         backgroundColor = const Color(0xFF78909C);
         displayText = type.toUpperCase();
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -525,11 +551,15 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.assignment_outlined, size: 64, color: Color(0xFF78909C)),
+            const Icon(Icons.assignment_outlined,
+                size: 64, color: Color(0xFF78909C)),
             const SizedBox(height: 16),
             const Text(
               'No active custody assignments',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -544,7 +574,8 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1E88E5),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -555,7 +586,20 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
 
   String _formatDate(DateTime? date) {
     if (date == null) return 'Unknown';
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 

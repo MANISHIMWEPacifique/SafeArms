@@ -23,11 +23,12 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = context.read<AuthProvider>();
-      final role = authProvider.currentUser?['role'];
-      final unitId = (role != null && role == 'station_commander')
-          ? authProvider.currentUser?['unit_id'] 
-          : null;
-      
+      final role = authProvider.currentUser?['role'] as String?;
+      String? unitId;
+      if (role == 'station_commander') {
+        unitId = authProvider.currentUser?['unit_id'] as String?;
+      }
+
       context.read<FirearmProvider>().loadFirearms(unitId: unitId);
       context.read<FirearmProvider>().loadStats(unitId: unitId);
     });
@@ -43,7 +44,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   Widget build(BuildContext context) {
     final firearmProvider = context.watch<FirearmProvider>();
     final authProvider = context.watch<AuthProvider>();
-    final isHQCommander = authProvider.currentUser?['role'] == 'hq_firearm_commander';
+    final isHQCommander =
+        authProvider.currentUser?['role'] == 'hq_firearm_commander';
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
@@ -79,7 +81,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               ),
             ],
           ),
-          
+
           // Modal Overlays
           if (_showRegisterModal)
             RegisterFirearmModal(
@@ -90,7 +92,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 firearmProvider.loadStats();
               },
             ),
-          
+
           if (_selectedFirearmForDetail != null)
             FirearmDetailModal(
               firearm: _selectedFirearmForDetail!,
@@ -108,7 +110,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     );
   }
 
-  Widget _buildTopNavBar(BuildContext context, FirearmProvider provider, bool isHQCommander) {
+  Widget _buildTopNavBar(
+      BuildContext context, FirearmProvider provider, bool isHQCommander) {
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -125,7 +128,9 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isHQCommander ? 'National Firearms Registry' : 'Unit Firearms Inventory',
+                isHQCommander
+                    ? 'National Firearms Registry'
+                    : 'Unit Firearms Inventory',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -154,7 +159,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               decoration: const InputDecoration(
                 hintText: 'Search by serial number, model, unit...',
                 hintStyle: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                prefixIcon: Icon(Icons.search, color: Color(0xFF78909C), size: 20),
+                prefixIcon:
+                    Icon(Icons.search, color: Color(0xFF78909C), size: 20),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(vertical: 12),
               ),
@@ -164,12 +170,14 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
           ElevatedButton.icon(
             onPressed: () => setState(() => _showRegisterModal = true),
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Register Firearm', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            label: const Text('Register Firearm',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E88E5),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],
@@ -246,7 +254,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 {'value': 'H&K', 'label': 'H&K'},
                 {'value': 'SIG Sauer', 'label': 'SIG Sauer'},
               ],
-              onChanged: (value) => provider.setManufacturerFilter(value ?? 'all'),
+              onChanged: (value) =>
+                  provider.setManufacturerFilter(value ?? 'all'),
             ),
           ),
           const SizedBox(width: 16),
@@ -262,13 +271,16 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                       color: const Color(0xFF1E88E5),
                     ),
                     onPressed: () => provider.toggleViewMode(),
-                    tooltip: provider.isGridView ? 'Switch to List View' : 'Switch to Grid View',
+                    tooltip: provider.isGridView
+                        ? 'Switch to List View'
+                        : 'Switch to Grid View',
                   ),
                   TextButton.icon(
                     onPressed: () => provider.clearFilters(),
                     icon: const Icon(Icons.clear, size: 18),
                     label: const Text('Clear'),
-                    style: TextButton.styleFrom(foregroundColor: const Color(0xFF64B5F6)),
+                    style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF64B5F6)),
                   ),
                 ],
               ),
@@ -288,7 +300,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
@@ -300,14 +313,17 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF78909C)),
+              icon: const Icon(Icons.keyboard_arrow_down,
+                  color: Color(0xFF78909C)),
               dropdownColor: const Color(0xFF2A3040),
               style: const TextStyle(color: Colors.white, fontSize: 14),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              items: items.map((item) => DropdownMenuItem<String>(
-                value: item['value'],
-                child: Text(item['label']!),
-              )).toList(),
+              items: items
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item['value'],
+                        child: Text(item['label']!),
+                      ))
+                  .toList(),
               onChanged: onChanged,
             ),
           ),
@@ -318,7 +334,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
 
   Widget _buildStatsBar(FirearmProvider provider) {
     final stats = provider.stats;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
@@ -393,13 +409,20 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               children: [
                 Text(
                   number,
-                  style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold),
                 ),
-                Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+                Text(label,
+                    style: const TextStyle(
+                        color: Color(0xFFB0BEC5), fontSize: 13)),
                 if (percentage != null)
                   Text(
                     percentage,
-                    style: TextStyle(color: percentageColor ?? const Color(0xFF78909C), fontSize: 12),
+                    style: TextStyle(
+                        color: percentageColor ?? const Color(0xFF78909C),
+                        fontSize: 12),
                   ),
               ],
             ),
@@ -420,7 +443,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
 
   Widget _buildGridView(FirearmProvider provider) {
     if (provider.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
     }
 
     final firearms = provider.paginatedFirearms;
@@ -474,7 +498,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Firearm icon
             Center(
               child: Container(
@@ -492,11 +516,14 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Firearm details
             Text(
               '${firearm.manufacturer} ${firearm.model}',
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -506,12 +533,16 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 Expanded(
                   child: Text(
                     firearm.serialNumber,
-                    style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14, fontFamily: 'monospace'),
+                    style: const TextStyle(
+                        color: Color(0xFFB0BEC5),
+                        fontSize: 14,
+                        fontFamily: 'monospace'),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.copy, size: 16, color: Color(0xFF78909C)),
+                  icon: const Icon(Icons.copy,
+                      size: 16, color: Color(0xFF78909C)),
                   onPressed: () {
                     // Copy serial number
                   },
@@ -521,15 +552,15 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               ],
             ),
             const Divider(color: Color(0xFF37404F), height: 32),
-            
+
             // Specifications
             _buildSpecRow('Type', _formatFirearmType(firearm.firearmType)),
-            _buildSpecRow('Caliber', firearm.caliber),
+            _buildSpecRow('Caliber', firearm.caliber ?? 'N/A'),
             _buildSpecRow('Year', firearm.manufactureYear?.toString() ?? 'N/A'),
             _buildSpecRow('Acquired', _formatDate(firearm.acquisitionDate)),
-            
+
             const SizedBox(height: 16),
-            
+
             // Assignment section
             if (firearm.assignedUnitId != null)
               Container(
@@ -540,7 +571,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.business, color: Color(0xFF42A5F5), size: 16),
+                    const Icon(Icons.business,
+                        color: Color(0xFF42A5F5), size: 16),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -548,11 +580,15 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                         children: [
                           const Text(
                             'Assigned Unit',
-                            style: TextStyle(color: Color(0xFF78909C), fontSize: 11),
+                            style: TextStyle(
+                                color: Color(0xFF78909C), fontSize: 11),
                           ),
                           Text(
                             firearm.assignedUnitId!,
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -561,9 +597,9 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                   ],
                 ),
               ),
-            
+
             const Spacer(),
-            
+
             // Action buttons
             Row(
               children: [
@@ -576,20 +612,24 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                       foregroundColor: const Color(0xFF1E88E5),
                       side: const BorderSide(color: Color(0xFF1E88E5)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
                     ),
-                    child: const Text('View Details', style: TextStyle(fontSize: 13)),
+                    child: const Text('View Details',
+                        style: TextStyle(fontSize: 13)),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.edit, size: 18, color: Color(0xFF78909C)),
+                  icon: const Icon(Icons.edit,
+                      size: 18, color: Color(0xFF78909C)),
                   onPressed: () {
                     // Edit firearm
                   },
                 ),
                 IconButton(
-                  icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF78909C)),
+                  icon: const Icon(Icons.more_vert,
+                      size: 18, color: Color(0xFF78909C)),
                   onPressed: () {
                     // More actions
                   },
@@ -608,8 +648,10 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 13)),
+          Text(label,
+              style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
+          Text(value,
+              style: const TextStyle(color: Colors.white, fontSize: 13)),
         ],
       ),
     );
@@ -618,7 +660,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   Widget _buildStatusBadge(String status) {
     Color backgroundColor;
     String displayText;
-    
+
     switch (status) {
       case 'available':
         backgroundColor = const Color(0xFF3CCB7F);
@@ -645,7 +687,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
         backgroundColor = const Color(0xFF78909C);
         displayText = status.toUpperCase();
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -654,7 +696,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
       ),
       child: Text(
         displayText,
-        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+            color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -664,7 +707,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        border: Border.all(color: isHQ ? const Color(0xFF1E88E5) : const Color(0xFF3CCB7F)),
+        border: Border.all(
+            color: isHQ ? const Color(0xFF1E88E5) : const Color(0xFF3CCB7F)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -704,11 +748,13 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inventory_2_outlined, size: 64, color: const Color(0xFF78909C)),
+          Icon(Icons.inventory_2_outlined,
+              size: 64, color: const Color(0xFF78909C)),
           const SizedBox(height: 16),
           const Text(
             'No firearms found',
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -741,8 +787,12 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                color: provider.currentPage > 1 ? const Color(0xFFB0BEC5) : const Color(0xFF37404F),
-                onPressed: provider.currentPage > 1 ? () => provider.previousPage() : null,
+                color: provider.currentPage > 1
+                    ? const Color(0xFFB0BEC5)
+                    : const Color(0xFF37404F),
+                onPressed: provider.currentPage > 1
+                    ? () => provider.previousPage()
+                    : null,
               ),
               ...List.generate(
                 provider.totalPages.clamp(0, 5),
@@ -755,14 +805,18 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: isActive ? const Color(0xFF1E88E5) : Colors.transparent,
+                        color: isActive
+                            ? const Color(0xFF1E88E5)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         '$page',
                         style: TextStyle(
-                          color: isActive ? Colors.white : const Color(0xFFB0BEC5),
-                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                          color:
+                              isActive ? Colors.white : const Color(0xFFB0BEC5),
+                          fontWeight:
+                              isActive ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -799,13 +853,27 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   }
 
   String _formatFirearmType(String type) {
-    return type.split('_').map((word) => 
-      word[0].toUpperCase() + word.substring(1)
-    ).join(' ');
+    return type
+        .split('_')
+        .map((word) => word[0].toUpperCase() + word.substring(1))
+        .join(' ');
   }
 
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }

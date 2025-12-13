@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
-import '../../providers/custody_provider.dart';
 import '../auth/login_screen.dart';
 
 class ForensicAnalystDashboard extends StatefulWidget {

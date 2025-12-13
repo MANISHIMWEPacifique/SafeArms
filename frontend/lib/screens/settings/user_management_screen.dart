@@ -4,9 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
-import '../../widgets/side_nav.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({Key? key}) : super(key: key);
@@ -39,15 +37,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
-    final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
       body: Row(
         children: [
-          // Side Navigation
-          const SideNav(activeItem: 'Users'),
-          
           // Main Content
           Expanded(
             child: Column(
@@ -75,7 +69,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
         ],
       ),
-      
+
       // Modals
       floatingActionButton: _buildModals(context, userProvider),
     );
@@ -115,9 +109,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               ),
             ],
           ),
-          
+
           const Spacer(),
-          
+
           // Search bar
           Container(
             width: 300,
@@ -135,16 +129,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               style: const TextStyle(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Search users by name, username, role...',
-                hintStyle: const TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF78909C), size: 20),
+                hintStyle:
+                    const TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                prefixIcon: const Icon(Icons.search,
+                    color: Color(0xFF78909C), size: 20),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Create User button
           ElevatedButton.icon(
             onPressed: () {
@@ -153,7 +149,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               });
             },
             icon: const Icon(Icons.person_add, size: 18),
-            label: const Text('Create User', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            label: const Text('Create User',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E88E5),
               foregroundColor: Colors.white,
@@ -186,7 +183,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               items: const [
                 {'value': 'all', 'label': 'All Roles'},
                 {'value': 'admin', 'label': 'Admin'},
-                {'value': 'hq_firearm_commander', 'label': 'HQ Firearm Commander'},
+                {
+                  'value': 'hq_firearm_commander',
+                  'label': 'HQ Firearm Commander'
+                },
                 {'value': 'station_commander', 'label': 'Station Commander'},
                 {'value': 'forensic_analyst', 'label': 'Forensic Analyst'},
               ],
@@ -194,7 +194,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          
+
           // Status filter
           Expanded(
             child: _buildFilterDropdown(
@@ -205,11 +205,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 {'value': 'active', 'label': 'Active'},
                 {'value': 'inactive', 'label': 'Inactive'},
               ],
-              onChanged: (value) => userProvider.setStatusFilter(value ?? 'all'),
+              onChanged: (value) =>
+                  userProvider.setStatusFilter(value ?? 'all'),
             ),
           ),
           const SizedBox(width: 16),
-          
+
           // Unit filter (placeholder - would load actual units)
           Expanded(
             child: _buildFilterDropdown(
@@ -222,7 +223,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          
+
           // Clear button
           TextButton.icon(
             onPressed: () => userProvider.clearFilters(),
@@ -261,7 +262,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF78909C)),
+              icon: const Icon(Icons.keyboard_arrow_down,
+                  color: Color(0xFF78909C)),
               dropdownColor: const Color(0xFF2A3040),
               style: const TextStyle(color: Colors.white, fontSize: 14),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -281,7 +283,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Widget _buildStatsBar(UserProvider userProvider) {
     final stats = userProvider.stats;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
@@ -449,10 +451,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               ],
             ),
           ),
-          
+
           // Table rows
           ...users.map((user) => _buildUserRow(user, userProvider)).toList(),
-          
+
           // Pagination
           _buildPagination(userProvider),
         ],
@@ -518,7 +520,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ],
               ),
             ),
-            
+
             // Username
             Expanded(
               flex: 2,
@@ -531,53 +533,62 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ),
               ),
             ),
-            
+
             // Role
             Expanded(
               flex: 2,
               child: _buildRoleBadge(user.role),
             ),
-            
+
             // Unit
             Expanded(
               flex: 2,
               child: Row(
                 children: [
                   if (user.unitId != null) ...[
-                    const Icon(Icons.business, color: Color(0xFF78909C), size: 16),
+                    const Icon(Icons.business,
+                        color: Color(0xFF78909C), size: 16),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         user.unitId ?? '—',
-                        style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
+                        style: const TextStyle(
+                            color: Color(0xFFB0BEC5), fontSize: 14),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ] else
-                    const Text('—', style: TextStyle(color: Color(0xFF78909C), fontSize: 14)),
+                    const Text('—',
+                        style:
+                            TextStyle(color: Color(0xFF78909C), fontSize: 14)),
                 ],
               ),
             ),
-            
+
             // Last login
             Expanded(
               flex: 2,
               child: Row(
                 children: [
-                  const Icon(Icons.access_time, color: Color(0xFF78909C), size: 16),
+                  const Icon(Icons.access_time,
+                      color: Color(0xFF78909C), size: 16),
                   const SizedBox(width: 4),
                   Text(
-                    user.lastLogin != null ? _getRelativeTime(user.lastLogin!) : 'Never',
+                    user.lastLogin != null
+                        ? _getRelativeTime(user.lastLogin!)
+                        : 'Never',
                     style: TextStyle(
                       color: const Color(0xFF78909C),
                       fontSize: 14,
-                      fontStyle: user.lastLogin == null ? FontStyle.italic : FontStyle.normal,
+                      fontStyle: user.lastLogin == null
+                          ? FontStyle.italic
+                          : FontStyle.normal,
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Status
             Expanded(
               flex: 1,
@@ -588,14 +599,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     height: 8,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: user.isActive ? const Color(0xFF3CCB7F) : const Color(0xFF78909C),
+                      color: user.isActive
+                          ? const Color(0xFF3CCB7F)
+                          : const Color(0xFF78909C),
                     ),
                   ),
                   const SizedBox(width: 6),
                   Text(
                     user.isActive ? 'Active' : 'Inactive',
                     style: TextStyle(
-                      color: user.isActive ? const Color(0xFF3CCB7F) : const Color(0xFF78909C),
+                      color: user.isActive
+                          ? const Color(0xFF3CCB7F)
+                          : const Color(0xFF78909C),
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -603,7 +618,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ],
               ),
             ),
-            
+
             // Actions
             SizedBox(
               width: 100,
@@ -643,7 +658,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Widget _buildRoleBadge(String role) {
     Color backgroundColor;
     String displayText;
-    
+
     switch (role) {
       case 'admin':
         backgroundColor = const Color(0xFFE85C5C);
@@ -665,7 +680,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         backgroundColor = const Color(0xFF78909C);
         displayText = role.toUpperCase();
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -706,8 +721,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                color: userProvider.currentPage > 1 ? const Color(0xFFB0BEC5) : const Color(0xFF37404F),
-                onPressed: userProvider.currentPage > 1 ? () => userProvider.previousPage() : null,
+                color: userProvider.currentPage > 1
+                    ? const Color(0xFFB0BEC5)
+                    : const Color(0xFF37404F),
+                onPressed: userProvider.currentPage > 1
+                    ? () => userProvider.previousPage()
+                    : null,
               ),
               ...List.generate(
                 userProvider.totalPages.clamp(0, 5),
@@ -720,14 +739,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: isActive ? const Color(0xFF1E88E5) : Colors.transparent,
+                        color: isActive
+                            ? const Color(0xFF1E88E5)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         '$page',
                         style: TextStyle(
-                          color: isActive ? Colors.white : const Color(0xFFB0BEC5),
-                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                          color:
+                              isActive ? Colors.white : const Color(0xFFB0BEC5),
+                          fontWeight:
+                              isActive ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -769,7 +792,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         },
       );
     }
-    
+
     if (_showDeleteModal && _userToDelete != null) {
       return _DeleteConfirmationModal(
         user: _userToDelete!,
@@ -796,7 +819,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         },
       );
     }
-    
+
     return const SizedBox.shrink();
   }
 
@@ -822,7 +845,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   String _getRelativeTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inDays > 30) {
       return '${difference.inDays ~/ 30} months ago';
     } else if (difference.inDays > 0) {
@@ -839,7 +862,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
 class _TableHeader extends StatelessWidget {
   final String text;
-  
+
   const _TableHeader(this.text, {Key? key}) : super(key: key);
 
   @override
@@ -861,7 +884,7 @@ class _CreateUserModal extends StatelessWidget {
   final UserModel? user;
   final VoidCallback onClose;
   final VoidCallback onSuccess;
-  
+
   const _CreateUserModal({
     Key? key,
     this.user,
@@ -881,7 +904,7 @@ class _DeleteConfirmationModal extends StatelessWidget {
   final UserModel user;
   final VoidCallback onClose;
   final VoidCallback onConfirm;
-  
+
   const _DeleteConfirmationModal({
     Key? key,
     required this.user,

@@ -34,15 +34,26 @@ class ApiConfig {
   // Timeout Configuration
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
+  static const Duration timeout = Duration(seconds: 30);
+
+  // Aliases for compatibility
+  static String get firearms => firearmsUrl;
+  static String get custody => custodyUrl;
+  static String get officers => officersUrl;
+  static String get units => unitsUrl;
+  static String get users => usersUrl;
+  static String get ballistic => ballisticUrl;
+  static String get anomalies => anomaliesUrl;
+  static String get approvals => approvalsUrl;
 
   // Headers
   static Map<String, String> get defaultHeaders => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
 
   static Map<String, String> authHeaders(String token) => {
-    ...defaultHeaders,
-    'Authorization': 'Bearer $token',
-  };
+        ...defaultHeaders,
+        'Authorization': 'Bearer $token',
+      };
 }

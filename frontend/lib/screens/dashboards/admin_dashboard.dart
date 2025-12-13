@@ -411,7 +411,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildStatsCards() {
     final dashboardProvider = Provider.of<DashboardProvider>(context);
-    final anomalyProvider = Provider.of<AnomalyProvider>(context);
 
     final totalUsers = dashboardProvider.totalUsersCount ?? 0;
     final activeUnits = dashboardProvider.activeUnitsCount ?? 0;
@@ -426,8 +425,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         totalAnomalies += count;
         if (severity == 'critical')
           critical = count;
-        else if (severity == 'high')
-          high = count;
+        else if (severity == 'high') high = count;
       }
     }
 
@@ -578,7 +576,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Container(
                   height: 200,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1F2E).withOpacity(0.5),
+                    color: const Color(0xFF1A1F2E).withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Center(

@@ -22,31 +22,38 @@ class RegisterFirearmModal extends StatefulWidget {
   State<RegisterFirearmModal> createState() => _RegisterFirearmModalState();
 }
 
-class _RegisterFirearmModalState extends State<RegisterFirearmModal> with SingleTickerProviderStateMixin {
+class _RegisterFirearmModalState extends State<RegisterFirearmModal>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
-  
+
   // Basic Info Controllers
   final TextEditingController _serialNumberController = TextEditingController();
   final TextEditingController _manufacturerController = TextEditingController();
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _caliberController = TextEditingController();
-  final TextEditingController _manufactureYearController = TextEditingController();
-  final TextEditingController _acquisitionSourceController = TextEditingController();
+  final TextEditingController _manufactureYearController =
+      TextEditingController();
+  final TextEditingController _acquisitionSourceController =
+      TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-  
+
   // Ballistic Profile Controllers
   final TextEditingController _testLocationController = TextEditingController();
   final TextEditingController _riflingController = TextEditingController();
   final TextEditingController _firingPinController = TextEditingController();
   final TextEditingController _ejectorMarksController = TextEditingController();
-  final TextEditingController _extractorMarksController = TextEditingController();
+  final TextEditingController _extractorMarksController =
+      TextEditingController();
   final TextEditingController _chamberMarksController = TextEditingController();
-  final TextEditingController _testConductedByController = TextEditingController();
+  final TextEditingController _testConductedByController =
+      TextEditingController();
   final TextEditingController _forensicLabController = TextEditingController();
-  final TextEditingController _testAmmunitionController = TextEditingController();
-  final TextEditingController _ballisticNotesController = TextEditingController();
-  
+  final TextEditingController _testAmmunitionController =
+      TextEditingController();
+  final TextEditingController _ballisticNotesController =
+      TextEditingController();
+
   // State
   String _firearmType = 'pistol';
   String? _assignedUnitId;
@@ -58,14 +65,15 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+
     if (widget.firearm != null) {
       _serialNumberController.text = widget.firearm!.serialNumber;
       _manufacturerController.text = widget.firearm!.manufacturer;
       _modelController.text = widget.firearm!.model;
-      _caliberController.text = widget.firearm!.caliber;
+      _caliberController.text = widget.firearm!.caliber ?? '';
       _firearmType = widget.firearm!.firearmType;
-      _manufactureYearController.text = widget.firearm!.manufactureYear?.toString() ?? '';
+      _manufactureYearController.text =
+          widget.firearm!.manufactureYear?.toString() ?? '';
       _acquisitionDate = widget.firearm!.acquisitionDate;
       _assignedUnitId = widget.firearm!.assignedUnitId;
     }
@@ -185,8 +193,13 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.firearm == null ? 'Register New Firearm (HQ)' : 'Edit Firearm',
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                widget.firearm == null
+                    ? 'Register New Firearm (HQ)'
+                    : 'Edit Firearm',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -234,7 +247,10 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
           children: [
             const Text(
               'Identification',
-              style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Color(0xFFB0BEC5),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Row(
@@ -245,7 +261,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
                     label: 'Serial Number',
                     hint: 'Unique serial number',
                     required: true,
-                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Required' : null,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -255,7 +272,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
                     label: 'Manufacturer',
                     hint: 'e.g., Glock, Beretta',
                     required: true,
-                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Required' : null,
                   ),
                 ),
               ],
@@ -269,7 +287,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
                     label: 'Model',
                     hint: 'e.g., 17, 92FS',
                     required: true,
-                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Required' : null,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -293,7 +312,10 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
             const SizedBox(height: 24),
             const Text(
               'Specifications',
-              style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Color(0xFFB0BEC5),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Row(
@@ -304,7 +326,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
                     label: 'Caliber',
                     hint: '9mm, .45 ACP, etc.',
                     required: true,
-                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Required' : null,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -321,7 +344,10 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
             const SizedBox(height: 24),
             const Text(
               'Acquisition Details',
-              style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Color(0xFFB0BEC5),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Row(
@@ -330,7 +356,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
                   child: _buildDateField(
                     label: 'Acquisition Date',
                     value: _acquisitionDate,
-                    onChanged: (date) => setState(() => _acquisitionDate = date),
+                    onChanged: (date) =>
+                        setState(() => _acquisitionDate = date),
                     required: true,
                   ),
                 ),
@@ -381,7 +408,10 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
         children: [
           const Text(
             'Test Information',
-            style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Color(0xFFB0BEC5),
+                fontSize: 16,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Row(
@@ -407,7 +437,10 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
           const SizedBox(height: 24),
           const Text(
             'Ballistic Characteristics',
-            style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Color(0xFFB0BEC5),
+                fontSize: 16,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           _buildTextField(
@@ -455,7 +488,10 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
           const SizedBox(height: 24),
           const Text(
             'Test Details',
-            style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Color(0xFFB0BEC5),
+                fontSize: 16,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Row(
@@ -514,7 +550,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
               foregroundColor: const Color(0xFFB0BEC5),
               side: const BorderSide(color: Color(0xFF37404F)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Cancel', style: TextStyle(fontSize: 15)),
           ),
@@ -525,7 +562,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.check_circle, size: 18),
             label: const Text(
@@ -536,7 +574,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
               backgroundColor: const Color(0xFF1E88E5),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],
@@ -558,7 +597,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
       children: [
         Row(
           children: [
-            Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            Text(label,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
             if (required) ...[
               const SizedBox(width: 4),
               const Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
@@ -592,7 +632,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: Color(0xFFE85C5C), width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           validator: validator,
         ),
@@ -612,7 +653,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
       children: [
         Row(
           children: [
-            Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            Text(label,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
             if (required) ...[
               const SizedBox(width: 4),
               const Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
@@ -631,13 +673,16 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              hint: const Text('Select...', style: TextStyle(color: Color(0xFF78909C))),
+              hint: const Text('Select...',
+                  style: TextStyle(color: Color(0xFF78909C))),
               dropdownColor: const Color(0xFF2A3040),
               style: const TextStyle(color: Colors.white),
-              items: items.map((item) => DropdownMenuItem<String>(
-                value: item['value'],
-                child: Text(item['label']!),
-              )).toList(),
+              items: items
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item['value'],
+                        child: Text(item['label']!),
+                      ))
+                  .toList(),
               onChanged: onChanged,
             ),
           ),
@@ -657,7 +702,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
       children: [
         Row(
           children: [
-            Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            Text(label,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
             if (required) ...[
               const SizedBox(width: 4),
               const Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
@@ -684,7 +730,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today, color: Color(0xFF78909C), size: 16),
+                const Icon(Icons.calendar_today,
+                    color: Color(0xFF78909C), size: 16),
                 const SizedBox(width: 12),
                 Text(
                   '${value.day}/${value.month}/${value.year}',
@@ -704,14 +751,16 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal> with Single
       decoration: BoxDecoration(
         color: const Color(0xFF1E3A5F),
         borderRadius: BorderRadius.circular(8),
-        border: const Border(left: BorderSide(color: Color(0xFF42A5F5), width: 4)),
+        border:
+            const Border(left: BorderSide(color: Color(0xFF42A5F5), width: 4)),
       ),
       child: Row(
         children: [
           const Icon(Icons.info, color: Color(0xFF42A5F5), size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(text, style: const TextStyle(color: Color(0xFFE3F2FD), fontSize: 13)),
+            child: Text(text,
+                style: const TextStyle(color: Color(0xFFE3F2FD), fontSize: 13)),
           ),
         ],
       ),

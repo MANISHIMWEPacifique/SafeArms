@@ -171,7 +171,7 @@ class FirearmDetailModal extends StatelessWidget {
         const SizedBox(height: 16),
         _buildInfoCard([
           _buildInfoRow('Type', _formatFirearmType(firearm.firearmType)),
-          _buildInfoRow('Caliber', firearm.caliber),
+          _buildInfoRow('Caliber', firearm.caliber ?? 'N/A'),
           _buildInfoRow('Manufacture Year', firearm.manufactureYear?.toString() ?? 'N/A'),
           _buildInfoRow('Manufacturer', firearm.manufacturer),
           _buildInfoRow('Model', firearm.model),
@@ -196,7 +196,7 @@ class FirearmDetailModal extends StatelessWidget {
         _buildInfoCard([
           _buildInfoRow('Acquisition Date', _formatDate(firearm.acquisitionDate)),
           _buildInfoRow('Source', firearm.acquisitionSource ?? 'N/A'),
-          _buildInfoRow('Registered By', firearm.registeredBy ?? 'N/A'),
+          _buildInfoRow('Registered By', firearm.registeredBy),
         ]),
       ],
     );

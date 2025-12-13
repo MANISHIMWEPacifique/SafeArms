@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/officer_provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../models/officer_model.dart';
 import '../../widgets/add_officer_modal.dart';
 
@@ -18,7 +17,6 @@ class OfficersRegistryScreen extends StatefulWidget {
 class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _showAddModal = false;
-  OfficerModel? _selectedOfficerForDetail;
   final Set<String> _selectedOfficers = {};
 
   @override

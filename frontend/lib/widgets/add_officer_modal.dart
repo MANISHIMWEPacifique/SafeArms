@@ -36,7 +36,7 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
   String _selectedRank = 'constable';
   String? _selectedUnit;
   DateTime? _dateOfBirth;
-  DateTime _employmentDate = DateTime.now();
+  DateTime? _employmentDate = DateTime.now();
   bool _isActive = true;
   bool _isLoading = false;
 

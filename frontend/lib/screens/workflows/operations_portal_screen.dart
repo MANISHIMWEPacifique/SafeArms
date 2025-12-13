@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/operations_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/side_nav.dart';
 
 class OperationsPortalScreen extends StatefulWidget {
   const OperationsPortalScreen({Key? key}) : super(key: key);
@@ -14,7 +13,8 @@ class OperationsPortalScreen extends StatefulWidget {
   State<OperationsPortalScreen> createState() => _OperationsPortalScreenState();
 }
 
-class _OperationsPortalScreenState extends State<OperationsPortalScreen> with SingleTickerProviderStateMixin {
+class _OperationsPortalScreenState extends State<OperationsPortalScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -45,7 +45,6 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
       backgroundColor: const Color(0xFF1A1F2E),
       body: Row(
         children: [
-          const SideNav(activeItem: 'Operations'),
           Expanded(
             child: Column(
               children: [
@@ -83,7 +82,10 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
             children: [
               const Text(
                 'Operations Portal',
-                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -92,7 +94,8 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E88E5).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -104,7 +107,10 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
                     SizedBox(width: 6),
                     Text(
                       'Nyamirambo Police Station',
-                      style: TextStyle(color: Color(0xFF1E88E5), fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Color(0xFF1E88E5),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -201,7 +207,8 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
                 ),
                 Text(
                   label,
-                  style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
                 ),
               ],
             ),
@@ -269,13 +276,16 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
             // Open loss report modal
           },
           filter: provider.lossReportsFilter,
-          onFilterChanged: (value) => provider.setLossReportsFilter(value ?? 'all'),
+          onFilterChanged: (value) =>
+              provider.setLossReportsFilter(value ?? 'all'),
         ),
         Expanded(
           child: provider.isLoading
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF1E88E5)))
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF1E88E5)))
               : provider.lossReports.isEmpty
-                  ? _buildEmptyState('No loss reports submitted', 'Report lost or stolen firearms to initiate investigation')
+                  ? _buildEmptyState('No loss reports submitted',
+                      'Report lost or stolen firearms to initiate investigation')
                   : _buildLossReportsList(provider.lossReports),
         ),
       ],
@@ -293,13 +303,16 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
             // Open destruction modal
           },
           filter: provider.destructionFilter,
-          onFilterChanged: (value) => provider.setDestructionFilter(value ?? 'all'),
+          onFilterChanged: (value) =>
+              provider.setDestructionFilter(value ?? 'all'),
         ),
         Expanded(
           child: provider.isLoading
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF1E88E5)))
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF1E88E5)))
               : provider.destructionRequests.isEmpty
-                  ? _buildEmptyState('No destruction requests submitted', 'Request firearm disposal for damaged or obsolete firearms')
+                  ? _buildEmptyState('No destruction requests submitted',
+                      'Request firearm disposal for damaged or obsolete firearms')
                   : _buildDestructionList(provider.destructionRequests),
         ),
       ],
@@ -317,13 +330,16 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
             // Open procurement modal
           },
           filter: provider.procurementFilter,
-          onFilterChanged: (value) => provider.setProcurementFilter(value ?? 'all'),
+          onFilterChanged: (value) =>
+              provider.setProcurementFilter(value ?? 'all'),
         ),
         Expanded(
           child: provider.isLoading
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF1E88E5)))
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF1E88E5)))
               : provider.procurementRequests.isEmpty
-                  ? _buildEmptyState('No procurement requests in progress', 'Request new firearms for your station')
+                  ? _buildEmptyState('No procurement requests in progress',
+                      'Request new firearms for your station')
                   : _buildProcurementList(provider.procurementRequests),
         ),
       ],
@@ -350,7 +366,8 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
               backgroundColor: buttonColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
           const SizedBox(width: 16),
@@ -367,7 +384,8 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
                 isExpanded: true,
                 dropdownColor: const Color(0xFF2A3040),
                 style: const TextStyle(color: Colors.white, fontSize: 14),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 items: const [
                   DropdownMenuItem(value: 'all', child: Text('All Status')),
                   DropdownMenuItem(value: 'pending', child: Text('Pending')),
@@ -425,11 +443,13 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.calendar_today, color: Color(0xFF78909C), size: 14),
+                const Icon(Icons.calendar_today,
+                    color: Color(0xFF78909C), size: 14),
                 const SizedBox(width: 6),
                 Text(
                   _formatDate(report['submitted_date']),
-                  style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
+                  style:
+                      const TextStyle(color: Color(0xFF78909C), fontSize: 13),
                 ),
               ],
             ),
@@ -450,7 +470,8 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
                               color: Color(0xFFE85C5C),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.warning, color: Colors.white, size: 20),
+                            child: const Icon(Icons.warning,
+                                color: Colors.white, size: 20),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -467,7 +488,8 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
                                 ),
                                 Text(
                                   '${report['manufacturer']} ${report['model']}',
-                                  style: const TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                                  style: const TextStyle(
+                                      color: Color(0xFF78909C), fontSize: 14),
                                 ),
                               ],
                             ),
@@ -477,7 +499,8 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
                       const SizedBox(height: 12),
                       Text(
                         'Last Custody: ${report['officer_name'] ?? 'Unknown'}',
-                        style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                        style: const TextStyle(
+                            color: Color(0xFFB0BEC5), fontSize: 13),
                       ),
                     ],
                   ),
@@ -487,11 +510,17 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildDetailRow('Loss Type', report['loss_type']?.toString().toUpperCase() ?? 'N/A', _getLossTypeColor(report['loss_type'])),
+                      _buildDetailRow(
+                          'Loss Type',
+                          report['loss_type']?.toString().toUpperCase() ??
+                              'N/A',
+                          _getLossTypeColor(report['loss_type'])),
                       const SizedBox(height: 8),
-                      _buildDetailRow('Loss Date', _formatDate(report['loss_date']), null),
+                      _buildDetailRow(
+                          'Loss Date', _formatDate(report['loss_date']), null),
                       const SizedBox(height: 8),
-                      _buildDetailRow('Location', report['loss_location'] ?? 'Not specified', null),
+                      _buildDetailRow('Location',
+                          report['loss_location'] ?? 'Not specified', null),
                     ],
                   ),
                 ),
@@ -538,7 +567,9 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
         decoration: BoxDecoration(
           color: const Color(0xFF252A3A),
           borderRadius: BorderRadius.circular(12),
-          border: Border(left: BorderSide(color: _getStatusColor(requests[index]['status']), width: 4)),
+          border: Border(
+              left: BorderSide(
+                  color: _getStatusColor(requests[index]['status']), width: 4)),
         ),
         child: Text(
           'Destruction Request - ${requests[index]['destruction_request_id']}',
@@ -558,7 +589,9 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
         decoration: BoxDecoration(
           color: const Color(0xFF252A3A),
           borderRadius: BorderRadius.circular(12),
-          border: Border(left: BorderSide(color: _getStatusColor(requests[index]['status']), width: 4)),
+          border: Border(
+              left: BorderSide(
+                  color: _getStatusColor(requests[index]['status']), width: 4)),
         ),
         child: Text(
           'Procurement Request - ${requests[index]['procurement_request_id']}',
@@ -577,7 +610,8 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
           const SizedBox(height: 16),
           Text(
             title,
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -599,7 +633,8 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
       ),
       child: Text(
         status.toUpperCase(),
-        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+        style:
+            TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -621,7 +656,8 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen> with Si
             style: TextStyle(
               color: valueColor ?? const Color(0xFFB0BEC5),
               fontSize: 13,
-              fontWeight: valueColor != null ? FontWeight.bold : FontWeight.normal,
+              fontWeight:
+                  valueColor != null ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ),

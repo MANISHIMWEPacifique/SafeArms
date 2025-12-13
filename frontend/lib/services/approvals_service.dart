@@ -18,7 +18,7 @@ class ApprovalsService {
   }
 
   // ===== LOSS REPORT APPROVALS =====
-  
+
   Future<List<Map<String, dynamic>>> getPendingLossReports({
     String? priority,
     String? unit,
@@ -26,14 +26,17 @@ class ApprovalsService {
     try {
       final headers = await _getHeaders();
       var url = '${ApiConfig.baseUrl}/api/approvals/loss-reports';
-      
+
       List<String> queryParams = [];
-      if (priority != null && priority != 'all') queryParams.add('priority=$priority');
+      if (priority != null && priority != 'all')
+        queryParams.add('priority=$priority');
       if (unit != null && unit != 'all') queryParams.add('unit=$unit');
-      
+
       if (queryParams.isNotEmpty) url += '?${queryParams.join('&')}';
 
-      final response = await http.get(Uri.parse(url), headers: headers).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -58,11 +61,14 @@ class ApprovalsService {
         'follow_up_actions': followUpActions,
       });
 
-      final response = await http.put(
-        Uri.parse('${ApiConfig.baseUrl}/api/approvals/loss-reports/$reportId/approve'),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .put(
+            Uri.parse(
+                '${ApiConfig.baseUrl}/api/approvals/loss-reports/$reportId/approve'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(ApiConfig.timeout);
 
       return response.statusCode == 200;
     } catch (e) {
@@ -86,11 +92,14 @@ class ApprovalsService {
         'resubmission_priority': resubmissionPriority,
       });
 
-      final response = await http.put(
-        Uri.parse('${ApiConfig.baseUrl}/api/approvals/loss-reports/$reportId/reject'),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .put(
+            Uri.parse(
+                '${ApiConfig.baseUrl}/api/approvals/loss-reports/$reportId/reject'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(const Duration(seconds: 30));
 
       return response.statusCode == 200;
     } catch (e) {
@@ -99,7 +108,7 @@ class ApprovalsService {
   }
 
   // ===== DESTRUCTION APPROVALS =====
-  
+
   Future<List<Map<String, dynamic>>> getPendingDestructionRequests({
     String? priority,
     String? unit,
@@ -107,14 +116,17 @@ class ApprovalsService {
     try {
       final headers = await _getHeaders();
       var url = '${ApiConfig.baseUrl}/api/approvals/destruction-requests';
-      
+
       List<String> queryParams = [];
-      if (priority != null && priority != 'all') queryParams.add('priority=$priority');
+      if (priority != null && priority != 'all')
+        queryParams.add('priority=$priority');
       if (unit != null && unit != 'all') queryParams.add('unit=$unit');
-      
+
       if (queryParams.isNotEmpty) url += '?${queryParams.join('&')}';
 
-      final response = await http.get(Uri.parse(url), headers: headers).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -139,11 +151,14 @@ class ApprovalsService {
         'scheduled_destruction_date': scheduledDate?.toIso8601String(),
       });
 
-      final response = await http.put(
-        Uri.parse('${ApiConfig.baseUrl}/api/approvals/destruction-requests/$requestId/approve'),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .put(
+            Uri.parse(
+                '${ApiConfig.baseUrl}/api/approvals/destruction-requests/$requestId/approve'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(ApiConfig.timeout);
 
       return response.statusCode == 200;
     } catch (e) {
@@ -152,7 +167,7 @@ class ApprovalsService {
   }
 
   // ===== PROCUREMENT APPROVALS =====
-  
+
   Future<List<Map<String, dynamic>>> getPendingProcurementRequests({
     String? priority,
     String? unit,
@@ -160,14 +175,17 @@ class ApprovalsService {
     try {
       final headers = await _getHeaders();
       var url = '${ApiConfig.baseUrl}/api/approvals/procurement-requests';
-      
+
       List<String> queryParams = [];
-      if (priority != null && priority != 'all') queryParams.add('priority=$priority');
+      if (priority != null && priority != 'all')
+        queryParams.add('priority=$priority');
       if (unit != null && unit != 'all') queryParams.add('unit=$unit');
-      
+
       if (queryParams.isNotEmpty) url += '?${queryParams.join('&')}';
 
-      final response = await http.get(Uri.parse(url), headers: headers).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -192,11 +210,14 @@ class ApprovalsService {
         'approved_amount': approvedAmount,
       });
 
-      final response = await http.put(
-        Uri.parse('${ApiConfig.baseUrl}/api/approvals/procurement-requests/$requestId/approve'),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .put(
+            Uri.parse(
+                '${ApiConfig.baseUrl}/api/approvals/procurement-requests/$requestId/approve'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(ApiConfig.timeout);
 
       return response.statusCode == 200;
     } catch (e) {
@@ -205,14 +226,16 @@ class ApprovalsService {
   }
 
   // ===== STATISTICS =====
-  
+
   Future<Map<String, dynamic>> getApprovalStats() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/api/approvals/stats'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.baseUrl}/api/approvals/stats'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

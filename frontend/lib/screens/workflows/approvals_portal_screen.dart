@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/approvals_provider.dart';
-import '../../widgets/side_nav.dart';
 
 class ApprovalsPortalScreen extends StatefulWidget {
   const ApprovalsPortalScreen({Key? key}) : super(key: key);
@@ -13,7 +12,8 @@ class ApprovalsPortalScreen extends StatefulWidget {
   State<ApprovalsPortalScreen> createState() => _ApprovalsPortalScreenState();
 }
 
-class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with SingleTickerProviderStateMixin {
+class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -43,7 +43,6 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
       backgroundColor: const Color(0xFF1A1F2E),
       body: Row(
         children: [
-          const SideNav(activeItem: 'Approvals'),
           Expanded(
             child: Column(
               children: [
@@ -81,7 +80,10 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
             children: [
               const Text(
                 'Approvals Portal',
-                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -92,7 +94,8 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E88E5).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
@@ -100,25 +103,33 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
-                        Icon(Icons.business, color: Color(0xFF1E88E5), size: 16),
+                        Icon(Icons.business,
+                            color: Color(0xFF1E88E5), size: 16),
                         SizedBox(width: 6),
                         Text(
                           'Rwanda National Police HQ',
-                          style: TextStyle(color: Color(0xFF1E88E5), fontSize: 13, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: Color(0xFF1E88E5),
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E88E5).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Text(
                       'HQ Firearm Commander',
-                      style: TextStyle(color: Color(0xFF1E88E5), fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Color(0xFF1E88E5),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -154,7 +165,10 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
                   Expanded(
                     child: Text(
                       '$criticalCount CRITICAL requests require immediate attention',
-                      style: const TextStyle(color: Color(0xFFE85C5C), fontSize: 15, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          color: Color(0xFFE85C5C),
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                   ElevatedButton(
@@ -238,7 +252,8 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
           const SizedBox(height: 12),
           Text(
             number,
-            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
           ),
           Text(
             label,
@@ -272,11 +287,13 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Loss Reports Review', style: TextStyle(fontSize: 15)),
+                const Text('Loss Reports Review',
+                    style: TextStyle(fontSize: 15)),
                 if (provider.pendingLossReports.isNotEmpty) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: const BoxDecoration(
                       color: Color(0xFFE85C5C),
                       shape: BoxShape.circle,
@@ -294,11 +311,13 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Destruction Review', style: TextStyle(fontSize: 15)),
-                if (provider.pending DestructionRequests.isNotEmpty) ...[
+                const Text('Destruction Review',
+                    style: TextStyle(fontSize: 15)),
+                if (provider.pendingDestructionRequests.isNotEmpty) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: const BoxDecoration(
                       color: Color(0xFFFFA726),
                       shape: BoxShape.circle,
@@ -316,11 +335,13 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Procurement Review', style: TextStyle(fontSize: 15)),
+                const Text('Procurement Review',
+                    style: TextStyle(fontSize: 15)),
                 if (provider.pendingProcurementRequests.isNotEmpty) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: const BoxDecoration(
                       color: Color(0xFF3CCB7F),
                       shape: BoxShape.circle,
@@ -352,7 +373,9 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
                 _buildFilterBar(provider, 'loss'),
                 Expanded(
                   child: provider.isLoading
-                      ? const Center(child: CircularProgressIndicator(color: Color(0xFF1E88E5)))
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              color: Color(0xFF1E88E5)))
                       : provider.pendingLossReports.isEmpty
                           ? const Center(
                               child: Text(
@@ -417,10 +440,12 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
                   isExpanded: true,
                   dropdownColor: const Color(0xFF2A3040),
                   style: const TextStyle(color: Colors.white, fontSize: 14),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   items: const [
                     DropdownMenuItem(value: 'all', child: Text('All Priority')),
-                    DropdownMenuItem(value: 'critical', child: Text('Critical')),
+                    DropdownMenuItem(
+                        value: 'critical', child: Text('Critical')),
                     DropdownMenuItem(value: 'high', child: Text('High')),
                     DropdownMenuItem(value: 'medium', child: Text('Medium')),
                   ],
@@ -441,8 +466,9 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
       itemBuilder: (context, index) {
         final report = provider.pendingLossReports[index];
         final isSelected = provider.selectedRequest != null &&
-            provider.selectedRequest!['loss_report_id'] == report['loss_report_id'];
-        
+            provider.selectedRequest!['loss_report_id'] ==
+                report['loss_report_id'];
+
         return InkWell(
           onTap: () => provider.selectRequest(report),
           child: Container(
@@ -479,20 +505,26 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
                 const SizedBox(height: 8),
                 Text(
                   report['station_name'] ?? 'Unknown Station',
-                  style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                  style:
+                      const TextStyle(color: Color(0xFF78909C), fontSize: 12),
                 ),
                 const Divider(color: Color(0xFF37404F), height: 16),
                 Text(
                   '${report['manufacturer']} ${report['model']} - ${report['firearm_serial']}',
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _getLossTypeColor(report['loss_type']).withOpacity(0.2),
+                        color: _getLossTypeColor(report['loss_type'])
+                            .withOpacity(0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -523,7 +555,8 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
           SizedBox(height: 16),
           Text(
             'Select a request to review details',
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           Text(
@@ -537,7 +570,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
 
   Widget _buildDetailView(ApprovalsProvider provider) {
     final request = provider.selectedRequest!;
-    
+
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -565,7 +598,10 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
             children: [
               Text(
                 request['loss_report_id'] ?? 'LOSS-XXXX',
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Row(
@@ -573,14 +609,18 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
                   _buildPriorityBadge(request['priority']),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFC857).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
                       'PENDING HQ APPROVAL',
-                      style: TextStyle(color: Color(0xFFFFC857), fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Color(0xFFFFC857),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -610,12 +650,16 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
         children: [
           const Text(
             'Station Information',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Text(
             request['station_name'] ?? 'Unknown Station',
-            style: const TextStyle(color: Color(0xFF1E88E5), fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Color(0xFF1E88E5),
+                fontSize: 18,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -641,12 +685,14 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
         children: [
           const Text(
             'Firearm Details',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Text(
             request['firearm_serial'] ?? 'Unknown',
-            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
           Text(
             '${request['manufacturer']} ${request['model']}',
@@ -671,30 +717,38 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
         children: [
           const Text(
             'Incident Details',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          _buildDetailRow('Loss Type', request['loss_type']?.toString().toUpperCase() ?? 'N/A'),
+          _buildDetailRow('Loss Type',
+              request['loss_type']?.toString().toUpperCase() ?? 'N/A'),
           const SizedBox(height: 8),
           _buildDetailRow('Loss Date', _formatDate(request['loss_date'])),
           const SizedBox(height: 8),
-          _buildDetailRow('Location', request['loss_location'] ?? 'Not specified'),
+          _buildDetailRow(
+              'Location', request['loss_location'] ?? 'Not specified'),
           const SizedBox(height: 16),
           const Text(
             'Circumstances',
-            style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Color(0xFFB0BEC5),
+                fontSize: 14,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             request['circumstances'] ?? 'No details provided',
-            style: const TextStyle(color: Color(0xFF78909C), fontSize: 14, height: 1.6),
+            style: const TextStyle(
+                color: Color(0xFF78909C), fontSize: 14, height: 1.6),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildReviewActionPanel(ApprovalsProvider provider, Map<String, dynamic> request) {
+  Widget _buildReviewActionPanel(
+      ApprovalsProvider provider, Map<String, dynamic> request) {
     return Container(
       margin: const EdgeInsets.all(24),
       padding: const EdgeInsets.all(20),
@@ -750,7 +804,8 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
       ),
       child: Text(
         priority?.toUpperCase() ?? 'MEDIUM',
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+        style:
+            TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -790,7 +845,9 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen> with Sing
   }
 
   Color _getLossTypeColor(String? type) {
-    return type?.toLowerCase() == 'stolen' ? const Color(0xFFE85C5C) : const Color(0xFFFFC857);
+    return type?.toLowerCase() == 'stolen'
+        ? const Color(0xFFE85C5C)
+        : const Color(0xFFFFC857);
   }
 
   String _formatDate(dynamic date) {

@@ -462,7 +462,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             crossAxisCount: 3,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 0.75,
+            childAspectRatio: 0.58,
           ),
           itemCount: firearms.length,
           itemBuilder: (context, index) => _buildFirearmCard(firearms[index]),
@@ -485,9 +485,10 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
           border: Border.all(color: const Color(0xFF37404F)),
           borderRadius: BorderRadius.circular(12),
         ),
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Header with status badges
             Row(
@@ -597,8 +598,6 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                   ],
                 ),
               ),
-
-            const Spacer(),
 
             // Action buttons
             Row(

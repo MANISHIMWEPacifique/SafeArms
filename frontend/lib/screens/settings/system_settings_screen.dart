@@ -45,26 +45,20 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A1F2E),
-      body: Row(
+    return Container(
+      color: const Color(0xFF1A1F2E),
+      child: Row(
         children: [
+          // LEFT SIDE MENU (25%)
           Expanded(
-            child: Row(
-              children: [
-                // LEFT SIDE MENU (25%)
-                Expanded(
-                  flex: 25,
-                  child: _buildSideMenu(),
-                ),
-                Container(width: 1, color: const Color(0xFF37404F)),
-                // MAIN CONTENT AREA (75%)
-                Expanded(
-                  flex: 75,
-                  child: _buildContentArea(),
-                ),
-              ],
-            ),
+            flex: 25,
+            child: _buildSideMenu(),
+          ),
+          Container(width: 1, color: const Color(0xFF37404F)),
+          // MAIN CONTENT AREA (75%)
+          Expanded(
+            flex: 75,
+            child: _buildContentArea(),
           ),
         ],
       ),

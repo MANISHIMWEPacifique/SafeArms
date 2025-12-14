@@ -282,7 +282,16 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                           ),
                           Expanded(
                             child: Text(
-                              'Commander',
+                              'Firearms',
+                              style: TextStyle(
+                                color: Color(0xFF78909C),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Officers',
                               style: TextStyle(
                                 color: Color(0xFF78909C),
                                 fontWeight: FontWeight.bold,
@@ -298,7 +307,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                               ),
                             ),
                           ),
-                          SizedBox(width: 80, child: Text('')),
+                          SizedBox(width: 100, child: Text('')),
                         ],
                       ),
                     ),
@@ -351,6 +360,11 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
   }
 
   Widget _buildUnitRow(dynamic unit) {
+    // Get stats from unit data (or default to 0)
+    final firearmCount = unit['firearm_count'] ?? unit['firearms_count'] ?? 0;
+    final officerCount = unit['officer_count'] ?? unit['officers_count'] ?? 0;
+    final pendingActions = unit['pending_actions'] ?? 0;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
@@ -374,12 +388,25 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    unit['unit_name'] ?? 'Unknown',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        unit['unit_name'] ?? 'Unknown',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (unit['commander_name'] != null)
+                        Text(
+                          'Cmd: ${unit['commander_name']}',
+                          style: const TextStyle(
+                            color: Color(0xFF78909C),
+                            fontSize: 11,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -404,13 +431,58 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
           Expanded(
             child: Text(
               '${unit['district'] ?? ''}, ${unit['province'] ?? ''}',
-              style: const TextStyle(color: Color(0xFFB0BEC5)),
+              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          // Firearms count with icon
           Expanded(
-            child: Text(
-              unit['commander_name'] ?? 'Not assigned',
-              style: const TextStyle(color: Color(0xFFB0BEC5)),
+            child: Row(
+              children: [
+                const Icon(Icons.gavel, color: Color(0xFF42A5F5), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  '$firearmCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (pendingActions > 0) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFC857).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$pendingActions pending',
+                      style: const TextStyle(
+                        color: Color(0xFFFFC857),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Officers count with icon
+          Expanded(
+            child: Row(
+              children: [
+                const Icon(Icons.badge, color: Color(0xFF3CCB7F), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  '$officerCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -436,19 +508,33 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             ),
           ),
           SizedBox(
-            width: 80,
+            width: 100,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.edit, color: Color(0xFF78909C)),
+                  icon: const Icon(Icons.edit,
+                      color: Color(0xFF78909C), size: 20),
                   onPressed: () => _showEditUnitDialog(unit),
                   tooltip: 'Edit',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.visibility, color: Color(0xFF78909C)),
+                  icon: const Icon(Icons.visibility,
+                      color: Color(0xFF78909C), size: 20),
                   onPressed: () => _showUnitDetails(unit),
                   tooltip: 'View Details',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.assessment,
+                      color: Color(0xFF1E88E5), size: 20),
+                  onPressed: () => _showUnitStats(unit),
+                  tooltip: 'View Stats',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
                 ),
               ],
             ),
@@ -571,6 +657,233 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             child: Text(
               value,
               style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUnitStats(dynamic unit) {
+    final firearmCount = unit['firearm_count'] ?? unit['firearms_count'] ?? 0;
+    final officerCount = unit['officer_count'] ?? unit['officers_count'] ?? 0;
+    final activeCustody = unit['active_custody'] ?? 0;
+    final pendingApprovals = unit['pending_approvals'] ?? 0;
+    final anomalyCount = unit['anomaly_count'] ?? 0;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A3040),
+        title: Row(
+          children: [
+            const Icon(Icons.assessment, color: Color(0xFF1E88E5)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '${unit['unit_name']} - Statistics',
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Stats Grid
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      'Firearms',
+                      '$firearmCount',
+                      Icons.gavel,
+                      const Color(0xFF42A5F5),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      'Officers',
+                      '$officerCount',
+                      Icons.badge,
+                      const Color(0xFF3CCB7F),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      'Active Custody',
+                      '$activeCustody',
+                      Icons.swap_horiz,
+                      const Color(0xFF9C27B0),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      'Pending Approvals',
+                      '$pendingApprovals',
+                      Icons.pending_actions,
+                      const Color(0xFFFFC857),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (anomalyCount > 0)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE85C5C).withOpacity(0.1),
+                    border: Border.all(color: const Color(0xFFE85C5C)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber, color: Color(0xFFE85C5C)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Anomalies Detected',
+                              style: TextStyle(
+                                color: Color(0xFFE85C5C),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '$anomalyCount anomalies require investigation',
+                              style: const TextStyle(
+                                color: Color(0xFF78909C),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 16),
+              // Admin Responsibilities Section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1F2E),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Admin Responsibilities',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildResponsibilityItem(
+                      'Oversee firearm registrations',
+                      Icons.check_circle,
+                      const Color(0xFF3CCB7F),
+                    ),
+                    _buildResponsibilityItem(
+                      'Review custody transfer approvals',
+                      Icons.check_circle,
+                      const Color(0xFF3CCB7F),
+                    ),
+                    _buildResponsibilityItem(
+                      'Monitor anomaly alerts',
+                      Icons.check_circle,
+                      const Color(0xFF3CCB7F),
+                    ),
+                    _buildResponsibilityItem(
+                      'Audit unit activities',
+                      Icons.check_circle,
+                      const Color(0xFF3CCB7F),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              // Navigate to unit reports
+            },
+            icon: const Icon(Icons.description, size: 18),
+            label: const Text('View Reports'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E88E5),
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+      String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF78909C),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResponsibilityItem(String text, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
             ),
           ),
         ],

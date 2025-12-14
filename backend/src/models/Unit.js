@@ -2,7 +2,35 @@ const { query } = require('../config/database');
 
 const Unit = {
     async findById(unitId) {
-        const result = await query('SELECT * FROM units WHERE unit_id = $1', [unitId]);
+        const result = await query(`
+            SELECT u.*,
+                   COALESCE(f.firearm_count, 0) as firearm_count,
+                   COALESCE(o.officer_count, 0) as officer_count,
+                   COALESCE(c.active_custody, 0) as active_custody,
+                   COALESCE(a.anomaly_count, 0) as anomaly_count
+            FROM units u
+            LEFT JOIN (
+                SELECT assigned_unit_id, COUNT(*) as firearm_count 
+                FROM firearms WHERE is_active = true 
+                GROUP BY assigned_unit_id
+            ) f ON u.unit_id = f.assigned_unit_id
+            LEFT JOIN (
+                SELECT unit_id, COUNT(*) as officer_count 
+                FROM officers WHERE is_active = true 
+                GROUP BY unit_id
+            ) o ON u.unit_id = o.unit_id
+            LEFT JOIN (
+                SELECT unit_id, COUNT(*) as active_custody 
+                FROM custody_records WHERE returned_at IS NULL 
+                GROUP BY unit_id
+            ) c ON u.unit_id = c.unit_id
+            LEFT JOIN (
+                SELECT unit_id, COUNT(*) as anomaly_count 
+                FROM anomalies WHERE status = 'pending' 
+                GROUP BY unit_id
+            ) a ON u.unit_id = a.unit_id
+            WHERE u.unit_id = $1
+        `, [unitId]);
         return result.rows[0];
     },
 
@@ -14,13 +42,13 @@ const Unit = {
 
         if (unit_type) {
             pCount++;
-            where += ` AND unit_type = $${pCount}`;
+            where += ` AND u.unit_type = $${pCount}`;
             params.push(unit_type);
         }
 
         if (is_active !== undefined) {
             pCount++;
-            where += ` AND is_active = $${pCount}`;
+            where += ` AND u.is_active = $${pCount}`;
             params.push(is_active);
         }
 
@@ -29,10 +57,37 @@ const Unit = {
         pCount++;
         params.push(offset);
 
-        const result = await query(
-            `SELECT * FROM units ${where} ORDER BY unit_name LIMIT $${pCount - 1} OFFSET $${pCount}`,
-            params
-        );
+        const result = await query(`
+            SELECT u.*,
+                   COALESCE(f.firearm_count, 0) as firearm_count,
+                   COALESCE(o.officer_count, 0) as officer_count,
+                   COALESCE(c.active_custody, 0) as active_custody,
+                   COALESCE(a.anomaly_count, 0) as anomaly_count
+            FROM units u
+            LEFT JOIN (
+                SELECT assigned_unit_id, COUNT(*) as firearm_count 
+                FROM firearms WHERE is_active = true 
+                GROUP BY assigned_unit_id
+            ) f ON u.unit_id = f.assigned_unit_id
+            LEFT JOIN (
+                SELECT unit_id, COUNT(*) as officer_count 
+                FROM officers WHERE is_active = true 
+                GROUP BY unit_id
+            ) o ON u.unit_id = o.unit_id
+            LEFT JOIN (
+                SELECT unit_id, COUNT(*) as active_custody 
+                FROM custody_records WHERE returned_at IS NULL 
+                GROUP BY unit_id
+            ) c ON u.unit_id = c.unit_id
+            LEFT JOIN (
+                SELECT unit_id, COUNT(*) as anomaly_count 
+                FROM anomalies WHERE status = 'pending' 
+                GROUP BY unit_id
+            ) a ON u.unit_id = a.unit_id
+            ${where} 
+            ORDER BY u.unit_name 
+            LIMIT $${pCount - 1} OFFSET $${pCount}
+        `, params);
         return result.rows;
     },
 

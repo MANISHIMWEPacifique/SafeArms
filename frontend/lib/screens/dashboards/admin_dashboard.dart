@@ -10,6 +10,7 @@ import '../auth/login_screen.dart';
 import '../settings/user_management_screen.dart';
 import '../settings/system_settings_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
+import '../management/units_management_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -401,8 +402,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         // Dashboard - show the main dashboard content
         return _buildDashboardContent();
       case 1:
-        // Units Management - placeholder for now
-        return _buildUnitsManagementPlaceholder();
+        // Units Management
+        return const UnitsManagementScreen();
       case 2:
         // Users Management
         return const UserManagementScreen();
@@ -418,61 +419,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       default:
         return _buildDashboardContent();
     }
-  }
-
-  Widget _buildUnitsManagementPlaceholder() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Units Management',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Manage police units and stations',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-          ),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(48),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A3040),
-              border: Border.all(color: const Color(0xFF37404F)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Center(
-              child: Column(
-                children: [
-                  Icon(Icons.business, color: Color(0xFF1E88E5), size: 64),
-                  SizedBox(height: 16),
-                  Text(
-                    'Units Management',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Create and manage police stations, training schools, and special units.\nThis feature will be available in the next update.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildDashboardContent() {

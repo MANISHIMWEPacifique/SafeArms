@@ -45,6 +45,57 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = context.watch<SettingsProvider>();
+
+    // Show loading indicator while settings are being fetched
+    if (settingsProvider.isLoading) {
+      return Container(
+        color: const Color(0xFF1A1F2E),
+        child: const Center(
+          child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
+        ),
+      );
+    }
+
+    // Show error message if there's an error
+    if (settingsProvider.errorMessage != null) {
+      return Container(
+        color: const Color(0xFF1A1F2E),
+        padding: const EdgeInsets.all(32),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline,
+                  color: Color(0xFFE85C5C), size: 64),
+              const SizedBox(height: 16),
+              const Text(
+                'Failed to load settings',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                settingsProvider.errorMessage!,
+                style: const TextStyle(color: Color(0xFF78909C)),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  settingsProvider.loadSettings();
+                  settingsProvider.loadSystemHealth();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E88E5),
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       color: const Color(0xFF1A1F2E),
       child: Row(

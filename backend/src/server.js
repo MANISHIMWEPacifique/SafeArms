@@ -23,6 +23,9 @@ const custodyRoutes = require('./routes/custody.routes');
 const anomaliesRoutes = require('./routes/anomalies.routes');
 const approvalsRoutes = require('./routes/approvals.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const ballisticRoutes = require('./routes/ballistic.routes');
+const reportsRoutes = require('./routes/reports.routes');
+const settingsRoutes = require('./routes/settings.routes');
 
 // Initialize Express app
 const app = express();
@@ -72,7 +75,9 @@ app.get('/api', (req, res) => {
             custody: '/api/custody',
             anomalies: '/api/anomalies',
             approvals: '/api/approvals',
-            dashboard: '/api/dashboard'
+            dashboard: '/api/dashboard',
+            ballisticProfiles: '/api/ballistic-profiles',
+            reports: '/api/reports'
         }
     });
 });
@@ -87,6 +92,12 @@ app.use('/api/custody', custodyRoutes);
 app.use('/api/anomalies', anomaliesRoutes);
 app.use('/api/approvals', approvalsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/ballistic-profiles', ballisticRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/audit-logs', settingsRoutes);  // For /api/audit-logs endpoint
+app.use('/api/system', settingsRoutes);       // For /api/system/health endpoint
+app.use('/api/ml', settingsRoutes);           // For /api/ml/config and /api/ml/train endpoints
 
 // 404 handler
 app.use(notFoundHandler);

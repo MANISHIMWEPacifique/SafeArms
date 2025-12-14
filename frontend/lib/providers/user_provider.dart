@@ -32,12 +32,12 @@ class UserProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   Map<String, dynamic> get stats => _stats;
-  
+
   String get roleFilter => _roleFilter;
   String get statusFilter => _statusFilter;
   String get unitFilter => _unitFilter;
   String get searchQuery => _searchQuery;
-  
+
   int get currentPage => _currentPage;
   int get itemsPerPage => _itemsPerPage;
   int get totalItems => _totalItems;
@@ -52,9 +52,9 @@ class UserProvider with ChangeNotifier {
       filtered = filtered.where((user) {
         final query = _searchQuery.toLowerCase();
         return user.fullName.toLowerCase().contains(query) ||
-               user.username.toLowerCase().contains(query) ||
-               user.email.toLowerCase().contains(query) ||
-               user.role.toLowerCase().contains(query);
+            user.username.toLowerCase().contains(query) ||
+            user.email.toLowerCase().contains(query) ||
+            user.role.toLowerCase().contains(query);
       }).toList();
     }
 
@@ -81,10 +81,10 @@ class UserProvider with ChangeNotifier {
     final filtered = filteredUsers;
     final startIndex = (_currentPage - 1) * _itemsPerPage;
     final endIndex = startIndex + _itemsPerPage;
-    
+
     if (startIndex >= filtered.length) return [];
     if (endIndex >= filtered.length) return filtered.sublist(startIndex);
-    
+
     return filtered.sublist(startIndex, endIndex);
   }
 
@@ -149,10 +149,10 @@ class UserProvider with ChangeNotifier {
       _totalItems = _users.length;
       _isLoading = false;
       notifyListeners();
-      
+
       // Reload stats
       await loadStats();
-      
+
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -217,14 +217,29 @@ class UserProvider with ChangeNotifier {
       _totalItems = _users.length;
       _isLoading = false;
       notifyListeners();
-      
+
       // Reload stats
       await loadStats();
-      
+
       return true;
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Toggle user active status
+  Future<bool> toggleUserStatus(String userId, bool isActive) async {
+    try {
+      final success = await updateUser(userId: userId, isActive: isActive);
+      if (success) {
+        await loadStats();
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = e.toString();
       notifyListeners();
       return false;
     }

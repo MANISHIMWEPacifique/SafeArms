@@ -8,7 +8,6 @@ import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../auth/login_screen.dart';
 import '../forensic/forensic_search_screen.dart';
-import '../management/ballistic_profiles_screen.dart';
 import '../management/firearms_registry_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 

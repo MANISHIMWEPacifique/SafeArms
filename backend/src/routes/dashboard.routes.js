@@ -87,9 +87,10 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         const recentCustody = await query(`
             SELECT 
                 cr.custody_id,
-                cr.checked_out_at,
+                cr.issued_at,
                 cr.returned_at,
-                cr.purpose,
+                cr.assignment_reason,
+                cr.custody_type,
                 o.full_name as officer_name,
                 f.serial_number,
                 f.firearm_type
@@ -97,7 +98,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
             JOIN officers o ON cr.officer_id = o.officer_id
             JOIN firearms f ON cr.firearm_id = f.firearm_id
             WHERE cr.unit_id = $1
-            ORDER BY cr.checked_out_at DESC
+            ORDER BY cr.issued_at DESC
             LIMIT 5
         `, [unit_id]);
         dashboardData.recent_custody = recentCustody.rows;

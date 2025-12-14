@@ -6,7 +6,18 @@ const { authenticate } = require('../middleware/authentication');
 const { requireCommander, requireAdminOrHQ } = require('../middleware/authorization');
 const { asyncHandler } = require('../middleware/errorHandler');
 
-router.get('/', authenticate, requireAdminOrHQ, asyncHandler(async (req, res) => {
+// Get anomalies - role-based access
+// Admin/HQ see all, Station commanders see their unit, Forensic analysts see all for analysis
+router.get('/', authenticate, asyncHandler(async (req, res) => {
+    const { role, unit_id } = req.user;
+    
+    // Station commanders can only see their unit's anomalies
+    if (role === 'station_commander') {
+        const anomalies = await getUnitAnomalies(unit_id, req.query);
+        return res.json({ success: true, data: anomalies });
+    }
+    
+    // Admin, HQ Commander, and Forensic Analyst can see all anomalies
     const anomalies = await getAllAnomalies(req.query);
     res.json({ success: true, data: anomalies });
 }));

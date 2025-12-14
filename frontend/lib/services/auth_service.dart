@@ -58,13 +58,18 @@ class AuthService {
 
       final data = json.decode(response.body);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && data['success'] == true) {
+        // Backend returns data in 'data' wrapper
+        final responseData = data['data'] ?? data;
+        final token = responseData['token'];
+        final user = responseData['user'];
+
         // Store token and user data
-        await _storage.write(key: _tokenKey, value: data['token']);
-        await _storage.write(key: _userKey, value: json.encode(data['user']));
+        await _storage.write(key: _tokenKey, value: token);
+        await _storage.write(key: _userKey, value: json.encode(user));
         await _storage.delete(key: _usernameKey);
 
-        return {'success': true, 'token': data['token'], 'user': data['user']};
+        return {'success': true, 'token': token, 'user': user};
       } else {
         return {
           'success': false,

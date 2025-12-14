@@ -7,6 +7,10 @@ import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../auth/login_screen.dart';
+import '../forensic/forensic_search_screen.dart';
+import '../management/ballistic_profiles_screen.dart';
+import '../management/firearms_registry_screen.dart';
+import '../anomaly/anomaly_detection_screen.dart';
 
 class ForensicAnalystDashboard extends StatefulWidget {
   const ForensicAnalystDashboard({super.key});
@@ -24,10 +28,14 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
   @override
   void initState() {
     super.initState();
-    _loadDashboardData();
+    // Use addPostFrameCallback to avoid calling notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadDashboardData();
+    });
   }
 
   Future<void> _loadDashboardData() async {
+    if (!mounted) return;
     final dashboardProvider = Provider.of<DashboardProvider>(
       context,
       listen: false,
@@ -472,6 +480,109 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
   }
 
   Widget _buildMainContent() {
+    // Navigate to different screens based on selected index
+    switch (_selectedIndex) {
+      case 0:
+        // Dashboard - show the main investigation dashboard
+        return _buildDashboardOverview();
+      case 1:
+        // Forensic Search
+        return const ForensicSearchScreen();
+      case 2:
+        // Custody Timeline - embedded in dashboard for now
+        return _buildCustodyTimelinePage();
+      case 3:
+        // Firearms with ballistic profiles
+        return const FirearmsRegistryScreen();
+      case 4:
+        // Anomalies
+        return const AnomalyDetectionScreen();
+      case 5:
+        // Reports
+        return _buildReportsPlaceholder();
+      default:
+        return _buildDashboardOverview();
+    }
+  }
+
+  Widget _buildReportsPlaceholder() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Forensic Reports',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Generate forensic analysis reports',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          Container(
+            padding: const EdgeInsets.all(48),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A3040),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF37404F)),
+            ),
+            child: const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.assessment, size: 64, color: Color(0xFF78909C)),
+                  SizedBox(height: 16),
+                  Text(
+                    'Forensic Reports Module',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Coming soon...',
+                    style: TextStyle(color: Color(0xFF78909C)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustodyTimelinePage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Custody Timeline',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Track firearm custody chain of events',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          _buildCustodyTimeline(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardOverview() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(

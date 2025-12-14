@@ -7,6 +7,10 @@ import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../auth/login_screen.dart';
+import '../management/firearms_registry_screen.dart';
+import '../management/officers_registry_screen.dart';
+import '../workflows/custody_management_screen.dart';
+import '../anomaly/anomaly_detection_screen.dart';
 
 class StationCommanderDashboard extends StatefulWidget {
   const StationCommanderDashboard({super.key});
@@ -22,10 +26,14 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
   @override
   void initState() {
     super.initState();
-    _loadDashboardData();
+    // Use addPostFrameCallback to avoid calling notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadDashboardData();
+    });
   }
 
   Future<void> _loadDashboardData() async {
+    if (!mounted) return;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final dashboardProvider =
         Provider.of<DashboardProvider>(context, listen: false);
@@ -295,6 +303,83 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
   }
 
   Widget _buildMainContent() {
+    // Navigate to different screens based on selected index
+    switch (_selectedIndex) {
+      case 0:
+        // Dashboard - show the main dashboard overview
+        return _buildDashboardOverview();
+      case 1:
+        // Firearms - view unit's assigned firearms
+        return const FirearmsRegistryScreen();
+      case 2:
+        // Officers
+        return const OfficersRegistryScreen();
+      case 3:
+        // Custody Management
+        return const CustodyManagementScreen();
+      case 4:
+        // Anomalies
+        return const AnomalyDetectionScreen();
+      case 5:
+        // Reports
+        return _buildReportsPlaceholder();
+      default:
+        return _buildDashboardOverview();
+    }
+  }
+
+  Widget _buildReportsPlaceholder() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Unit Reports',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'View reports for your unit',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          Container(
+            padding: const EdgeInsets.all(48),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A3040),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF37404F)),
+            ),
+            child: const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.assessment, size: 64, color: Color(0xFF78909C)),
+                  SizedBox(height: 16),
+                  Text(
+                    'Reports Module',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Coming soon...',
+                    style: TextStyle(color: Color(0xFF78909C)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardOverview() {
     return Consumer<DashboardProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {

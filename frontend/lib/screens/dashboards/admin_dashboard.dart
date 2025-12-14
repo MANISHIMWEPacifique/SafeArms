@@ -7,6 +7,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../auth/login_screen.dart';
+import '../settings/user_management_screen.dart';
+import '../settings/system_settings_screen.dart';
+import '../anomaly/anomaly_detection_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -21,10 +24,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   void initState() {
     super.initState();
-    _loadDashboardData();
+    // Use addPostFrameCallback to avoid calling notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadDashboardData();
+    });
   }
 
   Future<void> _loadDashboardData() async {
+    if (!mounted) return;
+
     final dashboardProvider = Provider.of<DashboardProvider>(
       context,
       listen: false,
@@ -387,6 +395,87 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildMainContent() {
+    // Navigate to different screens based on selected index
+    switch (_selectedIndex) {
+      case 0:
+        // Dashboard - show the main dashboard content
+        return _buildDashboardContent();
+      case 1:
+        // Units Management - placeholder for now
+        return _buildUnitsManagementPlaceholder();
+      case 2:
+        // Users Management
+        return const UserManagementScreen();
+      case 3:
+        // System Settings
+        return const SystemSettingsScreen();
+      case 4:
+        // Reports - placeholder for now
+        return _buildReportsScreen();
+      case 5:
+        // Anomaly Summary
+        return const AnomalyDetectionScreen();
+      default:
+        return _buildDashboardContent();
+    }
+  }
+
+  Widget _buildUnitsManagementPlaceholder() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Units Management',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Manage police units and stations',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          Container(
+            padding: const EdgeInsets.all(48),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A3040),
+              border: Border.all(color: const Color(0xFF37404F)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+              child: Column(
+                children: [
+                  Icon(Icons.business, color: Color(0xFF1E88E5), size: 64),
+                  SizedBox(height: 16),
+                  Text(
+                    'Units Management',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Create and manage police stations, training schools, and special units.\nThis feature will be available in the next update.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -403,6 +492,127 @@ class _AdminDashboardState extends State<AdminDashboard> {
           // Anomaly Table
           _buildAnomalyTable(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildReportsScreen() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Reports',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Generate and view system reports',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          // Reports cards
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              _buildReportCard(
+                icon: Icons.inventory,
+                title: 'Firearm Inventory Report',
+                description: 'Complete list of all registered firearms',
+                onTap: () {},
+              ),
+              _buildReportCard(
+                icon: Icons.swap_horiz,
+                title: 'Custody Activity Report',
+                description: 'Custody transfers and assignments',
+                onTap: () {},
+              ),
+              _buildReportCard(
+                icon: Icons.warning_amber,
+                title: 'Anomaly Detection Report',
+                description: 'ML-detected anomalies and investigations',
+                onTap: () {},
+              ),
+              _buildReportCard(
+                icon: Icons.people,
+                title: 'User Activity Report',
+                description: 'User login and activity logs',
+                onTap: () {},
+              ),
+              _buildReportCard(
+                icon: Icons.approval,
+                title: 'Approval Workflow Report',
+                description: 'Pending and completed approvals',
+                onTap: () {},
+              ),
+              _buildReportCard(
+                icon: Icons.assessment,
+                title: 'System Audit Report',
+                description: 'Complete audit trail',
+                onTap: () {},
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportCard({
+    required IconData icon,
+    required String title,
+    required String description,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 280,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A3040),
+          border: Border.all(color: const Color(0xFF37404F)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: const Color(0xFF1E88E5), size: 32),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: const TextStyle(color: Color(0xFF78909C), fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text(
+                  'Generate Report',
+                  style: TextStyle(color: Color(0xFF1E88E5), fontSize: 14),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.arrow_forward,
+                    color: Color(0xFF1E88E5), size: 16),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

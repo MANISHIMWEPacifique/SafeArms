@@ -15,6 +15,29 @@ router.get('/', authenticate, requireAdminOrHQ, asyncHandler(async (req, res) =>
     res.json({ success: true, data: users });
 }));
 
+// Get user statistics - must be before /:id route
+router.get('/stats', authenticate, requireAdminOrHQ, asyncHandler(async (req, res) => {
+    const stats = await User.getStats();
+    res.json({ 
+        success: true, 
+        data: {
+            total: parseInt(stats.total_users) || 0,
+            active: parseInt(stats.active_users) || 0,
+            inactive: (parseInt(stats.total_users) || 0) - (parseInt(stats.active_users) || 0),
+            admins: parseInt(stats.admins) || 0,
+            hqCommanders: parseInt(stats.hq_commanders) || 0,
+            stationCommanders: parseInt(stats.station_commanders) || 0,
+            forensicAnalysts: parseInt(stats.forensic_analysts) || 0,
+            byRole: {
+                admin: parseInt(stats.admins) || 0,
+                hq_firearm_commander: parseInt(stats.hq_commanders) || 0,
+                station_commander: parseInt(stats.station_commanders) || 0,
+                forensic_analyst: parseInt(stats.forensic_analysts) || 0
+            }
+        }
+    });
+}));
+
 router.get('/:id', authenticate, asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });

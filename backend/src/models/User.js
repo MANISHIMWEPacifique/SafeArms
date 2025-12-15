@@ -75,7 +75,7 @@ const User = {
 
         paramCount++;
         params.push(offset);
-        const offsetParam = `${paramCount}`;
+        const offsetParam = `$${paramCount}`;
 
         const result = await query(
             `SELECT user_id, username, full_name, email, phone_number, role,

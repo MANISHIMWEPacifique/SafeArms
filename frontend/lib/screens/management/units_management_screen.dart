@@ -242,72 +242,83 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                     // Table Header
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
+                        horizontal: 16,
+                        vertical: 14,
                       ),
                       decoration: const BoxDecoration(
                         border: Border(
                           bottom: BorderSide(color: Color(0xFF37404F)),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Expanded(
-                            flex: 2,
+                          const Expanded(
+                            flex: 3,
                             child: Text(
                               'Unit Name',
                               style: TextStyle(
                                 color: Color(0xFF78909C),
                                 fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
                           ),
-                          Expanded(
+                          const Expanded(
+                            flex: 2,
                             child: Text(
                               'Type',
                               style: TextStyle(
                                 color: Color(0xFF78909C),
                                 fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
                           ),
-                          Expanded(
+                          const Expanded(
+                            flex: 2,
                             child: Text(
                               'Location',
                               style: TextStyle(
                                 color: Color(0xFF78909C),
                                 fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
                           ),
-                          Expanded(
+                          const Expanded(
+                            flex: 1,
                             child: Text(
                               'Firearms',
                               style: TextStyle(
                                 color: Color(0xFF78909C),
                                 fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
                           ),
-                          Expanded(
+                          const Expanded(
+                            flex: 1,
                             child: Text(
                               'Officers',
                               style: TextStyle(
                                 color: Color(0xFF78909C),
                                 fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
                           ),
-                          Expanded(
+                          const Expanded(
+                            flex: 1,
                             child: Text(
                               'Status',
                               style: TextStyle(
                                 color: Color(0xFF78909C),
                                 fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
                           ),
-                          SizedBox(width: 100, child: Text('')),
+                          const SizedBox(width: 80),
                         ],
                       ),
                     ),
@@ -363,19 +374,18 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     // Get stats from unit data (or default to 0)
     final firearmCount = unit['firearm_count'] ?? unit['firearms_count'] ?? 0;
     final officerCount = unit['officer_count'] ?? unit['officers_count'] ?? 0;
-    final pendingActions = unit['pending_actions'] ?? 0;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A1F2E),
                     borderRadius: BorderRadius.circular(8),
@@ -383,7 +393,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                   child: Icon(
                     _getUnitIcon(unit['unit_type']),
                     color: const Color(0xFF1E88E5),
-                    size: 20,
+                    size: 18,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -396,7 +406,9 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w500,
+                          fontSize: 14,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (unit['commander_name'] != null)
                         Text(
@@ -405,6 +417,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                             color: Color(0xFF78909C),
                             fontSize: 11,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                     ],
                   ),
@@ -413,6 +426,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             ),
           ),
           Expanded(
+            flex: 2,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -425,18 +439,24 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                   color: _getTypeColor(unit['unit_type']),
                   fontSize: 12,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
           Expanded(
-            child: Text(
-              '${unit['district'] ?? ''}, ${unit['province'] ?? ''}',
-              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-              overflow: TextOverflow.ellipsis,
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Text(
+                '${unit['district'] ?? ''}, ${unit['province'] ?? ''}',
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
           // Firearms count with icon
           Expanded(
+            flex: 1,
             child: Row(
               children: [
                 const Icon(Icons.gavel, color: Color(0xFF42A5F5), size: 16),
@@ -446,31 +466,15 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
-                if (pendingActions > 0) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFC857).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '$pendingActions pending',
-                      style: const TextStyle(
-                        color: Color(0xFFFFC857),
-                        fontSize: 10,
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
           // Officers count with icon
           Expanded(
+            flex: 1,
             child: Row(
               children: [
                 const Icon(Icons.badge, color: Color(0xFF3CCB7F), size: 16),
@@ -480,12 +484,14 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
           ),
           Expanded(
+            flex: 1,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -508,33 +514,33 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             ),
           ),
           SizedBox(
-            width: 100,
+            width: 80,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
                   icon: const Icon(Icons.edit,
-                      color: Color(0xFF78909C), size: 20),
+                      color: Color(0xFF78909C), size: 18),
                   onPressed: () => _showEditUnitDialog(unit),
                   tooltip: 'Edit',
                   constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(4),
                 ),
                 IconButton(
                   icon: const Icon(Icons.visibility,
-                      color: Color(0xFF78909C), size: 20),
+                      color: Color(0xFF78909C), size: 18),
                   onPressed: () => _showUnitDetails(unit),
                   tooltip: 'View Details',
                   constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(4),
                 ),
                 IconButton(
                   icon: const Icon(Icons.assessment,
-                      color: Color(0xFF1E88E5), size: 20),
+                      color: Color(0xFF1E88E5), size: 18),
                   onPressed: () => _showUnitStats(unit),
                   tooltip: 'View Stats',
                   constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(4),
                 ),
               ],
             ),

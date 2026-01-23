@@ -303,7 +303,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           _buildStatCard(
             icon: Icons.check_circle,
             iconColor: const Color(0xFF3CCB7F),
-            number: '${stats['active_count'] ?? 0}',
+            number:
+                '${stats['active'] ?? stats['active_count'] ?? userProvider.users.where((u) => u.isActive).length}',
             label: 'Active',
           ),
           _buildDivider(),
@@ -358,6 +359,24 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   Widget _buildRoleBreakdown(Map<String, dynamic> stats) {
+    // Backend returns: admins, hqCommanders, stationCommanders, forensicAnalysts
+    // or byRole.admin, byRole.hq_firearm_commander, etc.
+    final byRole = stats['byRole'] as Map<String, dynamic>? ?? {};
+    final admins =
+        stats['admins'] ?? byRole['admin'] ?? stats['admin_count'] ?? 0;
+    final hqCmds = stats['hqCommanders'] ??
+        byRole['hq_firearm_commander'] ??
+        stats['hq_count'] ??
+        0;
+    final stationCmds = stats['stationCommanders'] ??
+        byRole['station_commander'] ??
+        stats['station_count'] ??
+        0;
+    final analysts = stats['forensicAnalysts'] ??
+        byRole['forensic_analyst'] ??
+        stats['analyst_count'] ??
+        0;
+
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,19 +387,19 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${stats['admin_count'] ?? 0} Admins',
+            '$admins Admins',
             style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
           ),
           Text(
-            '${stats['hq_count'] ?? 0} HQ Commanders',
+            '$hqCmds HQ Commanders',
             style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
           ),
           Text(
-            '${stats['station_count'] ?? 0} Station Commanders',
+            '$stationCmds Station Commanders',
             style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
           ),
           Text(
-            '${stats['analyst_count'] ?? 0} Forensic Analysts',
+            '$analysts Forensic Analysts',
             style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
           ),
         ],

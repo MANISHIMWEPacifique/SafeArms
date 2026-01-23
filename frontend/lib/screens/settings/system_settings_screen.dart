@@ -20,7 +20,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
       TextEditingController(text: 'SafeArms');
   final TextEditingController _organizationController =
       TextEditingController(text: 'Rwanda National Police');
-  String _timeZone = 'Africa/Kigali';
+  String _timeZone = 'Africa/Kigali (CAT, UTC+2)';
   String _dateFormat = 'DD/MM/YYYY';
   String _timeFormat = '24-hour';
   int _sessionTimeout = 30;
@@ -340,7 +340,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             'Regional Settings',
             Column(
               children: [
-                _buildDropdownField(
+                _buildDropdownFieldSafe(
                     'Time Zone',
                     _timeZone,
                     [
@@ -795,8 +795,12 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     );
   }
 
-  Widget _buildDropdownField(String label, String value, List<String> items,
+  // Safe dropdown that handles value not in items list
+  Widget _buildDropdownFieldSafe(String label, String value, List<String> items,
       Function(String?) onChanged) {
+    // Ensure the current value is in the items list, otherwise use first item
+    final safeValue = items.contains(value) ? value : items.first;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -812,7 +816,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: value,
+              value: safeValue,
               isExpanded: true,
               dropdownColor: const Color(0xFF2A3040),
               style: const TextStyle(color: Colors.white),

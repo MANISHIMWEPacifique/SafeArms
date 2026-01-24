@@ -316,7 +316,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
       child: Row(
         children: [
           Text(
-            _navItems[_selectedIndex].label,
+            _buildNavItems(context)[_selectedIndex].label,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 20,

@@ -67,31 +67,38 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   List<_NavItem> _buildNavItems(BuildContext context) {
     final approvalProvider = Provider.of<ApprovalProvider>(context);
     final anomalyProvider = Provider.of<AnomalyProvider>(context);
-    
+
     // Calculate pending approvals total
     final pendingApprovals = approvalProvider.pendingApprovals;
-    final lossReports = int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ?? 0;
-    final destruction = int.tryParse(pendingApprovals?['destruction_requests']?.toString() ?? '0') ?? 0;
-    final procurement = int.tryParse(pendingApprovals?['procurement_requests']?.toString() ?? '0') ?? 0;
+    final lossReports =
+        int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ?? 0;
+    final destruction = int.tryParse(
+            pendingApprovals?['destruction_requests']?.toString() ?? '0') ??
+        0;
+    final procurement = int.tryParse(
+            pendingApprovals?['procurement_requests']?.toString() ?? '0') ??
+        0;
     final totalPendingApprovals = lossReports + destruction + procurement;
-    
+
     // Get anomalies count
     final anomaliesCount = anomalyProvider.anomalies.length;
-    
+
     return [
       _NavItem(icon: Icons.dashboard, label: 'Dashboard', badge: null),
       _NavItem(icon: Icons.business, label: 'Units', badge: null),
       _NavItem(icon: Icons.gps_fixed, label: 'Firearms', badge: null),
-      _NavItem(icon: Icons.track_changes, label: 'Ballistic Profiles', badge: null),
       _NavItem(
-        icon: Icons.check_circle_outline, 
-        label: 'Approvals', 
-        badge: totalPendingApprovals > 0 ? totalPendingApprovals.toString() : null,
+          icon: Icons.track_changes, label: 'Ballistic Profiles', badge: null),
+      _NavItem(
+        icon: Icons.check_circle_outline,
+        label: 'Approvals',
+        badge:
+            totalPendingApprovals > 0 ? totalPendingApprovals.toString() : null,
         badgeColor: const Color(0xFFE85C5C),
       ),
       _NavItem(
-        icon: Icons.warning_amber, 
-        label: 'Anomalies', 
+        icon: Icons.warning_amber,
+        label: 'Anomalies',
         badge: anomaliesCount > 0 ? anomaliesCount.toString() : null,
         badgeColor: const Color(0xFFFFC857),
       ),
@@ -261,50 +268,55 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
-                          children: [
-                            Icon(
-                              item.icon,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF78909C),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                item.label,
-                                style: TextStyle(
+                              children: [
+                                Icon(
+                                  item.icon,
                                   color: isSelected
                                       ? Colors.white
-                                      : const Color(0xFFB0BEC5),
-                                  fontSize: 14,
+                                      : const Color(0xFF78909C),
+                                  size: 20,
                                 ),
-                              ),
-                            ),
-                            if (item.badge != null && item.badge!.isNotEmpty && item.badge != '0')
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: item.badgeColor ?? const Color(0xFFFFC857),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  item.badge!,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    item.label,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : const Color(0xFFB0BEC5),
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
+                                if (item.badge != null &&
+                                    item.badge!.isNotEmpty &&
+                                    item.badge != '0')
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: item.badgeColor ??
+                                          const Color(0xFFFFC857),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      item.badge!,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 );
               },
             ),
@@ -877,7 +889,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
           Container(
             height: 250,
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1F2E).withOpacity(0.5),
+              color: const Color(0xFF1A1F2E).withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Center(
@@ -896,9 +908,14 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   Widget _buildApprovalQueue() {
     final approvalProvider = Provider.of<ApprovalProvider>(context);
     final pendingApprovals = approvalProvider.pendingApprovals;
-    final lossReports = int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ?? 0;
-    final destruction = int.tryParse(pendingApprovals?['destruction_requests']?.toString() ?? '0') ?? 0;
-    final procurement = int.tryParse(pendingApprovals?['procurement_requests']?.toString() ?? '0') ?? 0;
+    final lossReports =
+        int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ?? 0;
+    final destruction = int.tryParse(
+            pendingApprovals?['destruction_requests']?.toString() ?? '0') ??
+        0;
+    final procurement = int.tryParse(
+            pendingApprovals?['procurement_requests']?.toString() ?? '0') ??
+        0;
     final total = lossReports + destruction + procurement;
 
     return Container(
@@ -1152,12 +1169,13 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: MaterialStateProperty.all(
+              headingRowColor: WidgetStateProperty.all(
                 const Color(0xFF252A3A),
               ),
-              dataRowColor: MaterialStateProperty.all(const Color(0xFF2A3040)),
+              dataRowColor: WidgetStateProperty.all(const Color(0xFF2A3040)),
               headingRowHeight: 48,
-              dataRowHeight: 60,
+              dataRowMinHeight: 60,
+              dataRowMaxHeight: 60,
               columnSpacing: 24,
               horizontalMargin: 16,
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
@@ -1534,5 +1552,6 @@ class _NavItem {
   final String? badge;
   final Color? badgeColor;
 
-  _NavItem({required this.icon, required this.label, this.badge, this.badgeColor});
+  _NavItem(
+      {required this.icon, required this.label, this.badge, this.badgeColor});
 }

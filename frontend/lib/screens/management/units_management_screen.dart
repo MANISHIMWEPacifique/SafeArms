@@ -430,7 +430,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _getTypeColor(unit['unit_type']).withOpacity(0.2),
+                color: _getTypeColor(unit['unit_type']).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -496,8 +496,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: unit['is_active'] == true
-                    ? const Color(0xFF3CCB7F).withOpacity(0.2)
-                    : const Color(0xFFE85C5C).withOpacity(0.2),
+                    ? const Color(0xFF3CCB7F).withValues(alpha: 0.2)
+                    : const Color(0xFFE85C5C).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -671,6 +671,17 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
   }
 
   void _showUnitStats(dynamic unit) {
+    if (unit == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to load unit statistics'),
+          backgroundColor: Color(0xFFE85C5C),
+        ),
+      );
+      return;
+    }
+
+    final unitName = unit['unit_name']?.toString() ?? 'Unknown Unit';
     final firearmCount = unit['firearm_count'] ?? unit['firearms_count'] ?? 0;
     final officerCount = unit['officer_count'] ?? unit['officers_count'] ?? 0;
     final activeCustody = unit['active_custody'] ?? 0;
@@ -687,7 +698,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                '${unit['unit_name']} - Statistics',
+                '$unitName - Statistics',
                 style: const TextStyle(color: Colors.white, fontSize: 18),
               ),
             ),
@@ -747,7 +758,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE85C5C).withOpacity(0.1),
+                    color: const Color(0xFFE85C5C).withValues(alpha: 0.1),
                     border: Border.all(color: const Color(0xFFE85C5C)),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -851,9 +862,9 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [

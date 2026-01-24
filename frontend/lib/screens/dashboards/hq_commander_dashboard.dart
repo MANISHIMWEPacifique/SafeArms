@@ -588,16 +588,19 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   }
 
   Widget _buildStatsCards() {
-    return Row(
-      children: [
-        Expanded(child: _buildTotalFirearmsCard()),
-        const SizedBox(width: 16),
-        Expanded(child: _buildPendingApprovalsCard()),
-        const SizedBox(width: 16),
-        Expanded(child: _buildActiveUnitsCard()),
-        const SizedBox(width: 16),
-        Expanded(child: _buildAnomaliesCard()),
-      ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _buildTotalFirearmsCard()),
+          const SizedBox(width: 16),
+          Expanded(child: _buildPendingApprovalsCard()),
+          const SizedBox(width: 16),
+          Expanded(child: _buildActiveUnitsCard()),
+          const SizedBox(width: 16),
+          Expanded(child: _buildAnomaliesCard()),
+        ],
+      ),
     );
   }
 

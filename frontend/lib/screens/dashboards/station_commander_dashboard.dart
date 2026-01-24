@@ -49,14 +49,25 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     ]);
   }
 
-  final List<_NavItem> _navItems = [
-    _NavItem(icon: Icons.dashboard, label: 'Dashboard'),
-    _NavItem(icon: Icons.gavel, label: 'Firearms'),
-    _NavItem(icon: Icons.people, label: 'Officers'),
-    _NavItem(icon: Icons.sync_alt, label: 'Custody'),
-    _NavItem(icon: Icons.warning_amber, label: 'Anomalies'),
-    _NavItem(icon: Icons.assessment, label: 'Reports'),
-  ];
+  // Build dynamic nav items based on provider data
+  List<_NavItem> _buildNavItems(BuildContext context) {
+    final anomalyProvider = Provider.of<AnomalyProvider>(context);
+    final anomaliesCount = anomalyProvider.anomalies.length;
+
+    return [
+      _NavItem(icon: Icons.dashboard, label: 'Dashboard'),
+      _NavItem(icon: Icons.gavel, label: 'Firearms'),
+      _NavItem(icon: Icons.people, label: 'Officers'),
+      _NavItem(icon: Icons.sync_alt, label: 'Custody'),
+      _NavItem(
+        icon: Icons.warning_amber,
+        label: 'Anomalies',
+        badge: anomaliesCount > 0 ? anomaliesCount.toString() : null,
+        badgeColor: const Color(0xFFFFC857),
+      ),
+      _NavItem(icon: Icons.assessment, label: 'Reports'),
+    ];
+  }
 
   void _handleLogout() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -192,51 +203,78 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
           // Navigation Items
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: _navItems.length,
-              itemBuilder: (context, index) {
-                final item = _navItems[index];
-                final isSelected = _selectedIndex == index;
+            child: Builder(
+              builder: (context) {
+                final navItems = _buildNavItems(context);
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: navItems.length,
+                  itemBuilder: (context, index) {
+                    final item = navItems[index];
+                    final isSelected = _selectedIndex == index;
 
-                return Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF1E88E5).withValues(alpha: 0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFF1E88E5)
-                          : Colors.transparent,
-                      width: 1,
-                    ),
-                  ),
-                  child: ListTile(
-                    leading: Icon(
-                      item.icon,
-                      color: isSelected
-                          ? const Color(0xFF1E88E5)
-                          : const Color(0xFFB0BEC5),
-                      size: 22,
-                    ),
-                    title: Text(
-                      item.label,
-                      style: TextStyle(
-                        color: isSelected
-                            ? const Color(0xFF1E88E5)
-                            : const Color(0xFFB0BEC5),
-                        fontSize: 14,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                    return Container(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
                       ),
-                    ),
-                    onTap: () => setState(() => _selectedIndex = index),
-                  ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF1E88E5).withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFF1E88E5)
+                              : Colors.transparent,
+                          width: 1,
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Icon(
+                          item.icon,
+                          color: isSelected
+                              ? const Color(0xFF1E88E5)
+                              : const Color(0xFFB0BEC5),
+                          size: 22,
+                        ),
+                        title: Text(
+                          item.label,
+                          style: TextStyle(
+                            color: isSelected
+                                ? const Color(0xFF1E88E5)
+                                : const Color(0xFFB0BEC5),
+                            fontSize: 14,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: item.badge != null
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: item.badgeColor ??
+                                      const Color(0xFFE85C5C),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  item.badge!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              )
+                            : null,
+                        onTap: () => setState(() => _selectedIndex = index),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -587,6 +625,13 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 class _NavItem {
   final IconData icon;
   final String label;
+  final String? badge;
+  final Color? badgeColor;
 
-  _NavItem({required this.icon, required this.label});
+  _NavItem({
+    required this.icon,
+    required this.label,
+    this.badge,
+    this.badgeColor,
+  });
 }

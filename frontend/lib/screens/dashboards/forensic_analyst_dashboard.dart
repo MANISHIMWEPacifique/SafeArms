@@ -51,19 +51,25 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
     ]);
   }
 
-  final List<_NavItem> _navItems = [
-    _NavItem(icon: Icons.dashboard, label: 'Dashboard', badge: null),
-    _NavItem(icon: Icons.search, label: 'Forensic Search', badge: null),
-    _NavItem(icon: Icons.timeline, label: 'Custody Timeline', badge: null),
-    _NavItem(icon: Icons.gps_fixed, label: 'Firearms', badge: null),
-    _NavItem(
-      icon: Icons.warning_amber,
-      label: 'Anomalies',
-      badge: '15',
-      badgeColor: Color(0xFFFFC857),
-    ),
-    _NavItem(icon: Icons.assessment, label: 'Reports', badge: null),
-  ];
+  // Build dynamic nav items based on provider data
+  List<_NavItem> _buildNavItems(BuildContext context) {
+    final anomalyProvider = Provider.of<AnomalyProvider>(context);
+    final anomaliesCount = anomalyProvider.anomalies.length;
+
+    return [
+      _NavItem(icon: Icons.dashboard, label: 'Dashboard', badge: null),
+      _NavItem(icon: Icons.search, label: 'Forensic Search', badge: null),
+      _NavItem(icon: Icons.timeline, label: 'Custody Timeline', badge: null),
+      _NavItem(icon: Icons.gps_fixed, label: 'Firearms', badge: null),
+      _NavItem(
+        icon: Icons.warning_amber,
+        label: 'Anomalies',
+        badge: anomaliesCount > 0 ? anomaliesCount.toString() : null,
+        badgeColor: const Color(0xFFFFC857),
+      ),
+      _NavItem(icon: Icons.assessment, label: 'Reports', badge: null),
+    ];
+  }
 
   void _handleLogout() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -225,80 +231,86 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
 
           // Navigation Menu
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: _navItems.length,
-              itemBuilder: (context, index) {
-                final item = _navItems[index];
-                final isSelected = _selectedIndex == index;
+            child: Builder(
+              builder: (context) {
+                final navItems = _buildNavItems(context);
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: navItems.length,
+                  itemBuilder: (context, index) {
+                    final item = navItems[index];
+                    final isSelected = _selectedIndex == index;
 
-                return InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 2,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFF1E88E5)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          item.icon,
-                          color: isSelected
-                              ? Colors.white
-                              : const Color(0xFF78909C),
-                          size: 20,
+                    return InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedIndex = index;
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 2,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            item.label,
-                            style: TextStyle(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF1E88E5)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              item.icon,
                               color: isSelected
                                   ? Colors.white
-                                  : const Color(0xFFB0BEC5),
-                              fontSize: 14,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
+                                  : const Color(0xFF78909C),
+                              size: 20,
                             ),
-                          ),
-                        ),
-                        if (item.badge != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: item.badgeColor ?? const Color(0xFFE85C5C),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              item.badge!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                item.label,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : const Color(0xFFB0BEC5),
+                                  fontSize: 14,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ),
+                            if (item.badge != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: item.badgeColor ??
+                                      const Color(0xFFE85C5C),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  item.badge!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),

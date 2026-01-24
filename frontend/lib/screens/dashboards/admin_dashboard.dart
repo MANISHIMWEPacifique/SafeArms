@@ -331,64 +331,81 @@ class _AdminDashboardState extends State<AdminDashboard> {
             onPressed: () {},
           ),
           const SizedBox(width: 8),
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Color(0xFF78909C),
-                ),
-                onPressed: () {},
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE85C5C),
-                    shape: BoxShape.circle,
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
-                  child: const Text(
-                    '3',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+          Builder(
+            builder: (context) {
+              final anomalyProvider = Provider.of<AnomalyProvider>(context);
+              final notificationCount = anomalyProvider.anomalies.length;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.notifications_outlined,
+                      color: Color(0xFF78909C),
                     ),
-                    textAlign: TextAlign.center,
+                    onPressed: () {
+                      setState(() {
+                        _selectedIndex = 5; // Anomaly Summary
+                      });
+                    },
                   ),
-                ),
-              ),
-            ],
+                  if (notificationCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE85C5C),
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          notificationCount > 9 ? '9+' : '$notificationCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           const SizedBox(width: 8),
-          TextButton.icon(
-            onPressed: () {},
-            icon: const CircleAvatar(
-              radius: 16,
-              backgroundColor: Color(0xFF1E88E5),
-              child: Icon(Icons.person, color: Colors.white, size: 18),
-            ),
-            label: const Row(
-              children: [
-                SizedBox(width: 8),
-                Text(
-                  'Admin',
-                  style: TextStyle(color: Colors.white, fontSize: 14),
+          Builder(
+            builder: (context) {
+              final authProvider = Provider.of<AuthProvider>(context);
+              final userName = authProvider.userName ?? 'Admin';
+              return TextButton.icon(
+                onPressed: () {},
+                icon: const CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Color(0xFF1E88E5),
+                  child: Icon(Icons.person, color: Colors.white, size: 18),
                 ),
-                SizedBox(width: 4),
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Color(0xFF78909C),
-                  size: 20,
+                label: Row(
+                  children: [
+                    const SizedBox(width: 8),
+                    Text(
+                      userName,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Color(0xFF78909C),
+                      size: 20,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ],
       ),

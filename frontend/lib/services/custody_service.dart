@@ -27,7 +27,7 @@ class CustodyService {
     try {
       final headers = await _getHeaders();
       var url = ApiConfig.custody;
-      
+
       List<String> queryParams = [];
       if (status != null && status.isNotEmpty && status != 'all') {
         queryParams.add('status=$status');
@@ -41,21 +41,24 @@ class CustodyService {
       if (firearmId != null && firearmId.isNotEmpty) {
         queryParams.add('firearm_id=$firearmId');
       }
-      
+
       if (queryParams.isNotEmpty) {
         url += '?${queryParams.join('&')}';
       }
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data['data'] ?? []);
       } else {
-        throw Exception('Failed to load custody records: ${response.statusCode}');
+        throw Exception(
+            'Failed to load custody records: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error fetching custody records: $e');
@@ -82,11 +85,13 @@ class CustodyService {
         'notes': notes,
       });
 
-      final response = await http.post(
-        Uri.parse(ApiConfig.custody),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.custody),
+            headers: headers,
+            body: body,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -115,11 +120,13 @@ class CustodyService {
         'return_notes': returnNotes,
       });
 
-      final response = await http.put(
-        Uri.parse('${ApiConfig.custody}/$custodyId/return'),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .put(
+            Uri.parse('${ApiConfig.custody}/$custodyId/return'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -137,10 +144,12 @@ class CustodyService {
   Future<Map<String, dynamic>> getCustodyStats() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.custody}/stats'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.custody}/stats'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -153,6 +162,47 @@ class CustodyService {
     }
   }
 
+  // Get custody for a specific unit (Station Commander use)
+  Future<List<Map<String, dynamic>>> getUnitCustody({
+    required String unitId,
+    String? status,
+    String? type,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      var url = '${ApiConfig.custody}/unit/$unitId';
+
+      List<String> queryParams = [];
+      if (status != null && status.isNotEmpty && status != 'all') {
+        queryParams.add('status=$status');
+      }
+      if (type != null && type.isNotEmpty && type != 'all') {
+        queryParams.add('custody_type=$type');
+      }
+
+      if (queryParams.isNotEmpty) {
+        url += '?${queryParams.join('&')}';
+      }
+
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data['data'] ?? []);
+      } else {
+        throw Exception(
+            'Failed to load unit custody records: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching unit custody: $e');
+    }
+  }
+
   // Get custody history
   Future<List<Map<String, dynamic>>> getCustodyHistory({
     String? officerId,
@@ -161,19 +211,21 @@ class CustodyService {
     try {
       final headers = await _getHeaders();
       var url = '${ApiConfig.custody}/history';
-      
+
       List<String> queryParams = [];
       if (officerId != null) queryParams.add('officer_id=$officerId');
       if (firearmId != null) queryParams.add('firearm_id=$firearmId');
-      
+
       if (queryParams.isNotEmpty) {
         url += '?${queryParams.join('&')}';
       }
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -190,10 +242,12 @@ class CustodyService {
   Future<Map<String, dynamic>> getAnomalyStatus() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.custody}/anomalies/today'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.custody}/anomalies/today'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

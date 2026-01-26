@@ -7,9 +7,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../auth/login_screen.dart';
-import '../management/firearms_registry_screen.dart';
+import '../management/station_firearms_screen.dart';
 import '../management/officers_registry_screen.dart';
-import '../workflows/custody_management_screen.dart';
+import '../workflows/station_custody_management_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 
 class StationCommanderDashboard extends StatefulWidget {
@@ -347,14 +347,14 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         // Dashboard - show the main dashboard overview
         return _buildDashboardOverview();
       case 1:
-        // Firearms - view unit's assigned firearms
-        return const FirearmsRegistryScreen();
+        // Firearms - view unit's assigned firearms (Station-specific)
+        return const StationFirearmsScreen();
       case 2:
         // Officers
         return const OfficersRegistryScreen();
       case 3:
-        // Custody Management
-        return const CustodyManagementScreen();
+        // Custody Management (Station-specific)
+        return const StationCustodyManagementScreen();
       case 4:
         // Anomalies
         return const AnomalyDetectionScreen();

@@ -25,7 +25,7 @@ class CustodyProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   Map<String, dynamic> get stats => _stats;
   Map<String, dynamic> get anomalyStatus => _anomalyStatus;
-  
+
   String get statusFilter => _statusFilter;
   String get typeFilter => _typeFilter;
   String get searchQuery => _searchQuery;
@@ -38,8 +38,10 @@ class CustodyProvider with ChangeNotifier {
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((record) {
         final query = _searchQuery.toLowerCase();
-        final officerName = (record['officer_name'] ?? '').toString().toLowerCase();
-        final firearmSerial = (record['firearm_serial'] ?? '').toString().toLowerCase();
+        final officerName =
+            (record['officer_name'] ?? '').toString().toLowerCase();
+        final firearmSerial =
+            (record['firearm_serial'] ?? '').toString().toLowerCase();
         return officerName.contains(query) || firearmSerial.contains(query);
       }).toList();
     }
@@ -50,14 +52,17 @@ class CustodyProvider with ChangeNotifier {
     }
 
     if (_typeFilter != 'all') {
-      filtered = filtered.where((r) => r['custody_type'] == _typeFilter).toList();
+      filtered =
+          filtered.where((r) => r['custody_type'] == _typeFilter).toList();
     }
 
     return filtered;
   }
 
   List<Map<String, dynamic>> get activeCustodyRecords {
-    return filteredCustodyRecords.where((r) => r['status'] == 'active').toList();
+    return filteredCustodyRecords
+        .where((r) => r['status'] == 'active')
+        .toList();
   }
 
   // Load all custody records
@@ -132,12 +137,12 @@ class CustodyProvider with ChangeNotifier {
 
       _isLoading = false;
       notifyListeners();
-      
+
       // Reload data
       await loadCustody();
       await loadStats();
       await loadAnomalyStatus();
-      
+
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -168,17 +173,38 @@ class CustodyProvider with ChangeNotifier {
 
       _isLoading = false;
       notifyListeners();
-      
+
       // Reload data
       await loadCustody();
       await loadStats();
-      
+
       return true;
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
       notifyListeners();
       return false;
+    }
+  }
+
+  // Load custody for specific unit (Station Commander use)
+  Future<void> loadUnitCustody({required String unitId}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _custodyRecords = await _custodyService.getUnitCustody(
+        unitId: unitId,
+        status: _statusFilter != 'all' ? _statusFilter : null,
+        type: _typeFilter != 'all' ? _typeFilter : null,
+      );
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

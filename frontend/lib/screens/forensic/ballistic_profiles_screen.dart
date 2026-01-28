@@ -100,8 +100,33 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
           ),
           const SizedBox(height: 4),
           const Text(
-            'Forensic firearm characteristics database',
+            'Search and compare firearm ballistic characteristics',
             style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          // Read-only indicator for forensic analysts
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1565C0).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFF1565C0)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.visibility, color: Color(0xFF42A5F5), size: 16),
+                SizedBox(width: 8),
+                Text(
+                  'Read-Only Access • Search & Compare Only',
+                  style: TextStyle(
+                    color: Color(0xFF42A5F5),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -113,7 +138,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
               hintText: 'Search by serial number, manufacturer...',
               hintStyle: const TextStyle(color: Color(0xFF78909C)),
               prefixIcon:
-                  const Icon(Icons.science, color: Color(0xFF78909C), size: 20),
+                  const Icon(Icons.search, color: Color(0xFF78909C), size: 20),
               filled: true,
               fillColor: const Color(0xFF2A3040),
               border: OutlineInputBorder(
@@ -126,24 +151,6 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
               ),
             ),
           ),
-          if (isHQCommander) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // Open add profile modal
-                },
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add New Profile'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88E5),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -166,18 +173,18 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              icon: Icons.pending,
-              label: 'Pending',
-              value: '${stats['pending'] ?? 0}',
-              color: const Color(0xFFFFC857),
+              icon: Icons.fingerprint,
+              label: 'With Rifling',
+              value: '${stats['with_rifling'] ?? 0}',
+              color: const Color(0xFF66BB6A),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              icon: Icons.refresh,
-              label: 'Updated',
-              value: '${stats['recent_updates'] ?? 0}',
+              icon: Icons.adjust,
+              label: 'With Firing Pin',
+              value: '${stats['with_firing_pin'] ?? 0}',
               color: const Color(0xFF1E88E5),
             ),
           ),
@@ -438,7 +445,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
           ),
           SizedBox(height: 8),
           Text(
-            'Detailed forensic characteristics and analysis data',
+            'View ballistic characteristics for search and matching',
             style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
           ),
         ],
@@ -506,13 +513,25 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
           ),
           Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.edit, color: Color(0xFF1E88E5)),
-                onPressed: () {
-                  // Edit profile
-                },
-                tooltip: 'Edit Profile',
+              // Edit button removed - profiles are read-only after HQ registration
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock, color: Color(0xFF3CCB7F), size: 14),
+                    SizedBox(width: 4),
+                    Text('Read-Only',
+                        style:
+                            TextStyle(color: Color(0xFF3CCB7F), fontSize: 11)),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.print, color: Color(0xFFB0BEC5)),
                 onPressed: () {
@@ -565,7 +584,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
         unselectedLabelColor: const Color(0xFF78909C),
         tabs: const [
           Tab(text: 'Ballistic Characteristics'),
-          Tab(text: 'Forensic Analysis'),
+          Tab(text: 'Registration Details'),
           Tab(text: 'Custody History'),
         ],
       ),
@@ -652,21 +671,24 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Analysis Metadata',
+            'Registration Metadata',
             style: TextStyle(
                 color: Color(0xFFB0BEC5),
                 fontSize: 16,
                 fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          _buildInfoRow('Analysis Date', _formatDate(profile['test_date'])),
+          _buildInfoRow('Registration Date', _formatDate(profile['test_date'])),
           _buildInfoRow(
-              'Analyzed By', profile['analyzed_by'] ?? 'Not specified'),
-          _buildInfoRow(
-              'Analysis Location', profile['test_location'] ?? 'Not specified'),
+              'Recorded By',
+              profile['analyzed_by'] ??
+                  profile['test_conducted_by'] ??
+                  'Not specified'),
+          _buildInfoRow('Registration Location',
+              profile['test_location'] ?? 'Not specified'),
           const SizedBox(height: 24),
           const Text(
-            'Analysis Notes',
+            'Additional Notes',
             style: TextStyle(
                 color: Color(0xFFB0BEC5),
                 fontSize: 16,
@@ -682,7 +704,9 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
               border: Border.all(color: const Color(0xFF37404F)),
             ),
             child: Text(
-              profile['analysis_notes'] ?? 'No analysis notes recorded',
+              profile['analysis_notes'] ??
+                  profile['notes'] ??
+                  'No notes recorded',
               style: const TextStyle(
                   color: Color(0xFFB0BEC5), fontSize: 14, height: 1.6),
             ),

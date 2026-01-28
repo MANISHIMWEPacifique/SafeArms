@@ -3,8 +3,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/firearm_provider.dart';
-import '../../models/firearm_model.dart';
+import '../providers/firearm_provider.dart';
+import '../providers/unit_provider.dart';
+import '../models/firearm_model.dart';
 
 class RegisterFirearmModal extends StatefulWidget {
   final FirearmModel? firearm; // null for create, not null for edit
@@ -66,6 +67,11 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
+    // Load units for the dropdown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UnitProvider>().loadUnits();
+    });
+
     if (widget.firearm != null) {
       _serialNumberController.text = widget.firearm!.serialNumber;
       _manufacturerController.text = widget.firearm!.manufacturer;
@@ -105,7 +111,56 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validate unit selection - required for HQ registration
+    if (_assignedUnitId == null || _assignedUnitId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Please select a unit. Firearms must be assigned to a unit at registration.'),
+          backgroundColor: Color(0xFFE85C5C),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
+
+    // Build ballistic profile data if any fields are filled
+    Map<String, dynamic>? ballisticProfile;
+    if (_riflingController.text.trim().isNotEmpty ||
+        _firingPinController.text.trim().isNotEmpty ||
+        _ejectorMarksController.text.trim().isNotEmpty ||
+        _extractorMarksController.text.trim().isNotEmpty) {
+      ballisticProfile = {
+        'rifling_characteristics': _riflingController.text.trim().isNotEmpty
+            ? _riflingController.text.trim()
+            : null,
+        'firing_pin_impression': _firingPinController.text.trim().isNotEmpty
+            ? _firingPinController.text.trim()
+            : null,
+        'ejector_marks': _ejectorMarksController.text.trim().isNotEmpty
+            ? _ejectorMarksController.text.trim()
+            : null,
+        'extractor_marks': _extractorMarksController.text.trim().isNotEmpty
+            ? _extractorMarksController.text.trim()
+            : null,
+        'chamber_marks': _chamberMarksController.text.trim().isNotEmpty
+            ? _chamberMarksController.text.trim()
+            : null,
+        'test_ammunition': _testAmmunitionController.text.trim().isNotEmpty
+            ? _testAmmunitionController.text.trim()
+            : null,
+        'test_conducted_by': _testConductedByController.text.trim().isNotEmpty
+            ? _testConductedByController.text.trim()
+            : null,
+        'forensic_lab': _forensicLabController.text.trim().isNotEmpty
+            ? _forensicLabController.text.trim()
+            : null,
+        'notes': _ballisticNotesController.text.trim().isNotEmpty
+            ? _ballisticNotesController.text.trim()
+            : null,
+      };
+    }
 
     final firearmProvider = context.read<FirearmProvider>();
     final success = await firearmProvider.registerFirearm(
@@ -117,8 +172,9 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
       manufactureYear: int.tryParse(_manufactureYearController.text),
       acquisitionDate: _acquisitionDate,
       acquisitionSource: _acquisitionSourceController.text.trim(),
-      assignedUnitId: _assignedUnitId ?? '',
+      assignedUnitId: _assignedUnitId!,
       notes: _notesController.text.trim(),
+      ballisticProfile: ballisticProfile,
     );
 
     setState(() => _isLoading = false);
@@ -126,9 +182,11 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
     if (success) {
       widget.onSuccess();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Firearm registered successfully'),
-          backgroundColor: Color(0xFF3CCB7F),
+        SnackBar(
+          content: Text(ballisticProfile != null
+              ? 'Firearm and ballistic profile registered successfully'
+              : 'Firearm registered successfully'),
+          backgroundColor: const Color(0xFF3CCB7F),
         ),
       );
     } else {
@@ -203,7 +261,7 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
               ),
               const SizedBox(height: 4),
               const Text(
-                'Register firearm at headquarters level - will be unassigned until station assignment',
+                'Firearm must be assigned to a unit during HQ registration',
                 style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
               ),
             ],
@@ -372,16 +430,35 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
               ],
             ),
             const SizedBox(height: 16),
-            _buildDropdownField(
-              label: 'Assign to Unit',
-              value: _assignedUnitId,
-              items: const [
-                {'value': 'unit1', 'label': 'Headquarters Arsenal'},
-                {'value': 'unit2', 'label': 'Kigali Central Station'},
-                {'value': 'unit3', 'label': 'Nyamirambo Station'},
-              ],
-              onChanged: (value) => setState(() => _assignedUnitId = value),
-              required: true,
+            Consumer<UnitProvider>(
+              builder: (context, unitProvider, child) {
+                if (unitProvider.isLoading) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    child: const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  );
+                }
+                final unitItems =
+                    unitProvider.units.map<Map<String, String>>((unit) {
+                  return {
+                    'value': unit['unit_id']?.toString() ?? '',
+                    'label': unit['unit_name']?.toString() ?? 'Unknown Unit',
+                  };
+                }).toList();
+                return _buildDropdownField(
+                  label: 'Assign to Unit',
+                  value: _assignedUnitId,
+                  items: unitItems,
+                  onChanged: (value) => setState(() => _assignedUnitId = value),
+                  required: true,
+                );
+              },
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -392,7 +469,7 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
             ),
             const SizedBox(height: 24),
             _buildInfoBox(
-              'HQ Registration: This firearm will be registered at headquarters level. Ballistic profile data will be captured in the next tab.',
+              'HQ Registration: Firearms must be assigned to a unit at registration time. Ballistic profile data can be captured in the next tab.',
             ),
           ],
         ),

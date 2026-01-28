@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import '../../providers/firearm_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/firearm_model.dart';
-import '../../widgets/station_register_firearm_modal.dart';
 import '../../widgets/firearm_detail_modal.dart';
 
 class StationFirearmsScreen extends StatefulWidget {
@@ -19,7 +18,6 @@ class StationFirearmsScreen extends StatefulWidget {
 
 class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool _showRegisterModal = false;
   FirearmModel? _selectedFirearmForDetail;
 
   @override
@@ -86,15 +84,6 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
           ),
 
           // Modal Overlays
-          if (_showRegisterModal)
-            StationRegisterFirearmModal(
-              onClose: () => setState(() => _showRegisterModal = false),
-              onSuccess: () {
-                setState(() => _showRegisterModal = false);
-                _loadUnitFirearms();
-              },
-            ),
-
           if (_selectedFirearmForDetail != null)
             FirearmDetailModal(
               firearm: _selectedFirearmForDetail!,
@@ -169,17 +158,27 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          ElevatedButton.icon(
-            onPressed: () => setState(() => _showRegisterModal = true),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Register Firearm',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF37404F),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF4A5568)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.info_outline, color: Color(0xFF78909C), size: 16),
+                SizedBox(width: 8),
+                Text(
+                  'Registration at HQ only',
+                  style: TextStyle(
+                    color: Color(0xFF78909C),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 12),
@@ -223,7 +222,7 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Showing firearms assigned to $unitName only. Firearms registered here will be automatically assigned to your unit.',
+                  'Showing firearms assigned to $unitName only. New firearms must be registered at HQ and then assigned to your unit.',
                   style: const TextStyle(
                     color: Color(0xFFB0BEC5),
                     fontSize: 13,

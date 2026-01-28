@@ -154,7 +154,7 @@ class FirearmProvider with ChangeNotifier {
     }
   }
 
-  // Register new firearm
+  // Register new firearm with optional ballistic profile
   Future<bool> registerFirearm({
     required String serialNumber,
     required String manufacturer,
@@ -166,6 +166,7 @@ class FirearmProvider with ChangeNotifier {
     String? acquisitionSource,
     required String assignedUnitId,
     String? notes,
+    Map<String, dynamic>? ballisticProfile,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -183,6 +184,7 @@ class FirearmProvider with ChangeNotifier {
         acquisitionSource: acquisitionSource,
         assignedUnitId: assignedUnitId,
         notes: notes,
+        ballisticProfile: ballisticProfile,
       );
 
       _firearms.add(newFirearm);

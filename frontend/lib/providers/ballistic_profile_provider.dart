@@ -5,7 +5,8 @@ import 'package:flutter/foundation.dart';
 import '../services/ballistic_profile_service.dart';
 
 class BallisticProfileProvider with ChangeNotifier {
-  final BallisticProfileService _ballisticProfileService = BallisticProfileService();
+  final BallisticProfileService _ballisticProfileService =
+      BallisticProfileService();
 
   // State
   List<Map<String, dynamic>> _profiles = [];
@@ -25,7 +26,7 @@ class BallisticProfileProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   Map<String, dynamic> get stats => _stats;
-  
+
   String get firearmTypeFilter => _firearmTypeFilter;
   String get statusFilter => _statusFilter;
   String get searchQuery => _searchQuery;
@@ -38,19 +39,24 @@ class BallisticProfileProvider with ChangeNotifier {
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((profile) {
         final query = _searchQuery.toLowerCase();
-        final serialNumber = (profile['firearm_serial'] ?? '').toString().toLowerCase();
-        final manufacturer = (profile['manufacturer'] ?? '').toString().toLowerCase();
+        final serialNumber =
+            (profile['firearm_serial'] ?? '').toString().toLowerCase();
+        final manufacturer =
+            (profile['manufacturer'] ?? '').toString().toLowerCase();
         return serialNumber.contains(query) || manufacturer.contains(query);
       }).toList();
     }
 
     // Apply filters
     if (_firearmTypeFilter != 'all') {
-      filtered = filtered.where((p) => p['firearm_type'] == _firearmTypeFilter).toList();
+      filtered = filtered
+          .where((p) => p['firearm_type'] == _firearmTypeFilter)
+          .toList();
     }
 
     if (_statusFilter != 'all') {
-      filtered = filtered.where((p) => p['profile_status'] == _statusFilter).toList();
+      filtered =
+          filtered.where((p) => p['profile_status'] == _statusFilter).toList();
     }
 
     return filtered;
@@ -93,7 +99,8 @@ class BallisticProfileProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _selectedProfile = await _ballisticProfileService.getProfileById(profileId);
+      _selectedProfile =
+          await _ballisticProfileService.getProfileById(profileId);
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -151,11 +158,11 @@ class BallisticProfileProvider with ChangeNotifier {
 
       _isLoading = false;
       notifyListeners();
-      
+
       // Reload data
       await loadProfiles();
       await loadStats();
-      
+
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -165,60 +172,9 @@ class BallisticProfileProvider with ChangeNotifier {
     }
   }
 
-  // Update profile
-  Future<bool> updateProfile({
-    required String profileId,
-    DateTime? testDate,
-    String? testLocation,
-    String? riflingCharacteristics,
-    String? firingPinImpression,
-    String? breechFaceMarking,
-    String? ejectorMarkPattern,
-    String? extractorMarkPattern,
-    String? cartridgeCaseProfile,
-    int? landGrooveCount,
-    String? twistDirection,
-    String? twistRate,
-    String? analyzedBy,
-    String? analysisNotes,
-    String? qualityAssessment,
-  }) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      final updated = await _ballisticProfileService.updateProfile(
-        profileId: profileId,
-        testDate: testDate,
-        testLocation: testLocation,
-        riflingCharacteristics: riflingCharacteristics,
-        firingPinImpression: firingPinImpression,
-        breechFaceMarking: breechFaceMarking,
-        ejectorMarkPattern: ejectorMarkPattern,
-        extractorMarkPattern: extractorMarkPattern,
-        cartridgeCaseProfile: cartridgeCaseProfile,
-        landGrooveCount: landGrooveCount,
-        twistDirection: twistDirection,
-        twistRate: twistRate,
-        analyzedBy: analyzedBy,
-        analysisNotes: analysisNotes,
-        qualityAssessment: qualityAssessment,
-      );
-
-      _selectedProfile = updated;
-      _isLoading = false;
-      notifyListeners();
-      
-      await loadProfiles();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
+  // UPDATE REMOVED - Ballistic profiles are immutable after HQ registration
+  // Profiles can only be created during firearm registration at HQ
+  // This ensures forensic integrity for investigative search and matching
 
   // Forensic search
   Future<List<Map<String, dynamic>>> forensicSearch({

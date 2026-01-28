@@ -691,10 +691,10 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.access_time, color: Color(0xFFFFC857), size: 14),
+              const Icon(Icons.search, color: Color(0xFFFFC857), size: 14),
               const SizedBox(width: 4),
               const Text(
-                '4 Under analysis',
+                '4 Pending review',
                 style: TextStyle(color: Color(0xFFFFC857), fontSize: 13),
               ),
             ],

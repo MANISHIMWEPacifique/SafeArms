@@ -68,7 +68,7 @@ class FirearmService {
     }
   }
 
-  // Register new firearm (HQ level)
+  // Register new firearm (HQ level) with optional ballistic profile
   Future<FirearmModel> registerFirearm({
     required String serialNumber,
     required String manufacturer,
@@ -80,6 +80,7 @@ class FirearmService {
     String? acquisitionSource,
     required String assignedUnitId,
     String? notes,
+    Map<String, dynamic>? ballisticProfile,
   }) async {
     try {
       final headers = await _getHeaders();
@@ -95,6 +96,7 @@ class FirearmService {
         'assigned_unit_id': assignedUnitId,
         'notes': notes,
         'registration_level': 'hq',
+        if (ballisticProfile != null) 'ballistic_profile': ballisticProfile,
       });
 
       final response = await http

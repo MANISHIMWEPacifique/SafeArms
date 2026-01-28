@@ -58,33 +58,43 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'View and manage forensic ballistic profiles',
+                        'Search and compare firearm ballistic characteristics',
                         style:
                             TextStyle(color: Color(0xFF78909C), fontSize: 14),
                       ),
                     ],
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddProfileDialog(),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Profile'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E88E5),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                  // Info badge - profiles are created during firearm registration
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF37404F),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF4A5568)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.info_outline,
+                            color: Color(0xFF78909C), size: 16),
+                        SizedBox(width: 8),
+                        Text(
+                          'Profiles created during HQ registration',
+                          style: TextStyle(
+                            color: Color(0xFF78909C),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 32),
 
-              // Stats Cards
+              // Stats Cards - Updated for search/match purpose
               Row(
                 children: [
                   Expanded(
@@ -98,27 +108,27 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildStatCard(
-                      'Pending Analysis',
-                      '${stats['pending'] ?? 0}',
-                      Icons.pending,
-                      const Color(0xFFFFC857),
+                      'With Rifling Data',
+                      '${stats['with_rifling'] ?? 0}',
+                      Icons.track_changes,
+                      const Color(0xFF42A5F5),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildStatCard(
-                      'Matched Cases',
-                      '${stats['matched'] ?? 0}',
-                      Icons.check_circle,
+                      'With Firing Pin',
+                      '${stats['with_firing_pin'] ?? 0}',
+                      Icons.adjust,
                       const Color(0xFF3CCB7F),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildStatCard(
-                      'No Match',
-                      '${stats['no_match'] ?? 0}',
-                      Icons.help_outline,
+                      'With Ejector/Extractor',
+                      '${stats['with_ejector_extractor'] ?? 0}',
+                      Icons.compare_arrows,
                       const Color(0xFF78909C),
                     ),
                   ),
@@ -522,15 +532,22 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showEditProfileDialog(profile);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
+          // Edit button removed - profiles are immutable after HQ registration
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(4),
             ),
-            child: const Text('Edit Profile'),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock, color: Color(0xFF3CCB7F), size: 14),
+                SizedBox(width: 4),
+                Text('Read-Only Profile',
+                    style: TextStyle(color: Color(0xFF3CCB7F), fontSize: 12)),
+              ],
+            ),
           ),
         ],
       ),
@@ -579,11 +596,11 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
   }
 
   void _showEditProfileDialog(Map<String, dynamic> profile) {
+    // Ballistic profiles are immutable after HQ registration
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content:
-            Text('Edit profile ${profile['ballistic_id'] ?? ''} - coming soon'),
-        backgroundColor: const Color(0xFF1E88E5),
+      const SnackBar(
+        content: Text('Ballistic profiles are read-only after registration'),
+        backgroundColor: Color(0xFF78909C),
       ),
     );
   }

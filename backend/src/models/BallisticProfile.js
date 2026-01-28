@@ -34,31 +34,8 @@ const BallisticProfile = {
         return result.rows[0];
     },
 
-    async update(ballisticId, updates) {
-        const fields = [];
-        const values = [];
-        let pCount = 0;
-
-        Object.entries(updates).forEach(([key, value]) => {
-            if (value !== undefined) {
-                pCount++;
-                fields.push(`${key} = $${pCount}`);
-                values.push(value);
-            }
-        });
-
-        if (fields.length === 0) return null;
-
-        pCount++;
-        values.push(ballisticId);
-
-        const result = await query(
-            `UPDATE ballistic_profiles SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP 
-       WHERE ballistic_id = $${pCount} RETURNING *`,
-            values
-        );
-        return result.rows[0];
-    },
+    // UPDATE REMOVED - Ballistic profiles are immutable after HQ registration
+    // This ensures forensic integrity for investigative search and matching purposes
 
     async search(searchParams) {
         const { test_location, forensic_lab, limit = 50 } = searchParams;

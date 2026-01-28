@@ -44,8 +44,12 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   Widget build(BuildContext context) {
     final firearmProvider = context.watch<FirearmProvider>();
     final authProvider = context.watch<AuthProvider>();
-    final isHQCommander =
-        authProvider.currentUser?['role'] == 'hq_firearm_commander';
+    final userRole = authProvider.currentUser?['role'] as String?;
+    final isHQCommander = userRole == 'hq_firearm_commander';
+    final isForensicAnalyst = userRole == 'forensic_analyst';
+    final isAdmin = userRole == 'admin';
+    // HQ Commander, Forensic Analyst, and Admin see national registry
+    final hasNationalAccess = isHQCommander || isForensicAnalyst || isAdmin;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
@@ -56,7 +60,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               Expanded(
                 child: Column(
                   children: [
-                    _buildTopNavBar(context, firearmProvider, isHQCommander),
+                    _buildTopNavBar(context, firearmProvider, isHQCommander,
+                        hasNationalAccess, isForensicAnalyst),
                     Expanded(
                       child: SingleChildScrollView(
                         child: Padding(
@@ -64,7 +69,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildFilterBar(firearmProvider, isHQCommander),
+                              _buildFilterBar(
+                                  firearmProvider, hasNationalAccess),
                               const SizedBox(height: 24),
                               _buildStatsBar(firearmProvider),
                               const SizedBox(height: 24),
@@ -110,8 +116,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     );
   }
 
-  Widget _buildTopNavBar(
-      BuildContext context, FirearmProvider provider, bool isHQCommander) {
+  Widget _buildTopNavBar(BuildContext context, FirearmProvider provider,
+      bool isHQCommander, bool hasNationalAccess, bool isForensicAnalyst) {
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -128,7 +134,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isHQCommander
+                hasNationalAccess
                     ? 'National Firearms Registry'
                     : 'Unit Firearms Inventory',
                 style: const TextStyle(
@@ -137,9 +143,32 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Text(
-                isHQCommander ? 'Home / Firearms' : 'Unit / Firearms',
-                style: const TextStyle(color: Color(0xFF78909C), fontSize: 14),
+              Row(
+                children: [
+                  Text(
+                    hasNationalAccess ? 'Home / Firearms' : 'Unit / Firearms',
+                    style:
+                        const TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                  ),
+                  if (isForensicAnalyst) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF42A5F5).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'Read-Only',
+                        style: TextStyle(
+                            color: Color(0xFF42A5F5),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -167,25 +196,27 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          ElevatedButton.icon(
-            onPressed: () => setState(() => _showRegisterModal = true),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Register Firearm',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+          if (isHQCommander)
+            ElevatedButton.icon(
+              onPressed: () => setState(() => _showRegisterModal = true),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Register Firearm',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E88E5),
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterBar(FirearmProvider provider, bool isHQCommander) {
+  Widget _buildFilterBar(FirearmProvider provider, bool hasNationalAccess) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
@@ -228,7 +259,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               onChanged: (value) => provider.setTypeFilter(value ?? 'all'),
             ),
           ),
-          if (isHQCommander) ...[
+          if (hasNationalAccess) ...[
             const SizedBox(width: 16),
             Expanded(
               child: _buildFilterDropdown(

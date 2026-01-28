@@ -10,10 +10,14 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     const { unit_id } = req.query;
     const { role, unit_id: userUnitId } = req.user;
     
-    // Station commanders can only see their unit's officers
+    // SECURITY: Station commanders are ALWAYS filtered to their unit
+    // They cannot override this by passing unit_id in query params
     let queryUnitId = unit_id;
     if (role === 'station_commander') {
-        queryUnitId = userUnitId;
+        queryUnitId = userUnitId; // Force their unit - ignore any passed unit_id
+        if (unit_id && unit_id !== userUnitId) {
+            console.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query officers for unit ${unit_id} (assigned: ${userUnitId})`);
+        }
     }
     
     const officers = await Officer.findByUnitId(queryUnitId || req.user.unit_id, req.query);
@@ -24,10 +28,14 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
 router.get('/stats', authenticate, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
     
-    // Station commanders can only see their unit's stats
+    // SECURITY: Station commanders can only see their unit's stats
+    // They cannot override this
     const options = {};
     if (role === 'station_commander') {
         options.unit_id = userUnitId;
+        if (req.query.unit_id && req.query.unit_id !== userUnitId) {
+            console.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query officer stats for unit ${req.query.unit_id} (assigned: ${userUnitId})`);
+        }
     }
     
     const stats = await Officer.getStats(options);

@@ -1,12 +1,20 @@
 // Station Commander Register Firearm Modal
-// Simplified firearm registration for station level - auto-assigns to commander's unit
+// @deprecated - This widget is no longer used. Firearm registration is now HQ-only.
+// Kept for reference. Use RegisterFirearmModal instead (HQ level only).
 // SafeArms Frontend
+//
+// IMPORTANT: Per SafeArms policy, firearms can ONLY be registered at HQ level.
+// Station commanders cannot register firearms - they can only view and manage
+// custody for firearms assigned to their unit by HQ.
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/firearm_provider.dart';
 import '../providers/auth_provider.dart';
 
+/// @deprecated Use [RegisterFirearmModal] instead.
+/// Firearm registration is restricted to HQ Commanders only.
+@Deprecated('Firearm registration is HQ-only. This widget should not be used.')
 class StationRegisterFirearmModal extends StatefulWidget {
   final VoidCallback onClose;
   final VoidCallback onSuccess;

@@ -43,6 +43,7 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
   bool _isLoadingAnomalies = true;
 
   List<Map<String, dynamic>> _custodyTimeline = [];
+  Map<String, dynamic>? _custodySummary;
   Map<String, dynamic>? _ballisticProfile;
   List<Map<String, dynamic>> _accessHistory = [];
   List<Map<String, dynamic>> _anomalies = [];
@@ -82,12 +83,17 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
         _timelineError = null;
       });
 
-      final timeline = await _traceabilityService.getCustodyTimeline(
+      final response = await _traceabilityService.getCustodyTimeline(
         widget.firearm.firearmId,
       );
 
       setState(() {
-        _custodyTimeline = timeline;
+        // Extract timeline list and summary from API response
+        final timelineData = response['timeline'];
+        _custodyTimeline = timelineData is List
+            ? List<Map<String, dynamic>>.from(timelineData)
+            : [];
+        _custodySummary = response['summary'] as Map<String, dynamic>?;
         _isLoadingTimeline = false;
       });
     } catch (e) {
@@ -363,7 +369,8 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: CustodyTimelineWidget(
-        custodyRecords: _custodyTimeline,
+        timeline: _custodyTimeline,
+        summary: _custodySummary,
         isLoading: _isLoadingTimeline,
         errorMessage: _timelineError,
       ),

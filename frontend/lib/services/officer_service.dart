@@ -27,7 +27,7 @@ class OfficerService {
     try {
       final headers = await _getHeaders();
       var url = ApiConfig.officers;
-      
+
       List<String> queryParams = [];
       if (unitId != null && unitId.isNotEmpty && unitId != 'all') {
         queryParams.add('unit_id=$unitId');
@@ -35,18 +35,22 @@ class OfficerService {
       if (rank != null && rank.isNotEmpty && rank != 'all') {
         queryParams.add('rank=$rank');
       }
-      if (activeStatus != null && activeStatus.isNotEmpty && activeStatus != 'all') {
+      if (activeStatus != null &&
+          activeStatus.isNotEmpty &&
+          activeStatus != 'all') {
         queryParams.add('is_active=$activeStatus');
       }
-      
+
       if (queryParams.isNotEmpty) {
         url += '?${queryParams.join('&')}';
       }
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -64,10 +68,12 @@ class OfficerService {
   Future<OfficerModel> getOfficerById(String officerId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.officers}/$officerId'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.officers}/$officerId'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -108,11 +114,13 @@ class OfficerService {
         'is_active': isActive,
       });
 
-      final response = await http.post(
-        Uri.parse(ApiConfig.officers),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.officers),
+            headers: headers,
+            body: body,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -141,21 +149,24 @@ class OfficerService {
     try {
       final headers = await _getHeaders();
       final Map<String, dynamic> updateData = {};
-      
+
       if (fullName != null) updateData['full_name'] = fullName;
       if (rank != null) updateData['rank'] = rank;
       if (unitId != null) updateData['unit_id'] = unitId;
       if (phoneNumber != null) updateData['phone_number'] = phoneNumber;
       if (email != null) updateData['email'] = email;
-      if (dateOfBirth != null) updateData['date_of_birth'] = dateOfBirth.toIso8601String();
+      if (dateOfBirth != null)
+        updateData['date_of_birth'] = dateOfBirth.toIso8601String();
       if (photoUrl != null) updateData['photo_url'] = photoUrl;
       if (isActive != null) updateData['is_active'] = isActive;
 
-      final response = await http.put(
-        Uri.parse('${ApiConfig.officers}/$officerId'),
-        headers: headers,
-        body: json.encode(updateData),
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .put(
+            Uri.parse('${ApiConfig.officers}/$officerId'),
+            headers: headers,
+            body: json.encode(updateData),
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -173,10 +184,12 @@ class OfficerService {
   Future<bool> deleteOfficer(String officerId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.delete(
-        Uri.parse('${ApiConfig.officers}/$officerId'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .delete(
+            Uri.parse('${ApiConfig.officers}/$officerId'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
@@ -193,10 +206,12 @@ class OfficerService {
         url += '?unit_id=$unitId';
       }
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -213,10 +228,12 @@ class OfficerService {
   Future<List<OfficerModel>> searchOfficers(String query) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.officers}/search?q=$query'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.officers}/search?q=$query'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -234,10 +251,12 @@ class OfficerService {
   Future<List<Map<String, dynamic>>> getCustodyHistory(String officerId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.custody}?officer_id=$officerId'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.custody}?officer_id=$officerId'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -247,6 +266,52 @@ class OfficerService {
       }
     } catch (e) {
       throw Exception('Error fetching custody history: $e');
+    }
+  }
+
+  // Get officers for a specific unit (with RBAC enforcement)
+  Future<List<OfficerModel>> getUnitOfficers({
+    required String unitId,
+    String? rank,
+    String? activeStatus,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      var url = '${ApiConfig.officers}/unit/$unitId';
+
+      List<String> queryParams = [];
+      if (rank != null && rank.isNotEmpty && rank != 'all') {
+        queryParams.add('rank=$rank');
+      }
+      if (activeStatus != null &&
+          activeStatus.isNotEmpty &&
+          activeStatus != 'all') {
+        queryParams.add('is_active=$activeStatus');
+      }
+
+      if (queryParams.isNotEmpty) {
+        url += '?${queryParams.join('&')}';
+      }
+
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> officersJson = data['data'] ?? [];
+        return officersJson.map((json) => OfficerModel.fromJson(json)).toList();
+      } else if (response.statusCode == 403) {
+        throw Exception(
+            'Access denied: You can only view officers from your unit');
+      } else {
+        throw Exception('Failed to load unit officers: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching unit officers: $e');
     }
   }
 }

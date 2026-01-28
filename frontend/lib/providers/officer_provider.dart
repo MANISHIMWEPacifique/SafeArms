@@ -32,12 +32,12 @@ class OfficerProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   Map<String, dynamic> get stats => _stats;
-  
+
   String get unitFilter => _unitFilter;
   String get rankFilter => _rankFilter;
   String get activeFilter => _activeFilter;
   String get searchQuery => _searchQuery;
-  
+
   int get currentPage => _currentPage;
   int get itemsPerPage => _itemsPerPage;
   int get totalItems => _totalItems;
@@ -52,9 +52,9 @@ class OfficerProvider with ChangeNotifier {
       filtered = filtered.where((officer) {
         final query = _searchQuery.toLowerCase();
         return officer.fullName.toLowerCase().contains(query) ||
-               officer.officerNumber.toLowerCase().contains(query) ||
-               officer.rank.toLowerCase().contains(query) ||
-               (officer.phoneNumber?.toLowerCase().contains(query) ?? false);
+            officer.officerNumber.toLowerCase().contains(query) ||
+            officer.rank.toLowerCase().contains(query) ||
+            (officer.phoneNumber?.toLowerCase().contains(query) ?? false);
       }).toList();
     }
 
@@ -80,10 +80,10 @@ class OfficerProvider with ChangeNotifier {
     final filtered = filteredOfficers;
     final startIndex = (_currentPage - 1) * _itemsPerPage;
     final endIndex = startIndex + _itemsPerPage;
-    
+
     if (startIndex >= filtered.length) return [];
     if (endIndex >= filtered.length) return filtered.sublist(startIndex);
-    
+
     return filtered.sublist(startIndex, endIndex);
   }
 
@@ -96,6 +96,28 @@ class OfficerProvider with ChangeNotifier {
     try {
       _officers = await _officerService.getAllOfficers(
         unitId: unitId ?? (_unitFilter != 'all' ? _unitFilter : null),
+        rank: _rankFilter != 'all' ? _rankFilter : null,
+        activeStatus: _activeFilter != 'all' ? _activeFilter : null,
+      );
+      _totalItems = _officers.length;
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Load officers for a specific unit (with RBAC enforcement)
+  Future<void> loadUnitOfficers(String unitId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _officers = await _officerService.getUnitOfficers(
+        unitId: unitId,
         rank: _rankFilter != 'all' ? _rankFilter : null,
         activeStatus: _activeFilter != 'all' ? _activeFilter : null,
       );
@@ -154,10 +176,10 @@ class OfficerProvider with ChangeNotifier {
       _totalItems = _officers.length;
       _isLoading = false;
       notifyListeners();
-      
+
       // Reload stats
       await loadStats();
-      
+
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -220,7 +242,7 @@ class OfficerProvider with ChangeNotifier {
 
     try {
       final success = await _officerService.deleteOfficer(officerId);
-      
+
       if (success) {
         _officers.removeWhere((o) => o.officerId == officerId);
         _totalItems = _officers.length;

@@ -8,7 +8,7 @@ import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../auth/login_screen.dart';
 import '../management/station_firearms_screen.dart';
-import '../management/officers_registry_screen.dart';
+import '../management/station_officers_screen.dart';
 import '../workflows/station_custody_management_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 
@@ -350,8 +350,8 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         // Firearms - view unit's assigned firearms (Station-specific)
         return const StationFirearmsScreen();
       case 2:
-        // Officers
-        return const OfficersRegistryScreen();
+        // Officers - unit-specific officers registry (Station-specific)
+        return const StationOfficersScreen();
       case 3:
         // Custody Management (Station-specific)
         return const StationCustodyManagementScreen();

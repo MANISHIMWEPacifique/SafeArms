@@ -37,13 +37,13 @@ class FirearmProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   Map<String, dynamic> get stats => _stats;
   bool get isGridView => _isGridView;
-  
+
   String get statusFilter => _statusFilter;
   String get typeFilter => _typeFilter;
   String get unitFilter => _unitFilter;
   String get manufacturerFilter => _manufacturerFilter;
   String get searchQuery => _searchQuery;
-  
+
   int get currentPage => _currentPage;
   int get itemsPerPage => _itemsPerPage;
   int get totalItems => _totalItems;
@@ -58,15 +58,16 @@ class FirearmProvider with ChangeNotifier {
       filtered = filtered.where((firearm) {
         final query = _searchQuery.toLowerCase();
         return firearm.serialNumber.toLowerCase().contains(query) ||
-               firearm.manufacturer.toLowerCase().contains(query) ||
-               firearm.model.toLowerCase().contains(query) ||
-               (firearm.assignedUnitId?.toLowerCase().contains(query) ?? false);
+            firearm.manufacturer.toLowerCase().contains(query) ||
+            firearm.model.toLowerCase().contains(query) ||
+            (firearm.assignedUnitId?.toLowerCase().contains(query) ?? false);
       }).toList();
     }
 
     // Apply filters
     if (_statusFilter != 'all') {
-      filtered = filtered.where((f) => f.currentStatus == _statusFilter).toList();
+      filtered =
+          filtered.where((f) => f.currentStatus == _statusFilter).toList();
     }
 
     if (_typeFilter != 'all') {
@@ -74,11 +75,13 @@ class FirearmProvider with ChangeNotifier {
     }
 
     if (_unitFilter != 'all') {
-      filtered = filtered.where((f) => f.assignedUnitId == _unitFilter).toList();
+      filtered =
+          filtered.where((f) => f.assignedUnitId == _unitFilter).toList();
     }
 
     if (_manufacturerFilter != 'all') {
-      filtered = filtered.where((f) => f.manufacturer == _manufacturerFilter).toList();
+      filtered =
+          filtered.where((f) => f.manufacturer == _manufacturerFilter).toList();
     }
 
     _totalItems = filtered.length;
@@ -89,10 +92,10 @@ class FirearmProvider with ChangeNotifier {
     final filtered = filteredFirearms;
     final startIndex = (_currentPage - 1) * _itemsPerPage;
     final endIndex = startIndex + _itemsPerPage;
-    
+
     if (startIndex >= filtered.length) return [];
     if (endIndex >= filtered.length) return filtered.sublist(startIndex);
-    
+
     return filtered.sublist(startIndex, endIndex);
   }
 
@@ -108,6 +111,28 @@ class FirearmProvider with ChangeNotifier {
         type: _typeFilter != 'all' ? _typeFilter : null,
         unitId: unitId ?? (_unitFilter != 'all' ? _unitFilter : null),
         manufacturer: _manufacturerFilter != 'all' ? _manufacturerFilter : null,
+      );
+      _totalItems = _firearms.length;
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Load firearms for a specific unit (with RBAC enforcement)
+  Future<void> loadUnitFirearms(String unitId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _firearms = await _firearmService.getUnitFirearms(
+        unitId: unitId,
+        status: _statusFilter != 'all' ? _statusFilter : null,
+        type: _typeFilter != 'all' ? _typeFilter : null,
       );
       _totalItems = _firearms.length;
       _isLoading = false;
@@ -164,10 +189,10 @@ class FirearmProvider with ChangeNotifier {
       _totalItems = _firearms.length;
       _isLoading = false;
       notifyListeners();
-      
+
       // Reload stats
       await loadStats();
-      
+
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -225,8 +250,9 @@ class FirearmProvider with ChangeNotifier {
 
   // Toggle view mode
   void toggleViewMode() {
-    _isGridView =!_isGridView;
-    _itemsPerPage = _isGridView ? 12 : 25; // Adjust items per page based on view
+    _isGridView = !_isGridView;
+    _itemsPerPage =
+        _isGridView ? 12 : 25; // Adjust items per page based on view
     _currentPage = 1; // Reset to first page
     notifyListeners();
   }

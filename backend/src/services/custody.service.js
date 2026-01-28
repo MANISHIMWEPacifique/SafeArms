@@ -315,11 +315,84 @@ const getUnitCustodyStats = async (unitId) => {
     }
 };
 
+/**
+ * Get custody records for a specific unit (Station Commander use)
+ * @param {string} unitId
+ * @param {Object} options
+ * @returns {Promise<Array>}
+ */
+const getUnitCustody = async (unitId, options = {}) => {
+    try {
+        const { status, custody_type, limit = 100, offset = 0 } = options;
+
+        let whereClause = 'WHERE cr.unit_id = $1';
+        let params = [unitId];
+        let paramCount = 1;
+
+        // Filter by status (active = not returned, returned = returned)
+        if (status === 'active') {
+            whereClause += ' AND cr.returned_at IS NULL';
+        } else if (status === 'returned') {
+            whereClause += ' AND cr.returned_at IS NOT NULL';
+        }
+
+        if (custody_type && custody_type !== 'all') {
+            paramCount++;
+            whereClause += ` AND cr.custody_type = $${paramCount}`;
+            params.push(custody_type);
+        }
+
+        paramCount++;
+        params.push(limit);
+        const limitParam = `$${paramCount}`;
+
+        paramCount++;
+        params.push(offset);
+        const offsetParam = `$${paramCount}`;
+
+        const result = await query(
+            `SELECT 
+        cr.custody_id,
+        cr.firearm_id,
+        cr.officer_id,
+        cr.custody_type,
+        cr.issued_at as assigned_date,
+        cr.returned_at,
+        cr.return_condition,
+        cr.notes,
+        f.serial_number as firearm_serial,
+        f.manufacturer,
+        f.model,
+        f.firearm_type,
+        f.caliber,
+        o.full_name as officer_name,
+        o.officer_number,
+        o.rank,
+        u.unit_name,
+        CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as status
+       FROM custody_records cr
+       JOIN firearms f ON cr.firearm_id = f.firearm_id
+       JOIN officers o ON cr.officer_id = o.officer_id
+       JOIN units u ON cr.unit_id = u.unit_id
+       ${whereClause}
+       ORDER BY cr.issued_at DESC
+       LIMIT ${limitParam} OFFSET ${offsetParam}`,
+            params
+        );
+
+        return result.rows;
+    } catch (error) {
+        logger.error('Get unit custody error:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     assignCustody,
     returnCustody,
     getFirearmCustodyHistory,
     getOfficerCustodyHistory,
     getActiveCustody,
+    getUnitCustody,
     getUnitCustodyStats
 };

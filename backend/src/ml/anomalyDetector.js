@@ -7,20 +7,33 @@ const { sendAnomalyAlert } = require('../services/email.service');
 const logger = require('../utils/logger');
 
 /**
- * Main Anomaly Detector
- * Orchestrates feature extraction, ML prediction, and anomaly recording
+ * Main Anomaly Detector - EVENT-BASED Detection System
+ * 
+ * IMPORTANT PRINCIPLES:
+ * 1. This system evaluates EVENTS, not people
+ * 2. Anomalies represent patterns requiring human review
+ * 3. Severity indicates REVIEW URGENCY, not wrongdoing
+ * 4. Cross-unit transfers ALWAYS trigger mandatory review
+ * 5. Ballistic access timing relative to custody is a key feature
+ * 6. The system is unsupervised - no labeled training data required
+ * 
+ * SEVERITY LEVELS (Review Urgency):
+ * - critical: Immediate review required (same day)
+ * - high: Review within 24 hours
+ * - medium: Review within 72 hours
+ * - low: Standard review queue
  */
 
 /**
- * Detect anomalies in a custody record
+ * Detect anomalies in a custody event
  * @param {Object} custodyRecord - Custody record from database
  * @returns {Promise<Object>} Detection result
  */
 const detectAnomaly = async (custodyRecord) => {
     try {
-        logger.info(`Running anomaly detection for custody: ${custodyRecord.custody_id}`);
+        logger.info(`Running EVENT-BASED anomaly detection for custody: ${custodyRecord.custody_id}`);
 
-        // Step 1: Extract features
+        // Step 1: Extract features (now includes event context, ballistic timing, cross-unit)
         const features = await extractAllFeatures(custodyRecord);
 
         // Step 2: Get active ML model
@@ -32,13 +45,12 @@ const detectAnomaly = async (custodyRecord) => {
     `);
 
         if (modelResult.rows.length === 0) {
-            logger.warn('No active ML model found. Skipping K-Means detection.');
-            // Continue with statistical detection only
+            logger.warn('No active ML model found. Continuing with statistical + rule-based detection.');
         }
 
         const model = modelResult.rows[0];
 
-        // Step 3: Prepare feature vector for ML
+        // Step 3: Prepare feature vector for ML (extended with new features)
         const featureVector = [
             features.officer_issue_frequency_30d || 0,
             features.officer_avg_custody_duration_30d || 0,
@@ -49,7 +61,12 @@ const detectAnomaly = async (custodyRecord) => {
             features.rapid_exchange_flag ? 1.0 : 0.0,
             features.cross_unit_movement_flag ? 1.0 : 0.0,
             features.custody_duration_zscore || 0,
-            features.issue_frequency_zscore || 0
+            features.issue_frequency_zscore || 0,
+            // NEW: Chain-of-custody and ballistic features
+            features.is_cross_unit_transfer ? 1.0 : 0.0,
+            features.ballistic_access_timing_score || 0,
+            features.ballistic_accesses_24h / 10.0 || 0, // Normalized
+            (features.cross_unit_transfer_count_30d || 0) / 5.0 // Normalized
         ];
 
         // Step 4: Run K-Means prediction
@@ -66,15 +83,17 @@ const detectAnomaly = async (custodyRecord) => {
 
         // Step 7: If anomaly detected, create anomaly record
         if (ensembleResult.is_anomaly) {
-            await recordAnomaly(custodyRecord, ensembleResult, model?.model_id);
+            const anomalyRecord = await recordAnomaly(custodyRecord, features, ensembleResult, model?.model_id);
 
             // Send alerts for high/critical anomalies
             if (ensembleResult.severity === 'high' || ensembleResult.severity === 'critical') {
-                await sendAnomalyAlerts(custodyRecord, ensembleResult);
+                await sendAnomalyAlerts(custodyRecord, ensembleResult, anomalyRecord);
             }
         }
 
-        logger.info(`Anomaly detection complete for custody: ${custodyRecord.custody_id}. Anomaly: ${ensembleResult.is_anomaly}, Score: ${ensembleResult.anomaly_score.toFixed(3)}`);
+        logger.info(`EVENT anomaly detection complete for custody: ${custodyRecord.custody_id}. ` +
+            `Anomaly: ${ensembleResult.is_anomaly}, Score: ${ensembleResult.anomaly_score.toFixed(3)}, ` +
+            `CrossUnit: ${features.is_cross_unit_transfer}, Severity: ${ensembleResult.severity}`);
 
         return ensembleResult;
     } catch (error) {
@@ -89,20 +108,22 @@ const detectAnomaly = async (custodyRecord) => {
 };
 
 /**
- * Record anomaly in database
+ * Record anomaly in database (EVENT-CENTRIC)
  * @param {Object} custodyRecord
- * @param {Object} detection Result
+ * @param {Object} features - Extracted features including event_context
+ * @param {Object} detectionResult
  * @param {string} modelId
  * @returns {Promise<Object>}
  */
-const recordAnomaly = async (custodyRecord, detectionResult, modelId) => {
+const recordAnomaly = async (custodyRecord, features, detectionResult, modelId) => {
     try {
         const result = await query(`
       INSERT INTO anomalies (
         custody_record_id, firearm_id, officer_id, unit_id,
         anomaly_score, anomaly_type, detection_method, model_id,
-        severity, confidence_level, contributing_factors, feature_importance
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        severity, confidence_level, contributing_factors, feature_importance,
+        is_mandatory_review, event_context, ballistic_access_context
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING anomaly_id
     `, [
             custodyRecord.custody_id,
@@ -116,12 +137,16 @@ const recordAnomaly = async (custodyRecord, detectionResult, modelId) => {
             detectionResult.severity,
             detectionResult.confidence,
             JSON.stringify(detectionResult.contributing_factors),
-            JSON.stringify(detectionResult.feature_importance)
+            JSON.stringify(detectionResult.feature_importance),
+            detectionResult.is_mandatory_review || false,
+            JSON.stringify(features.event_context || detectionResult.event_context),
+            JSON.stringify(detectionResult.ballistic_access_context)
         ]);
 
-        logger.info(`Anomaly recorded: ${result.rows[0].anomaly_id}`);
+        const anomalyId = result.rows[0].anomaly_id;
+        logger.info(`EVENT anomaly recorded: ${anomalyId} (type: ${detectionResult.anomaly_type}, severity: ${detectionResult.severity})`);
 
-        return result.rows[0];
+        return { anomaly_id: anomalyId, ...result.rows[0] };
     } catch (error) {
         logger.error('Record anomaly error:', error);
         throw error;
@@ -130,11 +155,13 @@ const recordAnomaly = async (custodyRecord, detectionResult, modelId) => {
 
 /**
  * Send anomaly alerts to relevant personnel
+ * Includes event context and ballistic access information
  * @param {Object} custodyRecord
  * @param {Object} detectionResult
+ * @param {Object} anomalyRecord - The created anomaly record
  * @returns {Promise<void>}
  */
-const sendAnomalyAlerts = async (custodyRecord, detectionResult) => {
+const sendAnomalyAlerts = async (custodyRecord, detectionResult, anomalyRecord) => {
     try {
         const notifiedUsers = [];
 
@@ -154,6 +181,24 @@ const sendAnomalyAlerts = async (custodyRecord, detectionResult) => {
         if (detailsResult.rows.length === 0) return;
 
         const details = detailsResult.rows[0];
+        
+        // Build alert context
+        const alertContext = {
+            anomaly_id: anomalyRecord?.anomaly_id || `A-${new Date().getFullYear()}-${custodyRecord.custody_id.substring(0, 8)}`,
+            severity: detectionResult.severity,
+            severity_description: getSeverityDescription(detectionResult.severity),
+            anomaly_score: detectionResult.anomaly_score,
+            anomaly_type: detectionResult.anomaly_type,
+            is_mandatory_review: detectionResult.is_mandatory_review,
+            firearm: details.firearm_desc,
+            officer: details.officer_name,
+            unit: details.unit_name,
+            // New: Include event context
+            is_cross_unit_transfer: detectionResult.event_context?.is_cross_unit_transfer || false,
+            previous_unit: detectionResult.event_context?.previous_unit_name || null,
+            ballistic_timing_concern: (detectionResult.ballistic_access_context?.timing_score || 0) > 0.5,
+            contributing_factors: Object.values(detectionResult.contributing_factors || {}).slice(0, 3)
+        };
 
         // Always notify HQ Commanders for HIGH/CRITICAL
         const hqCommanders = await query(`
@@ -167,14 +212,7 @@ const sendAnomalyAlerts = async (custodyRecord, detectionResult) => {
                 await sendAnomalyAlert(
                     commander.email,
                     commander.full_name,
-                    {
-                        anomaly_id: `A-${new Date().getFullYear()}-${custodyRecord.custody_id.substring(0, 8)}`,
-                        severity: detectionResult.severity,
-                        anomaly_score: detectionResult.anomaly_score,
-                        firearm: details.firearm_desc,
-                        officer: details.officer_name,
-                        unit: details.unit_name
-                    }
+                    alertContext
                 );
                 notifiedUsers.push(commander.user_id);
             } catch (err) {
@@ -182,7 +220,7 @@ const sendAnomalyAlerts = async (custodyRecord, detectionResult) => {
             }
         }
 
-        // Notify Station Commander
+        // Notify Station Commander (for their unit's events)
         const stationCommander = await query(`
       SELECT user_id, email, full_name
       FROM users
@@ -195,14 +233,7 @@ const sendAnomalyAlerts = async (custodyRecord, detectionResult) => {
                 await sendAnomalyAlert(
                     commander.email,
                     commander.full_name,
-                    {
-                        anomaly_id: `A-${new Date().getFullYear()}-${custodyRecord.custody_id.substring(0, 8)}`,
-                        severity: detectionResult.severity,
-                        anomaly_score: detectionResult.anomaly_score,
-                        firearm: details.firearm_desc,
-                        officer: details.officer_name,
-                        unit: details.unit_name
-                    }
+                    alertContext
                 );
                 notifiedUsers.push(commander.user_id);
             } catch (err) {
@@ -211,19 +242,37 @@ const sendAnomalyAlerts = async (custodyRecord, detectionResult) => {
         }
 
         // Update anomaly record with notification info
-        await query(`
-      UPDATE anomalies
-      SET auto_notification_sent = true,
-          notification_sent_at = CURRENT_TIMESTAMP,
-          notified_users = $1
-      WHERE custody_record_id = $2
-    `, [JSON.stringify(notifiedUsers), custodyRecord.custody_id]);
+        if (anomalyRecord?.anomaly_id) {
+            await query(`
+                UPDATE anomalies
+                SET auto_notification_sent = true,
+                    notification_sent_at = CURRENT_TIMESTAMP,
+                    notified_users = $1
+                WHERE anomaly_id = $2
+            `, [JSON.stringify(notifiedUsers), anomalyRecord.anomaly_id]);
+        }
 
-        logger.info(`Anomaly alerts sent to ${notifiedUsers.length} users`);
+        logger.info(`EVENT anomaly alerts sent to ${notifiedUsers.length} users for anomaly ${anomalyRecord?.anomaly_id}`);
     } catch (error) {
         logger.error('Send anomaly alerts error:', error);
         // Don't throw - alert failure shouldn't break detection
     }
+};
+
+/**
+ * Get human-readable severity description
+ * IMPORTANT: Severity is about REVIEW URGENCY, not wrongdoing
+ * @param {string} severity
+ * @returns {string}
+ */
+const getSeverityDescription = (severity) => {
+    const descriptions = {
+        critical: 'Immediate review required (same day)',
+        high: 'Review within 24 hours',
+        medium: 'Review within 72 hours',
+        low: 'Standard review queue'
+    };
+    return descriptions[severity] || 'Standard review';
 };
 
 /**

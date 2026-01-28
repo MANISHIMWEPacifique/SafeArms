@@ -1,8 +1,12 @@
 const logger = require('../utils/logger');
 
 /**
- * Statistical Outlier Detection
- * Uses z-score analysis to identify anomalous custody patterns
+ * Statistical Outlier Detection for EVENT-Based Anomaly Detection
+ * 
+ * Uses z-score analysis to identify anomalous custody EVENT patterns.
+ * 
+ * IMPORTANT: This evaluates EVENTS, not people.
+ * Outliers indicate patterns that warrant human review.
  */
 
 /**
@@ -19,6 +23,7 @@ const calculateZScore = (value, mean, stddev) => {
 
 /**
  * Detect statistical outliers in features
+ * Includes chain-of-custody and ballistic access timing analysis
  * @param {Object} features - Extracted features
  * @returns {Promise<Object>} Outlier detection results
  */
@@ -67,6 +72,63 @@ const detectStatisticalOutliers = async (features) => {
             maxZScore = Math.max(maxZScore, exchangeRate);
         }
 
+        // ============================================
+        // NEW: Ballistic access timing outliers
+        // ============================================
+        
+        // High ballistic access frequency
+        const ballisticAccesses24h = features.ballistic_accesses_24h || 0;
+        if (ballisticAccesses24h > 3) {
+            outliers.push({
+                feature: 'ballistic_access_frequency',
+                value: ballisticAccesses24h,
+                severity: ballisticAccesses24h > 5 ? 'high' : 'medium',
+                description: `Ballistic profile accessed ${ballisticAccesses24h} times in 24 hours`
+            });
+            maxZScore = Math.max(maxZScore, ballisticAccesses24h / 3.0);
+        }
+
+        // Ballistic access close to custody change
+        const accessBeforeHours = features.ballistic_access_before_custody_hours;
+        if (accessBeforeHours !== null && accessBeforeHours < 6) {
+            const proximityScore = (6 - accessBeforeHours) / 6.0 * 3.0; // Convert to pseudo-zscore
+            outliers.push({
+                feature: 'ballistic_access_before_custody',
+                value: accessBeforeHours,
+                severity: accessBeforeHours < 2 ? 'high' : 'medium',
+                description: `Ballistic profile accessed ${accessBeforeHours.toFixed(1)} hours before custody transfer`
+            });
+            maxZScore = Math.max(maxZScore, proximityScore);
+        }
+
+        const accessAfterHours = features.ballistic_access_after_custody_hours;
+        if (accessAfterHours !== null && accessAfterHours < 6) {
+            const proximityScore = (6 - accessAfterHours) / 6.0 * 3.0;
+            outliers.push({
+                feature: 'ballistic_access_after_custody',
+                value: accessAfterHours,
+                severity: accessAfterHours < 2 ? 'high' : 'medium',
+                description: `Ballistic profile accessed ${accessAfterHours.toFixed(1)} hours after custody transfer`
+            });
+            maxZScore = Math.max(maxZScore, proximityScore);
+        }
+
+        // ============================================
+        // NEW: Cross-unit transfer patterns
+        // ============================================
+        
+        // Multiple cross-unit transfers in short period
+        const crossUnitCount30d = features.cross_unit_transfer_count_30d || 0;
+        if (crossUnitCount30d > 2) {
+            outliers.push({
+                feature: 'cross_unit_transfer_frequency',
+                value: crossUnitCount30d,
+                severity: crossUnitCount30d > 4 ? 'high' : 'medium',
+                description: `Firearm has crossed between units ${crossUnitCount30d} times in 30 days`
+            });
+            maxZScore = Math.max(maxZScore, crossUnitCount30d / 2.0);
+        }
+
         // Calculate statistical anomaly score (0 to 1)
         const statisticalScore = outliers.length > 0
             ? Math.min(maxZScore / 4.0, 1.0)
@@ -77,7 +139,13 @@ const detectStatisticalOutliers = async (features) => {
             anomaly_score: statisticalScore,
             outliers,
             max_zscore: maxZScore,
-            detection_method: 'statistical'
+            detection_method: 'statistical',
+            categories_detected: {
+                custody_timing: outliers.some(o => ['custody_duration', 'issue_frequency'].includes(o.feature)),
+                exchange_pattern: outliers.some(o => o.feature === 'firearm_exchange_rate'),
+                ballistic_timing: outliers.some(o => o.feature.startsWith('ballistic_')),
+                cross_unit: outliers.some(o => o.feature === 'cross_unit_transfer_frequency')
+            }
         };
     } catch (error) {
         logger.error('Statistical outlier detection error:', error);
@@ -86,7 +154,8 @@ const detectStatisticalOutliers = async (features) => {
             anomaly_score: 0,
             outliers: [],
             max_zscore: 0,
-            detection_method: 'statistical'
+            detection_method: 'statistical',
+            categories_detected: {}
         };
     }
 };

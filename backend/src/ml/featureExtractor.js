@@ -2,8 +2,16 @@ const { query } = require('../config/database');
 const logger = require('../utils/logger');
 
 /**
- * ML Feature Extractor
- * Extracts features from custody records for anomaly detection
+ * ML Feature Extractor for EVENT-Based Anomaly Detection
+ * 
+ * IMPORTANT: This system evaluates EVENTS, not people.
+ * - Each custody event is analyzed independently
+ * - Ballistic access timing relative to custody is a key feature
+ * - Cross-unit transfers are always flagged for review
+ * - Severity indicates REVIEW URGENCY, not wrongdoing
+ * 
+ * The system is unsupervised - it identifies unusual patterns
+ * that warrant human review, not guilt or innocence.
  */
 
 /**
@@ -84,6 +92,83 @@ const extractBehavioralFeatures = async (officerId, firearmId) => {
 };
 
 /**
+ * Extract cross-unit transfer context
+ * Cross-unit transfers ALWAYS require review (organizational policy)
+ * 
+ * @param {Object} custodyRecord
+ * @returns {Promise<Object>}
+ */
+const extractCrossUnitTransferContext = async (custodyRecord) => {
+    try {
+        const { firearm_id, unit_id, custody_id } = custodyRecord;
+
+        // Get the previous custody record for this firearm
+        const previousCustody = await query(`
+            SELECT 
+                cr.custody_id,
+                cr.unit_id as previous_unit_id,
+                u.unit_name as previous_unit_name,
+                cr.returned_at,
+                o.full_name as previous_officer_name
+            FROM custody_records cr
+            JOIN units u ON cr.unit_id = u.unit_id
+            JOIN officers o ON cr.officer_id = o.officer_id
+            WHERE cr.firearm_id = $1
+            AND cr.custody_id != $2
+            ORDER BY cr.issued_at DESC
+            LIMIT 1
+        `, [firearm_id, custody_id]);
+
+        if (previousCustody.rows.length === 0) {
+            return {
+                is_cross_unit_transfer: false,
+                previous_unit_id: null,
+                previous_unit_name: null,
+                cross_unit_transfer_count_30d: 0,
+                is_first_custody: true
+            };
+        }
+
+        const prevRecord = previousCustody.rows[0];
+        const isCrossUnit = prevRecord.previous_unit_id !== unit_id;
+
+        // Count cross-unit transfers in last 30 days for this firearm
+        const crossUnitCount = await query(`
+            WITH custody_with_prev AS (
+                SELECT 
+                    cr.custody_id,
+                    cr.unit_id,
+                    cr.issued_at,
+                    LAG(cr.unit_id) OVER (ORDER BY cr.issued_at) as prev_unit_id
+                FROM custody_records cr
+                WHERE cr.firearm_id = $1
+                AND cr.issued_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
+            )
+            SELECT COUNT(*) as count
+            FROM custody_with_prev
+            WHERE unit_id != prev_unit_id AND prev_unit_id IS NOT NULL
+        `, [firearm_id]);
+
+        return {
+            is_cross_unit_transfer: isCrossUnit,
+            previous_unit_id: prevRecord.previous_unit_id,
+            previous_unit_name: isCrossUnit ? prevRecord.previous_unit_name : null,
+            cross_unit_transfer_count_30d: parseInt(crossUnitCount.rows[0]?.count || 0),
+            is_first_custody: false
+        };
+    } catch (error) {
+        logger.error('Extract cross-unit transfer context error:', error);
+        return {
+            is_cross_unit_transfer: false,
+            previous_unit_id: null,
+            previous_unit_name: null,
+            cross_unit_transfer_count_30d: 0,
+            is_first_custody: false
+        };
+    }
+};
+
+/**
  * Detect pattern-based anomaly flags
  * @param {Object} custodyRecord
  * @returns {Promise<Object>}
@@ -102,7 +187,7 @@ const extractPatternFlags = async (custodyRecord) => {
             [firearm_id]
         );
 
-        // Check for cross-unit movement
+        // Check for cross-unit movement in officer's history
         const crossUnit = await query(
             `SELECT COUNT(*) as count
        FROM custody_records cr
@@ -208,27 +293,189 @@ const extractStatisticalFeatures = async (custodyRecord, behavioralFeatures) => 
 };
 
 /**
- * Extract all features from a custody record
+ * Extract ballistic-access context features relative to custody events
+ * 
+ * KEY FEATURE: Timing of ballistic access relative to custody changes
+ * - Access during active custody
+ * - Access shortly before/after custody transfer
+ * - Access patterns around cross-unit movements
+ * 
+ * @param {string} firearmId
+ * @param {Object} custodyRecord - Current custody event for timing context
+ * @returns {Promise<Object>}
+ */
+const extractBallisticContext = async (firearmId, custodyRecord = null) => {
+    try {
+        // Check if firearm has ballistic profile
+        const ballisticProfile = await query(
+            `SELECT ballistic_id, test_date, is_locked 
+             FROM ballistic_profiles 
+             WHERE firearm_id = $1`,
+            [firearmId]
+        );
+
+        const hasBallisticProfile = ballisticProfile.rows.length > 0;
+        
+        if (!hasBallisticProfile) {
+            return {
+                has_ballistic_profile: false,
+                ballistic_accesses_7d: 0,
+                ballistic_accesses_24h: 0,
+                ballistic_access_during_custody: false,
+                ballistic_access_before_custody_hours: null,
+                ballistic_access_after_custody_hours: null,
+                ballistic_access_timing_score: 0
+            };
+        }
+
+        // Get ballistic access count in last 7 days and 24 hours
+        const accessCounts = await query(
+            `SELECT 
+                COUNT(*) FILTER (WHERE accessed_at >= CURRENT_TIMESTAMP - INTERVAL '7 days') as accesses_7d,
+                COUNT(*) FILTER (WHERE accessed_at >= CURRENT_TIMESTAMP - INTERVAL '24 hours') as accesses_24h
+             FROM ballistic_access_logs
+             WHERE firearm_id = $1`,
+            [firearmId]
+        );
+
+        const accesses7d = parseInt(accessCounts.rows[0]?.accesses_7d || 0);
+        const accesses24h = parseInt(accessCounts.rows[0]?.accesses_24h || 0);
+
+        // If we have custody context, analyze timing
+        let ballisticAccessDuringCustody = false;
+        let accessBeforeCustodyHours = null;
+        let accessAfterCustodyHours = null;
+        let timingScore = 0;
+
+        if (custodyRecord && custodyRecord.issued_at) {
+            const issuedAt = new Date(custodyRecord.issued_at);
+            const returnedAt = custodyRecord.returned_at ? new Date(custodyRecord.returned_at) : null;
+
+            // Find ballistic accesses relative to this custody event
+            const timingAnalysis = await query(`
+                SELECT 
+                    accessed_at,
+                    CASE 
+                        WHEN accessed_at >= $2 AND (accessed_at <= $3 OR $3 IS NULL) THEN 'during'
+                        WHEN accessed_at < $2 THEN 'before'
+                        ELSE 'after'
+                    END as timing_category,
+                    EXTRACT(EPOCH FROM (accessed_at - $2)) / 3600.0 as hours_from_issue
+                FROM ballistic_access_logs
+                WHERE firearm_id = $1
+                AND accessed_at >= $2 - INTERVAL '48 hours'
+                AND accessed_at <= COALESCE($3, CURRENT_TIMESTAMP) + INTERVAL '48 hours'
+                ORDER BY accessed_at
+            `, [firearmId, issuedAt, returnedAt]);
+
+            for (const access of timingAnalysis.rows) {
+                const hoursFromIssue = parseFloat(access.hours_from_issue);
+
+                if (access.timing_category === 'during') {
+                    ballisticAccessDuringCustody = true;
+                } else if (access.timing_category === 'before' && hoursFromIssue > -48) {
+                    accessBeforeCustodyHours = accessBeforeCustodyHours === null 
+                        ? Math.abs(hoursFromIssue) 
+                        : Math.min(accessBeforeCustodyHours, Math.abs(hoursFromIssue));
+                } else if (access.timing_category === 'after') {
+                    accessAfterCustodyHours = accessAfterCustodyHours === null
+                        ? hoursFromIssue
+                        : Math.min(accessAfterCustodyHours, hoursFromIssue);
+                }
+            }
+
+            // Calculate timing score (higher = more suspicious timing pattern)
+            // Note: "Suspicious" means warrants review, NOT wrongdoing
+            if (ballisticAccessDuringCustody) {
+                timingScore += 0.3; // Access during custody is normal for forensic work
+            }
+            if (accessBeforeCustodyHours !== null && accessBeforeCustodyHours < 6) {
+                timingScore += 0.5; // Access within 6h before custody change
+            }
+            if (accessAfterCustodyHours !== null && accessAfterCustodyHours < 6) {
+                timingScore += 0.5; // Access within 6h after custody change
+            }
+            if (accesses24h > 3) {
+                timingScore += 0.4; // High access frequency
+            }
+        }
+
+        return {
+            has_ballistic_profile: true,
+            ballistic_accesses_7d: accesses7d,
+            ballistic_accesses_24h: accesses24h,
+            ballistic_access_during_custody: ballisticAccessDuringCustody,
+            ballistic_access_before_custody_hours: accessBeforeCustodyHours,
+            ballistic_access_after_custody_hours: accessAfterCustodyHours,
+            ballistic_access_timing_score: Math.min(timingScore, 1.0)
+        };
+    } catch (error) {
+        logger.error('Extract ballistic context error:', error);
+        return {
+            has_ballistic_profile: false,
+            ballistic_accesses_7d: 0,
+            ballistic_accesses_24h: 0,
+            ballistic_access_during_custody: false,
+            ballistic_access_before_custody_hours: null,
+            ballistic_access_after_custody_hours: null,
+            ballistic_access_timing_score: 0
+        };
+    }
+};
+
+/**
+ * Extract all features from a custody record (EVENT-BASED)
+ * 
+ * IMPORTANT: This extracts features for a single EVENT, not a person.
+ * The ML system evaluates custody events independently.
+ * 
  * @param {Object} custodyRecord
- * @returns {Promise<Object>} Complete feature set
+ * @returns {Promise<Object>} Complete feature set for this event
  */
 const extractAllFeatures = async (custodyRecord) => {
     try {
-        const { officer_id, firearm_id, custody_id } = custodyRecord;
+        const { officer_id, firearm_id, custody_id, unit_id } = custodyRecord;
 
-        // Extract all feature types
+        // Extract all feature types in parallel where possible
+        const [
+            behavioral,
+            patternFlags,
+            crossUnitContext,
+            ballisticContext
+        ] = await Promise.all([
+            extractBehavioralFeatures(officer_id, firearm_id),
+            extractPatternFlags(custodyRecord),
+            extractCrossUnitTransferContext(custodyRecord),
+            extractBallisticContext(firearm_id, custodyRecord) // Pass custody for timing context
+        ]);
+
+        // Extract features that depend on others
         const temporal = extractTemporalFeatures(custodyRecord);
-        const behavioral = await extractBehavioralFeatures(officer_id, firearm_id);
-        const patternFlags = await extractPatternFlags(custodyRecord);
         const statistical = await extractStatisticalFeatures(custodyRecord, behavioral);
+
+        // Build event context for anomaly records
+        const eventContext = {
+            event_type: 'custody_assignment',
+            event_id: custody_id,
+            firearm_id,
+            officer_id,
+            unit_id,
+            is_cross_unit_transfer: crossUnitContext.is_cross_unit_transfer,
+            previous_unit_id: crossUnitContext.previous_unit_id,
+            previous_unit_name: crossUnitContext.previous_unit_name,
+            is_first_custody: crossUnitContext.is_first_custody
+        };
 
         // Combine all features
         const features = {
             custody_id,
+            event_context: eventContext,
             ...temporal,
             ...behavioral,
             ...patternFlags,
+            ...crossUnitContext,
             ...statistical,
+            ...ballisticContext,
             extracted_at: new Date()
         };
 
@@ -261,8 +508,9 @@ const storeFeatures = async (custodyRecord, features) => {
         firearm_exchange_rate_7d, officer_unit_consistency_score,
         time_since_last_return_seconds, consecutive_same_firearm_count,
         cross_unit_movement_flag, rapid_exchange_flag,
-        custody_duration_zscore, issue_frequency_zscore
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+        custody_duration_zscore, issue_frequency_zscore,
+        has_ballistic_profile, ballistic_accesses_7d
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
             [
                 custodyRecord.officer_id,
                 custodyRecord.firearm_id,
@@ -282,7 +530,15 @@ const storeFeatures = async (custodyRecord, features) => {
                 features.cross_unit_movement_flag,
                 features.rapid_exchange_flag,
                 features.custody_duration_zscore,
-                features.issue_frequency_zscore
+                features.issue_frequency_zscore,
+                features.has_ballistic_profile,
+                features.ballistic_accesses_7d,
+                // New chain-of-custody and ballistic timing features
+                features.is_cross_unit_transfer,
+                features.cross_unit_transfer_count_30d,
+                features.ballistic_accesses_24h,
+                features.ballistic_access_timing_score,
+                JSON.stringify(features.event_context)
             ]
         );
     } catch (error) {
@@ -296,5 +552,7 @@ module.exports = {
     extractTemporalFeatures,
     extractBehavioralFeatures,
     extractPatternFlags,
-    extractStatisticalFeatures
+    extractStatisticalFeatures,
+    extractBallisticContext,
+    extractCrossUnitTransferContext
 };

@@ -1,10 +1,35 @@
 const express = require('express');
 const router = express.Router();
 const Firearm = require('../models/Firearm');
+const CustodyRecord = require('../models/CustodyRecord');
+const BallisticProfile = require('../models/BallisticProfile');
 const { authenticate } = require('../middleware/authentication');
-const { requireCommander, requireHQCommander, requireUnitAccess } = require('../middleware/authorization');
+const { 
+    requireCommander, 
+    requireHQCommander, 
+    requireUnitAccess, 
+    requireRole,
+    enforceUnitFirearmAccess,
+    ROLES 
+} = require('../middleware/authorization');
 const { logCreate, logUpdate } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { query } = require('../config/database');
+
+/**
+ * Firearms Routes - Chain of Custody and Registry Management
+ * 
+ * RBAC Summary:
+ * - admin: Full access to all firearms and history
+ * - hq_firearm_commander: Full access to all firearms, can create/update
+ * - station_commander: Can only access firearms assigned to their unit
+ *                      CANNOT access ballistic data (profiles, access history)
+ * - forensic_analyst: Read-only access to all firearms and history including ballistic
+ * 
+ * NOTE: Station commanders are explicitly denied ballistic data even when 
+ * accessing their unit's firearms. The full-history endpoint returns 
+ * custody data only for station commanders.
+ */
 
 router.get('/', authenticate, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
@@ -270,6 +295,224 @@ router.put('/:id', authenticate, requireCommander, requireUnitAccess, logUpdate,
     const firearm = await Firearm.update(req.params.id, req.body);
     if (!firearm) return res.status(404).json({ success: false, message: 'Firearm not found' });
     res.json({ success: true, data: firearm });
+}));
+
+// ============================================
+// FULL TRACEABILITY ENDPOINT
+// ============================================
+// Returns complete custody + ballistic-access history for a firearm
+// This is the primary forensic traceability API
+
+/**
+ * GET /firearms/:id/full-history
+ * 
+ * Returns:
+ * - Firearm details
+ * - Ballistic profile summary (if exists) - NOT FOR STATION COMMANDERS
+ * - Complete custody chain with cross-unit flags
+ * - Ballistic access history - NOT FOR STATION COMMANDERS
+ * - Unified timeline of all events
+ * - Summary statistics
+ * 
+ * RBAC:
+ * - forensic_analyst: Full access to all firearms including ballistic data
+ * - hq_firearm_commander: Full access to all firearms including ballistic data
+ * - admin: Full access for audit purposes
+ * - station_commander: Only firearms assigned to their unit, NO BALLISTIC DATA
+ */
+router.get('/:id/full-history', authenticate, asyncHandler(async (req, res) => {
+    const { role, unit_id: userUnitId } = req.user;
+    const firearmId = req.params.id;
+    const { include_timeline = 'true', timeline_limit = 100 } = req.query;
+
+    // Get firearm first
+    const firearm = await Firearm.findById(firearmId);
+    if (!firearm) {
+        return res.status(404).json({ success: false, message: 'Firearm not found' });
+    }
+
+    // RBAC: Station commanders can only access their unit's firearms
+    if (role === 'station_commander' && firearm.assigned_unit_id !== userUnitId) {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied. You can only view history for firearms assigned to your unit.'
+        });
+    }
+
+    // SECURITY: Station commanders CANNOT access ballistic data
+    const canAccessBallisticData = role !== 'station_commander';
+    
+    // Only fetch ballistic profile if user has access
+    let ballisticProfile = null;
+    if (canAccessBallisticData) {
+        ballisticProfile = await BallisticProfile.findByFirearmId(
+            firearmId, 
+            req.user.user_id, 
+            { ip: req.ip, userAgent: req.get('user-agent') }
+        );
+    }
+
+    // Gather all traceability data in parallel
+    const [
+        custodyStats,
+        custodyChain,
+        crossUnitTransfers,
+        ballisticAccessHistory
+    ] = await Promise.all([
+        CustodyRecord.getCustodyStats(firearmId),
+        CustodyRecord.getCustodyChainTimeline(firearmId),
+        CustodyRecord.getCrossUnitTransfers(firearmId),
+        // Only fetch ballistic access history if user has ballistic access
+        (canAccessBallisticData && ballisticProfile) ? 
+            query(`
+                SELECT bal.*, u.full_name as accessed_by_name, u.role as accessed_by_role
+                FROM ballistic_access_logs bal
+                JOIN users u ON bal.accessed_by = u.user_id
+                WHERE bal.firearm_id = $1
+                ORDER BY bal.accessed_at DESC
+                LIMIT 50
+            `, [firearmId]).then(r => r.rows) :
+            Promise.resolve([])
+    ]);
+
+    // Get unified timeline if requested
+    let unifiedTimeline = null;
+    if (include_timeline === 'true') {
+        unifiedTimeline = await CustodyRecord.getUnifiedTimeline(firearmId, { limit: parseInt(timeline_limit) });
+        
+        // If station commander, filter out ballistic events from timeline
+        if (role === 'station_commander' && unifiedTimeline) {
+            unifiedTimeline = unifiedTimeline.filter(event => 
+                !['ballistic_access', 'ballistic_profile_created'].includes(event.event_type)
+            );
+        }
+    }
+
+    // Build response
+    const response = {
+        firearm: {
+            firearm_id: firearm.firearm_id,
+            serial_number: firearm.serial_number,
+            manufacturer: firearm.manufacturer,
+            model: firearm.model,
+            firearm_type: firearm.firearm_type,
+            caliber: firearm.caliber,
+            current_status: firearm.current_status,
+            assigned_unit_id: firearm.assigned_unit_id,
+            unit_name: firearm.unit_name,
+            registration_date: firearm.created_at
+        },
+        // Include ballistic data only for authorized roles
+        ballistic_profile: canAccessBallisticData ? (ballisticProfile ? {
+            ballistic_id: ballisticProfile.ballistic_id,
+            has_profile: true,
+            test_date: ballisticProfile.test_date,
+            forensic_lab: ballisticProfile.forensic_lab,
+            is_locked: ballisticProfile.is_locked,
+            created_at: ballisticProfile.created_at
+        } : {
+            has_profile: false
+        }) : {
+            access_denied: true,
+            reason: 'Station commanders do not have access to ballistic data'
+        },
+        custody_summary: {
+            total_custody_events: parseInt(custodyStats.total_custody_events) || 0,
+            unique_officers: parseInt(custodyStats.unique_officers) || 0,
+            unique_units: parseInt(custodyStats.unique_units) || 0,
+            currently_in_custody: parseInt(custodyStats.active_custody) > 0,
+            first_custody_date: custodyStats.first_custody_date,
+            last_custody_date: custodyStats.last_custody_date,
+            total_custody_days: custodyStats.total_custody_seconds ? 
+                Math.round(custodyStats.total_custody_seconds / 86400) : 0,
+            cross_unit_transfers: crossUnitTransfers.length
+        },
+        custody_chain: custodyChain.map(record => ({
+            custody_id: record.custody_id,
+            sequence: record.custody_sequence,
+            officer_name: record.officer_name,
+            officer_rank: record.officer_rank,
+            officer_number: record.officer_number,
+            unit_name: record.unit_name,
+            custody_type: record.custody_type,
+            issued_at: record.issued_at,
+            returned_at: record.returned_at,
+            duration_seconds: record.custody_duration_seconds,
+            issued_by: record.issued_by_name,
+            returned_to: record.returned_to_name,
+            return_condition: record.return_condition,
+            is_cross_unit_transfer: record.is_cross_unit_transfer
+        })),
+        cross_unit_transfers: crossUnitTransfers,
+        // Include ballistic access history only for authorized roles
+        ballistic_access_history: canAccessBallisticData ? ballisticAccessHistory.map(access => ({
+            access_id: access.access_id,
+            accessed_at: access.accessed_at,
+            access_type: access.access_type,
+            accessed_by: access.accessed_by_name,
+            accessed_by_role: access.accessed_by_role,
+            access_reason: access.access_reason,
+            firearm_status_at_access: access.firearm_status_at_access
+        })) : undefined,
+        unified_timeline: unifiedTimeline,
+        role_access_level: canAccessBallisticData ? 'full' : 'custody_only',
+        generated_at: new Date().toISOString()
+    };
+
+    // Log this comprehensive access
+    await query(`
+        INSERT INTO audit_logs (user_id, action_type, table_name, record_id, new_values, ip_address, user_agent)
+        VALUES ($1, 'FULL_HISTORY_ACCESS', 'firearms', $2, $3, $4, $5)
+    `, [
+        req.user.user_id,
+        firearmId,
+        JSON.stringify({ 
+            include_timeline, 
+            timeline_limit,
+            has_ballistic_profile: !!ballisticProfile 
+        }),
+        req.ip,
+        req.get('user-agent')
+    ]);
+
+    res.json({ success: true, data: response });
+}));
+
+/**
+ * GET /firearms/:id/cross-unit-transfers
+ * 
+ * Returns all cross-unit transfer events for a firearm
+ * Useful for investigating firearm movement patterns
+ */
+router.get('/:id/cross-unit-transfers', authenticate, asyncHandler(async (req, res) => {
+    const { role, unit_id: userUnitId } = req.user;
+    const firearmId = req.params.id;
+
+    // Get firearm for RBAC check
+    const firearm = await Firearm.findById(firearmId);
+    if (!firearm) {
+        return res.status(404).json({ success: false, message: 'Firearm not found' });
+    }
+
+    // RBAC: Station commanders limited to their unit
+    if (role === 'station_commander' && firearm.assigned_unit_id !== userUnitId) {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied. You can only view transfers for firearms assigned to your unit.'
+        });
+    }
+
+    const transfers = await CustodyRecord.getCrossUnitTransfers(firearmId);
+    
+    res.json({ 
+        success: true, 
+        data: {
+            firearm_id: firearmId,
+            serial_number: firearm.serial_number,
+            total_transfers: transfers.length,
+            transfers
+        }
+    });
 }));
 
 module.exports = router;

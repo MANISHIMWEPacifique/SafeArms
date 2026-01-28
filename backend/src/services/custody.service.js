@@ -1,10 +1,16 @@
 const { query, withTransaction } = require('../config/database');
 const logger = require('../utils/logger');
 const { detectAnomaly } = require('../ml/anomalyDetector');
+const CustodyRecord = require('../models/CustodyRecord');
 
 /**
  * Custody Management Service
  * Handles firearm assignment, return, and history tracking
+ * 
+ * CHAIN-OF-CUSTODY FEATURES:
+ * - Cross-unit transfers are explicitly detected and logged
+ * - All custody events automatically append to chain-of-custody timeline
+ * - Custody records are immutable after creation (enforced by DB triggers)
  */
 
 /**
@@ -28,7 +34,7 @@ const assignCustody = async (custodyData) => {
         return await withTransaction(async (client) => {
             // Check if firearm is available
             const firearmCheck = await client.query(
-                'SELECT current_status FROM firearms WHERE firearm_id = $1',
+                'SELECT current_status, assigned_unit_id FROM firearms WHERE firearm_id = $1',
                 [firearm_id]
             );
 
@@ -60,13 +66,17 @@ const assignCustody = async (custodyData) => {
                 throw new Error('Officer does not belong to this unit');
             }
 
+            // CROSS-UNIT TRANSFER DETECTION
+            const crossUnitCheck = await CustodyRecord.detectCrossUnitTransfer(firearm_id, unit_id);
+            const isCrossUnitTransfer = crossUnitCheck.isCrossUnit;
+
             // Create custody record
             const result = await client.query(
                 `INSERT INTO custody_records (
-          firearm_id, officer_id, unit_id, custody_type,
-          assignment_reason, expected_return_date, notes, issued_by
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING *`,
+                    firearm_id, officer_id, unit_id, custody_type,
+                    assignment_reason, expected_return_date, notes, issued_by
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING *`,
                 [
                     firearm_id,
                     officer_id,
@@ -84,21 +94,50 @@ const assignCustody = async (custodyData) => {
             // Update firearm status to in_custody
             await client.query(
                 `UPDATE firearms 
-         SET current_status = 'in_custody', updated_at = CURRENT_TIMESTAMP
-         WHERE firearm_id = $1`,
+                 SET current_status = 'in_custody', updated_at = CURRENT_TIMESTAMP
+                 WHERE firearm_id = $1`,
                 [firearm_id]
             );
 
-            logger.info(`Custody assigned: ${custodyRecord.custody_id}`);
+            // Log cross-unit transfer in audit and movement tables
+            if (isCrossUnitTransfer) {
+                await client.query(`
+                    INSERT INTO audit_logs (user_id, action_type, table_name, record_id, new_values)
+                    VALUES ($1, 'CROSS_UNIT_TRANSFER', 'custody_records', $2, $3)
+                `, [
+                    issued_by,
+                    custodyRecord.custody_id,
+                    JSON.stringify({
+                        firearm_id,
+                        from_unit_id: crossUnitCheck.previousUnitId,
+                        from_unit_name: crossUnitCheck.previousUnitName,
+                        to_unit_id: unit_id,
+                        officer_id,
+                        custody_type
+                    })
+                ]);
+
+                logger.info(`Cross-unit transfer detected: Firearm ${firearm_id} moved from ${crossUnitCheck.previousUnitName} to unit ${unit_id}`);
+            }
+
+            logger.info(`Custody assigned: ${custodyRecord.custody_id}${isCrossUnitTransfer ? ' (CROSS-UNIT)' : ''}`);
 
             // Trigger anomaly detection asynchronously (don't block)
+            // Cross-unit transfers are flagged as potential anomalies
             setImmediate(() => {
-                detectAnomaly(custodyRecord).catch(err => {
+                detectAnomaly({ 
+                    ...custodyRecord, 
+                    is_cross_unit_transfer: isCrossUnitTransfer 
+                }).catch(err => {
                     logger.error('Anomaly detection error:', err);
                 });
             });
 
-            return custodyRecord;
+            return {
+                ...custodyRecord,
+                is_cross_unit_transfer: isCrossUnitTransfer,
+                previous_unit: isCrossUnitTransfer ? crossUnitCheck.previousUnitName : null
+            };
         });
     } catch (error) {
         logger.error('Assign custody error:', error);

@@ -88,7 +88,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFE85C5C).withOpacity(0.1),
+              color: const Color(0xFFE85C5C).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
@@ -413,7 +413,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
               children: [
                 Icon(
                   Icons.check_circle_outline,
-                  color: const Color(0xFF3CCB7F).withOpacity(0.5),
+                  color: const Color(0xFF3CCB7F).withValues(alpha: 0.5),
                   size: 64,
                 ),
                 const SizedBox(height: 16),
@@ -561,9 +561,9 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: severityColor.withOpacity(0.1),
+                color: severityColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: severityColor.withOpacity(0.3)),
+                border: Border.all(color: severityColor.withValues(alpha: 0.3)),
               ),
               child: Text(
                 severity.toUpperCase(),
@@ -766,7 +766,7 @@ class _AnomalyDetailDialog extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE85C5C).withOpacity(0.1),
+                      color: const Color(0xFFE85C5C).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(

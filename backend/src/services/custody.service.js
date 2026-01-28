@@ -40,6 +40,26 @@ const assignCustody = async (custodyData) => {
                 throw new Error(`Firearm is currently ${firearmCheck.rows[0].current_status}`);
             }
 
+            // Verify officer exists and belongs to the specified unit
+            const officerCheck = await client.query(
+                'SELECT officer_id, unit_id, is_active FROM officers WHERE officer_id = $1',
+                [officer_id]
+            );
+
+            if (officerCheck.rows.length === 0) {
+                throw new Error('Officer not found');
+            }
+
+            const officer = officerCheck.rows[0];
+
+            if (!officer.is_active) {
+                throw new Error('Cannot assign custody to inactive officer');
+            }
+
+            if (officer.unit_id !== unit_id) {
+                throw new Error('Officer does not belong to this unit');
+            }
+
             // Create custody record
             const result = await client.query(
                 `INSERT INTO custody_records (

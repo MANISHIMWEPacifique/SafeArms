@@ -2,6 +2,21 @@
 -- PostgreSQL 14+
 -- Police Firearm Control and Forensic Support Platform
 
+-- ============================================
+-- IMPORTANT: USER vs OFFICER SEPARATION
+-- ============================================
+-- USERS: System users who authenticate and manage the platform
+--        (Admin, HQ Commander, Station Commander, Forensic Analyst)
+--        - Have username, password, roles
+--        - Can log in and perform system operations
+--
+-- OFFICERS: Police officers who receive firearm custody
+--        - NO authentication credentials (cannot log in)
+--        - NO roles (not system users)
+--        - Referenced in custody_records for firearm assignments
+--        - Managed by Station Commanders within their unit
+-- ============================================
+
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 

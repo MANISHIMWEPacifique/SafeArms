@@ -137,7 +137,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF78909C).withOpacity(0.2),
+                    color: const Color(0xFF78909C).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
@@ -828,7 +828,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(icon, color: iconColor, size: 16),
@@ -871,89 +871,235 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildAnomalyTable() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'ML Anomaly Detection Summary',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+    return Consumer<AnomalyProvider>(
+      builder: (context, anomalyProvider, child) {
+        final anomalies = anomalyProvider.anomalies;
+        final isLoading = anomalyProvider.isLoading;
+        final error = anomalyProvider.error;
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A3040),
+            borderRadius: BorderRadius.circular(12),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Top anomalies requiring attention',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-          ),
-          const SizedBox(height: 16),
-          Table(
-            columnWidths: const {
-              0: FlexColumnWidth(1.5),
-              1: FlexColumnWidth(2),
-              2: FlexColumnWidth(1.5),
-              3: FlexColumnWidth(2),
-              4: FlexColumnWidth(1.5),
-              5: FlexColumnWidth(1.5),
-              6: FlexColumnWidth(1.5),
-            },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Row
-              TableRow(
-                decoration: const BoxDecoration(color: Color(0xFF252A3A)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildTableHeader('ANOMALY ID'),
-                  _buildTableHeader('TYPE'),
-                  _buildTableHeader('SEVERITY'),
-                  _buildTableHeader('UNIT'),
-                  _buildTableHeader('DETECTED'),
-                  _buildTableHeader('STATUS'),
-                  _buildTableHeader('ACTION'),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'ML Anomaly Detection Summary',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Top anomalies requiring attention',
+                        style:
+                            TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  TextButton.icon(
+                    onPressed: () => setState(() => _selectedIndex = 5),
+                    icon: const Icon(Icons.arrow_forward, size: 16),
+                    label: const Text('View All'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E88E5),
+                    ),
+                  ),
                 ],
               ),
-              // Sample Data Rows
-              _buildAnomalyRow(
-                'A2024-1127',
-                'Rapid Exchange',
-                'CRITICAL',
-                const Color(0xFFE85C5C),
-                'Nyamirambo Station',
-                'Dec 11, 14:23',
-                'Under Review',
-                const Color(0xFF42A5F5),
-              ),
-              _buildAnomalyRow(
-                'A2024-1126',
-                'Night Issue',
-                'HIGH',
-                const Color(0xFFFFC857),
-                'Kigali HQ',
-                'Dec 11, 02:15',
-                'Detected',
-                const Color(0xFFFFC857),
-              ),
-              _buildAnomalyRow(
-                'A2024-1125',
-                'Extended Custody',
-                'MEDIUM',
-                const Color(0xFF42A5F5),
-                'Kimironko Station',
-                'Dec 10, 18:30',
-                'Resolved',
-                const Color(0xFF3CCB7F),
-              ),
+              const SizedBox(height: 16),
+              if (isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
+                  ),
+                )
+              else if (error != null)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.error_outline,
+                            color: Color(0xFFE85C5C), size: 48),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Failed to load anomalies',
+                          style: const TextStyle(color: Color(0xFFE85C5C)),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _loadDashboardData,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else if (anomalies.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Column(
+                      children: [
+                        Icon(Icons.check_circle_outline,
+                            color: Color(0xFF3CCB7F), size: 48),
+                        SizedBox(height: 16),
+                        Text(
+                          'No anomalies detected',
+                          style:
+                              TextStyle(color: Color(0xFF3CCB7F), fontSize: 16),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'All custody transactions are within normal patterns',
+                          style:
+                              TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(1.5),
+                    1: FlexColumnWidth(2),
+                    2: FlexColumnWidth(1.5),
+                    3: FlexColumnWidth(2),
+                    4: FlexColumnWidth(1.5),
+                    5: FlexColumnWidth(1.5),
+                    6: FlexColumnWidth(1.5),
+                  },
+                  children: [
+                    // Header Row
+                    TableRow(
+                      decoration: const BoxDecoration(color: Color(0xFF252A3A)),
+                      children: [
+                        _buildTableHeader('ANOMALY ID'),
+                        _buildTableHeader('TYPE'),
+                        _buildTableHeader('SEVERITY'),
+                        _buildTableHeader('UNIT'),
+                        _buildTableHeader('DETECTED'),
+                        _buildTableHeader('STATUS'),
+                        _buildTableHeader('ACTION'),
+                      ],
+                    ),
+                    // Data Rows from provider (show top 5)
+                    ...anomalies.take(5).map((anomaly) {
+                      return _buildAnomalyRow(
+                        _formatAnomalyId(anomaly['anomaly_id']),
+                        _formatAnomalyType(anomaly['anomaly_type']),
+                        (anomaly['severity'] ?? 'low').toString().toUpperCase(),
+                        _getSeverityColor(anomaly['severity']),
+                        anomaly['unit_name'] ?? 'Unknown Unit',
+                        _formatDetectedDate(anomaly['detected_at']),
+                        _formatStatus(anomaly['status']),
+                        _getStatusColor(anomaly['status']),
+                      );
+                    }),
+                  ],
+                ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  String _formatAnomalyId(dynamic id) {
+    if (id == null) return 'N/A';
+    final idStr = id.toString();
+    if (idStr.length > 8) {
+      return 'A-${idStr.substring(0, 8).toUpperCase()}';
+    }
+    return 'A-$idStr';
+  }
+
+  String _formatAnomalyType(dynamic type) {
+    if (type == null) return 'Unknown';
+    return type.toString().replaceAll('_', ' ').split(' ').map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1);
+    }).join(' ');
+  }
+
+  String _formatDetectedDate(dynamic date) {
+    if (date == null) return 'N/A';
+    try {
+      final DateTime parsed =
+          date is DateTime ? date : DateTime.parse(date.toString());
+      return '${_getMonthName(parsed.month)} ${parsed.day}, ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return date.toString();
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    return months[month - 1];
+  }
+
+  String _formatStatus(dynamic status) {
+    if (status == null) return 'Open';
+    return status.toString().replaceAll('_', ' ').split(' ').map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1);
+    }).join(' ');
+  }
+
+  Color _getSeverityColor(dynamic severity) {
+    switch (severity?.toString().toLowerCase()) {
+      case 'critical':
+        return const Color(0xFFE85C5C);
+      case 'high':
+        return const Color(0xFFFFA726);
+      case 'medium':
+        return const Color(0xFFFFC857);
+      case 'low':
+      default:
+        return const Color(0xFF42A5F5);
+    }
+  }
+
+  Color _getStatusColor(dynamic status) {
+    switch (status?.toString().toLowerCase()) {
+      case 'resolved':
+        return const Color(0xFF3CCB7F);
+      case 'investigating':
+        return const Color(0xFF42A5F5);
+      case 'false_positive':
+        return const Color(0xFF78909C);
+      case 'open':
+      case 'detected':
+      default:
+        return const Color(0xFFFFC857);
+    }
   }
 
   Widget _buildTableHeader(String text) {

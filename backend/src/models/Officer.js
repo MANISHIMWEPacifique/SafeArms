@@ -1,5 +1,16 @@
 const { query } = require('../config/database');
 
+/**
+ * Officer Model
+ * 
+ * IMPORTANT: Officers are NOT system users
+ * - Officers CANNOT authenticate (no username/password)
+ * - Officers do NOT have roles
+ * - Officers receive firearm custody assignments
+ * - Officers are managed by Station Commanders within their unit
+ * 
+ * System users (with authentication) are in the User model
+ */
 const Officer = {
     async findById(officerId) {
         const result = await query('SELECT * FROM officers WHERE officer_id = $1', [officerId]);
@@ -65,7 +76,17 @@ const Officer = {
         return result.rows[0];
     },
 
-    async getStats() {
+    async getStats(options = {}) {
+        const { unit_id } = options;
+        let whereClause = '';
+        let params = [];
+        
+        // Filter by unit if specified (enforced for station commanders)
+        if (unit_id) {
+            whereClause = 'WHERE unit_id = $1';
+            params.push(unit_id);
+        }
+        
         const result = await query(`
             SELECT 
                 COUNT(*) as total_officers,
@@ -73,7 +94,8 @@ const Officer = {
                 COUNT(*) FILTER (WHERE firearm_certified = true) as certified_officers,
                 COUNT(*) FILTER (WHERE firearm_certified = true AND certification_expiry < CURRENT_DATE) as expired_certifications
             FROM officers
-        `);
+            ${whereClause}
+        `, params);
         return result.rows[0];
     }
 };

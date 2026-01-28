@@ -661,19 +661,28 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Register a firearm to your unit to get started',
+              'Firearms are registered at HQ level and assigned to your unit',
               style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
             ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => setState(() => _showRegisterModal = true),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Register Firearm'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E88E5),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, color: Color(0xFF42A5F5), size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Contact HQ to request new firearms',
+                    style: TextStyle(color: Color(0xFF42A5F5), fontSize: 14),
+                  ),
+                ],
               ),
             ),
           ],

@@ -1,5 +1,14 @@
 // Officer Model
 // Data model for police officer entities
+//
+// IMPORTANT: Officers are NOT system users
+// - Officers CANNOT authenticate (no username/password)
+// - Officers do NOT have roles (roles are for system users only)
+// - Officers receive firearm custody assignments from Station Commanders
+// - Officers are filtered by their assigned unit_id
+//
+// System users (Admin, HQ Commander, Station Commander, Forensic Analyst)
+// are represented by the User model with authentication capabilities.
 
 class OfficerModel {
   final String officerId;

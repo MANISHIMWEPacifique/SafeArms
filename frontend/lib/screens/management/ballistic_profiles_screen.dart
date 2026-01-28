@@ -402,8 +402,8 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: isComplete
-                    ? const Color(0xFF3CCB7F).withOpacity(0.2)
-                    : const Color(0xFFFFC857).withOpacity(0.2),
+                    ? const Color(0xFF3CCB7F).withValues(alpha: 0.2)
+                    : const Color(0xFFFFC857).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -458,15 +458,6 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
       if (word.isEmpty) return word;
       return word[0].toUpperCase() + word.substring(1);
     }).join(' ');
-  }
-
-  void _showAddProfileDialog() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Add Profile dialog - coming soon'),
-        backgroundColor: Color(0xFF1E88E5),
-      ),
-    );
   }
 
   void _showProfileDetails(Map<String, dynamic> profile) {

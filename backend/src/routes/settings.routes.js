@@ -4,6 +4,8 @@ const { authenticate } = require('../middleware/authentication');
 const { requireAdmin } = require('../middleware/authorization');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
+const { triggerManualTraining } = require('../jobs/modelTraining.job');
+const logger = require('../utils/logger');
 
 // Get audit logs - mounted at /api/audit-logs
 router.get('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
@@ -227,19 +229,90 @@ router.put('/config', authenticate, requireAdmin, asyncHandler(async (req, res) 
     });
 }));
 
+// Trigger ML model training manually
 router.post('/train', authenticate, requireAdmin, asyncHandler(async (req, res) => {
-    // In production, this would trigger actual ML training
+    logger.info(`ML model training triggered by user: ${req.user.user_id}`);
+    
+    // Log the training initiation
     await query(`
         INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
         VALUES ($1, 'TRAIN', 'ml_model', '{"status": "initiated"}', $2)
     `, [req.user.user_id, req.ip]);
     
+    // Trigger actual training (async - don't wait for completion)
+    triggerManualTraining().then(() => {
+        logger.info('ML model training completed successfully');
+    }).catch((err) => {
+        logger.error('ML model training failed:', err);
+    });
+    
     res.json({
         success: true,
-        message: 'ML model training initiated',
+        message: 'ML model training initiated. This may take a few minutes.',
         data: {
             status: 'training',
             started_at: new Date().toISOString()
+        }
+    });
+}));
+
+// Get ML model status
+router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, res) => {
+    // Get active model info
+    const modelResult = await query(`
+        SELECT 
+            model_id,
+            model_type,
+            training_date,
+            training_samples,
+            parameters,
+            performance_metrics,
+            is_active
+        FROM ml_model_metadata
+        WHERE is_active = true
+        ORDER BY training_date DESC
+        LIMIT 1
+    `);
+    
+    const model = modelResult.rows[0] || null;
+    
+    // Get training features count
+    const featuresResult = await query(`
+        SELECT COUNT(*) as count
+        FROM ml_training_features
+        WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
+    `);
+    
+    const availableSamples = parseInt(featuresResult.rows[0].count);
+    
+    // Get recent anomaly stats
+    const anomalyResult = await query(`
+        SELECT 
+            COUNT(*) as total,
+            COUNT(*) FILTER (WHERE status = 'false_positive') as false_positives
+        FROM anomalies
+        WHERE detected_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
+    `);
+    
+    const anomalyStats = anomalyResult.rows[0];
+    
+    res.json({
+        success: true,
+        data: {
+            active_model: model ? {
+                model_id: model.model_id,
+                model_type: model.model_type,
+                training_date: model.training_date,
+                training_samples: model.training_samples,
+                performance_metrics: model.performance_metrics
+            } : null,
+            available_training_samples: availableSamples,
+            minimum_required_samples: 100,
+            can_train: availableSamples >= 100,
+            recent_detections: parseInt(anomalyStats.total),
+            false_positive_rate: anomalyStats.total > 0 
+                ? (parseInt(anomalyStats.false_positives) / parseInt(anomalyStats.total) * 100).toFixed(1) + '%'
+                : '0%'
         }
     });
 }));

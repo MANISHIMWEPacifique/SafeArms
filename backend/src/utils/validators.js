@@ -42,13 +42,30 @@ const isValidPassword = (password) => {
 };
 
 /**
- * Validate UUID format
+ * Validate UUID format (legacy - for backwards compatibility)
  * @param {string} uuid
  * @returns {boolean}
  */
 const isValidUUID = (uuid) => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
+};
+
+/**
+ * Validate entity ID format (user-friendly IDs like UNIT-HQ, FA-001, etc.)
+ * @param {string} id - The ID to validate
+ * @param {string} [prefix] - Optional prefix to check (e.g., 'UNIT', 'FA', 'USR')
+ * @returns {boolean}
+ */
+const isValidEntityId = (id, prefix = null) => {
+    if (!id || typeof id !== 'string') return false;
+    // Allow formats like: UNIT-HQ, UNIT-NYA, FA-001, USR-001, OFF-001, etc.
+    const idRegex = /^[A-Z]{2,5}-[A-Z0-9]{1,10}$/i;
+    if (!idRegex.test(id)) return false;
+    if (prefix) {
+        return id.toUpperCase().startsWith(prefix.toUpperCase() + '-');
+    }
+    return true;
 };
 
 /**
@@ -158,6 +175,7 @@ module.exports = {
     isValidPhone,
     isValidPassword,
     isValidUUID,
+    isValidEntityId,
     isValidSerialNumber,
     sanitizeString,
     validatePagination,

@@ -153,6 +153,9 @@ const assignCustody = async (custodyData) => {
  */
 const returnCustody = async (custodyId, returnData) => {
     const { returned_to, return_condition, notes } = returnData;
+    
+    // Ensure notes is null if undefined (PostgreSQL needs explicit null)
+    const safeNotes = notes !== undefined ? notes : null;
 
     try {
         return await withTransaction(async (client) => {
@@ -179,12 +182,12 @@ const returnCustody = async (custodyId, returnData) => {
              returned_to = $1,
              return_condition = $2,
              notes = CASE 
-               WHEN $3 IS NOT NULL THEN CONCAT(COALESCE(notes, ''), ' | Return: ', $3)
+               WHEN $3::TEXT IS NOT NULL THEN CONCAT(COALESCE(notes, ''), ' | Return: ', $3::TEXT)
                ELSE notes 
              END
          WHERE custody_id = $4
          RETURNING *`,
-                [returned_to, return_condition, notes, custodyId]
+                [returned_to, return_condition, safeNotes, custodyId]
             );
 
             const updatedRecord = result.rows[0];
@@ -323,14 +326,16 @@ const getActiveCustody = async (filters = {}) => {
         const result = await query(
             `SELECT 
         cr.*,
-        f.serial_number,
+        cr.issued_at as assigned_date,
+        f.serial_number as firearm_serial,
         f.manufacturer,
         f.model,
         f.firearm_type,
         o.full_name as officer_name,
         o.officer_number,
         o.rank,
-        u.unit_name
+        u.unit_name,
+        CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as status
        FROM custody_records cr
        JOIN firearms f ON cr.firearm_id = f.firearm_id
        JOIN officers o ON cr.officer_id = o.officer_id

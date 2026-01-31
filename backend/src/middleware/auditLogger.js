@@ -72,47 +72,37 @@ const auditLogger = (action_type, options = {}) => {
 
                     await query(
                         `INSERT INTO audit_logs (
+                            log_id,
                             user_id, 
                             action_type, 
                             table_name, 
                             record_id, 
-                            old_values,
                             new_values, 
-                            reason,
-                            actor_role,
-                            actor_unit_id,
-                            actor_unit_name,
-                            subject_type,
-                            subject_id,
-                            subject_name,
-                            is_chain_of_custody_event,
-                            request_id,
-                            session_id,
                             ip_address, 
                             user_agent, 
                             success
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
                         [
+                            `LOG-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
                             req.user?.user_id || null,
                             action_type,
                             req.params.table || req.baseUrl.split('/').pop(),
-                            req.params.id || req.body?.id || null,
-                            oldValues ? JSON.stringify(oldValues) : null,
-                            success ? JSON.stringify(req.body) : null,
-                            reason,
-                            req.user?.role || null,
-                            req.user?.unit_id || null,
-                            req.user?.unit_name || null,
-                            subjectType || req.baseUrl.split('/').pop()?.slice(0, -1), // Remove trailing 's'
-                            subjectId,
-                            subjectName,
-                            isChainOfCustodyEvent,
-                            requestId,
-                            req.sessionID || req.headers['x-session-id'] || null,
+                            req.params.id || req.body?.id || subjectId || null,
+                            success ? JSON.stringify({
+                                body: req.body,
+                                reason: reason,
+                                subject_type: subjectType || req.baseUrl.split('/').pop()?.slice(0, -1),
+                                subject_name: subjectName,
+                                is_chain_of_custody_event: isChainOfCustodyEvent,
+                                request_id: requestId,
+                                actor_role: req.user?.role,
+                                actor_unit_id: req.user?.unit_id
+                            }) : null,
                             req.ip || req.connection?.remoteAddress,
                             req.get('user-agent'),
                             success
                         ]
+                    );
                     );
                 } catch (error) {
                     console.error('Audit logging failed:', error);

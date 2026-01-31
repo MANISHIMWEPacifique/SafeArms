@@ -57,6 +57,128 @@ const enforceUnitCustodyAccess = async (req, res, next) => {
     next();
 };
 
+// GET /custody - Get all custody records (filtered by role)
+router.get('/', authenticate, asyncHandler(async (req, res) => {
+    const { role, unit_id: userUnitId } = req.user;
+    const { status, custody_type, officer_id, firearm_id, limit = 100 } = req.query;
+    
+    let whereClause = 'WHERE 1=1';
+    let params = [];
+    let pCount = 0;
+    
+    // Station commanders can only see their unit's records
+    if (role === 'station_commander') {
+        pCount++;
+        whereClause += ` AND cr.unit_id = $${pCount}`;
+        params.push(userUnitId);
+    }
+    
+    // Filter by status
+    if (status && status !== 'all') {
+        if (status === 'active') {
+            whereClause += ' AND cr.returned_at IS NULL';
+        } else if (status === 'returned') {
+            whereClause += ' AND cr.returned_at IS NOT NULL';
+        }
+    }
+    
+    // Filter by custody type
+    if (custody_type && custody_type !== 'all') {
+        pCount++;
+        whereClause += ` AND cr.custody_type = $${pCount}`;
+        params.push(custody_type);
+    }
+    
+    // Filter by officer
+    if (officer_id) {
+        pCount++;
+        whereClause += ` AND cr.officer_id = $${pCount}`;
+        params.push(officer_id);
+    }
+    
+    // Filter by firearm
+    if (firearm_id) {
+        pCount++;
+        whereClause += ` AND cr.firearm_id = $${pCount}`;
+        params.push(firearm_id);
+    }
+    
+    pCount++;
+    params.push(parseInt(limit));
+    
+    const result = await query(`
+        SELECT cr.*, 
+               f.serial_number as firearm_serial, f.manufacturer, f.model,
+               o.full_name as officer_name, o.rank,
+               u.unit_name,
+               cr.issued_at as assigned_date
+        FROM custody_records cr
+        JOIN firearms f ON cr.firearm_id = f.firearm_id
+        JOIN officers o ON cr.officer_id = o.officer_id
+        JOIN units u ON cr.unit_id = u.unit_id
+        ${whereClause}
+        ORDER BY cr.issued_at DESC
+        LIMIT $${pCount}
+    `, params);
+    
+    res.json({ success: true, data: result.rows });
+}));
+
+// GET /custody/stats - Get custody statistics
+router.get('/stats', authenticate, asyncHandler(async (req, res) => {
+    const { role, unit_id: userUnitId } = req.user;
+    
+    let whereClause = '';
+    let params = [];
+    
+    // Station commanders only see their unit's stats
+    if (role === 'station_commander') {
+        whereClause = 'WHERE unit_id = $1';
+        params.push(userUnitId);
+    }
+    
+    const result = await query(`
+        SELECT 
+            COUNT(*) FILTER (WHERE returned_at IS NULL) as active,
+            COUNT(*) FILTER (WHERE custody_type = 'permanent' AND returned_at IS NULL) as permanent,
+            COUNT(*) FILTER (WHERE custody_type = 'temporary' AND returned_at IS NULL) as temporary,
+            COUNT(*) FILTER (WHERE custody_type = 'personal_long_term' AND returned_at IS NULL) as personal,
+            COUNT(*) as total
+        FROM custody_records
+        ${whereClause}
+    `, params);
+    
+    res.json({ success: true, data: result.rows[0] || { active: 0, permanent: 0, temporary: 0, personal: 0, total: 0 } });
+}));
+
+// GET /custody/anomalies/today - Get today's anomaly status for custody
+router.get('/anomalies/today', authenticate, asyncHandler(async (req, res) => {
+    const { role, unit_id: userUnitId } = req.user;
+    
+    let whereClause = "WHERE DATE(a.detected_at) = CURRENT_DATE";
+    let params = [];
+    
+    // Station commanders only see their unit's anomalies
+    if (role === 'station_commander') {
+        whereClause += ' AND a.unit_id = $1';
+        params.push(userUnitId);
+    }
+    
+    const result = await query(`
+        SELECT COUNT(*) as count
+        FROM anomalies a
+        ${whereClause}
+    `, params);
+    
+    res.json({ 
+        success: true, 
+        data: { 
+            count: parseInt(result.rows[0]?.count || 0),
+            active: true 
+        } 
+    });
+}));
+
 // Assign custody - restricted to unit access
 router.post('/assign', authenticate, requireCommander, logCustodyAssignment, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;

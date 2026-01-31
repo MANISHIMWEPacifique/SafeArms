@@ -97,7 +97,7 @@ const generateTrainingData = async () => {
                     )
                     ON CONFLICT (custody_id) DO NOTHING
                 `, [
-                    uuidv4(),
+                    `CUS-GEN-${String(i + 1).padStart(4, '0')}`,
                     firearm.firearm_id,
                     officer.officer_id,
                     unit,

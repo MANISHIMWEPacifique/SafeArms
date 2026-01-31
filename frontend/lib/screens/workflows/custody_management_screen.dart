@@ -4,6 +4,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/custody_provider.dart';
+import '../../widgets/assign_custody_modal.dart';
+import '../../widgets/return_custody_modal.dart';
 
 class CustodyManagementScreen extends StatefulWidget {
   const CustodyManagementScreen({Key? key}) : super(key: key);
@@ -15,12 +17,9 @@ class CustodyManagementScreen extends StatefulWidget {
 
 class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
-  // ignore: unused_field - used via setState for future modal implementation
   bool _showAssignModal = false;
-  // ignore: unused_field - used via setState for future modal implementation
   bool _showReturnModal = false;
-  // ignore: unused_field - reserved for custody selection
-  String? _selectedCustodyId;
+  Map<String, dynamic>? _selectedCustodyForReturn;
 
   @override
   void initState() {
@@ -44,39 +43,71 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
-      body: Row(
+      body: Stack(
         children: [
-          Expanded(
-            child: Column(
-              children: [
-                _buildTopNavBar(context, custodyProvider),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildFilterBar(custodyProvider),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Active Custody',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildTopNavBar(context, custodyProvider),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildFilterBar(custodyProvider),
+                              const SizedBox(height: 24),
+                              const Text(
+                                'Active Custody',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildCustodyGrid(custodyProvider),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          _buildCustodyGrid(custodyProvider),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+
+          // Modal Overlays
+          if (_showAssignModal)
+            AssignCustodyModal(
+              onClose: () => setState(() => _showAssignModal = false),
+              onSuccess: () {
+                setState(() => _showAssignModal = false);
+                custodyProvider.loadCustody();
+                custodyProvider.loadStats();
+              },
+            ),
+
+          if (_showReturnModal && _selectedCustodyForReturn != null)
+            ReturnCustodyModal(
+              custodyRecord: _selectedCustodyForReturn!,
+              onClose: () => setState(() {
+                _showReturnModal = false;
+                _selectedCustodyForReturn = null;
+              }),
+              onSuccess: () {
+                setState(() {
+                  _showReturnModal = false;
+                  _selectedCustodyForReturn = null;
+                });
+                custodyProvider.loadCustody();
+                custodyProvider.loadStats();
+              },
+            ),
         ],
       ),
     );
@@ -113,7 +144,16 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
           ),
           const SizedBox(width: 12),
           OutlinedButton.icon(
-            onPressed: () => setState(() => _showReturnModal = true),
+            onPressed: () {
+              // Show message to select from the list
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                      'Click the return icon on a custody card to return a firearm'),
+                  backgroundColor: Color(0xFF1E88E5),
+                ),
+              );
+            },
             icon: const Icon(Icons.assignment_return, size: 18),
             label: const Text('Return Firearm'),
             style: OutlinedButton.styleFrom(
@@ -492,7 +532,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
                     size: 18, color: Color(0xFF78909C)),
                 onPressed: () {
                   setState(() {
-                    _selectedCustodyId = custody['custody_id'];
+                    _selectedCustodyForReturn = custody;
                     _showReturnModal = true;
                   });
                 },

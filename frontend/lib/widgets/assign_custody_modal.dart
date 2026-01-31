@@ -339,34 +339,10 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               items: _availableFirearms.map((firearm) {
                 return DropdownMenuItem<String>(
                   value: firearm.firearmId,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.gavel,
-                          color: Color(0xFF42A5F5), size: 18),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              firearm.serialNumber,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '${firearm.manufacturer} ${firearm.model} - ${firearm.caliber ?? "N/A"}',
-                              style: const TextStyle(
-                                color: Color(0xFF78909C),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    '${firearm.serialNumber} - ${firearm.manufacturer} ${firearm.model}',
+                    style: const TextStyle(color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 );
               }).toList(),
@@ -433,44 +409,10 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               items: _officers.map((officer) {
                 return DropdownMenuItem<String>(
                   value: officer.officerId,
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: const Color(0xFF1E88E5),
-                        child: Text(
-                          officer.fullName.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              officer.fullName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '${officer.rank} • ${officer.officerNumber}',
-                              style: const TextStyle(
-                                color: Color(0xFF78909C),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    '${officer.fullName} (${officer.rank})',
+                    style: const TextStyle(color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 );
               }).toList(),

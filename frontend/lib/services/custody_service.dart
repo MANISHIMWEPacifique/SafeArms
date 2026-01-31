@@ -87,7 +87,7 @@ class CustodyService {
 
       final response = await http
           .post(
-            Uri.parse(ApiConfig.custody),
+            Uri.parse('${ApiConfig.custody}/assign'),
             headers: headers,
             body: body,
           )
@@ -121,7 +121,7 @@ class CustodyService {
       });
 
       final response = await http
-          .put(
+          .post(
             Uri.parse('${ApiConfig.custody}/$custodyId/return'),
             headers: headers,
             body: body,

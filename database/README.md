@@ -3,11 +3,12 @@
 ## Overview
 PostgreSQL database for SafeArms Police Firearm Control Platform.
 
+**Note:** This is a consolidated schema for demonstration purposes. No migrations needed - just run the schema and seed script.
+
 ## Requirements
 - PostgreSQL 14 or higher
-- UUID extension (uuid-ossp)
 
-## Setup Instructions
+## Quick Setup
 
 ### 1. Create Database
 ```bash
@@ -26,23 +27,38 @@ GRANT ALL PRIVILEGES ON DATABASE safearms TO safearms_user;
 psql -U safearms_user -d safearms -f schema.sql
 ```
 
-### 3. Generate Admin Password Hash
-Before importing seed data, generate the password hash:
-
-```javascript
-// Run in Node.js
-const bcrypt = require('bcrypt');
-bcrypt.hash('Admin@123', 10).then(hash => {
-    console.log('Replace password_hash in seed_data.sql with:');
-    console.log(hash);
-});
-```
-
-Update `seed_data.sql` with the generated hash, then import:
-
+### 3. Seed Demo Data
+From the `backend` directory:
 ```bash
-psql -U safearms_user -d safearms -f seed_data.sql
+npm run seed
+# Or: node src/scripts/seedDatabase.js
 ```
+
+This will create demo users, units, officers, firearms, and ballistic profiles with user-friendly IDs.
+
+## User-Friendly IDs
+
+The database uses readable IDs instead of UUIDs for better demonstration:
+
+| Entity   | ID Format     | Example      |
+|----------|---------------|--------------|
+| Units    | `UNIT-XXX`    | `UNIT-HQ`, `UNIT-NYA` |
+| Users    | `USR-XXX`     | `USR-001`    |
+| Officers | `OFF-XXX`     | `OFF-001`    |
+| Firearms | `FA-XXX`      | `FA-001`     |
+| Ballistic| `BP-XXX`      | `BP-001`     |
+
+## Firearms Unit Assignment
+
+**IMPORTANT:** Each firearm is assigned to a specific unit via `assigned_unit_id`. Station commanders can ONLY see firearms assigned to their unit.
+
+| Unit ID   | Unit Name                  | Firearms          |
+|-----------|----------------------------|-------------------|
+| UNIT-HQ   | RNP Headquarters          | FA-011, FA-012    |
+| UNIT-NYA  | Nyamirambo Police Station | FA-001, FA-002, FA-003 |
+| UNIT-KIM  | Kimironko Police Station  | FA-004, FA-005, FA-006 |
+| UNIT-REM  | Remera Police Station     | FA-007, FA-008    |
+| UNIT-KIC  | Kicukiro Police Station   | FA-009, FA-010    |
 
 ## Database Structure
 

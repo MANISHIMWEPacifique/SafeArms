@@ -1,6 +1,33 @@
--- SafeArms Database Schema
+-- SafeArms Database Schema (Consolidated for Demonstration)
 -- PostgreSQL 14+
 -- Police Firearm Control and Forensic Support Platform
+-- Rwanda National Police
+--
+-- This is a consolidated schema for demonstration purposes.
+-- All tables, views, functions, and triggers in a single file.
+
+-- ============================================
+-- DROP EXISTING OBJECTS (Clean Start)
+-- ============================================
+DROP MATERIALIZED VIEW IF EXISTS firearm_usage_profile CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS officer_behavior_profile CASCADE;
+DROP VIEW IF EXISTS unified_firearm_events_timeline CASCADE;
+DROP TABLE IF EXISTS anomaly_investigations CASCADE;
+DROP TABLE IF EXISTS anomalies CASCADE;
+DROP TABLE IF EXISTS ml_training_features CASCADE;
+DROP TABLE IF EXISTS ml_model_metadata CASCADE;
+DROP TABLE IF EXISTS procurement_requests CASCADE;
+DROP TABLE IF EXISTS destruction_requests CASCADE;
+DROP TABLE IF EXISTS loss_reports CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS ballistic_access_logs CASCADE;
+DROP TABLE IF EXISTS firearm_unit_movements CASCADE;
+DROP TABLE IF EXISTS custody_records CASCADE;
+DROP TABLE IF EXISTS ballistic_profiles CASCADE;
+DROP TABLE IF EXISTS firearms CASCADE;
+DROP TABLE IF EXISTS officers CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS units CASCADE;
 
 -- ============================================
 -- IMPORTANT: USER vs OFFICER SEPARATION
@@ -17,16 +44,13 @@
 --        - Managed by Station Commanders within their unit
 -- ============================================
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- ============================================
 -- CORE TABLES
 -- ============================================
 
--- Units Table
+-- Units Table (User-friendly IDs)
 CREATE TABLE units (
-    unit_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    unit_id VARCHAR(20) PRIMARY KEY,  -- e.g., 'UNIT-001', 'UNIT-HQ'
     unit_name VARCHAR(200) NOT NULL UNIQUE,
     unit_type VARCHAR(50) NOT NULL CHECK (unit_type IN ('headquarters', 'district', 'station', 'specialized')),
     location VARCHAR(200),
@@ -42,14 +66,14 @@ CREATE TABLE units (
 
 -- Users Table
 CREATE TABLE users (
-    user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(20) PRIMARY KEY,  -- e.g., 'USR-001'
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(200) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     phone_number VARCHAR(20),
     role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'hq_firearm_commander', 'station_commander', 'forensic_analyst')),
-    unit_id UUID REFERENCES units(unit_id),
+    unit_id VARCHAR(20) REFERENCES units(unit_id),
     otp_code VARCHAR(6),
     otp_expires_at TIMESTAMP,
     otp_attempts INTEGER DEFAULT 0,
@@ -58,18 +82,18 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT true,
     must_change_password BOOLEAN DEFAULT true,
     last_login TIMESTAMP,
-    created_by UUID REFERENCES users(user_id),
+    created_by VARCHAR(20) REFERENCES users(user_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Officers Table
 CREATE TABLE officers (
-    officer_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    officer_id VARCHAR(20) PRIMARY KEY,  -- e.g., 'OFF-001'
     officer_number VARCHAR(50) NOT NULL UNIQUE,
     full_name VARCHAR(200) NOT NULL,
     rank VARCHAR(100) NOT NULL,
-    unit_id UUID NOT NULL REFERENCES units(unit_id),
+    unit_id VARCHAR(20) NOT NULL REFERENCES units(unit_id),
     phone_number VARCHAR(20),
     email VARCHAR(100),
     date_of_birth DATE,
@@ -84,7 +108,7 @@ CREATE TABLE officers (
 
 -- Firearms Table
 CREATE TABLE firearms (
-    firearm_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    firearm_id VARCHAR(20) PRIMARY KEY,  -- e.g., 'FA-001'
     serial_number VARCHAR(100) NOT NULL UNIQUE,
     manufacturer VARCHAR(100) NOT NULL,
     model VARCHAR(100) NOT NULL,
@@ -94,20 +118,20 @@ CREATE TABLE firearms (
     acquisition_date DATE NOT NULL,
     acquisition_source VARCHAR(200),
     registration_level VARCHAR(10) NOT NULL CHECK (registration_level IN ('hq', 'unit')),
-    registered_by UUID NOT NULL REFERENCES users(user_id),
-    assigned_unit_id UUID REFERENCES units(unit_id),
-    current_status VARCHAR(50) DEFAULT 'unassigned' CHECK (current_status IN ('unassigned', 'available', 'in_custody', 'maintenance', 'lost', 'stolen', 'destroyed')),
+    registered_by VARCHAR(20) NOT NULL REFERENCES users(user_id),
+    assigned_unit_id VARCHAR(20) REFERENCES units(unit_id),
+    current_status VARCHAR(50) DEFAULT 'available' CHECK (current_status IN ('unassigned', 'available', 'in_custody', 'maintenance', 'lost', 'stolen', 'destroyed')),
+    notes TEXT,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Ballistic Profiles Table
--- IMPORTANT: Ballistic profiles are IMMUTABLE after creation (forensic integrity)
+-- Ballistic Profiles Table (IMMUTABLE after creation)
 CREATE TABLE ballistic_profiles (
-    ballistic_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    firearm_id UUID NOT NULL UNIQUE REFERENCES firearms(firearm_id),
-    test_date DATE NOT NULL,
+    ballistic_id VARCHAR(20) PRIMARY KEY,  -- e.g., 'BP-001'
+    firearm_id VARCHAR(20) NOT NULL UNIQUE REFERENCES firearms(firearm_id),
+    test_date DATE DEFAULT CURRENT_DATE,
     test_location VARCHAR(200),
     rifling_characteristics TEXT,
     firing_pin_impression TEXT,
@@ -118,77 +142,74 @@ CREATE TABLE ballistic_profiles (
     forensic_lab VARCHAR(200),
     test_ammunition VARCHAR(200),
     notes TEXT,
-    -- Immutability and traceability fields
-    created_by UUID REFERENCES users(user_id),
+    created_by VARCHAR(20) REFERENCES users(user_id),
     is_locked BOOLEAN DEFAULT true,
     locked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    locked_by UUID REFERENCES users(user_id),
+    locked_by VARCHAR(20) REFERENCES users(user_id),
     registration_hash VARCHAR(64),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Firearm Unit Movements Table
--- Tracks every movement of a firearm between units
-CREATE TABLE firearm_unit_movements (
-    movement_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    firearm_id UUID NOT NULL REFERENCES firearms(firearm_id),
-    from_unit_id UUID REFERENCES units(unit_id),
-    to_unit_id UUID NOT NULL REFERENCES units(unit_id),
-    movement_type VARCHAR(50) NOT NULL CHECK (movement_type IN (
-        'initial_assignment', 'transfer', 'reassignment', 'temporary_loan', 'return_from_loan'
-    )),
-    authorized_by UUID NOT NULL REFERENCES users(user_id),
-    authorization_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    authorization_reference VARCHAR(100),
-    reason TEXT,
-    custody_record_id UUID REFERENCES custody_records(custody_id),
-    ip_address VARCHAR(50),
-    user_agent TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Ballistic Access Logs Table
--- Tracks every access to ballistic profile data
-CREATE TABLE ballistic_access_logs (
-    access_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    ballistic_id UUID NOT NULL REFERENCES ballistic_profiles(ballistic_id),
-    firearm_id UUID NOT NULL REFERENCES firearms(firearm_id),
-    accessed_by UUID NOT NULL REFERENCES users(user_id),
-    access_type VARCHAR(50) NOT NULL CHECK (access_type IN (
-        'view_profile', 'view_custody_chain', 'export_data', 'forensic_query', 'traceability_report'
-    )),
-    access_reason TEXT,
-    firearm_status_at_access VARCHAR(50),
-    current_custody_officer_id UUID REFERENCES officers(officer_id),
-    current_custody_unit_id UUID REFERENCES units(unit_id),
-    ip_address VARCHAR(50),
-    user_agent TEXT,
-    accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Custody Records Table
 CREATE TABLE custody_records (
-    custody_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    firearm_id UUID NOT NULL REFERENCES firearms(firearm_id),
-    officer_id UUID NOT NULL REFERENCES officers(officer_id),
-    unit_id UUID NOT NULL REFERENCES units(unit_id),
+    custody_id VARCHAR(20) PRIMARY KEY,  -- e.g., 'CUS-001'
+    firearm_id VARCHAR(20) NOT NULL REFERENCES firearms(firearm_id),
+    officer_id VARCHAR(20) NOT NULL REFERENCES officers(officer_id),
+    unit_id VARCHAR(20) NOT NULL REFERENCES units(unit_id),
     custody_type VARCHAR(50) NOT NULL CHECK (custody_type IN ('permanent', 'temporary', 'personal_long_term')),
     issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    issued_by UUID NOT NULL REFERENCES users(user_id),
+    issued_by VARCHAR(20) NOT NULL REFERENCES users(user_id),
     expected_return_date DATE,
     returned_at TIMESTAMP,
-    returned_to UUID REFERENCES users(user_id),
+    returned_to VARCHAR(20) REFERENCES users(user_id),
     return_condition VARCHAR(50) CHECK (return_condition IN ('good', 'fair', 'needs_maintenance', 'damaged')),
     assignment_reason TEXT,
     notes TEXT,
-    -- ML Feature Engineering Fields
+    -- ML Feature Fields
     custody_duration_seconds INTEGER,
     issue_hour INTEGER,
     issue_day_of_week INTEGER,
     is_night_issue BOOLEAN,
     is_weekend_issue BOOLEAN,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Firearm Unit Movements Table
+CREATE TABLE firearm_unit_movements (
+    movement_id VARCHAR(20) PRIMARY KEY,  -- e.g., 'MOV-001'
+    firearm_id VARCHAR(20) NOT NULL REFERENCES firearms(firearm_id),
+    from_unit_id VARCHAR(20) REFERENCES units(unit_id),
+    to_unit_id VARCHAR(20) NOT NULL REFERENCES units(unit_id),
+    movement_type VARCHAR(50) NOT NULL CHECK (movement_type IN (
+        'initial_assignment', 'transfer', 'reassignment', 'temporary_loan', 'return_from_loan'
+    )),
+    authorized_by VARCHAR(20) NOT NULL REFERENCES users(user_id),
+    authorization_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    authorization_reference VARCHAR(100),
+    reason TEXT,
+    custody_record_id VARCHAR(20) REFERENCES custody_records(custody_id),
+    ip_address VARCHAR(50),
+    user_agent TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Ballistic Access Logs Table
+CREATE TABLE ballistic_access_logs (
+    access_id VARCHAR(20) PRIMARY KEY,  -- e.g., 'BAL-001'
+    ballistic_id VARCHAR(20) NOT NULL REFERENCES ballistic_profiles(ballistic_id),
+    firearm_id VARCHAR(20) NOT NULL REFERENCES firearms(firearm_id),
+    accessed_by VARCHAR(20) NOT NULL REFERENCES users(user_id),
+    access_type VARCHAR(50) NOT NULL CHECK (access_type IN (
+        'view_profile', 'view_custody_chain', 'export_data', 'forensic_query', 'traceability_report'
+    )),
+    access_reason TEXT,
+    firearm_status_at_access VARCHAR(50),
+    current_custody_officer_id VARCHAR(20) REFERENCES officers(officer_id),
+    current_custody_unit_id VARCHAR(20) REFERENCES units(unit_id),
+    ip_address VARCHAR(50),
+    user_agent TEXT,
+    accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -197,31 +218,26 @@ CREATE TABLE custody_records (
 
 -- ML Training Features Table
 CREATE TABLE ml_training_features (
-    feature_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    officer_id UUID NOT NULL REFERENCES officers(officer_id),
-    firearm_id UUID NOT NULL REFERENCES firearms(firearm_id),
-    unit_id UUID NOT NULL REFERENCES units(unit_id),
-    custody_record_id UUID NOT NULL REFERENCES custody_records(custody_id),
-    -- Temporal Features
+    feature_id VARCHAR(20) PRIMARY KEY,
+    officer_id VARCHAR(20) NOT NULL REFERENCES officers(officer_id),
+    firearm_id VARCHAR(20) NOT NULL REFERENCES firearms(firearm_id),
+    unit_id VARCHAR(20) NOT NULL REFERENCES units(unit_id),
+    custody_record_id VARCHAR(20) NOT NULL REFERENCES custody_records(custody_id),
     custody_duration_seconds INTEGER,
     issue_hour INTEGER,
     issue_day_of_week INTEGER,
     is_night_issue BOOLEAN,
     is_weekend_issue BOOLEAN,
-    -- Behavioral Features
     officer_issue_frequency_30d DECIMAL(10,2),
     officer_avg_custody_duration_30d DECIMAL(10,2),
     firearm_exchange_rate_7d DECIMAL(10,2),
     officer_unit_consistency_score DECIMAL(5,2),
     time_since_last_return_seconds INTEGER,
     consecutive_same_firearm_count INTEGER,
-    -- Pattern Flags
     cross_unit_movement_flag BOOLEAN,
     rapid_exchange_flag BOOLEAN,
-    -- Statistical Features
     custody_duration_zscore DECIMAL(10,4),
     issue_frequency_zscore DECIMAL(10,4),
-    -- Ballistic Context Features
     has_ballistic_profile BOOLEAN DEFAULT false,
     ballistic_accesses_7d INTEGER DEFAULT 0,
     feature_extraction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -229,7 +245,7 @@ CREATE TABLE ml_training_features (
 
 -- ML Model Metadata Table
 CREATE TABLE ml_model_metadata (
-    model_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    model_id VARCHAR(20) PRIMARY KEY,
     model_type VARCHAR(50) NOT NULL,
     model_version VARCHAR(50) NOT NULL,
     training_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -245,21 +261,21 @@ CREATE TABLE ml_model_metadata (
 
 -- Anomalies Table
 CREATE TABLE anomalies (
-    anomaly_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    custody_record_id UUID NOT NULL REFERENCES custody_records(custody_id),
-    firearm_id UUID NOT NULL REFERENCES firearms(firearm_id),
-    officer_id UUID NOT NULL REFERENCES officers(officer_id),
-    unit_id UUID NOT NULL REFERENCES units(unit_id),
+    anomaly_id VARCHAR(20) PRIMARY KEY,
+    custody_record_id VARCHAR(20) NOT NULL REFERENCES custody_records(custody_id),
+    firearm_id VARCHAR(20) NOT NULL REFERENCES firearms(firearm_id),
+    officer_id VARCHAR(20) NOT NULL REFERENCES officers(officer_id),
+    unit_id VARCHAR(20) NOT NULL REFERENCES units(unit_id),
     anomaly_score DECIMAL(5,3) NOT NULL,
     anomaly_type VARCHAR(100) NOT NULL,
     detection_method VARCHAR(50) NOT NULL,
-    model_id UUID REFERENCES ml_model_metadata(model_id),
+    model_id VARCHAR(20) REFERENCES ml_model_metadata(model_id),
     severity VARCHAR(20) NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
     confidence_level DECIMAL(5,3),
     contributing_factors JSONB,
     feature_importance JSONB,
     status VARCHAR(50) DEFAULT 'open' CHECK (status IN ('open', 'investigating', 'resolved', 'false_positive')),
-    investigated_by UUID REFERENCES users(user_id),
+    investigated_by VARCHAR(20) REFERENCES users(user_id),
     investigation_notes TEXT,
     resolution_date TIMESTAMP,
     auto_notification_sent BOOLEAN DEFAULT false,
@@ -271,9 +287,9 @@ CREATE TABLE anomalies (
 
 -- Anomaly Investigations Table
 CREATE TABLE anomaly_investigations (
-    investigation_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    anomaly_id UUID NOT NULL REFERENCES anomalies(anomaly_id),
-    investigator_id UUID NOT NULL REFERENCES users(user_id),
+    investigation_id VARCHAR(20) PRIMARY KEY,
+    anomaly_id VARCHAR(20) NOT NULL REFERENCES anomalies(anomaly_id),
+    investigator_id VARCHAR(20) NOT NULL REFERENCES users(user_id),
     investigation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     findings TEXT,
     action_taken TEXT,
@@ -287,18 +303,18 @@ CREATE TABLE anomaly_investigations (
 
 -- Loss Reports Table
 CREATE TABLE loss_reports (
-    loss_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    firearm_id UUID NOT NULL REFERENCES firearms(firearm_id),
-    unit_id UUID NOT NULL REFERENCES units(unit_id),
-    reported_by UUID NOT NULL REFERENCES users(user_id),
-    officer_id UUID REFERENCES officers(officer_id),
+    loss_id VARCHAR(20) PRIMARY KEY,
+    firearm_id VARCHAR(20) NOT NULL REFERENCES firearms(firearm_id),
+    unit_id VARCHAR(20) NOT NULL REFERENCES units(unit_id),
+    reported_by VARCHAR(20) NOT NULL REFERENCES users(user_id),
+    officer_id VARCHAR(20) REFERENCES officers(officer_id),
     loss_type VARCHAR(50) NOT NULL CHECK (loss_type IN ('lost', 'stolen')),
     loss_date DATE NOT NULL,
     loss_location VARCHAR(200),
     circumstances TEXT NOT NULL,
     police_case_number VARCHAR(100),
     status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-    reviewed_by UUID REFERENCES users(user_id),
+    reviewed_by VARCHAR(20) REFERENCES users(user_id),
     review_date TIMESTAMP,
     review_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -306,15 +322,15 @@ CREATE TABLE loss_reports (
 
 -- Destruction Requests Table
 CREATE TABLE destruction_requests (
-    destruction_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    firearm_id UUID NOT NULL REFERENCES firearms(firearm_id),
-    unit_id UUID NOT NULL REFERENCES units(unit_id),
-    requested_by UUID NOT NULL REFERENCES users(user_id),
+    destruction_id VARCHAR(20) PRIMARY KEY,
+    firearm_id VARCHAR(20) NOT NULL REFERENCES firearms(firearm_id),
+    unit_id VARCHAR(20) NOT NULL REFERENCES units(unit_id),
+    requested_by VARCHAR(20) NOT NULL REFERENCES users(user_id),
     destruction_reason TEXT NOT NULL,
     condition_description TEXT,
     supporting_documents TEXT,
     status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-    reviewed_by UUID REFERENCES users(user_id),
+    reviewed_by VARCHAR(20) REFERENCES users(user_id),
     review_date TIMESTAMP,
     review_notes TEXT,
     actual_destruction_date DATE,
@@ -325,9 +341,9 @@ CREATE TABLE destruction_requests (
 
 -- Procurement Requests Table
 CREATE TABLE procurement_requests (
-    procurement_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    unit_id UUID NOT NULL REFERENCES units(unit_id),
-    requested_by UUID NOT NULL REFERENCES users(user_id),
+    procurement_id VARCHAR(20) PRIMARY KEY,
+    unit_id VARCHAR(20) NOT NULL REFERENCES units(unit_id),
+    requested_by VARCHAR(20) NOT NULL REFERENCES users(user_id),
     firearm_type VARCHAR(50) NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     justification TEXT NOT NULL,
@@ -335,7 +351,7 @@ CREATE TABLE procurement_requests (
     estimated_cost DECIMAL(15,2),
     preferred_supplier VARCHAR(200),
     status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-    reviewed_by UUID REFERENCES users(user_id),
+    reviewed_by VARCHAR(20) REFERENCES users(user_id),
     review_date TIMESTAMP,
     review_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -345,13 +361,12 @@ CREATE TABLE procurement_requests (
 -- AUDIT TABLE
 -- ============================================
 
--- Audit Logs Table
 CREATE TABLE audit_logs (
-    log_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(user_id),
+    log_id VARCHAR(20) PRIMARY KEY,
+    user_id VARCHAR(20) REFERENCES users(user_id),
     action_type VARCHAR(50) NOT NULL,
     table_name VARCHAR(100),
-    record_id UUID,
+    record_id VARCHAR(50),
     new_values JSONB,
     ip_address VARCHAR(50),
     user_agent TEXT,
@@ -386,6 +401,7 @@ CREATE INDEX idx_custody_officer ON custody_records(officer_id);
 CREATE INDEX idx_custody_unit ON custody_records(unit_id);
 CREATE INDEX idx_custody_issued_at ON custody_records(issued_at);
 CREATE INDEX idx_custody_returned_at ON custody_records(returned_at);
+CREATE INDEX idx_custody_firearm_time ON custody_records(firearm_id, issued_at DESC);
 
 -- Anomalies
 CREATE INDEX idx_anomalies_firearm ON anomalies(firearm_id);
@@ -422,16 +438,12 @@ CREATE INDEX idx_unit_movements_firearm ON firearm_unit_movements(firearm_id);
 CREATE INDEX idx_unit_movements_from_unit ON firearm_unit_movements(from_unit_id);
 CREATE INDEX idx_unit_movements_to_unit ON firearm_unit_movements(to_unit_id);
 CREATE INDEX idx_unit_movements_date ON firearm_unit_movements(authorization_date);
-CREATE INDEX idx_unit_movements_firearm_date ON firearm_unit_movements(firearm_id, authorization_date DESC);
-
--- Composite indexes for traceability queries
-CREATE INDEX idx_custody_firearm_time ON custody_records(firearm_id, issued_at DESC);
 
 -- ============================================
 -- FUNCTIONS
 -- ============================================
 
--- Function to calculate custody duration
+-- Calculate custody duration
 CREATE OR REPLACE FUNCTION calculate_custody_duration()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -442,7 +454,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to extract temporal ML features
+-- Extract temporal ML features
 CREATE OR REPLACE FUNCTION extract_temporal_features()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -454,7 +466,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to update firearm status on custody assignment
+-- Update firearm status on custody changes
 CREATE OR REPLACE FUNCTION update_firearm_status_on_custody()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -471,19 +483,16 @@ $$ LANGUAGE plpgsql;
 -- TRIGGERS
 -- ============================================
 
--- Custody duration trigger
 CREATE TRIGGER trg_calculate_custody_duration
     BEFORE UPDATE ON custody_records
     FOR EACH ROW
     EXECUTE FUNCTION calculate_custody_duration();
 
--- Temporal features trigger
 CREATE TRIGGER trg_extract_temporal_features
     BEFORE INSERT ON custody_records
     FOR EACH ROW
     EXECUTE FUNCTION extract_temporal_features();
 
--- Firearm status trigger
 CREATE TRIGGER trg_update_firearm_status
     AFTER INSERT OR UPDATE ON custody_records
     FOR EACH ROW
@@ -493,7 +502,6 @@ CREATE TRIGGER trg_update_firearm_status
 -- MATERIALIZED VIEWS FOR ML PERFORMANCE
 -- ============================================
 
--- Officer Behavior Profile View
 CREATE MATERIALIZED VIEW officer_behavior_profile AS
 SELECT 
     o.officer_id,
@@ -510,7 +518,6 @@ GROUP BY o.officer_id, o.full_name, o.unit_id;
 
 CREATE UNIQUE INDEX idx_officer_behavior_profile ON officer_behavior_profile(officer_id);
 
--- Firearm Usage Profile View
 CREATE MATERIALIZED VIEW firearm_usage_profile AS
 SELECT 
     f.firearm_id,
@@ -528,428 +535,16 @@ GROUP BY f.firearm_id, f.serial_number, f.assigned_unit_id;
 CREATE UNIQUE INDEX idx_firearm_usage_profile ON firearm_usage_profile(firearm_id);
 
 -- ============================================
--- TRACEABILITY VIEWS
--- ============================================
-
--- Unified Firearm Events Timeline View
--- Complete chronological timeline of all events for a firearm
-CREATE VIEW unified_firearm_events_timeline AS
--- Firearm Registration
-SELECT 
-    f.firearm_id,
-    f.serial_number,
-    'REGISTRATION'::VARCHAR(30) as event_category,
-    'firearm_registered' as event_type,
-    f.firearm_id as event_id,
-    f.created_at as event_timestamp,
-    f.registered_by as actor_user_id,
-    reg_user.full_name as actor_name,
-    NULL::UUID as officer_id,
-    NULL::VARCHAR(200) as officer_name,
-    f.assigned_unit_id as unit_id,
-    unit.unit_name as unit_name,
-    jsonb_build_object(
-        'manufacturer', f.manufacturer,
-        'model', f.model,
-        'serial_number', f.serial_number,
-        'firearm_type', f.firearm_type,
-        'caliber', f.caliber
-    ) as event_details,
-    1 as event_priority
-FROM firearms f
-LEFT JOIN users reg_user ON f.registered_by = reg_user.user_id
-LEFT JOIN units unit ON f.assigned_unit_id = unit.unit_id
-
-UNION ALL
-
--- Ballistic Profile Creation
-SELECT 
-    bp.firearm_id,
-    f.serial_number,
-    'BALLISTIC'::VARCHAR(30),
-    'ballistic_profile_created',
-    bp.ballistic_id,
-    bp.created_at,
-    bp.created_by,
-    creator.full_name,
-    NULL::UUID,
-    NULL::VARCHAR(200),
-    NULL::UUID,
-    NULL::VARCHAR(200),
-    jsonb_build_object(
-        'test_date', bp.test_date,
-        'test_location', bp.test_location,
-        'forensic_lab', bp.forensic_lab,
-        'registration_hash', bp.registration_hash
-    ),
-    2
-FROM ballistic_profiles bp
-JOIN firearms f ON bp.firearm_id = f.firearm_id
-LEFT JOIN users creator ON bp.created_by = creator.user_id
-
-UNION ALL
-
--- Unit Movements
-SELECT 
-    fm.firearm_id,
-    f.serial_number,
-    'MOVEMENT'::VARCHAR(30),
-    fm.movement_type,
-    fm.movement_id,
-    fm.authorization_date,
-    fm.authorized_by,
-    auth_user.full_name,
-    NULL::UUID,
-    NULL::VARCHAR(200),
-    fm.to_unit_id,
-    to_unit.unit_name,
-    jsonb_build_object(
-        'from_unit_id', fm.from_unit_id,
-        'from_unit_name', from_unit.unit_name,
-        'to_unit_id', fm.to_unit_id,
-        'to_unit_name', to_unit.unit_name,
-        'reason', fm.reason,
-        'authorization_reference', fm.authorization_reference
-    ),
-    3
-FROM firearm_unit_movements fm
-JOIN firearms f ON fm.firearm_id = f.firearm_id
-LEFT JOIN users auth_user ON fm.authorized_by = auth_user.user_id
-LEFT JOIN units from_unit ON fm.from_unit_id = from_unit.unit_id
-LEFT JOIN units to_unit ON fm.to_unit_id = to_unit.unit_id
-
-UNION ALL
-
--- Custody Assigned
-SELECT 
-    cr.firearm_id,
-    f.serial_number,
-    'CUSTODY'::VARCHAR(30),
-    'custody_assigned',
-    cr.custody_id,
-    cr.issued_at,
-    cr.issued_by,
-    issuer.full_name,
-    cr.officer_id,
-    officer.full_name,
-    cr.unit_id,
-    unit.unit_name,
-    jsonb_build_object(
-        'custody_type', cr.custody_type,
-        'assignment_reason', cr.assignment_reason,
-        'expected_return_date', cr.expected_return_date
-    ),
-    4
-FROM custody_records cr
-JOIN firearms f ON cr.firearm_id = f.firearm_id
-LEFT JOIN users issuer ON cr.issued_by = issuer.user_id
-LEFT JOIN officers officer ON cr.officer_id = officer.officer_id
-LEFT JOIN units unit ON cr.unit_id = unit.unit_id
-
-UNION ALL
-
--- Custody Returned
-SELECT 
-    cr.firearm_id,
-    f.serial_number,
-    'CUSTODY'::VARCHAR(30),
-    'custody_returned',
-    cr.custody_id,
-    cr.returned_at,
-    cr.returned_to,
-    returner.full_name,
-    cr.officer_id,
-    officer.full_name,
-    cr.unit_id,
-    unit.unit_name,
-    jsonb_build_object(
-        'custody_type', cr.custody_type,
-        'return_condition', cr.return_condition,
-        'custody_duration_seconds', cr.custody_duration_seconds,
-        'notes', cr.notes
-    ),
-    5
-FROM custody_records cr
-JOIN firearms f ON cr.firearm_id = f.firearm_id
-LEFT JOIN users returner ON cr.returned_to = returner.user_id
-LEFT JOIN officers officer ON cr.officer_id = officer.officer_id
-LEFT JOIN units unit ON cr.unit_id = unit.unit_id
-WHERE cr.returned_at IS NOT NULL
-
-UNION ALL
-
--- Ballistic Access Events
-SELECT 
-    bal.firearm_id,
-    f.serial_number,
-    'BALLISTIC_ACCESS'::VARCHAR(30),
-    bal.access_type,
-    bal.access_id,
-    bal.accessed_at,
-    bal.accessed_by,
-    accessor.full_name,
-    bal.current_custody_officer_id,
-    officer.full_name,
-    bal.current_custody_unit_id,
-    unit.unit_name,
-    jsonb_build_object(
-        'access_reason', bal.access_reason,
-        'firearm_status_at_access', bal.firearm_status_at_access,
-        'ip_address', bal.ip_address
-    ),
-    6
-FROM ballistic_access_logs bal
-JOIN firearms f ON bal.firearm_id = f.firearm_id
-LEFT JOIN users accessor ON bal.accessed_by = accessor.user_id
-LEFT JOIN officers officer ON bal.current_custody_officer_id = officer.officer_id
-LEFT JOIN units unit ON bal.current_custody_unit_id = unit.unit_id
-
-UNION ALL
-
--- Anomalies Detected
-SELECT 
-    a.firearm_id,
-    f.serial_number,
-    'ANOMALY'::VARCHAR(30),
-    a.anomaly_type,
-    a.anomaly_id,
-    a.detected_at,
-    NULL::UUID,
-    NULL::VARCHAR(200),
-    a.officer_id,
-    officer.full_name,
-    a.unit_id,
-    unit.unit_name,
-    jsonb_build_object(
-        'severity', a.severity,
-        'anomaly_score', a.anomaly_score,
-        'status', a.status,
-        'detection_method', a.detection_method
-    ),
-    7
-FROM anomalies a
-JOIN firearms f ON a.firearm_id = f.firearm_id
-LEFT JOIN officers officer ON a.officer_id = officer.officer_id
-LEFT JOIN units unit ON a.unit_id = unit.unit_id;
-
-COMMENT ON VIEW unified_firearm_events_timeline IS 
-'Complete chronological timeline of all events for a firearm.
-Use: SELECT * FROM unified_firearm_events_timeline WHERE firearm_id = ? ORDER BY event_timestamp, event_priority
-Categories: REGISTRATION, BALLISTIC, MOVEMENT, CUSTODY, BALLISTIC_ACCESS, ANOMALY';
-
--- ============================================
--- IMMUTABILITY TRIGGERS
--- ============================================
-
--- Prevent deletion of custody records
-CREATE OR REPLACE FUNCTION prevent_custody_deletion()
-RETURNS TRIGGER AS $$
-BEGIN
-    RAISE EXCEPTION 'Custody records are immutable and cannot be deleted. Record ID: %', OLD.custody_id;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_prevent_custody_deletion
-    BEFORE DELETE ON custody_records
-    FOR EACH ROW
-    EXECUTE FUNCTION prevent_custody_deletion();
-
--- Restrict custody record updates
-CREATE OR REPLACE FUNCTION restrict_custody_updates()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF OLD.returned_at IS NOT NULL AND NEW.returned_at IS DISTINCT FROM OLD.returned_at THEN
-        RAISE EXCEPTION 'Cannot modify returned_at once set. Custody ID: %', OLD.custody_id;
-    END IF;
-    IF NEW.firearm_id IS DISTINCT FROM OLD.firearm_id OR
-       NEW.officer_id IS DISTINCT FROM OLD.officer_id OR
-       NEW.unit_id IS DISTINCT FROM OLD.unit_id OR
-       NEW.issued_at IS DISTINCT FROM OLD.issued_at OR
-       NEW.issued_by IS DISTINCT FROM OLD.issued_by THEN
-        RAISE EXCEPTION 'Core custody record fields are immutable. Custody ID: %', OLD.custody_id;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_restrict_custody_updates
-    BEFORE UPDATE ON custody_records
-    FOR EACH ROW
-    EXECUTE FUNCTION restrict_custody_updates();
-
--- Prevent audit log modification
-CREATE OR REPLACE FUNCTION prevent_audit_modification()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'DELETE' THEN
-        RAISE EXCEPTION 'Audit logs are immutable and cannot be deleted. Log ID: %', OLD.log_id;
-    ELSIF TG_OP = 'UPDATE' THEN
-        RAISE EXCEPTION 'Audit logs are immutable and cannot be updated. Log ID: %', OLD.log_id;
-    END IF;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_prevent_audit_modification
-    BEFORE UPDATE OR DELETE ON audit_logs
-    FOR EACH ROW
-    EXECUTE FUNCTION prevent_audit_modification();
-
--- Prevent ballistic profile modification
-CREATE OR REPLACE FUNCTION prevent_ballistic_modification()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'DELETE' THEN
-        RAISE EXCEPTION 'Ballistic profiles are forensically critical and cannot be deleted. Profile ID: %', OLD.ballistic_id;
-    ELSIF TG_OP = 'UPDATE' THEN
-        RAISE EXCEPTION 'Ballistic profiles are immutable after creation. Profile ID: %', OLD.ballistic_id;
-    END IF;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_prevent_ballistic_modification
-    BEFORE UPDATE OR DELETE ON ballistic_profiles
-    FOR EACH ROW
-    EXECUTE FUNCTION prevent_ballistic_modification();
-
--- Auto-log firearm unit movements
-CREATE OR REPLACE FUNCTION log_firearm_unit_movement()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.assigned_unit_id IS DISTINCT FROM OLD.assigned_unit_id THEN
-        INSERT INTO firearm_unit_movements (
-            firearm_id, from_unit_id, to_unit_id, movement_type,
-            authorized_by, reason
-        ) VALUES (
-            NEW.firearm_id, OLD.assigned_unit_id, NEW.assigned_unit_id,
-            CASE WHEN OLD.assigned_unit_id IS NULL THEN 'initial_assignment' ELSE 'transfer' END,
-            COALESCE(current_setting('app.current_user_id', true)::UUID, NEW.registered_by),
-            'Firearm unit assignment updated'
-        );
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_log_firearm_unit_movement
-    AFTER UPDATE ON firearms
-    FOR EACH ROW
-    EXECUTE FUNCTION log_firearm_unit_movement();
-
--- Log initial firearm assignment
-CREATE OR REPLACE FUNCTION log_initial_firearm_assignment()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.assigned_unit_id IS NOT NULL THEN
-        INSERT INTO firearm_unit_movements (
-            firearm_id, from_unit_id, to_unit_id, movement_type,
-            authorized_by, reason
-        ) VALUES (
-            NEW.firearm_id, NULL, NEW.assigned_unit_id,
-            'initial_assignment', NEW.registered_by, 'Initial firearm registration'
-        );
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_log_initial_firearm_assignment
-    AFTER INSERT ON firearms
-    FOR EACH ROW
-    EXECUTE FUNCTION log_initial_firearm_assignment();
-
--- ============================================
--- TRACEABILITY HELPER FUNCTIONS
--- ============================================
-
--- Log ballistic access function
-CREATE OR REPLACE FUNCTION log_ballistic_access(
-    p_ballistic_id UUID,
-    p_user_id UUID,
-    p_access_type VARCHAR(50),
-    p_access_reason TEXT DEFAULT NULL,
-    p_ip_address VARCHAR(50) DEFAULT NULL,
-    p_user_agent TEXT DEFAULT NULL
-) RETURNS UUID AS $$
-DECLARE
-    v_firearm_id UUID;
-    v_firearm_status VARCHAR(50);
-    v_current_officer_id UUID;
-    v_current_unit_id UUID;
-    v_access_id UUID;
-BEGIN
-    SELECT bp.firearm_id, f.current_status
-    INTO v_firearm_id, v_firearm_status
-    FROM ballistic_profiles bp
-    JOIN firearms f ON bp.firearm_id = f.firearm_id
-    WHERE bp.ballistic_id = p_ballistic_id;
-
-    SELECT cr.officer_id, cr.unit_id
-    INTO v_current_officer_id, v_current_unit_id
-    FROM custody_records cr
-    WHERE cr.firearm_id = v_firearm_id AND cr.returned_at IS NULL
-    ORDER BY cr.issued_at DESC LIMIT 1;
-
-    INSERT INTO ballistic_access_logs (
-        ballistic_id, firearm_id, accessed_by, access_type, access_reason,
-        firearm_status_at_access, current_custody_officer_id, current_custody_unit_id,
-        ip_address, user_agent
-    ) VALUES (
-        p_ballistic_id, v_firearm_id, p_user_id, p_access_type, p_access_reason,
-        v_firearm_status, v_current_officer_id, v_current_unit_id,
-        p_ip_address, p_user_agent
-    ) RETURNING access_id INTO v_access_id;
-
-    RETURN v_access_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Get complete firearm traceability as JSON
-CREATE OR REPLACE FUNCTION get_complete_firearm_traceability(p_firearm_id UUID)
-RETURNS JSONB AS $$
-DECLARE
-    v_result JSONB;
-BEGIN
-    SELECT jsonb_build_object(
-        'firearm', (
-            SELECT jsonb_build_object(
-                'firearm_id', f.firearm_id,
-                'serial_number', f.serial_number,
-                'manufacturer', f.manufacturer,
-                'model', f.model,
-                'current_status', f.current_status,
-                'assigned_unit', u.unit_name
-            )
-            FROM firearms f
-            LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
-            WHERE f.firearm_id = p_firearm_id
-        ),
-        'has_ballistic_profile', EXISTS(SELECT 1 FROM ballistic_profiles WHERE firearm_id = p_firearm_id),
-        'total_custody_events', (SELECT COUNT(*) FROM custody_records WHERE firearm_id = p_firearm_id),
-        'total_unit_movements', (SELECT COUNT(*) FROM firearm_unit_movements WHERE firearm_id = p_firearm_id),
-        'total_ballistic_accesses', (SELECT COUNT(*) FROM ballistic_access_logs WHERE firearm_id = p_firearm_id),
-        'generated_at', CURRENT_TIMESTAMP
-    ) INTO v_result;
-    RETURN v_result;
-END;
-$$ LANGUAGE plpgsql;
-
--- ============================================
 -- COMMENTS
 -- ============================================
 
+COMMENT ON TABLE units IS 'Police units with user-friendly IDs (UNIT-HQ, UNIT-NYA, etc.)';
 COMMENT ON TABLE users IS 'System users with role-based access control';
 COMMENT ON TABLE officers IS 'Police officers who can be assigned firearms';
-COMMENT ON TABLE firearms IS 'Firearm registry with ballistic profiles';
-COMMENT ON TABLE custody_records IS 'Firearm custody tracking with ML features - IMMUTABLE after creation';
+COMMENT ON TABLE firearms IS 'Firearm registry - IMPORTANT: assigned_unit_id determines which unit can access the firearm';
+COMMENT ON TABLE custody_records IS 'Firearm custody tracking with ML features';
 COMMENT ON TABLE anomalies IS 'ML-detected anomalies in custody patterns';
-COMMENT ON TABLE ml_training_features IS 'Extracted features for ML model training';
-COMMENT ON TABLE ml_model_metadata IS 'ML model versions and parameters';
-COMMENT ON TABLE audit_logs IS 'System-wide audit trail - IMMUTABLE';
-COMMENT ON TABLE ballistic_profiles IS 'Ballistic profiles for firearms - IMMUTABLE after creation';
-COMMENT ON TABLE ballistic_access_logs IS 'Tracks all access to ballistic profile data';
-COMMENT ON TABLE firearm_unit_movements IS 'Complete history of firearm movements between units - IMMUTABLE';
+COMMENT ON TABLE audit_logs IS 'System-wide audit trail';
+COMMENT ON TABLE ballistic_profiles IS 'Ballistic profiles for firearms';
 
--- End of schema
+-- End of SafeArms Database Schema

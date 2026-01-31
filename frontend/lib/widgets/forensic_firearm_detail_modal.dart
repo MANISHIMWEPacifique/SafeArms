@@ -622,8 +622,7 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
   Widget _buildStatusSection() {
     return _buildInfoSection('Current Status', [
       _buildInfoRow('Status', widget.firearm.currentStatus.toUpperCase()),
-      _buildInfoRow(
-          'Assigned Unit', widget.firearm.assignedUnitId ?? 'Unassigned'),
+      _buildInfoRow('Assigned Unit', widget.firearm.unitDisplayName),
       _buildInfoRow(
           'Registration Level', widget.firearm.registrationLevel.toUpperCase()),
       _buildInfoRow('Active', widget.firearm.isActive ? 'Yes' : 'No'),

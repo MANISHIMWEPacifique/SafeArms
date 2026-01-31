@@ -616,7 +616,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                                 color: Color(0xFF78909C), fontSize: 11),
                           ),
                           Text(
-                            firearm.assignedUnitId!,
+                            firearm.unitDisplayName,
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,

@@ -14,6 +14,7 @@ class FirearmModel {
   final String registrationLevel;
   final String registeredBy;
   final String? assignedUnitId;
+  final String? assignedUnitName; // User-friendly unit name from backend join
   final String currentStatus;
   final bool isActive;
   final DateTime? createdAt;
@@ -32,11 +33,24 @@ class FirearmModel {
     required this.registrationLevel,
     required this.registeredBy,
     this.assignedUnitId,
+    this.assignedUnitName,
     required this.currentStatus,
     required this.isActive,
     this.createdAt,
     this.updatedAt,
   });
+
+  /// Returns user-friendly unit display name (prefers unit_name over unit_id)
+  String get unitDisplayName {
+    if (assignedUnitName != null && assignedUnitName!.isNotEmpty) {
+      return assignedUnitName!;
+    }
+    if (assignedUnitId != null && assignedUnitId!.isNotEmpty) {
+      // Now we have user-friendly IDs like UNIT-NYA, so display them directly
+      return assignedUnitId!;
+    }
+    return 'Unassigned';
+  }
 
   factory FirearmModel.fromJson(Map<String, dynamic> json) {
     return FirearmModel(
@@ -54,6 +68,7 @@ class FirearmModel {
       registrationLevel: json['registration_level'] ?? 'unit',
       registeredBy: json['registered_by'] ?? '',
       assignedUnitId: json['assigned_unit_id'],
+      assignedUnitName: json['unit_name'], // From backend LEFT JOIN
       currentStatus: json['current_status'] ?? 'available',
       isActive: json['is_active'] ?? true,
       createdAt: json['created_at'] != null

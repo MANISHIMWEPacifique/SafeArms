@@ -82,7 +82,8 @@ class FirearmDetailModal extends StatelessWidget {
         children: [
           const Text(
             'Firearm Details',
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
           IconButton(
@@ -172,7 +173,8 @@ class FirearmDetailModal extends StatelessWidget {
         _buildInfoCard([
           _buildInfoRow('Type', _formatFirearmType(firearm.firearmType)),
           _buildInfoRow('Caliber', firearm.caliber ?? 'N/A'),
-          _buildInfoRow('Manufacture Year', firearm.manufactureYear?.toString() ?? 'N/A'),
+          _buildInfoRow(
+              'Manufacture Year', firearm.manufactureYear?.toString() ?? 'N/A'),
           _buildInfoRow('Manufacturer', firearm.manufacturer),
           _buildInfoRow('Model', firearm.model),
         ]),
@@ -194,7 +196,8 @@ class FirearmDetailModal extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _buildInfoCard([
-          _buildInfoRow('Acquisition Date', _formatDate(firearm.acquisitionDate)),
+          _buildInfoRow(
+              'Acquisition Date', _formatDate(firearm.acquisitionDate)),
           _buildInfoRow('Source', firearm.acquisitionSource ?? 'N/A'),
           _buildInfoRow('Registered By', firearm.registeredBy),
         ]),
@@ -217,8 +220,9 @@ class FirearmDetailModal extends StatelessWidget {
         const SizedBox(height: 16),
         _buildInfoCard([
           _buildInfoRow('Status', firearm.currentStatus.toUpperCase()),
-          _buildInfoRow('Assigned Unit', firearm.assignedUnitId ?? 'Unassigned'),
-          _buildInfoRow('Registration Level', firearm.registrationLevel.toUpperCase()),
+          _buildInfoRow('Assigned Unit', firearm.unitDisplayName),
+          _buildInfoRow(
+              'Registration Level', firearm.registrationLevel.toUpperCase()),
           _buildInfoRow('Active', firearm.isActive ? 'Yes' : 'No'),
         ]),
       ],
@@ -292,7 +296,8 @@ class FirearmDetailModal extends StatelessWidget {
               backgroundColor: const Color(0xFF1E88E5),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ),
@@ -309,7 +314,8 @@ class FirearmDetailModal extends StatelessWidget {
               foregroundColor: const Color(0xFF1E88E5),
               side: const BorderSide(color: Color(0xFF1E88E5)),
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ),
@@ -326,7 +332,8 @@ class FirearmDetailModal extends StatelessWidget {
               foregroundColor: const Color(0xFFB0BEC5),
               side: const BorderSide(color: Color(0xFF37404F)),
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ),
@@ -351,7 +358,8 @@ class FirearmDetailModal extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFF37404F), width: 0.5)),
+        border:
+            Border(bottom: BorderSide(color: Color(0xFF37404F), width: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -376,7 +384,7 @@ class FirearmDetailModal extends StatelessWidget {
   Widget _buildStatusBadge(String status) {
     Color backgroundColor;
     String displayText;
-    
+
     switch (status) {
       case 'available':
         backgroundColor = const Color(0xFF3CCB7F);
@@ -399,7 +407,7 @@ class FirearmDetailModal extends StatelessWidget {
         backgroundColor = const Color(0xFF78909C);
         displayText = status.toUpperCase();
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -463,13 +471,27 @@ class FirearmDetailModal extends StatelessWidget {
   }
 
   String _formatFirearmType(String type) {
-    return type.split('_').map((word) => 
-      word[0].toUpperCase() + word.substring(1)
-    ).join(' ');
+    return type
+        .split('_')
+        .map((word) => word[0].toUpperCase() + word.substring(1))
+        .join(' ');
   }
 
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }

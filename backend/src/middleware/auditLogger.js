@@ -103,7 +103,6 @@ const auditLogger = (action_type, options = {}) => {
                             success
                         ]
                     );
-                    );
                 } catch (error) {
                     console.error('Audit logging failed:', error);
                     // Don't throw - audit failure shouldn't break the app

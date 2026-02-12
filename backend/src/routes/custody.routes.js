@@ -20,7 +20,7 @@ const { query } = require('../config/database');
  * 
  * RBAC ENFORCEMENT:
  * - ASSIGN/RETURN: HQ Commander, Station Commander (unit-restricted)
- * - READ HISTORY: HQ Commander, Forensic Analyst (read-only), Admin, Station Commander (unit-restricted)
+ * - READ HISTORY: HQ Commander, Investigator (read-only), Admin, Station Commander (unit-restricted)
  * - CROSS-UNIT REPORTS: HQ Commander, Admin only
  * 
  * CHAIN-OF-CUSTODY FEATURES:
@@ -36,10 +36,10 @@ const { query } = require('../config/database');
 const enforceUnitCustodyAccess = async (req, res, next) => {
     const { role, unit_id: userUnitId } = req.user;
 
-    // Forensic analysts have read-only access (they shouldn't hit write endpoints)
-    if (role === ROLES.FORENSIC_ANALYST) {
+    // Investigators have read-only access (they shouldn't hit write endpoints)
+    if (role === ROLES.INVESTIGATOR) {
         // Store for use in GET endpoints
-        req.isForensicAnalyst = true;
+        req.isInvestigator = true;
         req.custodyFilter = null; // Full read access
         return next();
     }

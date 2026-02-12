@@ -188,7 +188,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   'label': 'HQ Firearm Commander'
                 },
                 {'value': 'station_commander', 'label': 'Station Commander'},
-                {'value': 'forensic_analyst', 'label': 'Forensic Analyst'},
+                {'value': 'investigator', 'label': 'Investigator'},
               ],
               onChanged: (value) => userProvider.setRoleFilter(value ?? 'all'),
             ),
@@ -359,7 +359,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   Widget _buildRoleBreakdown(Map<String, dynamic> stats) {
-    // Backend returns: admins, hqCommanders, stationCommanders, forensicAnalysts
+    // Backend returns: admins, hqCommanders, stationCommanders, investigators
     // or byRole.admin, byRole.hq_firearm_commander, etc.
     final byRole = stats['byRole'] as Map<String, dynamic>? ?? {};
     final admins =
@@ -372,9 +372,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         byRole['station_commander'] ??
         stats['station_count'] ??
         0;
-    final analysts = stats['forensicAnalysts'] ??
-        byRole['forensic_analyst'] ??
-        stats['analyst_count'] ??
+    final investigators = stats['investigators'] ??
+        byRole['investigator'] ??
+        stats['investigator_count'] ??
         0;
 
     return Expanded(
@@ -399,7 +399,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
           ),
           Text(
-            '$analysts Forensic Analysts',
+            '$investigators Investigators',
             style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
           ),
         ],
@@ -691,9 +691,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         backgroundColor = const Color(0xFF3CCB7F);
         displayText = 'STATION COMMANDER';
         break;
-      case 'forensic_analyst':
+      case 'investigator':
         backgroundColor = const Color(0xFF42A5F5);
-        displayText = 'FORENSIC ANALYST';
+        displayText = 'INVESTIGATOR';
         break;
       default:
         backgroundColor = const Color(0xFF78909C);

@@ -24,15 +24,16 @@ class CreateUserModal extends StatefulWidget {
 
 class _CreateUserModalState extends State<CreateUserModal> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controllers
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
   // State
   String _selectedRole = 'station_commander';
   String? _selectedUnit;
@@ -109,7 +110,9 @@ class _CreateUserModalState extends State<CreateUserModal> {
       widget.onSuccess();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.user == null ? 'User created successfully' : 'User updated successfully'),
+          content: Text(widget.user == null
+              ? 'User created successfully'
+              : 'User updated successfully'),
           backgroundColor: const Color(0xFF3CCB7F),
         ),
       );
@@ -126,7 +129,7 @@ class _CreateUserModalState extends State<CreateUserModal> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1A1F2E).withOpacity(0.95),
+      color: const Color(0xFF1A1F2E).withValues(alpha: 0.95),
       child: Center(
         child: Container(
           width: 800,
@@ -136,7 +139,7 @@ class _CreateUserModalState extends State<CreateUserModal> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 blurRadius: 40,
                 offset: const Offset(0, 8),
               ),
@@ -223,7 +226,7 @@ class _CreateUserModalState extends State<CreateUserModal> {
           IconButton(
             icon: const Icon(Icons.close, color: Color(0xFF78909C)),
             onPressed: widget.onClose,
-            hoverColor: const Color(0xFFE85C5C).withOpacity(0.1),
+            hoverColor: const Color(0xFFE85C5C).withValues(alpha: 0.1),
           ),
         ],
       ),
@@ -236,7 +239,10 @@ class _CreateUserModalState extends State<CreateUserModal> {
       children: [
         const Text(
           'Personal Information',
-          style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: Color(0xFFB0BEC5),
+              fontSize: 16,
+              fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         Row(
@@ -351,7 +357,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
             controller: _confirmPasswordController,
             label: 'Confirm Password',
             showPassword: _showConfirmPassword,
-            onToggle: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+            onToggle: () =>
+                setState(() => _showConfirmPassword = !_showConfirmPassword),
             validator: (value) {
               if (value != _passwordController.text) {
                 return 'Passwords do not match';
@@ -406,11 +413,11 @@ class _CreateUserModalState extends State<CreateUserModal> {
             ),
             const SizedBox(width: 12),
             _buildRoleCard(
-              role: 'forensic_analyst',
+              role: 'investigator',
               icon: Icons.search,
               iconColor: const Color(0xFF42A5F5),
-              title: 'Forensic Analyst',
-              description: 'Investigation and forensic support',
+              title: 'Investigator',
+              description: 'Investigation and traceability support',
             ),
           ],
         ),
@@ -426,7 +433,7 @@ class _CreateUserModalState extends State<CreateUserModal> {
     required String description,
   }) {
     final isSelected = _selectedRole == role;
-    
+
     return Expanded(
       child: InkWell(
         onTap: () => setState(() => _selectedRole = role),
@@ -435,7 +442,9 @@ class _CreateUserModalState extends State<CreateUserModal> {
           decoration: BoxDecoration(
             color: const Color(0xFF2A3040),
             border: Border.all(
-              color: isSelected ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
+              color: isSelected
+                  ? const Color(0xFF1E88E5)
+                  : const Color(0xFF37404F),
               width: 2,
             ),
             borderRadius: BorderRadius.circular(8),
@@ -451,14 +460,19 @@ class _CreateUserModalState extends State<CreateUserModal> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
+                        color: isSelected
+                            ? const Color(0xFF1E88E5)
+                            : const Color(0xFF37404F),
                         width: 2,
                       ),
-                      color: isSelected ? const Color(0xFF1E88E5) : Colors.transparent,
+                      color: isSelected
+                          ? const Color(0xFF1E88E5)
+                          : Colors.transparent,
                     ),
                     child: isSelected
                         ? const Center(
-                            child: Icon(Icons.circle, color: Colors.white, size: 10),
+                            child: Icon(Icons.circle,
+                                color: Colors.white, size: 10),
                           )
                         : null,
                   ),
@@ -554,13 +568,15 @@ class _CreateUserModalState extends State<CreateUserModal> {
             width: 52,
             height: 28,
             decoration: BoxDecoration(
-              color: _isActive ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
+              color:
+                  _isActive ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
               borderRadius: BorderRadius.circular(14),
             ),
             padding: const EdgeInsets.all(2),
             child: AnimatedAlign(
               duration: const Duration(milliseconds: 200),
-              alignment: _isActive ? Alignment.centerRight : Alignment.centerLeft,
+              alignment:
+                  _isActive ? Alignment.centerRight : Alignment.centerLeft,
               child: Container(
                 width: 24,
                 height: 24,
@@ -585,14 +601,19 @@ class _CreateUserModalState extends State<CreateUserModal> {
     return Row(
       children: [
         GestureDetector(
-          onTap: () => setState(() => _mustChangePassword = !_mustChangePassword),
+          onTap: () =>
+              setState(() => _mustChangePassword = !_mustChangePassword),
           child: Container(
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              color: _mustChangePassword ? const Color(0xFF1E88E5) : Colors.transparent,
+              color: _mustChangePassword
+                  ? const Color(0xFF1E88E5)
+                  : Colors.transparent,
               border: Border.all(
-                color: _mustChangePassword ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
+                color: _mustChangePassword
+                    ? const Color(0xFF1E88E5)
+                    : const Color(0xFF37404F),
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(4),
@@ -658,7 +679,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
             foregroundColor: const Color(0xFFB0BEC5),
             side: const BorderSide(color: Color(0xFF37404F)),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           child: const Text('Cancel', style: TextStyle(fontSize: 15)),
         ),
@@ -669,7 +691,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
                 )
               : const Icon(Icons.check_circle, size: 18),
           label: Text(
@@ -680,7 +703,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
             backgroundColor: const Color(0xFF1E88E5),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
       ],
@@ -702,7 +726,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
       children: [
         Row(
           children: [
-            Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            Text(label,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
             if (required) ...[
               const SizedBox(width: 4),
               const Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
@@ -717,9 +742,12 @@ class _CreateUserModalState extends State<CreateUserModal> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(color: Color(0xFF78909C)),
-            prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF78909C), size: 20) : null,
+            prefixIcon: prefixIcon != null
+                ? Icon(prefixIcon, color: const Color(0xFF78909C), size: 20)
+                : null,
             filled: true,
-            fillColor: enabled ? const Color(0xFF2A3040) : const Color(0xFF1A1F2E),
+            fillColor:
+                enabled ? const Color(0xFF2A3040) : const Color(0xFF1A1F2E),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: Color(0xFF37404F)),
@@ -736,13 +764,15 @@ class _CreateUserModalState extends State<CreateUserModal> {
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: Color(0xFFE85C5C), width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           validator: validator,
         ),
         if (helperText != null) ...[
           const SizedBox(height: 4),
-          Text(helperText, style: const TextStyle(color: Color(0xFF78909C), fontSize: 11)),
+          Text(helperText,
+              style: const TextStyle(color: Color(0xFF78909C), fontSize: 11)),
         ],
       ],
     );
@@ -760,7 +790,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
       children: [
         Row(
           children: const [
-            Text('Initial Password', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            Text('Initial Password',
+                style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
             SizedBox(width: 4),
             Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
           ],
@@ -799,7 +830,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: Color(0xFFE85C5C), width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           validator: validator,
         ),

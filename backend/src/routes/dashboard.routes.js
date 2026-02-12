@@ -104,8 +104,8 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         dashboardData.recent_custody = recentCustody.rows;
     }
 
-    // Forensic Analyst specific stats
-    if (role === 'forensic_analyst') {
+    // Investigator specific stats
+    if (role === 'investigator') {
         // Ballistic profiles count
         const ballisticCount = await query(`SELECT COUNT(*) as total FROM ballistic_profiles`);
         dashboardData.ballistic_profiles_count = parseInt(ballisticCount.rows[0].total);

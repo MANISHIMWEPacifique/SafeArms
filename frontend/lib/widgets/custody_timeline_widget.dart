@@ -150,7 +150,7 @@ class CustodyTimelineWidget extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF42A5F5).withOpacity(0.2),
+                    color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                     border:
                         Border.all(color: const Color(0xFF42A5F5), width: 2),
@@ -207,7 +207,7 @@ class CustodyTimelineWidget extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF42A5F5).withOpacity(0.2),
+                            color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(

@@ -145,7 +145,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E88E5).withOpacity(0.2),
+                    color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
@@ -194,7 +194,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: isActive
-              ? const Color(0xFF1E88E5).withOpacity(0.1)
+              ? const Color(0xFF1E88E5).withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border(
@@ -315,7 +315,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF3CCB7F).withOpacity(0.2),
+                              color: const Color(0xFF3CCB7F)
+                                  .withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Text(
@@ -423,7 +424,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFC857).withOpacity(0.1),
+              color: const Color(0xFFFFC857).withValues(alpha: 0.1),
               border: Border.all(color: const Color(0xFFFFC857)),
               borderRadius: BorderRadius.circular(8),
             ),
@@ -526,7 +527,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3CCB7F).withOpacity(0.2),
+                  color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -654,7 +655,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3CCB7F).withOpacity(0.2),
+                  color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -840,17 +841,21 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         Text(label,
             style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
         const SizedBox(height: 8),
-        ...options
-            .map((option) => RadioListTile<String>(
-                  value: option,
-                  groupValue: value,
-                  onChanged: onChanged,
-                  title: Text(option,
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 14)),
-                  activeColor: const Color(0xFF1E88E5),
-                ))
-            .toList(),
+        RadioGroup<String>(
+          groupValue: value,
+          onChanged: onChanged,
+          child: Column(
+            children: options
+                .map((option) => RadioListTile<String>(
+                      value: option,
+                      title: Text(option,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 14)),
+                      activeColor: const Color(0xFF1E88E5),
+                    ))
+                .toList(),
+          ),
+        ),
       ],
     );
   }
@@ -916,7 +921,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: const Color(0xFF1E88E5),
+          activeThumbColor: const Color(0xFF1E88E5),
         ),
       ],
     );
@@ -996,7 +1001,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(

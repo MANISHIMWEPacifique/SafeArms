@@ -1,4 +1,4 @@
-# SafeArms - Police Firearm Control and Forensic Support Platform
+# SafeArms - Police Firearm Control and Investigation Support Platform
 
 ## Overview
 SafeArms is a centralized digital platform for the Rwanda National Police to manage firearm accountability, custody tracking, ballistic profiling, and ML-powered anomaly detection.
@@ -14,7 +14,7 @@ SafeArms is a centralized digital platform for the Rwanda National Police to man
 - ✅ Email-based two-factor authentication (OTP)
 - ✅ Custody management (permanent, temporary, personal long-term)
 - ✅ ML-powered anomaly detection
-- ✅ Ballistic profile storage for forensic support
+- ✅ Ballistic profile storage for investigation support
 - ✅ Approval workflows (loss, destruction, procurement)
 - ✅ Role-based access control (4 roles)
 - ✅ Comprehensive audit logging
@@ -91,7 +91,7 @@ flutter run -d chrome
 | **Admin** | Full system access, user management, system configuration |
 | **HQ Firearm Commander** | National oversight, HQ registration, approvals, nationwide anomaly monitoring |
 | **Station Commander** | Unit-level management, custody operations, local anomaly monitoring |
-| **Forensic Analyst** | Read-only investigation support, ballistic search, cross-unit tracking |
+| **Investigator** | Read-only investigation support, ballistic search, cross-unit tracking |
 
 ## API Endpoints
 

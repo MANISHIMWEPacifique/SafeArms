@@ -97,7 +97,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5).withOpacity(0.2),
+                  color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -187,7 +187,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: iconColor, size: 28),
@@ -628,7 +628,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(

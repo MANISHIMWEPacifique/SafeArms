@@ -132,7 +132,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E88E5).withOpacity(0.2),
+              color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFF1E88E5), width: 1),
             ),
@@ -156,9 +156,9 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
               decoration: InputDecoration(
                 hintText: 'Search officers...',
                 hintStyle: TextStyle(
-                    color: Colors.white.withOpacity(0.5), fontSize: 14),
+                    color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
                 prefixIcon: Icon(Icons.search,
-                    color: Colors.white.withOpacity(0.5), size: 20),
+                    color: Colors.white.withValues(alpha: 0.5), size: 20),
                 filled: true,
                 fillColor: const Color(0xFF1A1F2E),
                 contentPadding:
@@ -206,21 +206,21 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF1E88E5).withOpacity(0.2),
+            const Color(0xFF1E88E5).withValues(alpha: 0.2),
             const Color(0xFF252A3A),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1E88E5).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E88E5).withOpacity(0.2),
+              color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.people, color: Color(0xFF1E88E5), size: 24),
@@ -240,7 +240,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
               Text(
                 'Officers Registry - Personnel Management',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 14,
                 ),
               ),
@@ -296,7 +296,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color, size: 20),
@@ -316,7 +316,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
                 Text(
                   label,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 12,
                   ),
                 ),
@@ -387,7 +387,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.7),
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -406,9 +406,9 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
         decoration: InputDecoration(
           hintText: 'Filter by rank...',
           hintStyle:
-              TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+              TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
           prefixIcon: Icon(Icons.military_tech,
-              color: Colors.white.withOpacity(0.5), size: 20),
+              color: Colors.white.withValues(alpha: 0.5), size: 20),
           filled: true,
           fillColor: const Color(0xFF1A1F2E),
           contentPadding:
@@ -434,7 +434,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E88E5).withOpacity(0.1),
+        color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF1E88E5)),
       ),
@@ -496,12 +496,12 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.people_outline,
-                color: Colors.white.withOpacity(0.3), size: 64),
+                color: Colors.white.withValues(alpha: 0.3), size: 64),
             const SizedBox(height: 16),
             Text(
               'No officers found',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 16,
               ),
             ),
@@ -578,7 +578,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
             children: [
               CircleAvatar(
                 radius: 16,
-                backgroundColor: const Color(0xFF1E88E5).withOpacity(0.2),
+                backgroundColor: const Color(0xFF1E88E5).withValues(alpha: 0.2),
                 child: Text(
                   officer.fullName.isNotEmpty
                       ? officer.fullName[0].toUpperCase()
@@ -604,7 +604,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
                   Text(
                     officer.officerNumber,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 12,
                     ),
                   ),
@@ -630,8 +630,8 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: officer.isActive
-                  ? const Color(0xFF3CCB7F).withOpacity(0.15)
-                  : const Color(0xFFE85C5C).withOpacity(0.15),
+                  ? const Color(0xFF3CCB7F).withValues(alpha: 0.15)
+                  : const Color(0xFFE85C5C).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(

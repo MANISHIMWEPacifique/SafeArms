@@ -27,14 +27,14 @@ const { query } = require('../config/database');
 
 /**
  * Export legal chain-of-custody report for a firearm
- * Access: HQ Commander, Forensic Analyst, Admin
+ * Access: HQ Commander, Investigator, Admin
  * 
  * This endpoint generates a tamper-evident chain-of-custody report
- * suitable for legal proceedings and forensic investigations.
+ * suitable for legal proceedings and investigations.
  */
 router.get('/chain-of-custody/:firearm_id', 
     authenticate, 
-    requireRole(PERMISSIONS.CHAIN_OF_CUSTODY_EXPORT || ['hq_commander', 'forensic_analyst', 'admin']),
+    requireRole(PERMISSIONS.CHAIN_OF_CUSTODY_EXPORT || ['hq_commander', 'investigator', 'admin']),
     asyncHandler(async (req, res) => {
         const { firearm_id } = req.params;
         const { start_date, end_date, format } = req.query;
@@ -113,11 +113,11 @@ router.get('/chain-of-custody/:firearm_id',
 
 /**
  * Verify chain-of-custody integrity for a firearm
- * Access: HQ Commander, Forensic Analyst, Admin
+ * Access: HQ Commander, Investigator, Admin
  */
 router.get('/chain-of-custody/:firearm_id/verify', 
     authenticate, 
-    requireRole(PERMISSIONS.CHAIN_OF_CUSTODY_VERIFY || ['hq_commander', 'forensic_analyst', 'admin']),
+    requireRole(PERMISSIONS.CHAIN_OF_CUSTODY_VERIFY || ['hq_commander', 'investigator', 'admin']),
     asyncHandler(async (req, res) => {
         const { firearm_id } = req.params;
 

@@ -58,10 +58,10 @@ class AnomalyReviewIndicatorWidget extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             // Use blue color - neutral, not judgmental
-            color: const Color(0xFF42A5F5).withOpacity(0.2),
+            color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
-              color: const Color(0xFF42A5F5).withOpacity(0.4),
+              color: const Color(0xFF42A5F5).withValues(alpha: 0.4),
             ),
           ),
           child: Row(
@@ -130,7 +130,7 @@ class AnomalyReviewIndicatorWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF42A5F5).withOpacity(0.2),
+              color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -245,7 +245,7 @@ class AnomalyReviewIndicatorWidget extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF78909C).withOpacity(0.2),
+                      color: const Color(0xFF78909C).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Row(
@@ -295,7 +295,7 @@ class AnomalyReviewIndicatorWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -373,7 +373,7 @@ class AnomalyReviewBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF42A5F5).withOpacity(0.2),
+            color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(

@@ -131,7 +131,7 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
         authProvider.currentUser?['unit_name']?.toString() ?? 'Your Unit';
 
     return Material(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Center(
         child: Container(
           width: 600,
@@ -143,7 +143,7 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -170,7 +170,7 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE85C5C).withOpacity(0.1),
+                              color: const Color(0xFFE85C5C).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                               border:
                                   Border.all(color: const Color(0xFFE85C5C)),
@@ -268,7 +268,7 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF3CCB7F).withOpacity(0.2),
+              color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.person_add,
@@ -299,7 +299,7 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
           IconButton(
             onPressed: widget.onClose,
             icon: const Icon(Icons.close, color: Colors.white54),
-            hoverColor: Colors.white.withOpacity(0.1),
+            hoverColor: Colors.white.withValues(alpha: 0.1),
           ),
         ],
       ),
@@ -312,14 +312,14 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF1E88E5).withOpacity(0.2),
+            const Color(0xFF1E88E5).withValues(alpha: 0.2),
             const Color(0xFF1A1F2E),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1E88E5).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -349,7 +349,7 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E88E5).withOpacity(0.2),
+              color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Text(
@@ -484,7 +484,7 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
         onPressed: _isSubmitting ? null : _submitForm,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF3CCB7F),
-          disabledBackgroundColor: const Color(0xFF3CCB7F).withOpacity(0.5),
+          disabledBackgroundColor: const Color(0xFF3CCB7F).withValues(alpha: 0.5),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(

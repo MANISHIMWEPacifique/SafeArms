@@ -1,2 +1,4 @@
 // Ballistic Service
-// API calls for ballistic profile management
+// Re-exports BallisticProfileService for compatibility
+
+export 'ballistic_profile_service.dart';

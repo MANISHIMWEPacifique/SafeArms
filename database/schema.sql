@@ -1,6 +1,6 @@
 -- SafeArms Database Schema (Consolidated for Demonstration)
 -- PostgreSQL 14+
--- Police Firearm Control and Forensic Support Platform
+-- Police Firearm Control and Investigation Support Platform
 -- Rwanda National Police
 --
 -- This is a consolidated schema for demonstration purposes.
@@ -33,7 +33,7 @@ DROP TABLE IF EXISTS units CASCADE;
 -- IMPORTANT: USER vs OFFICER SEPARATION
 -- ============================================
 -- USERS: System users who authenticate and manage the platform
---        (Admin, HQ Commander, Station Commander, Forensic Analyst)
+--        (Admin, HQ Commander, Station Commander, Investigator)
 --        - Have username, password, roles
 --        - Can log in and perform system operations
 --
@@ -72,7 +72,7 @@ CREATE TABLE users (
     full_name VARCHAR(200) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     phone_number VARCHAR(20),
-    role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'hq_firearm_commander', 'station_commander', 'forensic_analyst')),
+    role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'hq_firearm_commander', 'station_commander', 'investigator')),
     unit_id VARCHAR(20) REFERENCES units(unit_id),
     otp_code VARCHAR(6),
     otp_expires_at TIMESTAMP,

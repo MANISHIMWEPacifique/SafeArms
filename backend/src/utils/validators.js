@@ -156,7 +156,7 @@ const isValidFirearmType = (type) => {
  * @returns {boolean}
  */
 const isValidRole = (role) => {
-    const validRoles = ['admin', 'hq_firearm_commander', 'station_commander', 'forensic_analyst'];
+    const validRoles = ['admin', 'hq_firearm_commander', 'station_commander', 'investigator'];
     return validRoles.includes(role);
 };
 

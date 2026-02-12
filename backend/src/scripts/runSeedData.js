@@ -64,7 +64,7 @@ async function runSeedData() {
     console.log('   Kimironko:       station_kimironko / Admin@123');
     console.log('   Remera:          station_remera / Admin@123');
     console.log('   Kicukiro:        station_kicukiro / Admin@123');
-    console.log('   Forensic:        forensic_analyst / Admin@123');
+    console.log('   Investigator:    investigator / Admin@123');
 
   } catch (error) {
     console.error('❌ Error seeding database:', error.message);

@@ -24,7 +24,7 @@ const { query } = require('../config/database');
  * - hq_firearm_commander: Full access to all firearms, can create/update
  * - station_commander: Can only access firearms assigned to their unit
  *                      CANNOT access ballistic data (profiles, access history)
- * - forensic_analyst: Read-only access to all firearms and history including ballistic
+ * - investigator: Read-only access to all firearms and history including ballistic
  * 
  * NOTE: Station commanders are explicitly denied ballistic data even when 
  * accessing their unit's firearms. The full-history endpoint returns 
@@ -315,7 +315,7 @@ router.put('/:id', authenticate, requireCommander, requireUnitAccess, logUpdate,
  * - Summary statistics
  * 
  * RBAC:
- * - forensic_analyst: Full access to all firearms including ballistic data
+ * - investigator: Full access to all firearms including ballistic data
  * - hq_firearm_commander: Full access to all firearms including ballistic data
  * - admin: Full access for audit purposes
  * - station_commander: Only firearms assigned to their unit, NO BALLISTIC DATA

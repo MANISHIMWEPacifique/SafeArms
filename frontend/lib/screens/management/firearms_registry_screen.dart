@@ -46,10 +46,10 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     final authProvider = context.watch<AuthProvider>();
     final userRole = authProvider.currentUser?['role'] as String?;
     final isHQCommander = userRole == 'hq_firearm_commander';
-    final isForensicAnalyst = userRole == 'forensic_analyst';
+    final isInvestigator = userRole == 'investigator';
     final isAdmin = userRole == 'admin';
-    // HQ Commander, Forensic Analyst, and Admin see national registry
-    final hasNationalAccess = isHQCommander || isForensicAnalyst || isAdmin;
+    // HQ Commander, Investigator, and Admin see national registry
+    final hasNationalAccess = isHQCommander || isInvestigator || isAdmin;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
@@ -61,7 +61,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 child: Column(
                   children: [
                     _buildTopNavBar(context, firearmProvider, isHQCommander,
-                        hasNationalAccess, isForensicAnalyst),
+                        hasNationalAccess, isInvestigator),
                     Expanded(
                       child: SingleChildScrollView(
                         child: Padding(
@@ -117,7 +117,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   }
 
   Widget _buildTopNavBar(BuildContext context, FirearmProvider provider,
-      bool isHQCommander, bool hasNationalAccess, bool isForensicAnalyst) {
+      bool isHQCommander, bool hasNationalAccess, bool isInvestigator) {
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -150,13 +150,13 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                     style:
                         const TextStyle(color: Color(0xFF78909C), fontSize: 14),
                   ),
-                  if (isForensicAnalyst) ...[
+                  if (isInvestigator) ...[
                     const SizedBox(width: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF42A5F5).withOpacity(0.2),
+                        color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(

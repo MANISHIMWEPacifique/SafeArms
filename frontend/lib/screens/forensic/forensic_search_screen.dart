@@ -304,7 +304,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: _getStatusColor(firearm.currentStatus)
-                            .withOpacity(0.2),
+                            .withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(

@@ -24,7 +24,7 @@ class ApiConfig {
   static String get unitsUrl => '$apiBase/units';
   static String get officersUrl => '$apiBase/officers';
   static String get firearmsUrl => '$apiBase/firearms';
-  static String get ballisticUrl => '$apiBase/ballistic';
+  static String get ballisticUrl => '$apiBase/ballistic-profiles';
   static String get custodyUrl => '$apiBase/custody';
   static String get anomaliesUrl => '$apiBase/anomalies';
   static String get approvalsUrl => '$apiBase/approvals';

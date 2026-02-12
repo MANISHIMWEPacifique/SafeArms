@@ -18,7 +18,7 @@ class OfficerDetailModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Center(
         child: Container(
           width: 500,
@@ -30,7 +30,7 @@ class OfficerDetailModal extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -100,7 +100,7 @@ class OfficerDetailModal extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E88E5).withOpacity(0.2),
+              color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.person, color: Color(0xFF1E88E5), size: 24),
@@ -130,7 +130,7 @@ class OfficerDetailModal extends StatelessWidget {
           IconButton(
             onPressed: onClose,
             icon: const Icon(Icons.close, color: Colors.white54),
-            hoverColor: Colors.white.withOpacity(0.1),
+            hoverColor: Colors.white.withValues(alpha: 0.1),
           ),
         ],
       ),
@@ -143,7 +143,7 @@ class OfficerDetailModal extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 48,
-            backgroundColor: const Color(0xFF1E88E5).withOpacity(0.2),
+            backgroundColor: const Color(0xFF1E88E5).withValues(alpha: 0.2),
             child: Text(
               officer.fullName.isNotEmpty
                   ? officer.fullName[0].toUpperCase()
@@ -169,8 +169,8 @@ class OfficerDetailModal extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: officer.isActive
-                  ? const Color(0xFF3CCB7F).withOpacity(0.15)
-                  : const Color(0xFFE85C5C).withOpacity(0.15),
+                  ? const Color(0xFF3CCB7F).withValues(alpha: 0.15)
+                  : const Color(0xFFE85C5C).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(

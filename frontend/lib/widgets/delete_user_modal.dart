@@ -29,7 +29,7 @@ class _DeleteUserConfirmationModalState extends State<DeleteUserConfirmationModa
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1A1F2E).withOpacity(0.95),
+      color: const Color(0xFF1A1F2E).withValues(alpha: 0.95),
       child: Center(
         child: Container(
           width: 480,
@@ -39,7 +39,7 @@ class _DeleteUserConfirmationModalState extends State<DeleteUserConfirmationModa
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 blurRadius: 40,
                 offset: const Offset(0, 8),
               ),
@@ -145,7 +145,7 @@ class _DeleteUserConfirmationModalState extends State<DeleteUserConfirmationModa
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE85C5C),
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(0xFF78909C).withOpacity(0.3),
+                      disabledBackgroundColor: const Color(0xFF78909C).withValues(alpha: 0.3),
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),

@@ -7,7 +7,7 @@
 // - Officers receive firearm custody assignments from Station Commanders
 // - Officers are filtered by their assigned unit_id
 //
-// System users (Admin, HQ Commander, Station Commander, Forensic Analyst)
+// System users (Admin, HQ Commander, Station Commander, Investigator)
 // are represented by the User model with authentication capabilities.
 
 class OfficerModel {

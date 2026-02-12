@@ -17,12 +17,12 @@ const { query } = require('../config/database');
  * 
  * RBAC ENFORCEMENT:
  * - CREATE: HQ Firearm Commander ONLY
- * - READ: HQ Commander, Forensic Analyst, Admin (audit)
+ * - READ: HQ Commander, Investigator, Admin (audit)
  * - Station Commanders: NO ACCESS (explicitly denied)
  * 
  * IMPORTANT CONSTRAINTS:
  * - Ballistic profiles are IMMUTABLE after creation
- * - All access is logged for forensic traceability
+ * - All access is logged for investigative traceability
  * - NO forensic analysis or matching capabilities (read-only traceability)
  */
 
@@ -74,7 +74,7 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
         });
     }
     
-    // Only HQ Commander, Forensic Analyst, Admin can see stats
+    // Only HQ Commander, Investigator, Admin can see stats
     if (!PERMISSIONS.BALLISTIC_READ.includes(role)) {
         return res.status(403).json({
             success: false,
@@ -136,13 +136,13 @@ router.get('/firearm/:firearm_id', authenticate, requireBallisticAccess, auditBa
     res.json({ success: true, data: profile });
 }));
 
-// Get access history for a profile (forensic analyst/HQ only)
+// Get access history for a profile (investigator/HQ only)
 router.get('/:id/access-history', authenticate, requireRole(PERMISSIONS.BALLISTIC_ACCESS_HISTORY), asyncHandler(async (req, res) => {
     const history = await BallisticProfile.getAccessHistory(req.params.id, req.query.limit);
     res.json({ success: true, data: history });
 }));
 
-// Verify profile integrity (forensic analyst/HQ only)
+// Verify profile integrity (investigator/HQ only)
 router.get('/:id/verify-integrity', authenticate, requireRole(PERMISSIONS.BALLISTIC_VERIFY_INTEGRITY), asyncHandler(async (req, res) => {
     const verification = await BallisticProfile.verifyIntegrity(req.params.id);
     res.json({ success: true, data: verification });

@@ -58,7 +58,7 @@
 ✅ `lib/screens/dashboards/admin_dashboard.dart`  
 ✅ `lib/screens/dashboards/hq_commander_dashboard.dart`  
 ✅ `lib/screens/dashboards/station_commander_dashboard.dart`  
-✅ `lib/screens/dashboards/forensic_analyst_dashboard.dart`  
+✅ `lib/screens/dashboards/investigator_dashboard.dart`  
 
 **Management (7 screens)**
 ✅ `lib/screens/management/units_management_screen.dart`  

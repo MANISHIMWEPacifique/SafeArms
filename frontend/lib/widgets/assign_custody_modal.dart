@@ -147,7 +147,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
         authProvider.currentUser?['unit_name']?.toString() ?? 'Your Unit';
 
     return Material(
-      color: const Color(0xFF1A1F2E).withOpacity(0.95),
+      color: const Color(0xFF1A1F2E).withValues(alpha: 0.95),
       child: Center(
         child: Container(
           width: 650,
@@ -157,7 +157,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 blurRadius: 40,
                 offset: const Offset(0, 8),
               ),
@@ -214,7 +214,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF3CCB7F).withOpacity(0.1),
+              color: const Color(0xFF3CCB7F).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -326,7 +326,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               border: Border.all(color: const Color(0xFF37404F)),
             ),
             child: DropdownButtonFormField<String>(
-              value: _selectedFirearmId,
+              initialValue: _selectedFirearmId,
               decoration: const InputDecoration(
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -396,7 +396,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               border: Border.all(color: const Color(0xFF37404F)),
             ),
             child: DropdownButtonFormField<String>(
-              value: _selectedOfficerId,
+              initialValue: _selectedOfficerId,
               decoration: const InputDecoration(
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -491,7 +491,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : const Color(0xFF2A3040),
+          color: isSelected ? color.withValues(alpha: 0.2) : const Color(0xFF2A3040),
           border: Border.all(
             color: isSelected ? color : const Color(0xFF37404F),
             width: isSelected ? 2 : 1,

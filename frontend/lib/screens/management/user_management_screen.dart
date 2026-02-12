@@ -177,7 +177,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         'admin',
                         'hq_firearm_commander',
                         'station_commander',
-                        'forensic_analyst'
+                        'investigator'
                       ],
                       (value) {
                         setState(() => _selectedRole = value!);
@@ -540,7 +540,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       case 'station_commander':
         badgeColor = const Color(0xFF3CCB7F);
         break;
-      case 'forensic_analyst':
+      case 'investigator':
         badgeColor = const Color(0xFF9C27B0);
         break;
       default:
@@ -550,7 +550,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.2),
+        color: badgeColor.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -569,8 +569,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: isActive
-            ? const Color(0xFF3CCB7F).withOpacity(0.2)
-            : const Color(0xFFEF5350).withOpacity(0.2),
+            ? const Color(0xFF3CCB7F).withValues(alpha: 0.2)
+            : const Color(0xFFEF5350).withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -848,7 +848,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Widget _buildRoleDropdown(String value, Function(String?) onChanged) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: 'Role',
         labelStyle: const TextStyle(color: Color(0xFF78909C)),
@@ -865,7 +865,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         'admin',
         'hq_firearm_commander',
         'station_commander',
-        'forensic_analyst',
+        'investigator',
       ].map((role) {
         return DropdownMenuItem(
             value: role, child: Text(_formatFilterLabel(role)));
@@ -905,7 +905,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         labelText: 'Username (cannot be changed)',
                         labelStyle: const TextStyle(color: Color(0xFF78909C)),
                         filled: true,
-                        fillColor: const Color(0xFF1A1F2E).withOpacity(0.5),
+                        fillColor: const Color(0xFF1A1F2E).withValues(alpha: 0.5),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -935,10 +935,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E88E5).withOpacity(0.1),
+                          color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: const Color(0xFF1E88E5).withOpacity(0.3)),
+                              color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
                         ),
                         child: const Row(
                           children: [
@@ -975,7 +975,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             value: isActive,
                             onChanged: (v) =>
                                 setDialogState(() => isActive = v),
-                            activeColor: const Color(0xFF3CCB7F),
+                            activeThumbColor: const Color(0xFF3CCB7F),
                           ),
                         ],
                       ),

@@ -104,11 +104,11 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
             style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
           ),
           const SizedBox(height: 8),
-          // Read-only indicator for forensic analysts
+          // Read-only indicator for investigators
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1565C0).withOpacity(0.2),
+              color: const Color(0xFF1565C0).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: const Color(0xFF1565C0)),
             ),

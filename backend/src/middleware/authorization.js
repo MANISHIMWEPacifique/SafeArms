@@ -4,15 +4,15 @@
  * 
  * ROLE PERMISSIONS MATRIX:
  * ============================================
- * | Permission              | Admin | HQ Cmd | Station Cmd | Forensic |
- * |-------------------------|-------|--------|-------------|----------|
- * | Create Ballistic Profile|  No   |  Yes   |     No      |    No    |
- * | Read Ballistic Profile  |  Yes* |  Yes   |     No      |    Yes   |
- * | Read Custody History    |  Yes  |  Yes   |   Unit Only |    Yes   |
- * | Assign/Return Custody   |  No   |  Yes   |   Unit Only |    No    |
- * | View All Firearms       |  Yes  |  Yes   |     No      |    Yes   |
- * | View Unit Firearms      |  Yes  |  Yes   |   Unit Only |    Yes   |
- * | System Administration   |  Yes  |  No    |     No      |    No    |
+ * | Permission              | Admin | HQ Cmd | Station Cmd | Investigator |
+ * |-------------------------|-------|--------|-------------|--------------||
+ * | Create Ballistic Profile|  No   |  Yes   |     No      |    No        |
+ * | Read Ballistic Profile  |  Yes* |  Yes   |     No      |    Yes       |
+ * | Read Custody History    |  Yes  |  Yes   |   Unit Only |    Yes       |
+ * | Assign/Return Custody   |  No   |  Yes   |   Unit Only |    No        |
+ * | View All Firearms       |  Yes  |  Yes   |     No      |    Yes       |
+ * | View Unit Firearms      |  Yes  |  Yes   |   Unit Only |    Yes       |
+ * | System Administration   |  Yes  |  No    |     No      |    No        |
  * ============================================
  * * Admin has audit access only (for compliance review)
  */
@@ -21,7 +21,7 @@ const ROLES = {
     ADMIN: 'admin',
     HQ_COMMANDER: 'hq_firearm_commander',
     STATION_COMMANDER: 'station_commander',
-    FORENSIC_ANALYST: 'forensic_analyst'
+    INVESTIGATOR: 'investigator'
 };
 
 /**
@@ -30,22 +30,22 @@ const ROLES = {
 const PERMISSIONS = {
     // Ballistic permissions
     BALLISTIC_CREATE: [ROLES.HQ_COMMANDER],
-    BALLISTIC_READ: [ROLES.HQ_COMMANDER, ROLES.FORENSIC_ANALYST, ROLES.ADMIN],
-    BALLISTIC_ACCESS_HISTORY: [ROLES.HQ_COMMANDER, ROLES.FORENSIC_ANALYST, ROLES.ADMIN],
-    BALLISTIC_VERIFY_INTEGRITY: [ROLES.HQ_COMMANDER, ROLES.FORENSIC_ANALYST],
+    BALLISTIC_READ: [ROLES.HQ_COMMANDER, ROLES.INVESTIGATOR, ROLES.ADMIN],
+    BALLISTIC_ACCESS_HISTORY: [ROLES.HQ_COMMANDER, ROLES.INVESTIGATOR, ROLES.ADMIN],
+    BALLISTIC_VERIFY_INTEGRITY: [ROLES.HQ_COMMANDER, ROLES.INVESTIGATOR],
     
     // Custody permissions
     CUSTODY_ASSIGN: [ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER],
     CUSTODY_RETURN: [ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER],
-    CUSTODY_READ_ALL: [ROLES.HQ_COMMANDER, ROLES.FORENSIC_ANALYST, ROLES.ADMIN],
-    CUSTODY_READ_UNIT: [ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER, ROLES.FORENSIC_ANALYST, ROLES.ADMIN],
+    CUSTODY_READ_ALL: [ROLES.HQ_COMMANDER, ROLES.INVESTIGATOR, ROLES.ADMIN],
+    CUSTODY_READ_UNIT: [ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER, ROLES.INVESTIGATOR, ROLES.ADMIN],
     
     // Firearm permissions
     FIREARM_CREATE: [ROLES.HQ_COMMANDER],
-    FIREARM_READ_ALL: [ROLES.HQ_COMMANDER, ROLES.FORENSIC_ANALYST, ROLES.ADMIN],
-    FIREARM_READ_UNIT: [ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER, ROLES.FORENSIC_ANALYST, ROLES.ADMIN],
+    FIREARM_READ_ALL: [ROLES.HQ_COMMANDER, ROLES.INVESTIGATOR, ROLES.ADMIN],
+    FIREARM_READ_UNIT: [ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER, ROLES.INVESTIGATOR, ROLES.ADMIN],
     FIREARM_UPDATE: [ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER],
-    FIREARM_FULL_HISTORY: [ROLES.HQ_COMMANDER, ROLES.FORENSIC_ANALYST, ROLES.ADMIN],
+    FIREARM_FULL_HISTORY: [ROLES.HQ_COMMANDER, ROLES.INVESTIGATOR, ROLES.ADMIN],
     
     // Cross-unit reports (organization-wide view)
     CROSS_UNIT_REPORTS: [ROLES.HQ_COMMANDER, ROLES.ADMIN],
@@ -113,9 +113,9 @@ const requireHQCommander = requireRole(ROLES.HQ_COMMANDER);
 const requireStationCommander = requireRole(ROLES.STATION_COMMANDER);
 
 /**
- * Forensic Analyst only access
+ * Investigator only access
  */
-const requireForensicAnalyst = requireRole(ROLES.FORENSIC_ANALYST);
+const requireInvestigator = requireRole(ROLES.INVESTIGATOR);
 
 /**
  * Admin or HQ Commander access
@@ -132,7 +132,7 @@ const requireCommander = requireRole([ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDE
 /**
  * Ballistic data access - CENTRALIZED CHECK
  * Station Commanders are EXPLICITLY DENIED access to ballistic data
- * Only: HQ Commander, Forensic Analyst, Admin (audit only)
+ * Only: HQ Commander, Investigator, Admin (audit only)
  */
 const requireBallisticAccess = (req, res, next) => {
     if (!req.user) {
@@ -153,7 +153,7 @@ const requireBallisticAccess = (req, res, next) => {
         });
     }
 
-    // ALLOW: HQ Commander, Forensic Analyst, Admin
+    // ALLOW: HQ Commander, Investigator, Admin
     if (PERMISSIONS.BALLISTIC_READ.includes(role)) {
         return next();
     }
@@ -167,7 +167,7 @@ const requireBallisticAccess = (req, res, next) => {
 /**
  * Check if user has access to specific unit
  * Station Commanders are locked to their assigned unit
- * HQ Commanders, Forensic Analysts, and Admins have national access
+ * HQ Commanders, Investigators, and Admins have national access
  */
 const requireUnitAccess = (req, res, next) => {
     if (!req.user) {
@@ -177,10 +177,10 @@ const requireUnitAccess = (req, res, next) => {
         });
     }
 
-    // Admin, HQ Commander, and Forensic Analyst have access to all units
+    // Admin, HQ Commander, and Investigator have access to all units
     if (req.user.role === ROLES.ADMIN || 
         req.user.role === ROLES.HQ_COMMANDER ||
-        req.user.role === ROLES.FORENSIC_ANALYST) {
+        req.user.role === ROLES.INVESTIGATOR) {
         return next();
     }
 
@@ -261,7 +261,7 @@ const requireOwnerOrAdmin = (ownerField = 'user_id') => {
 };
 
 /**
- * Custody history access - allows forensic analyst read-only
+ * Custody history access - allows investigator read-only
  */
 const requireCustodyHistoryAccess = (req, res, next) => {
     if (!req.user) {
@@ -299,7 +299,7 @@ module.exports = {
     requireAdmin,
     requireHQCommander,
     requireStationCommander,
-    requireForensicAnalyst,
+    requireInvestigator,
     requireAdminOrHQ,
     requireCommander,
     requireBallisticAccess,

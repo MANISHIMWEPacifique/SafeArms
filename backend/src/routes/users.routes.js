@@ -27,12 +27,12 @@ router.get('/stats', authenticate, requireAdminOrHQ, asyncHandler(async (req, re
             admins: parseInt(stats.admins) || 0,
             hqCommanders: parseInt(stats.hq_commanders) || 0,
             stationCommanders: parseInt(stats.station_commanders) || 0,
-            forensicAnalysts: parseInt(stats.forensic_analysts) || 0,
+            investigators: parseInt(stats.investigators) || 0,
             byRole: {
                 admin: parseInt(stats.admins) || 0,
                 hq_firearm_commander: parseInt(stats.hq_commanders) || 0,
                 station_commander: parseInt(stats.station_commanders) || 0,
-                forensic_analyst: parseInt(stats.forensic_analysts) || 0
+                investigator: parseInt(stats.investigators) || 0
             }
         }
     });

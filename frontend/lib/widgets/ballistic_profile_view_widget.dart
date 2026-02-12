@@ -86,7 +86,7 @@ class BallisticProfileViewWidget extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFF42A5F5).withOpacity(0.2),
+              color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -125,7 +125,7 @@ class BallisticProfileViewWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF78909C).withOpacity(0.2),
+                color: const Color(0xFF78909C).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Row(

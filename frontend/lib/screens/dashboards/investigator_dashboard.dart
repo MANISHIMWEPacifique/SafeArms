@@ -1,5 +1,5 @@
-// Forensic Analyst Dashboard
-// Dashboard for forensic analyst role - investigation and analysis center
+// Investigator Dashboard
+// Dashboard for investigator role - investigation and analysis center
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,15 +11,14 @@ import '../forensic/forensic_search_screen.dart';
 import '../management/firearms_registry_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 
-class ForensicAnalystDashboard extends StatefulWidget {
-  const ForensicAnalystDashboard({super.key});
+class InvestigatorDashboard extends StatefulWidget {
+  const InvestigatorDashboard({super.key});
 
   @override
-  State<ForensicAnalystDashboard> createState() =>
-      _ForensicAnalystDashboardState();
+  State<InvestigatorDashboard> createState() => _InvestigatorDashboardState();
 }
 
-class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
+class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   int _selectedIndex = 0;
   String? _selectedFirearm;
   String _dateRange = 'Last 30 Days';
@@ -44,7 +43,7 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
       listen: false,
     );
 
-    // Load forensic-specific dashboard data
+    // Load investigator-specific dashboard data
     await Future.wait([
       dashboardProvider.loadDashboardStats(),
       anomalyProvider.loadAnomalies(limit: 15),
@@ -58,7 +57,7 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
 
     return [
       _NavItem(icon: Icons.dashboard, label: 'Dashboard', badge: null),
-      _NavItem(icon: Icons.search, label: 'Forensic Search', badge: null),
+      _NavItem(icon: Icons.search, label: 'Investigation Search', badge: null),
       _NavItem(icon: Icons.timeline, label: 'Custody Timeline', badge: null),
       _NavItem(icon: Icons.gps_fixed, label: 'Firearms', badge: null),
       _NavItem(
@@ -147,7 +146,7 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Forensic Analysis',
+                  'Investigation Center',
                   style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
                 ),
               ],
@@ -195,7 +194,7 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const Text(
-                            'Forensic Analyst',
+                            'Investigator',
                             style: TextStyle(
                               color: Color(0xFFB0BEC5),
                               fontSize: 12,
@@ -1544,12 +1543,13 @@ class _ForensicAnalystDashboardState extends State<ForensicAnalystDashboard> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: MaterialStateProperty.all(
+              headingRowColor: WidgetStateProperty.all(
                 const Color(0xFF252A3A),
               ),
-              dataRowColor: MaterialStateProperty.all(const Color(0xFF2A3040)),
+              dataRowColor: WidgetStateProperty.all(const Color(0xFF2A3040)),
               headingRowHeight: 48,
-              dataRowHeight: 60,
+              dataRowMinHeight: 60,
+              dataRowMaxHeight: 60,
               columnSpacing: 24,
               horizontalMargin: 0,
               columns: const [

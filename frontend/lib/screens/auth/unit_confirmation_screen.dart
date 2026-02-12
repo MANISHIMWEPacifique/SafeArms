@@ -53,7 +53,7 @@ class _UnitConfirmationScreenState extends State<UnitConfirmationScreen> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withValues(alpha: 0.4),
                   blurRadius: 32,
                   offset: const Offset(0, 8),
                 ),
@@ -68,7 +68,7 @@ class _UnitConfirmationScreenState extends State<UnitConfirmationScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E88E5).withOpacity(0.1),
+                    color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -84,7 +84,7 @@ class _UnitConfirmationScreenState extends State<UnitConfirmationScreen> {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF42A5F5).withOpacity(0.1),
+                    color: const Color(0xFF42A5F5).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -207,7 +207,7 @@ class _UnitConfirmationScreenState extends State<UnitConfirmationScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF42A5F5).withOpacity(0.1),
+                  color: const Color(0xFF42A5F5).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Icon(

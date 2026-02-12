@@ -10,7 +10,7 @@ import 'unit_confirmation_screen.dart';
 import '../dashboards/admin_dashboard.dart';
 import '../dashboards/hq_commander_dashboard.dart';
 import '../dashboards/station_commander_dashboard.dart';
-import '../dashboards/forensic_analyst_dashboard.dart';
+import '../dashboards/investigator_dashboard.dart';
 
 class OtpScreen extends StatefulWidget {
   final String username;
@@ -131,8 +131,8 @@ class _OtpScreenState extends State<OtpScreen> {
         case 'station_commander':
           screen = const StationCommanderDashboard();
           break;
-        case 'forensic_analyst':
-          screen = const ForensicAnalystDashboard();
+        case 'investigator':
+          screen = const InvestigatorDashboard();
           break;
         default:
           screen = const AdminDashboard();
@@ -217,7 +217,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5).withOpacity(0.1),
+                  color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -381,7 +381,7 @@ class _OtpScreenState extends State<OtpScreen> {
         width: 80,
         height: 80,
         decoration: BoxDecoration(
-          color: const Color(0xFF42A5F5).withOpacity(0.1),
+          color: const Color(0xFF42A5F5).withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: const Icon(

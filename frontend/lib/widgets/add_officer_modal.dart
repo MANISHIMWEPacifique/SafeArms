@@ -134,7 +134,7 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1A1F2E).withOpacity(0.95),
+      color: const Color(0xFF1A1F2E).withValues(alpha: 0.95),
       child: Center(
         child: Container(
           width: 700,
@@ -144,7 +144,7 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 blurRadius: 40,
                 offset: const Offset(0, 8),
               ),

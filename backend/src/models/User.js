@@ -180,7 +180,7 @@ const User = {
                 COUNT(*) FILTER (WHERE role = 'admin') as admins,
                 COUNT(*) FILTER (WHERE role = 'hq_firearm_commander') as hq_commanders,
                 COUNT(*) FILTER (WHERE role = 'station_commander') as station_commanders,
-                COUNT(*) FILTER (WHERE role = 'forensic_analyst') as forensic_analysts
+                COUNT(*) FILTER (WHERE role = 'investigator') as investigators
             FROM users
         `);
         return result.rows[0];

@@ -192,7 +192,7 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1A1F2E).withOpacity(0.95),
+      color: const Color(0xFF1A1F2E).withValues(alpha: 0.95),
       child: Row(
         children: [
           Expanded(

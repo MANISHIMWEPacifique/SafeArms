@@ -1,7 +1,7 @@
 {
   "name": "safearms-backend",
   "version": "1.0.0",
-  "description": "SafeArms Backend API - Police Firearm Control and Forensic Support Platform",
+  "description": "SafeArms Backend API - Police Firearm Control and Investigation Support Platform",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -12,7 +12,7 @@
   "keywords": [
     "firearm-management",
     "police",
-    "forensic",
+    "investigation",
     "ml-anomaly-detection"
   ],
   "author": "SafeArms Development Team",

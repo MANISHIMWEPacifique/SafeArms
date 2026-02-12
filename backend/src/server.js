@@ -64,7 +64,7 @@ app.get('/api', (req, res) => {
     res.json({
         name: 'SafeArms API',
         version: '1.0.0',
-        description: 'Police Firearm Control and Forensic Support Platform',
+        description: 'Police Firearm Control and Investigation Support Platform',
         endpoints: {
             health: '/health',
             auth: '/api/auth',

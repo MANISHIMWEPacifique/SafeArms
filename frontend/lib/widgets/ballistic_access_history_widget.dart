@@ -200,7 +200,7 @@ class BallisticAccessHistoryWidget extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: const Color(0xFF42A5F5).withOpacity(0.2),
+              color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
@@ -351,7 +351,7 @@ class BallisticAccessHistoryWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(

@@ -3,7 +3,7 @@
 // 
 // This script creates clean demo data with proper unit assignments.
 // IMPORTANT: Firearms are assigned to specific units and should ONLY
-// be visible to users of those units (except HQ/Admin/Forensic who see all).
+// be visible to users of those units (except HQ/Admin/Investigator who see all).
 
 require('dotenv').config();
 const { Pool } = require('pg');
@@ -96,14 +96,14 @@ async function seedDatabase() {
     `, [passwordHash]);
     console.log('  ✅ station_nyamirambo (UNIT-NYA), station_kimironko (UNIT-KIM), station_remera (UNIT-REM), station_kicukiro (UNIT-KIC)');
 
-    // Forensic Analysts
+    // Investigators
     await client.query(`
       INSERT INTO users (user_id, username, password_hash, full_name, email, phone_number, role, unit_id, otp_verified, unit_confirmed, is_active, must_change_password)
       VALUES 
-        ('USR-008', 'forensic_analyst', $1, 'Dr. Kamanzi Eric', 'kamanzi.eric@rnp.gov.rw', '+250788000007', 'forensic_analyst', 'UNIT-HQ', true, true, true, false),
-        ('USR-009', 'forensic_analyst2', $1, 'Dr. Ingabire Alice', 'ingabire.alice@rnp.gov.rw', '+250788000008', 'forensic_analyst', 'UNIT-HQ', true, true, true, false)
+        ('USR-008', 'investigator', $1, 'IP Kamanzi Eric', 'kamanzi.eric@rnp.gov.rw', '+250788000007', 'investigator', 'UNIT-HQ', true, true, true, false),
+        ('USR-009', 'investigator2', $1, 'IP Ingabire Alice', 'ingabire.alice@rnp.gov.rw', '+250788000008', 'investigator', 'UNIT-HQ', true, true, true, false)
     `, [passwordHash]);
-    console.log('  ✅ forensic_analyst, forensic_analyst2 (Forensic Analysts) at HQ');
+    console.log('  ✅ investigator, investigator2 (Investigators) at HQ');
 
     // ============================================
     // OFFICERS - Assigned to specific units
@@ -291,7 +291,7 @@ async function seedDatabase() {
     console.log('├────────────────────────┼──────────────────────────────────┤');
     console.log('│ Units                  │ 6 (HQ + 4 stations + 1 special)  │');
     console.log('│ Users                  │ 9 (1 admin + 2 HQ + 4 station +  │');
-    console.log('│                        │    2 forensic)                   │');
+    console.log('│                        │    2 investigators)              │');
     console.log('│ Officers               │ 10 (distributed across units)    │');
     console.log('│ Firearms               │ 12 (assigned to specific units)  │');
     console.log('│ Ballistic Profiles     │ 4                                │');
@@ -333,13 +333,13 @@ async function seedDatabase() {
     console.log('│ station_kimironko   │ Station Commander    │ UNIT-KIM    │');
     console.log('│ station_remera      │ Station Commander    │ UNIT-REM    │');
     console.log('│ station_kicukiro    │ Station Commander    │ UNIT-KIC    │');
-    console.log('│ forensic_analyst    │ Forensic Analyst     │ UNIT-HQ     │');
-    console.log('│ forensic_analyst2   │ Forensic Analyst     │ UNIT-HQ     │');
+    console.log('│ investigator        │ Investigator         │ UNIT-HQ     │');
+    console.log('│ investigator2       │ Investigator         │ UNIT-HQ     │');
     console.log('└─────────────────────┴──────────────────────┴─────────────┘');
 
     console.log('\n⚠️  IMPORTANT ACCESS RULES:');
     console.log('   • Station Commanders can ONLY see firearms assigned to their unit');
-    console.log('   • HQ Commanders, Admin, and Forensic Analysts see ALL firearms');
+    console.log('   • HQ Commanders, Admin, and Investigators see ALL firearms');
     console.log('   • Officers can only receive custody of firearms in their unit');
     console.log('\n');
 

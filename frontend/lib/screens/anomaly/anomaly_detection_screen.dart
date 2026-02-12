@@ -140,7 +140,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                   setState(() => _autoRefresh = value);
                   if (value) _startAutoRefresh();
                 },
-                activeColor: const Color(0xFF3CCB7F),
+                activeThumbColor: const Color(0xFF3CCB7F),
               ),
               const SizedBox(width: 8),
               const Text(

@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5).withOpacity(0.1),
+                  color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -114,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 16),
               // Tagline
               const Text(
-                'Police Firearm Control &\nForensic Support Platform',
+                'Police Firearm Control &\nInvestigation Support Platform',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,

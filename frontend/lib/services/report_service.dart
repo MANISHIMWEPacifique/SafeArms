@@ -305,6 +305,94 @@ class ReportService {
   }
 
   // ============================================
+  // STATUS UPDATES
+  // ============================================
+
+  /// Update loss report status
+  Future<Map<String, dynamic>> updateLossReportStatus(
+      String reportId, String status) async {
+    try {
+      final headers = await _getHeaders();
+      final body = json.encode({'status': status});
+
+      final response = await http
+          .patch(
+            Uri.parse('${ApiConfig.reportsUrl}/loss/$reportId/status'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'] ?? {};
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(
+            error['message'] ?? 'Failed to update loss report status');
+      }
+    } catch (e) {
+      throw Exception('Error updating loss report: $e');
+    }
+  }
+
+  /// Update destruction request status
+  Future<Map<String, dynamic>> updateDestructionRequestStatus(
+      String requestId, String status) async {
+    try {
+      final headers = await _getHeaders();
+      final body = json.encode({'status': status});
+
+      final response = await http
+          .patch(
+            Uri.parse('${ApiConfig.reportsUrl}/destruction/$requestId/status'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'] ?? {};
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(
+            error['message'] ?? 'Failed to update destruction request status');
+      }
+    } catch (e) {
+      throw Exception('Error updating destruction request: $e');
+    }
+  }
+
+  /// Update procurement request status
+  Future<Map<String, dynamic>> updateProcurementRequestStatus(
+      String requestId, String status) async {
+    try {
+      final headers = await _getHeaders();
+      final body = json.encode({'status': status});
+
+      final response = await http
+          .patch(
+            Uri.parse('${ApiConfig.reportsUrl}/procurement/$requestId/status'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'] ?? {};
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(
+            error['message'] ?? 'Failed to update procurement request status');
+      }
+    } catch (e) {
+      throw Exception('Error updating procurement request: $e');
+    }
+  }
+
+  // ============================================
   // AUDIT TRAIL REPORTS
   // ============================================
 

@@ -22,10 +22,13 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   @override
   void initState() {
     super.initState();
-    _loadAnomalies();
-    if (_autoRefresh) {
-      _startAutoRefresh();
-    }
+    // Schedule load after build to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAnomalies();
+      if (_autoRefresh) {
+        _startAutoRefresh();
+      }
+    });
   }
 
   void _startAutoRefresh() {

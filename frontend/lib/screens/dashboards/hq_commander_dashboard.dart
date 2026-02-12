@@ -13,6 +13,7 @@ import '../management/units_management_screen.dart';
 import '../management/firearms_registry_screen.dart';
 import '../management/ballistic_profiles_screen.dart';
 import '../workflows/approvals_portal_screen.dart';
+import '../workflows/reports_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 
 class HqCommanderDashboard extends StatefulWidget {
@@ -514,61 +515,10 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         return const AnomalyDetectionScreen();
       case 6:
         // Reports
-        return _buildReportsPlaceholder();
+        return const ReportsScreen(roleType: 'hq');
       default:
         return _buildDashboardOverview();
     }
-  }
-
-  Widget _buildReportsPlaceholder() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Reports',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Generate and view system reports',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-          ),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(48),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A3040),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF37404F)),
-            ),
-            child: const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.assessment, size: 64, color: Color(0xFF78909C)),
-                  SizedBox(height: 16),
-                  Text(
-                    'Reports Module',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Coming soon...',
-                    style: TextStyle(color: Color(0xFF78909C)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildDashboardOverview() {

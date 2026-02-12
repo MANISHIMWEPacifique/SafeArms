@@ -109,6 +109,17 @@ router.get('/', authenticate, requireBallisticAccess, auditBallisticAccess, logB
     res.json({ success: true, data: profiles });
 }));
 
+// Forensic search endpoint (alias for GET / with forensic access logging)
+router.get('/forensic-search', authenticate, requireBallisticAccess, auditBallisticAccess, logBallisticAccess, asyncHandler(async (req, res) => {
+    const profiles = await BallisticProfile.search(
+        req.query,
+        req.user.user_id,
+        { ip: req.ip, userAgent: req.get('user-agent') }
+    );
+    
+    res.json({ success: true, data: profiles });
+}));
+
 // Get single profile with access logging
 router.get('/:id', authenticate, requireBallisticAccess, auditBallisticAccess, asyncHandler(async (req, res) => {
     const profile = await BallisticProfile.findById(

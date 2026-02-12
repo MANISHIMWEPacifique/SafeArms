@@ -78,6 +78,38 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
     res.json({ success: true, data: officer });
 }));
 
+// Search officers
+router.get('/search', authenticate, asyncHandler(async (req, res) => {
+    const { q } = req.query;
+    const { role, unit_id: userUnitId } = req.user;
+    
+    if (!q || q.trim().length === 0) {
+        return res.json({ success: true, data: [] });
+    }
+    
+    let unitFilter = '';
+    let params = [`%${q}%`, `%${q}%`];
+    
+    // Station commanders can only search within their unit
+    if (role === 'station_commander') {
+        unitFilter = 'AND o.unit_id = $3';
+        params.push(userUnitId);
+    }
+    
+    const { query: dbQuery } = require('../config/database');
+    const result = await dbQuery(`
+        SELECT o.*, u.unit_name
+        FROM officers o
+        JOIN units u ON o.unit_id = u.unit_id
+        WHERE (o.full_name ILIKE $1 OR o.officer_number ILIKE $2)
+        ${unitFilter}
+        ORDER BY o.full_name
+        LIMIT 50
+    `, params);
+    
+    res.json({ success: true, data: result.rows });
+}));
+
 router.post('/', authenticate, requireCommander, requireUnitAccess, logCreate, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
     let officerData = { ...req.body };
@@ -113,6 +145,28 @@ router.put('/:id', authenticate, requireCommander, requireUnitAccess, logUpdate,
     const officer = await Officer.update(req.params.id, req.body);
     if (!officer) return res.status(404).json({ success: false, message: 'Officer not found' });
     res.json({ success: true, data: officer });
+}));
+
+// Deactivate (soft delete) an officer
+router.delete('/:id', authenticate, requireCommander, requireUnitAccess, asyncHandler(async (req, res) => {
+    const { role, unit_id: userUnitId } = req.user;
+    
+    const existingOfficer = await Officer.findById(req.params.id);
+    if (!existingOfficer) {
+        return res.status(404).json({ success: false, message: 'Officer not found' });
+    }
+    
+    // Station commanders can only deactivate officers in their unit
+    if (role === 'station_commander' && existingOfficer.unit_id !== userUnitId) {
+        return res.status(403).json({ 
+            success: false, 
+            message: 'Access denied: You can only modify officers in your unit' 
+        });
+    }
+    
+    // Soft delete - set is_active to false
+    const officer = await Officer.update(req.params.id, { is_active: false });
+    res.json({ success: true, data: officer, message: 'Officer deactivated successfully' });
 }));
 
 module.exports = router;

@@ -31,6 +31,13 @@ const generateAndSendOTP = async (userId) => {
         const otp = generateOTP();
         const otpExpiresAt = getOTPExpiration();
 
+        // Log OTP to console in development mode
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('\n========================================');
+            console.log(`🔐 OTP for ${email}: ${otp}`);
+            console.log('========================================\n');
+        }
+
         // Store OTP in database
         await query(
             `UPDATE users 

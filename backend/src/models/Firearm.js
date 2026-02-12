@@ -19,7 +19,8 @@ const Firearm = {
 
     async findAll(filters = {}) {
         // Support both 'unit_id' and 'assigned_unit_id' for filtering
-        const { unit_id, assigned_unit_id, current_status, firearm_type, limit = 100, offset = 0 } = filters;
+        // Support both 'status' and 'current_status', 'type' and 'firearm_type'
+        const { unit_id, assigned_unit_id, current_status, status, firearm_type, type, limit = 100, offset = 0 } = filters;
         let where = 'WHERE 1=1';
         let params = [];
         let pCount = 0;
@@ -32,16 +33,18 @@ const Firearm = {
             params.push(filterUnitId);
         }
 
-        if (current_status) {
+        const filterStatus = current_status || status;
+        if (filterStatus) {
             pCount++;
             where += ` AND current_status = $${pCount}`;
-            params.push(current_status);
+            params.push(filterStatus);
         }
 
-        if (firearm_type) {
+        const filterType = firearm_type || type;
+        if (filterType) {
             pCount++;
             where += ` AND firearm_type = $${pCount}`;
-            params.push(firearm_type);
+            params.push(filterType);
         }
 
         pCount++;

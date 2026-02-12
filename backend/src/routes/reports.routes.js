@@ -229,8 +229,24 @@ router.get('/loss', authenticate, asyncHandler(async (req, res) => {
 
 router.post('/loss', authenticate, requireCommander, logLossReport, asyncHandler(async (req, res) => {
     // Loss reports are chain-of-custody events
-    const report = await LossReport.create({ ...req.body, reported_by: req.user.user_id });
+    const report = await LossReport.create({ ...req.body, reported_by: req.user.user_id, unit_id: req.user.unit_id });
     res.status(201).json({ success: true, data: report });
+}));
+
+// Update loss report status
+router.patch('/loss/:id/status', authenticate, requireRole(['hq_firearm_commander', 'admin']), asyncHandler(async (req, res) => {
+    const { status, review_notes } = req.body;
+    if (!['approved', 'rejected', 'under_investigation'].includes(status)) {
+        return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+    const report = await LossReport.update(req.params.id, { 
+        status, 
+        review_notes,
+        reviewed_by: req.user.user_id,
+        reviewed_at: new Date().toISOString()
+    });
+    if (!report) return res.status(404).json({ success: false, message: 'Loss report not found' });
+    res.json({ success: true, data: report });
 }));
 
 // ============================================
@@ -242,8 +258,24 @@ router.get('/destruction', authenticate, asyncHandler(async (req, res) => {
 }));
 
 router.post('/destruction', authenticate, requireCommander, logCreate, asyncHandler(async (req, res) => {
-    const request = await DestructionRequest.create({ ...req.body, requested_by: req.user.user_id });
+    const request = await DestructionRequest.create({ ...req.body, requested_by: req.user.user_id, unit_id: req.user.unit_id });
     res.status(201).json({ success: true, data: request });
+}));
+
+// Update destruction request status
+router.patch('/destruction/:id/status', authenticate, requireRole(['hq_firearm_commander', 'admin']), asyncHandler(async (req, res) => {
+    const { status, review_notes } = req.body;
+    if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+    const request = await DestructionRequest.update(req.params.id, { 
+        status, 
+        review_notes,
+        reviewed_by: req.user.user_id,
+        reviewed_at: new Date().toISOString()
+    });
+    if (!request) return res.status(404).json({ success: false, message: 'Destruction request not found' });
+    res.json({ success: true, data: request });
 }));
 
 // Procurement Requests
@@ -253,8 +285,24 @@ router.get('/procurement', authenticate, asyncHandler(async (req, res) => {
 }));
 
 router.post('/procurement', authenticate, requireCommander, logCreate, asyncHandler(async (req, res) => {
-    const request = await ProcurementRequest.create({ ...req.body, requested_by: req.user.user_id });
+    const request = await ProcurementRequest.create({ ...req.body, requested_by: req.user.user_id, unit_id: req.user.unit_id });
     res.status(201).json({ success: true, data: request });
+}));
+
+// Update procurement request status
+router.patch('/procurement/:id/status', authenticate, requireRole(['hq_firearm_commander', 'admin']), asyncHandler(async (req, res) => {
+    const { status, review_notes } = req.body;
+    if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+    const request = await ProcurementRequest.update(req.params.id, { 
+        status, 
+        review_notes,
+        reviewed_by: req.user.user_id,
+        reviewed_at: new Date().toISOString()
+    });
+    if (!request) return res.status(404).json({ success: false, message: 'Procurement request not found' });
+    res.json({ success: true, data: request });
 }));
 
 module.exports = router;

@@ -275,10 +275,10 @@ class _ReturnCustodyModalState extends State<ReturnCustodyModal> {
               const Color(0xFF3CCB7F),
             ),
             _buildConditionChip(
-              'minor_issues',
-              'Minor Issues',
+              'fair',
+              'Fair',
               Icons.warning_amber,
-              const Color(0xFFFFC857),
+              const Color(0xFFFFA726),
             ),
             _buildConditionChip(
               'needs_maintenance',
@@ -310,7 +310,9 @@ class _ReturnCustodyModalState extends State<ReturnCustodyModal> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.2) : const Color(0xFF2A3040),
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : const Color(0xFF2A3040),
           border: Border.all(
             color: isSelected ? color : const Color(0xFF37404F),
             width: isSelected ? 2 : 1,

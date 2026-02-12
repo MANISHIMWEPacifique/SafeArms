@@ -264,9 +264,9 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
             model_id,
             model_type,
             training_date,
-            training_samples,
-            parameters,
-            performance_metrics,
+            training_samples_count as training_samples,
+            num_clusters,
+            silhouette_score,
             is_active
         FROM ml_model_metadata
         WHERE is_active = true
@@ -304,7 +304,8 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
                 model_type: model.model_type,
                 training_date: model.training_date,
                 training_samples: model.training_samples,
-                performance_metrics: model.performance_metrics
+                num_clusters: model.num_clusters,
+                silhouette_score: model.silhouette_score
             } : null,
             available_training_samples: availableSamples,
             minimum_required_samples: 100,

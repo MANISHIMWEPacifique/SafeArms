@@ -104,7 +104,7 @@ const User = {
         username, password_hash, full_name, email, phone_number,
         role, unit_id, created_by
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING user_id, username, full_name, email, role, unit_id`,
+      RETURNING user_id, username, full_name, email, role, unit_id, is_active, must_change_password`,
             [username, password_hash, full_name, email, phone_number, role, unit_id || null, created_by]
         );
 
@@ -136,7 +136,7 @@ const User = {
             `UPDATE users 
        SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
        WHERE user_id = $${paramCount}
-       RETURNING user_id, username, full_name, email, role, unit_id`,
+       RETURNING user_id, username, full_name, email, role, unit_id, is_active, must_change_password`,
             values
         );
 

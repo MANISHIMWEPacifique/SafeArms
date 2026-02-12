@@ -117,7 +117,7 @@ class CustodyService {
       final body = json.encode({
         'return_condition': returnCondition,
         'return_date': (returnDate ?? DateTime.now()).toIso8601String(),
-        'return_notes': returnNotes,
+        'notes': returnNotes,
       });
 
       final response = await http
@@ -210,14 +210,16 @@ class CustodyService {
   }) async {
     try {
       final headers = await _getHeaders();
-      var url = '${ApiConfig.custody}/history';
+      String url;
 
-      List<String> queryParams = [];
-      if (officerId != null) queryParams.add('officer_id=$officerId');
-      if (firearmId != null) queryParams.add('firearm_id=$firearmId');
-
-      if (queryParams.isNotEmpty) {
-        url += '?${queryParams.join('&')}';
+      // Use the specific backend endpoints
+      if (firearmId != null) {
+        url = '${ApiConfig.custody}/firearm/$firearmId/history';
+      } else if (officerId != null) {
+        url = '${ApiConfig.custody}/officer/$officerId/history';
+      } else {
+        // Fallback: get all custody records (returned ones = history)
+        url = '${ApiConfig.custody}?status=returned';
       }
 
       final response = await http

@@ -491,7 +491,9 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.2) : const Color(0xFF2A3040),
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : const Color(0xFF2A3040),
           border: Border.all(
             color: isSelected ? color : const Color(0xFF37404F),
             width: isSelected ? 2 : 1,

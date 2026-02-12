@@ -59,19 +59,21 @@ class ReportService {
   /// Create a loss report
   Future<Map<String, dynamic>> createLossReport({
     required String firearmId,
-    required String circumstance,
-    required String description,
-    DateTime? incidentDate,
-    String? location,
+    required String lossType,
+    required String circumstances,
+    DateTime? lossDate,
+    String? lossLocation,
+    String? policeCaseNumber,
   }) async {
     try {
       final headers = await _getHeaders();
       final body = json.encode({
         'firearm_id': firearmId,
-        'circumstance': circumstance,
-        'description': description,
-        'incident_date': (incidentDate ?? DateTime.now()).toIso8601String(),
-        'location': location,
+        'loss_type': lossType,
+        'circumstances': circumstances,
+        'loss_date': (lossDate ?? DateTime.now()).toIso8601String(),
+        'loss_location': lossLocation,
+        'police_case_number': policeCaseNumber,
       });
 
       final response = await http
@@ -136,8 +138,8 @@ class ReportService {
       final headers = await _getHeaders();
       final body = json.encode({
         'firearm_id': firearmId,
-        'reason': reason,
-        'notes': notes,
+        'destruction_reason': reason,
+        'condition_description': notes,
       });
 
       final response = await http

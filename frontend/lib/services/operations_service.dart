@@ -23,7 +23,7 @@ class OperationsService {
   Future<List<Map<String, dynamic>>> getLossReports({String? status}) async {
     try {
       final headers = await _getHeaders();
-      var url = '${ApiConfig.baseUrl}/api/loss-reports';
+      var url = '${ApiConfig.reportsUrl}/loss';
       if (status != null && status != 'all') {
         url += '?status=$status';
       }
@@ -67,7 +67,7 @@ class OperationsService {
 
       final response = await http
           .post(
-            Uri.parse('${ApiConfig.baseUrl}/api/loss-reports'),
+            Uri.parse('${ApiConfig.reportsUrl}/loss'),
             headers: headers,
             body: body,
           )
@@ -90,7 +90,7 @@ class OperationsService {
       final headers = await _getHeaders();
       final response = await http
           .delete(
-            Uri.parse('${ApiConfig.baseUrl}/api/loss-reports/$reportId'),
+            Uri.parse('${ApiConfig.reportsUrl}/loss/$reportId'),
             headers: headers,
           )
           .timeout(_timeout);
@@ -107,7 +107,7 @@ class OperationsService {
       {String? status}) async {
     try {
       final headers = await _getHeaders();
-      var url = '${ApiConfig.baseUrl}/api/destruction-requests';
+      var url = '${ApiConfig.reportsUrl}/destruction';
       if (status != null && status != 'all') {
         url += '?status=$status';
       }
@@ -151,7 +151,7 @@ class OperationsService {
 
       final response = await http
           .post(
-            Uri.parse('${ApiConfig.baseUrl}/api/destruction-requests'),
+            Uri.parse('${ApiConfig.reportsUrl}/destruction'),
             headers: headers,
             body: body,
           )
@@ -176,7 +176,7 @@ class OperationsService {
       {String? status}) async {
     try {
       final headers = await _getHeaders();
-      var url = '${ApiConfig.baseUrl}/api/procurement-requests';
+      var url = '${ApiConfig.reportsUrl}/procurement';
       if (status != null && status != 'all') {
         url += '?status=$status';
       }
@@ -215,7 +215,7 @@ class OperationsService {
         'model': model,
         'caliber': caliber,
         'quantity': quantity,
-        'estimated_unit_cost': estimatedUnitCost,
+        'estimated_cost': estimatedUnitCost,
         'justification': justification,
         'priority': priority ?? 'routine',
         'preferred_supplier': preferredSupplier,
@@ -224,7 +224,7 @@ class OperationsService {
 
       final response = await http
           .post(
-            Uri.parse('${ApiConfig.baseUrl}/api/procurement-requests'),
+            Uri.parse('${ApiConfig.reportsUrl}/procurement'),
             headers: headers,
             body: body,
           )

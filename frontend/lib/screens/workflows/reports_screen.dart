@@ -99,21 +99,25 @@ class _ReportsScreenState extends State<ReportsScreen>
     final authProvider = Provider.of<AuthProvider>(context);
     final role = authProvider.currentUser?['role'];
     final isStation = role == 'station_commander';
+    final isHQ = role == 'hq_firearm_commander';
+    final isInvestigator = role == 'investigator';
+    // Only HQ commander and admin can approve/reject
+    final canApprove = isHQ || role == 'admin';
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
       body: Column(
         children: [
-          _buildHeader(isStation),
+          _buildHeader(isStation, isHQ, isInvestigator),
           _buildStatsRow(),
           _buildTabBar(),
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildLossReportsTab(isStation),
-                _buildDestructionRequestsTab(isStation),
-                _buildProcurementRequestsTab(isStation),
+                _buildLossReportsTab(isStation, canApprove: canApprove),
+                _buildDestructionRequestsTab(isStation, canApprove: canApprove),
+                _buildProcurementRequestsTab(isStation, canApprove: canApprove),
               ],
             ),
           ),
@@ -122,7 +126,23 @@ class _ReportsScreenState extends State<ReportsScreen>
     );
   }
 
-  Widget _buildHeader(bool isStation) {
+  Widget _buildHeader(bool isStation, bool isHQ, bool isInvestigator) {
+    String title;
+    String subtitle;
+    if (isStation) {
+      title = 'Unit Reports';
+      subtitle = 'Submit loss reports, destruction and procurement requests';
+    } else if (isHQ) {
+      title = 'Reports Oversight';
+      subtitle = 'Review and approve reports from all police stations';
+    } else if (isInvestigator) {
+      title = 'Reports Review';
+      subtitle = 'View submitted reports and requests across all units';
+    } else {
+      title = 'Reports Management';
+      subtitle = 'Review and manage all submitted reports and requests';
+    }
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
@@ -135,7 +155,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isStation ? 'Unit Reports' : 'Reports Management',
+                  title,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -144,9 +164,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isStation
-                      ? 'Submit loss reports, destruction and procurement requests'
-                      : 'Review and manage all submitted reports and requests',
+                  subtitle,
                   style:
                       const TextStyle(color: Color(0xFF78909C), fontSize: 14),
                 ),
@@ -332,7 +350,7 @@ class _ReportsScreenState extends State<ReportsScreen>
     );
   }
 
-  Widget _buildLossReportsTab(bool isStation) {
+  Widget _buildLossReportsTab(bool isStation, {bool canApprove = false}) {
     if (_isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
@@ -345,12 +363,14 @@ class _ReportsScreenState extends State<ReportsScreen>
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _lossReports.length,
-      itemBuilder: (context, index) =>
-          _buildLossReportCard(_lossReports[index], isStation),
+      itemBuilder: (context, index) => _buildLossReportCard(
+          _lossReports[index], isStation,
+          canApprove: canApprove),
     );
   }
 
-  Widget _buildLossReportCard(Map<String, dynamic> report, bool isStation) {
+  Widget _buildLossReportCard(Map<String, dynamic> report, bool isStation,
+      {bool canApprove = false}) {
     final status = report['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
     final createdAt = report['created_at'] != null
@@ -391,7 +411,9 @@ class _ReportsScreenState extends State<ReportsScreen>
           _buildInfoRow('Date Reported', createdAt),
           if (report['description'] != null)
             _buildInfoRow('Description', report['description']),
-          if (!isStation && status == 'pending') ...[
+          if (!isStation && report['unit_name'] != null)
+            _buildInfoRow('Reporting Unit', report['unit_name']),
+          if (canApprove && status == 'pending') ...[
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -408,7 +430,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                   onPressed: () =>
                       _handleReportAction(report, 'loss', 'approved'),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3CCB7F)),
+                      backgroundColor: const Color(0xFF1E88E5)),
                   child: const Text('Approve'),
                 ),
               ],
@@ -419,7 +441,8 @@ class _ReportsScreenState extends State<ReportsScreen>
     );
   }
 
-  Widget _buildDestructionRequestsTab(bool isStation) {
+  Widget _buildDestructionRequestsTab(bool isStation,
+      {bool canApprove = false}) {
     if (_isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
@@ -433,12 +456,14 @@ class _ReportsScreenState extends State<ReportsScreen>
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _destructionRequests.length,
-      itemBuilder: (context, index) =>
-          _buildDestructionCard(_destructionRequests[index], isStation),
+      itemBuilder: (context, index) => _buildDestructionCard(
+          _destructionRequests[index], isStation,
+          canApprove: canApprove),
     );
   }
 
-  Widget _buildDestructionCard(Map<String, dynamic> request, bool isStation) {
+  Widget _buildDestructionCard(Map<String, dynamic> request, bool isStation,
+      {bool canApprove = false}) {
     final status = request['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
     final createdAt = request['created_at'] != null
@@ -479,7 +504,9 @@ class _ReportsScreenState extends State<ReportsScreen>
           _buildInfoRow('Date Requested', createdAt),
           if (request['notes'] != null)
             _buildInfoRow('Notes', request['notes']),
-          if (!isStation && status == 'pending') ...[
+          if (!isStation && request['unit_name'] != null)
+            _buildInfoRow('Requesting Unit', request['unit_name']),
+          if (canApprove && status == 'pending') ...[
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -496,7 +523,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                   onPressed: () =>
                       _handleReportAction(request, 'destruction', 'approved'),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3CCB7F)),
+                      backgroundColor: const Color(0xFF1E88E5)),
                   child: const Text('Approve'),
                 ),
               ],
@@ -507,7 +534,8 @@ class _ReportsScreenState extends State<ReportsScreen>
     );
   }
 
-  Widget _buildProcurementRequestsTab(bool isStation) {
+  Widget _buildProcurementRequestsTab(bool isStation,
+      {bool canApprove = false}) {
     if (_isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
@@ -521,12 +549,14 @@ class _ReportsScreenState extends State<ReportsScreen>
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _procurementRequests.length,
-      itemBuilder: (context, index) =>
-          _buildProcurementCard(_procurementRequests[index], isStation),
+      itemBuilder: (context, index) => _buildProcurementCard(
+          _procurementRequests[index], isStation,
+          canApprove: canApprove),
     );
   }
 
-  Widget _buildProcurementCard(Map<String, dynamic> request, bool isStation) {
+  Widget _buildProcurementCard(Map<String, dynamic> request, bool isStation,
+      {bool canApprove = false}) {
     final status = request['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
     final createdAt = request['created_at'] != null
@@ -565,7 +595,9 @@ class _ReportsScreenState extends State<ReportsScreen>
           _buildInfoRow('Quantity', request['quantity']?.toString() ?? 'N/A'),
           _buildInfoRow('Justification', request['justification'] ?? 'N/A'),
           _buildInfoRow('Date Requested', createdAt),
-          if (!isStation && status == 'pending') ...[
+          if (!isStation && request['unit_name'] != null)
+            _buildInfoRow('Requesting Unit', request['unit_name']),
+          if (canApprove && status == 'pending') ...[
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -582,7 +614,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                   onPressed: () =>
                       _handleReportAction(request, 'procurement', 'approved'),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3CCB7F)),
+                      backgroundColor: const Color(0xFF1E88E5)),
                   child: const Text('Approve'),
                 ),
               ],
@@ -646,9 +678,9 @@ class _ReportsScreenState extends State<ReportsScreen>
   Color _getStatusColor(String status) {
     switch (status) {
       case 'pending':
-        return const Color(0xFFFFC857);
+        return const Color(0xFFFFA726);
       case 'approved':
-        return const Color(0xFF3CCB7F);
+        return const Color(0xFF42A5F5);
       case 'rejected':
         return const Color(0xFFE85C5C);
       default:
@@ -721,15 +753,15 @@ class _ReportsScreenState extends State<ReportsScreen>
                 try {
                   await _reportService.createLossReport(
                     firearmId: selectedFirearmId!,
-                    circumstance: circumstance,
-                    description: descriptionController.text,
-                    location: locationController.text,
+                    lossType: circumstance,
+                    circumstances: descriptionController.text,
+                    lossLocation: locationController.text,
                   );
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('Loss report submitted successfully'),
-                          backgroundColor: Color(0xFF3CCB7F)),
+                          backgroundColor: Color(0xFF1E88E5)),
                     );
                     _loadData();
                   }
@@ -828,7 +860,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('Destruction request submitted'),
-                          backgroundColor: Color(0xFF3CCB7F)),
+                          backgroundColor: Color(0xFF1E88E5)),
                     );
                     _loadData();
                   }
@@ -940,7 +972,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('Procurement request submitted'),
-                          backgroundColor: Color(0xFF3CCB7F)),
+                          backgroundColor: Color(0xFF1E88E5)),
                     );
                     _loadData();
                   }
@@ -990,8 +1022,8 @@ class _ReportsScreenState extends State<ReportsScreen>
       items: _unitFirearms
           .map((f) => DropdownMenuItem(
                 value: f['firearm_id']?.toString(),
-                child:
-                    Text('${f['serial_number']} - ${f['make']} ${f['model']}'),
+                child: Text(
+                    '${f['serial_number']} - ${f['manufacturer']} ${f['model']}'),
               ))
           .toList(),
       onChanged: onChanged,
@@ -1074,7 +1106,7 @@ class _ReportsScreenState extends State<ReportsScreen>
             content: Text(
                 'Request ${action == 'approved' ? 'approved' : 'rejected'} successfully'),
             backgroundColor: action == 'approved'
-                ? const Color(0xFF3CCB7F)
+                ? const Color(0xFF1E88E5)
                 : const Color(0xFFE85C5C),
           ),
         );

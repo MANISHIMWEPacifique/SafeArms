@@ -31,6 +31,38 @@ const { query } = require('../config/database');
  * custody data only for station commanders.
  */
 
+// Search firearms by serial number, manufacturer, model
+router.get('/search', authenticate, asyncHandler(async (req, res) => {
+    const { q } = req.query;
+    const { role, unit_id: userUnitId } = req.user;
+    
+    if (!q || q.trim().length === 0) {
+        return res.json({ success: true, data: [] });
+    }
+    
+    let unitFilter = '';
+    let params = [`%${q}%`, `%${q}%`, `%${q}%`];
+    
+    // Station commanders can only search within their unit
+    if (role === 'station_commander') {
+        unitFilter = 'AND f.assigned_unit_id = $4';
+        params.push(userUnitId);
+    }
+    
+    const { query: dbQuery } = require('../config/database');
+    const result = await dbQuery(`
+        SELECT f.*, u.unit_name
+        FROM firearms f
+        LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
+        WHERE (f.serial_number ILIKE $1 OR f.manufacturer ILIKE $2 OR f.model ILIKE $3)
+        ${unitFilter}
+        ORDER BY f.serial_number
+        LIMIT 50
+    `, params);
+    
+    res.json({ success: true, data: result.rows });
+}));
+
 router.get('/', authenticate, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
     let queryParams = { ...req.query };

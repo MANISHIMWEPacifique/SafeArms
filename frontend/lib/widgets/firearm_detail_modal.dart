@@ -77,7 +77,7 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
                       final record = history[index];
                       final assignedDate = record['assigned_at'] != null
                           ? DateFormat('MMM dd, yyyy HH:mm')
-                              .format(DateTime.parse(record['assigned_at']))
+                              .format(DateTime.parse(record['assigned_date']))
                           : 'N/A';
                       final returnedDate = record['returned_at'] != null
                           ? DateFormat('MMM dd, yyyy HH:mm')

@@ -99,13 +99,18 @@ const User = {
             role, unit_id, created_by
         } = userData;
 
+        // Generate user_id
+        const idResult = await query(`SELECT COUNT(*) as count FROM users`);
+        const count = parseInt(idResult.rows[0].count) + 1;
+        const user_id = `USR-${String(count).padStart(3, '0')}`;
+
         const result = await query(
             `INSERT INTO users (
-        username, password_hash, full_name, email, phone_number,
+        user_id, username, password_hash, full_name, email, phone_number,
         role, unit_id, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING user_id, username, full_name, email, role, unit_id, is_active, must_change_password`,
-            [username, password_hash, full_name, email, phone_number, role, unit_id || null, created_by]
+            [user_id, username, password_hash, full_name, email, phone_number, role, unit_id || null, created_by]
         );
 
         return result.rows[0];

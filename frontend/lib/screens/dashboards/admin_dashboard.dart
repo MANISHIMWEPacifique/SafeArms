@@ -310,19 +310,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildTopNavBar() {
     return Container(
       height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: const BoxDecoration(
         color: Color(0xFF252A3A),
         border: Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
       ),
       child: Row(
         children: [
-          const Text(
-            'Dashboard',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          const Flexible(
+            child: Text(
+              'Dashboard',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const Spacer(),
@@ -382,27 +385,34 @@ class _AdminDashboardState extends State<AdminDashboard> {
             builder: (context) {
               final authProvider = Provider.of<AuthProvider>(context);
               final userName = authProvider.userName ?? 'Admin';
-              return TextButton.icon(
-                onPressed: () {},
-                icon: const CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Color(0xFF1E88E5),
-                  child: Icon(Icons.person, color: Colors.white, size: 18),
-                ),
-                label: Row(
-                  children: [
-                    const SizedBox(width: 8),
-                    Text(
-                      userName,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.keyboard_arrow_down,
-                      color: Color(0xFF78909C),
-                      size: 20,
-                    ),
-                  ],
+              return Flexible(
+                child: TextButton.icon(
+                  onPressed: () {},
+                  icon: const CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Color(0xFF1E88E5),
+                    child: Icon(Icons.person, color: Colors.white, size: 18),
+                  ),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          userName,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Color(0xFF78909C),
+                        size: 20,
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

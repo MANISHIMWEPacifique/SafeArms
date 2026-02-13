@@ -692,15 +692,17 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             ElevatedButton(
               onPressed: () async {
                 if (nameController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                         content: Text('Unit name is required'),
                         backgroundColor: Color(0xFFE85C5C)),
                   );
                   return;
                 }
+                final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
+                final unitProvider = context.read<UnitProvider>();
                 Navigator.pop(dialogContext);
-                final success = await context.read<UnitProvider>().createUnit({
+                final success = await unitProvider.createUnit({
                   'unit_name': nameController.text,
                   'unit_type': selectedType,
                   'location': locationController.text,
@@ -710,18 +712,16 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                   'contact_email': emailController.text,
                   'is_active': isActive,
                 });
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(success
-                          ? 'Unit created successfully'
-                          : 'Failed to create unit'),
-                      backgroundColor: success
-                          ? const Color(0xFF3CCB7F)
-                          : const Color(0xFFE85C5C),
-                    ),
-                  );
-                }
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text(success
+                        ? 'Unit created successfully'
+                        : 'Failed to create unit'),
+                    backgroundColor: success
+                        ? const Color(0xFF3CCB7F)
+                        : const Color(0xFFE85C5C),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E88E5)),
@@ -842,15 +842,17 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             ElevatedButton(
               onPressed: () async {
                 if (nameController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                         content: Text('Unit name is required'),
                         backgroundColor: Color(0xFFE85C5C)),
                   );
                   return;
                 }
+                final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
+                final unitProvider = context.read<UnitProvider>();
                 Navigator.pop(dialogContext);
-                final success = await context.read<UnitProvider>().updateUnit(
+                final success = await unitProvider.updateUnit(
                   unit['unit_id'].toString(),
                   {
                     'unit_name': nameController.text,
@@ -863,18 +865,16 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                     'is_active': isActive,
                   },
                 );
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(success
-                          ? 'Unit updated successfully'
-                          : 'Failed to update unit'),
-                      backgroundColor: success
-                          ? const Color(0xFF3CCB7F)
-                          : const Color(0xFFE85C5C),
-                    ),
-                  );
-                }
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text(success
+                        ? 'Unit updated successfully'
+                        : 'Failed to update unit'),
+                    backgroundColor: success
+                        ? const Color(0xFF3CCB7F)
+                        : const Color(0xFFE85C5C),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E88E5)),

@@ -735,7 +735,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF2A3040),
         title:
             const Text('Add New User', style: TextStyle(color: Colors.white)),
@@ -770,13 +770,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 formKey.currentState!.save();
+                final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
                 final success = await provider.createUser(
                   username: username,
                   password: password,
@@ -787,15 +788,15 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   unitId: unitId,
                 );
                 if (success) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  Navigator.pop(dialogContext);
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(
                       content: Text('User created successfully'),
                       backgroundColor: Color(0xFF3CCB7F),
                     ),
                   );
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text(
                           provider.errorMessage ?? 'Failed to create user'),
@@ -885,8 +886,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF2A3040),
           title: const Text('Edit User', style: TextStyle(color: Colors.white)),
           content: SizedBox(
@@ -905,7 +906,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         labelText: 'Username (cannot be changed)',
                         labelStyle: const TextStyle(color: Color(0xFF78909C)),
                         filled: true,
-                        fillColor: const Color(0xFF1A1F2E).withValues(alpha: 0.5),
+                        fillColor:
+                            const Color(0xFF1A1F2E).withValues(alpha: 0.5),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -938,7 +940,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
+                              color: const Color(0xFF1E88E5)
+                                  .withValues(alpha: 0.3)),
                         ),
                         child: const Row(
                           children: [
@@ -987,13 +990,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   formKey.currentState!.save();
+                  final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
                   final success = await provider.updateUser(
                     userId: user.userId,
                     fullName: fullName,
@@ -1004,15 +1008,15 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     isActive: isActive,
                   );
                   if (success) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    Navigator.pop(dialogContext);
+                    scaffoldMessenger.showSnackBar(
                       const SnackBar(
                         content: Text('User updated successfully'),
                         backgroundColor: Color(0xFF3CCB7F),
                       ),
                     );
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       SnackBar(
                         content: Text(
                             provider.errorMessage ?? 'Failed to update user'),
@@ -1066,9 +1070,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
 
     if (confirm == true) {
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
       final success =
           await provider.toggleUserStatus(user.userId, !user.isActive);
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(
             success

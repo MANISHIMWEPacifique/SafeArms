@@ -823,6 +823,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         },
         onConfirm: () async {
           final success = await userProvider.deleteUser(_userToDelete!.userId);
+          if (!mounted) return;
           setState(() {
             _showDeleteModal = false;
             _userToDelete = null;

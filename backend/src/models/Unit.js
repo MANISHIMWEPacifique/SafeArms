@@ -92,11 +92,25 @@ const Unit = {
     },
 
     async create(unitData) {
-        const { unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name } = unitData;
+        const { unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, is_active } = unitData;
+
+        // Generate unit_id
+        const idResult = await query(`SELECT COUNT(*) as count FROM units`);
+        const count = parseInt(idResult.rows[0].count) + 1;
+        const unit_id = `UNIT-${String(count).padStart(3, '0')}`;
+
+        // Map unit_type to valid CHECK constraint values
+        const validTypes = ['headquarters', 'district', 'station', 'specialized'];
+        let mappedType = unit_type;
+        if (!validTypes.includes(unit_type)) {
+            if (unit_type === 'training_school' || unit_type === 'special_unit') mappedType = 'specialized';
+            else mappedType = 'station';
+        }
+
         const result = await query(
-            `INSERT INTO units (unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-            [unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name]
+            `INSERT INTO units (unit_id, unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+            [unit_id, unit_name, mappedType, location, province, district, contact_phone, contact_email, commander_name, is_active !== undefined ? is_active : true]
         );
         return result.rows[0];
     },

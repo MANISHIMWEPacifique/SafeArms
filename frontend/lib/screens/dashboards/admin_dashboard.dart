@@ -332,6 +332,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           IconButton(
             icon: const Icon(Icons.search, color: Color(0xFF78909C)),
             onPressed: () {},
+            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(8),
           ),
           const SizedBox(width: 8),
           Builder(
@@ -350,11 +352,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         _selectedIndex = 5; // Anomaly Summary
                       });
                     },
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(8),
                   ),
                   if (notificationCount > 0)
                     Positioned(
-                      right: 8,
-                      top: 8,
+                      right: 0,
+                      top: 0,
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: const BoxDecoration(
@@ -609,10 +613,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
       }
     }
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 800;
+        final cards = [
+          _buildStatCard(
             icon: Icons.people,
             iconColor: const Color(0xFF42A5F5),
             number: totalUsers.toString(),
@@ -622,10 +627,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             showUpArrow: false,
             isLoading: dashboardProvider.isLoading,
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
+          _buildStatCard(
             icon: Icons.business,
             iconColor: const Color(0xFF1E88E5),
             number: activeUnits.toString(),
@@ -635,10 +637,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             showUpArrow: false,
             isLoading: dashboardProvider.isLoading,
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
+          _buildStatCard(
             icon: Icons.favorite,
             iconColor: const Color(0xFF3CCB7F),
             number: 'Healthy',
@@ -648,10 +647,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             showUpArrow: false,
             isLoading: false,
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
+          _buildStatCard(
             icon: Icons.warning_amber,
             iconColor: const Color(0xFFFFC857),
             number: totalAnomalies.toString(),
@@ -661,8 +657,42 @@ class _AdminDashboardState extends State<AdminDashboard> {
             showUpArrow: false,
             isLoading: dashboardProvider.isLoading,
           ),
-        ),
-      ],
+        ];
+
+        if (isNarrow) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: cards[0]),
+                  const SizedBox(width: 16),
+                  Expanded(child: cards[1]),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: cards[2]),
+                  const SizedBox(width: 16),
+                  Expanded(child: cards[3]),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: cards[0]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[1]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[2]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[3]),
+          ],
+        );
+      },
     );
   }
 

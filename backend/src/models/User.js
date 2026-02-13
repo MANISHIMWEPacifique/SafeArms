@@ -150,8 +150,37 @@ const User = {
 
     /**
      * Delete user (hard delete)
+     * Removes or nullifies all foreign key references before deleting
      */
     async delete(userId) {
+        // Delete records from tables with NOT NULL user references
+        await query('DELETE FROM anomaly_investigations WHERE investigator_id = $1', [userId]);
+        await query('DELETE FROM ballistic_access_logs WHERE accessed_by = $1', [userId]);
+        await query('DELETE FROM audit_logs WHERE user_id = $1', [userId]);
+
+        // Nullify nullable foreign key references
+        await query('UPDATE units SET created_by = NULL WHERE created_by = $1', [userId]);
+        await query('UPDATE ballistic_profiles SET locked_by = NULL WHERE locked_by = $1', [userId]);
+        await query('UPDATE ballistic_profiles SET created_by = NULL WHERE created_by = $1', [userId]);
+        await query('UPDATE custody_records SET returned_to = NULL WHERE returned_to = $1', [userId]);
+        await query('UPDATE anomalies SET investigated_by = NULL WHERE investigated_by = $1', [userId]);
+        await query('UPDATE loss_reports SET reviewed_by = NULL WHERE reviewed_by = $1', [userId]);
+        await query('UPDATE destruction_requests SET reviewed_by = NULL WHERE reviewed_by = $1', [userId]);
+        await query('UPDATE procurement_requests SET reviewed_by = NULL WHERE reviewed_by = $1', [userId]);
+
+        // Delete workflow records submitted by this user
+        await query('DELETE FROM loss_reports WHERE reported_by = $1', [userId]);
+        await query('DELETE FROM destruction_requests WHERE requested_by = $1', [userId]);
+        await query('DELETE FROM procurement_requests WHERE requested_by = $1', [userId]);
+
+        // Delete firearm unit movements authorized by this user
+        await query('DELETE FROM firearm_unit_movements WHERE authorized_by = $1', [userId]);
+
+        // Nullify custody records and firearms registered by this user
+        // (these have NOT NULL constraints, so we update the column to allow deletion)
+        await query('UPDATE custody_records SET issued_by = (SELECT user_id FROM users WHERE role = $2 LIMIT 1) WHERE issued_by = $1', [userId, 'admin']);
+        await query('UPDATE firearms SET registered_by = (SELECT user_id FROM users WHERE role = $2 LIMIT 1) WHERE registered_by = $1', [userId, 'admin']);
+
         const result = await query(
             'DELETE FROM users WHERE user_id = $1 RETURNING user_id',
             [userId]

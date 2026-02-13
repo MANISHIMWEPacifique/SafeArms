@@ -7,7 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../auth/login_screen.dart';
-import '../settings/user_management_screen.dart';
+import '../management/user_management_screen.dart';
 import '../settings/system_settings_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 import '../management/units_management_screen.dart';

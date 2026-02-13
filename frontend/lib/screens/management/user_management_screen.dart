@@ -511,14 +511,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   tooltip: 'Edit',
                 ),
                 IconButton(
-                  icon: Icon(
-                    user.isActive ? Icons.block : Icons.check_circle_outline,
-                    color: user.isActive
-                        ? const Color(0xFFEF5350)
-                        : const Color(0xFF3CCB7F),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Color(0xFFEF5350),
                   ),
-                  onPressed: () => _toggleUserStatus(user, provider),
-                  tooltip: user.isActive ? 'Deactivate' : 'Activate',
+                  onPressed: () => _deleteUser(user, provider),
+                  tooltip: 'Delete',
                 ),
               ],
             ),
@@ -1036,19 +1034,17 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  void _toggleUserStatus(UserModel user, UserProvider provider) async {
+  void _deleteUser(UserModel user, UserProvider provider) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A3040),
-        title: Text(
-          user.isActive ? 'Deactivate User?' : 'Activate User?',
-          style: const TextStyle(color: Colors.white),
+        title: const Text(
+          'Delete User?',
+          style: TextStyle(color: Colors.white),
         ),
         content: Text(
-          user.isActive
-              ? 'Are you sure you want to deactivate ${user.fullName}?'
-              : 'Are you sure you want to activate ${user.fullName}?',
+          'Are you sure you want to permanently delete ${user.fullName}? This action cannot be undone.',
           style: const TextStyle(color: Color(0xFFB0BEC5)),
         ),
         actions: [
@@ -1059,11 +1055,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: user.isActive
-                  ? const Color(0xFFEF5350)
-                  : const Color(0xFF3CCB7F),
+              backgroundColor: const Color(0xFFEF5350),
             ),
-            child: Text(user.isActive ? 'Deactivate' : 'Activate'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -1071,15 +1065,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     if (confirm == true) {
       final scaffoldMessenger = ScaffoldMessenger.of(context);
-      final success =
-          await provider.toggleUserStatus(user.userId, !user.isActive);
+      final success = await provider.deleteUser(user.userId);
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(
-            success
-                ? 'User ${user.isActive ? 'deactivated' : 'activated'} successfully'
-                : 'Failed to update user status',
+            success ? 'User deleted successfully' : 'Failed to delete user',
           ),
           backgroundColor:
               success ? const Color(0xFF3CCB7F) : const Color(0xFFEF5350),

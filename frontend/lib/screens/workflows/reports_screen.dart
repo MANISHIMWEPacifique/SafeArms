@@ -176,7 +176,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                 const Color(0xFFE85C5C), _showLossReportDialog),
             const SizedBox(width: 12),
             _buildActionButton('Request Destruction', Icons.delete_forever,
-                const Color(0xFFFFA726), _showDestructionRequestDialog),
+                const Color(0xFFFFC857), _showDestructionRequestDialog),
             const SizedBox(width: 12),
             _buildActionButton('Request Firearms', Icons.add_shopping_cart,
                 const Color(0xFF1E88E5), _showProcurementRequestDialog),
@@ -225,7 +225,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                   'Destruction Requests',
                   _destructionRequests.length.toString(),
                   pendingDestruction,
-                  const Color(0xFFFFA726))),
+                  const Color(0xFFFFC857))),
           const SizedBox(width: 12),
           Expanded(
               child: _buildStatCard(
@@ -485,7 +485,7 @@ class _ReportsScreenState extends State<ReportsScreen>
           Row(
             children: [
               const Icon(Icons.delete_forever,
-                  color: Color(0xFFFFA726), size: 20),
+                  color: Color(0xFFFFC857), size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -678,9 +678,9 @@ class _ReportsScreenState extends State<ReportsScreen>
   Color _getStatusColor(String status) {
     switch (status) {
       case 'pending':
-        return const Color(0xFFFFA726);
+        return const Color(0xFFFFC857);
       case 'approved':
-        return const Color(0xFF42A5F5);
+        return const Color(0xFF3CCB7F);
       case 'rejected':
         return const Color(0xFFE85C5C);
       default:
@@ -797,7 +797,7 @@ class _ReportsScreenState extends State<ReportsScreen>
           backgroundColor: const Color(0xFF2A3040),
           title: const Row(
             children: [
-              Icon(Icons.delete_forever, color: Color(0xFFFFA726)),
+              Icon(Icons.delete_forever, color: Color(0xFFFFC857)),
               SizedBox(width: 12),
               Text('Request Destruction',
                   style: TextStyle(color: Colors.white)),
@@ -875,7 +875,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                 }
               },
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFA726)),
+                  backgroundColor: const Color(0xFFFFC857)),
               child: const Text('Submit Request'),
             ),
           ],

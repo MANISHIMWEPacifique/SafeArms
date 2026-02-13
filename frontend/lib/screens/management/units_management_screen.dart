@@ -1014,11 +1014,20 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     }
 
     final unitName = unit['unit_name']?.toString() ?? 'Unknown Unit';
-    final firearmCount = unit['firearm_count'] ?? unit['firearms_count'] ?? 0;
-    final officerCount = unit['officer_count'] ?? unit['officers_count'] ?? 0;
-    final activeCustody = unit['active_custody'] ?? 0;
-    final pendingApprovals = unit['pending_approvals'] ?? 0;
-    final anomalyCount = unit['anomaly_count'] ?? 0;
+    final firearmCount = int.tryParse(unit['firearm_count']?.toString() ??
+            unit['firearms_count']?.toString() ??
+            '0') ??
+        0;
+    final officerCount = int.tryParse(unit['officer_count']?.toString() ??
+            unit['officers_count']?.toString() ??
+            '0') ??
+        0;
+    final activeCustody =
+        int.tryParse(unit['active_custody']?.toString() ?? '0') ?? 0;
+    final pendingApprovals =
+        int.tryParse(unit['pending_approvals']?.toString() ?? '0') ?? 0;
+    final anomalyCount =
+        int.tryParse(unit['anomaly_count']?.toString() ?? '0') ?? 0;
 
     showDialog(
       context: context,

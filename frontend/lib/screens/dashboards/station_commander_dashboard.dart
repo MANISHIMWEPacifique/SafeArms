@@ -545,11 +545,12 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
                     style: const TextStyle(color: Colors.white),
                   ),
                   subtitle: Text(
-                    '${activity['purpose'] ?? 'N/A'} - ${activity['officer_name'] ?? 'N/A'}',
+                    '${activity['assignment_reason'] ?? activity['purpose'] ?? 'N/A'} - ${activity['officer_name'] ?? 'N/A'}',
                     style: const TextStyle(color: Color(0xFF78909C)),
                   ),
                   trailing: Text(
-                    _formatDate(activity['checked_out_at']),
+                    _formatDate(
+                        activity['issued_at'] ?? activity['checked_out_at']),
                     style:
                         const TextStyle(color: Color(0xFF78909C), fontSize: 12),
                   ),

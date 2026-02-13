@@ -149,11 +149,11 @@ const User = {
     },
 
     /**
-     * Delete user (soft delete)
+     * Delete user (hard delete)
      */
     async delete(userId) {
         const result = await query(
-            'UPDATE users SET is_active = false WHERE user_id = $1 RETURNING user_id',
+            'DELETE FROM users WHERE user_id = $1 RETURNING user_id',
             [userId]
         );
 

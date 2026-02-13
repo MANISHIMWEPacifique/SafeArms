@@ -78,7 +78,7 @@ router.put('/:id', authenticate, requireAdminOrHQ, logUpdate, asyncHandler(async
 router.delete('/:id', authenticate, requireAdmin, logDelete, asyncHandler(async (req, res) => {
     const user = await User.delete(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    res.json({ success: true, message: 'User deactivated successfully' });
+    res.json({ success: true, message: 'User deleted successfully' });
 }));
 
 module.exports = router;

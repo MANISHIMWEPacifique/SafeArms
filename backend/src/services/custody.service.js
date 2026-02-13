@@ -70,14 +70,19 @@ const assignCustody = async (custodyData) => {
             const crossUnitCheck = await CustodyRecord.detectCrossUnitTransfer(firearm_id, unit_id);
             const isCrossUnitTransfer = crossUnitCheck.isCrossUnit;
 
+            // Generate custody ID
+            const idResult = await client.query(`SELECT 'CUS-' || LPAD(COALESCE(MAX(CAST(SUBSTRING(custody_id FROM 5) AS INTEGER)), 0) + 1, 3, '0') as next_id FROM custody_records`);
+            const custodyId = idResult.rows[0].next_id;
+
             // Create custody record
             const result = await client.query(
                 `INSERT INTO custody_records (
-                    firearm_id, officer_id, unit_id, custody_type,
+                    custody_id, firearm_id, officer_id, unit_id, custody_type,
                     assignment_reason, expected_return_date, notes, issued_by
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING *`,
                 [
+                    custodyId,
                     firearm_id,
                     officer_id,
                     unit_id,

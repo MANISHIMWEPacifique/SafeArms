@@ -1,6 +1,74 @@
 const logger = require('../utils/logger');
 
 /**
+ * Custom application error class with HTTP status code
+ */
+class AppError extends Error {
+    constructor(message, statusCode = 500) {
+        super(message);
+        this.name = 'AppError';
+        this.statusCode = statusCode;
+    }
+}
+
+/**
+ * Map common error messages to HTTP status codes
+ * Used when services throw plain Error objects without statusCode
+ */
+const getStatusCodeFromMessage = (message) => {
+    if (!message) return 500;
+    const msg = message.toLowerCase();
+
+    // 401 Unauthorized
+    if (msg.includes('invalid username or password') ||
+        msg.includes('invalid otp') ||
+        msg.includes('invalid token') ||
+        msg.includes('token expired') ||
+        msg.includes('authentication required') ||
+        msg.includes('no token provided')) {
+        return 401;
+    }
+
+    // 403 Forbidden
+    if (msg.includes('account is inactive') ||
+        msg.includes('account is disabled') ||
+        msg.includes('access denied') ||
+        msg.includes('insufficient permissions') ||
+        msg.includes('does not belong to this unit') ||
+        msg.includes('cannot assign custody to inactive')) {
+        return 403;
+    }
+
+    // 404 Not Found
+    if (msg.includes('not found') ||
+        msg.includes('no user found') ||
+        msg.includes('does not exist')) {
+        return 404;
+    }
+
+    // 409 Conflict
+    if (msg.includes('already exists') ||
+        msg.includes('already returned') ||
+        msg.includes('already in use') ||
+        msg.includes('duplicate')) {
+        return 409;
+    }
+
+    // 400 Bad Request
+    if (msg.includes('is required') ||
+        msg.includes('invalid') ||
+        msg.includes('cannot') ||
+        msg.includes('missing') ||
+        msg.includes('is currently') ||
+        msg.includes('otp expired') ||
+        msg.includes('otp has expired')) {
+        return 400;
+    }
+
+    return null; // No match — will default to 500
+};
+
+/**
  * Global error handler middleware
  * Catches all errors and returns consistent error responses
  */
@@ -14,8 +82,8 @@ const errorHandler = (err, req, res, next) => {
         user: req.user?.username || 'unauthenticated'
     });
 
-    // Default error status and message
-    let statusCode = err.statusCode || 500;
+    // Determine status code: explicit > message-based > default 500
+    let statusCode = err.statusCode || getStatusCodeFromMessage(err.message) || 500;
     let message = err.message || 'Internal server error';
 
     // Handle specific error types
@@ -81,5 +149,6 @@ const asyncHandler = (fn) => {
 module.exports = {
     errorHandler,
     notFoundHandler,
-    asyncHandler
+    asyncHandler,
+    AppError
 };

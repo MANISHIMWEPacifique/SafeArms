@@ -83,7 +83,7 @@ const auditLogger = (action_type, options = {}) => {
                             success
                         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
                         [
-                            `LOG-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+                            `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substr(2, 3).toUpperCase()}`,
                             req.user?.user_id || null,
                             action_type,
                             req.params.table || req.baseUrl.split('/').pop(),

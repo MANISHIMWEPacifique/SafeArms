@@ -326,7 +326,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               border: Border.all(color: const Color(0xFF37404F)),
             ),
             child: DropdownButtonFormField<String>(
-              initialValue: _selectedFirearmId,
+              value: _selectedFirearmId,
               decoration: const InputDecoration(
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -396,7 +396,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               border: Border.all(color: const Color(0xFF37404F)),
             ),
             child: DropdownButtonFormField<String>(
-              initialValue: _selectedOfficerId,
+              value: _selectedOfficerId,
               decoration: const InputDecoration(
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 12),

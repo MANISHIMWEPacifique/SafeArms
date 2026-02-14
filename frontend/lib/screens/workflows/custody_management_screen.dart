@@ -129,58 +129,72 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
                 color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
-          ElevatedButton.icon(
-            onPressed: () => setState(() => _showAssignModal = true),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Assign Custody',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+          Flexible(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => setState(() => _showAssignModal = true),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Assign Custody',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E88E5),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      // Show message to select from the list
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Click the return icon on a custody card to return a firearm'),
+                          backgroundColor: Color(0xFF1E88E5),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.assignment_return, size: 18),
+                    label: const Text('Return Firearm'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E88E5),
+                      side: const BorderSide(color: Color(0xFF1E88E5)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      // View history
+                    },
+                    icon: const Icon(Icons.history, size: 18),
+                    label: const Text('View History'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFB0BEC5),
+                      side: const BorderSide(color: Color(0xFF37404F)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  _buildMLStatus(provider),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: () {
-              // Show message to select from the list
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                      'Click the return icon on a custody card to return a firearm'),
-                  backgroundColor: Color(0xFF1E88E5),
-                ),
-              );
-            },
-            icon: const Icon(Icons.assignment_return, size: 18),
-            label: const Text('Return Firearm'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF1E88E5),
-              side: const BorderSide(color: Color(0xFF1E88E5)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: () {
-              // View history
-            },
-            icon: const Icon(Icons.history, size: 18),
-            label: const Text('View History'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB0BEC5),
-              side: const BorderSide(color: Color(0xFF37404F)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(width: 24),
-          _buildMLStatus(provider),
         ],
       ),
     );

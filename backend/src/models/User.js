@@ -99,10 +99,10 @@ const User = {
             role, unit_id, created_by
         } = userData;
 
-        // Generate user_id
-        const idResult = await query(`SELECT COUNT(*) as count FROM users`);
-        const count = parseInt(idResult.rows[0].count) + 1;
-        const user_id = `USR-${String(count).padStart(3, '0')}`;
+        // Generate user_id using MAX to avoid collisions after deletions
+        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(user_id FROM 5) AS INTEGER)), 0) as max_num FROM users WHERE user_id ~ '^USR-[0-9]+$'`);
+        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+        const user_id = `USR-${String(nextNum).padStart(3, '0')}`;
 
         const result = await query(
             `INSERT INTO users (
@@ -157,6 +157,9 @@ const User = {
         await query('DELETE FROM anomaly_investigations WHERE investigator_id = $1', [userId]);
         await query('DELETE FROM ballistic_access_logs WHERE accessed_by = $1', [userId]);
         await query('DELETE FROM audit_logs WHERE user_id = $1', [userId]);
+
+        // Nullify self-referencing foreign key (users created by this user)
+        await query('UPDATE users SET created_by = NULL WHERE created_by = $1', [userId]);
 
         // Nullify nullable foreign key references
         await query('UPDATE units SET created_by = NULL WHERE created_by = $1', [userId]);

@@ -8,6 +8,7 @@ import '../../providers/officer_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/officer_model.dart';
 import '../../widgets/station_add_officer_modal.dart';
+import '../../widgets/station_edit_officer_modal.dart';
 import '../../widgets/officer_detail_modal.dart';
 
 class StationOfficersScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _showAddModal = false;
   OfficerModel? _selectedOfficerForDetail;
+  OfficerModel? _selectedOfficerForEdit;
   final Set<String> _selectedOfficers = {};
 
   @override
@@ -103,6 +105,17 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
             OfficerDetailModal(
               officer: _selectedOfficerForDetail!,
               onClose: () => setState(() => _selectedOfficerForDetail = null),
+            ),
+
+          // Edit Officer Modal
+          if (_selectedOfficerForEdit != null)
+            StationEditOfficerModal(
+              officer: _selectedOfficerForEdit!,
+              onClose: () => setState(() => _selectedOfficerForEdit = null),
+              onSuccess: () {
+                setState(() => _selectedOfficerForEdit = null);
+                _loadUnitOfficers();
+              },
             ),
         ],
       ),
@@ -213,7 +226,8 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
+        border:
+            Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -387,7 +401,8 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.7),
+            color:
+                isSelected ? Colors.white : Colors.white.withValues(alpha: 0.7),
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -405,8 +420,8 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
         style: const TextStyle(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           hintText: 'Filter by rank...',
-          hintStyle:
-              TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
+          hintStyle: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
           prefixIcon: Icon(Icons.military_tech,
               color: Colors.white.withValues(alpha: 0.5), size: 20),
           filled: true,
@@ -658,9 +673,8 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
                 tooltip: 'View Details',
               ),
               IconButton(
-                onPressed: () {
-                  // TODO: Edit officer
-                },
+                onPressed: () =>
+                    setState(() => _selectedOfficerForEdit = officer),
                 icon: const Icon(Icons.edit, size: 18),
                 color: const Color(0xFFFFC857),
                 tooltip: 'Edit',

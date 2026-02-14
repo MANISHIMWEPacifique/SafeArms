@@ -192,6 +192,14 @@ router.post('/assign', authenticate, requireCommander, logCustodyAssignment, asy
         }
         req.body.unit_id = userUnitId;
     }
+
+    // For HQ commanders and admins: if unit_id not provided, derive from the officer
+    if (!req.body.unit_id && req.body.officer_id) {
+        const officerResult = await query('SELECT unit_id FROM officers WHERE officer_id = $1', [req.body.officer_id]);
+        if (officerResult.rows.length > 0) {
+            req.body.unit_id = officerResult.rows[0].unit_id;
+        }
+    }
     
     const custodyRecord = await assignCustody({ ...req.body, issued_by: req.user.user_id });
     res.status(201).json({ success: true, data: custodyRecord, message: 'Custody assigned successfully' });

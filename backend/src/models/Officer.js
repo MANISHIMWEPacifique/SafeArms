@@ -17,15 +17,43 @@ const Officer = {
         return result.rows[0];
     },
 
+    /**
+     * Find all officers (no unit filter) - for admin/HQ users
+     */
+    async findAll(filters = {}) {
+        const { is_active, limit = 100, offset = 0 } = filters;
+        let where = 'WHERE 1=1';
+        let params = [];
+        let pCount = 0;
+
+        if (is_active !== undefined) {
+            pCount++;
+            where += ` AND is_active = $${pCount}`;
+            params.push(is_active);
+        }
+
+        pCount++;
+        params.push(limit);
+        pCount++;
+        params.push(offset);
+
+        const result = await query(
+            `SELECT o.*, u.unit_name FROM officers o LEFT JOIN units u ON o.unit_id = u.unit_id ${where} ORDER BY o.full_name LIMIT $${pCount - 1} OFFSET $${pCount}`,
+            params
+        );
+        return result.rows;
+    },
+
     async findByUnitId(unitId, filters = {}) {
         const { is_active, limit = 100, offset = 0 } = filters;
         let where = 'WHERE unit_id = $1';
         let params = [unitId];
 
         if (is_active !== undefined) {
+            const isActiveBool = (is_active === true || is_active === 'true');
             where += ' AND is_active = $2';
-            params.push(is_active);
-            params.push(limit, offset);
+            params.push(isActiveBool);
+            params.push(parseInt(limit) || 100, parseInt(offset) || 0);
             const result = await query(
                 `SELECT * FROM officers ${where} ORDER BY full_name LIMIT $3 OFFSET $4`,
                 params
@@ -33,7 +61,7 @@ const Officer = {
             return result.rows;
         }
 
-        params.push(limit, offset);
+        params.push(parseInt(limit) || 100, parseInt(offset) || 0);
         const result = await query(
             `SELECT * FROM officers ${where} ORDER BY full_name LIMIT $2 OFFSET $3`,
             params

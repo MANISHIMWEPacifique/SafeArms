@@ -149,6 +149,10 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                         value: 'special_unit',
                         child: Text('Special Unit'),
                       ),
+                      DropdownMenuItem(
+                        value: 'specialized',
+                        child: Text('Specialized'),
+                      ),
                     ],
                     onChanged: (value) {
                       setState(() {
@@ -550,6 +554,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
         return Icons.school;
       case 'special_unit':
         return Icons.security;
+      case 'specialized':
+        return Icons.stars;
       default:
         return Icons.local_police;
     }
@@ -563,9 +569,26 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
         return const Color(0xFFFFC857);
       case 'special_unit':
         return const Color(0xFF9C27B0);
+      case 'specialized':
+        return const Color(0xFFFF7043);
       default:
         return const Color(0xFF3CCB7F);
     }
+  }
+
+  // Valid unit types for dropdowns
+  static const List<String> _validUnitTypes = [
+    'station',
+    'headquarters',
+    'training_school',
+    'special_unit',
+    'specialized',
+  ];
+
+  /// Ensure the unit type is a valid dropdown value
+  String _sanitizeUnitType(String? type) {
+    if (type != null && _validUnitTypes.contains(type)) return type;
+    return 'station';
   }
 
   String _formatUnitType(String? type) {
@@ -576,6 +599,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
         return 'Training School';
       case 'special_unit':
         return 'Special Unit';
+      case 'specialized':
+        return 'Specialized';
       case 'station':
         return 'Police Station';
       default:
@@ -627,6 +652,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                           child: Text('Training School')),
                       DropdownMenuItem(
                           value: 'special_unit', child: Text('Special Unit')),
+                      DropdownMenuItem(
+                          value: 'specialized', child: Text('Specialized')),
                     ],
                     onChanged: (value) =>
                         setDialogState(() => selectedType = value!),
@@ -737,7 +764,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
         TextEditingController(text: unit['contact_phone'] ?? '');
     final emailController =
         TextEditingController(text: unit['contact_email'] ?? '');
-    String selectedType = unit['unit_type'] ?? 'station';
+    String selectedType = _sanitizeUnitType(unit['unit_type']);
     bool isActive = unit['is_active'] ?? true;
 
     showDialog(
@@ -777,6 +804,10 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                           child: Text('Training School')),
                       DropdownMenuItem(
                           value: 'special_unit', child: Text('Special Unit')),
+                      DropdownMenuItem(
+                          value: 'specialized', child: Text('Specialized')),
+                      DropdownMenuItem(
+                          value: 'specialized', child: Text('Specialized')),
                     ],
                     onChanged: (value) =>
                         setDialogState(() => selectedType = value!),

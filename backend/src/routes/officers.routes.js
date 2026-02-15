@@ -20,7 +20,13 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         }
     }
     
-    const officers = await Officer.findByUnitId(queryUnitId || req.user.unit_id, req.query);
+    let officers;
+    if (queryUnitId) {
+        officers = await Officer.findByUnitId(queryUnitId, req.query);
+    } else {
+        // Admin/HQ without specific unit - return all officers
+        officers = await Officer.findAll(req.query);
+    }
     res.json({ success: true, data: officers });
 }));
 
@@ -59,26 +65,7 @@ router.get('/unit/:unit_id', authenticate, asyncHandler(async (req, res) => {
     res.json({ success: true, data: officers });
 }));
 
-router.get('/:id', authenticate, asyncHandler(async (req, res) => {
-    const { role, unit_id: userUnitId } = req.user;
-    const officer = await Officer.findById(req.params.id);
-    
-    if (!officer) {
-        return res.status(404).json({ success: false, message: 'Officer not found' });
-    }
-    
-    // Station commanders can only view officers in their unit
-    if (role === 'station_commander' && officer.unit_id !== userUnitId) {
-        return res.status(403).json({ 
-            success: false, 
-            message: 'Access denied: You can only view officers from your unit' 
-        });
-    }
-    
-    res.json({ success: true, data: officer });
-}));
-
-// Search officers
+// Search officers - must be before /:id route
 router.get('/search', authenticate, asyncHandler(async (req, res) => {
     const { q } = req.query;
     const { role, unit_id: userUnitId } = req.user;
@@ -108,6 +95,25 @@ router.get('/search', authenticate, asyncHandler(async (req, res) => {
     `, params);
     
     res.json({ success: true, data: result.rows });
+}));
+
+router.get('/:id', authenticate, asyncHandler(async (req, res) => {
+    const { role, unit_id: userUnitId } = req.user;
+    const officer = await Officer.findById(req.params.id);
+    
+    if (!officer) {
+        return res.status(404).json({ success: false, message: 'Officer not found' });
+    }
+    
+    // Station commanders can only view officers in their unit
+    if (role === 'station_commander' && officer.unit_id !== userUnitId) {
+        return res.status(403).json({ 
+            success: false, 
+            message: 'Access denied: You can only view officers from your unit' 
+        });
+    }
+    
+    res.json({ success: true, data: officer });
 }));
 
 router.post('/', authenticate, requireCommander, requireUnitAccess, logCreate, asyncHandler(async (req, res) => {

@@ -667,14 +667,17 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    officer.isActive ? 'Active' : 'Inactive',
-                    style: TextStyle(
-                      color: officer.isActive
-                          ? const Color(0xFF3CCB7F)
-                          : const Color(0xFF78909C),
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      officer.isActive ? 'Active' : 'Inactive',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: officer.isActive
+                            ? const Color(0xFF3CCB7F)
+                            : const Color(0xFF78909C),
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -692,11 +695,14 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                     color: const Color(0xFF78909C),
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    '—',
-                    style: const TextStyle(
-                      color: Color(0xFF78909C),
-                      fontSize: 13,
+                  Expanded(
+                    child: Text(
+                      '—',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF78909C),
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -709,8 +715,10 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
+                    icon: const Icon(Icons.edit, size: 18),
                     color: const Color(0xFF1E88E5),
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(8),
                     onPressed: () {
                       provider.selectOfficer(officer);
                       setState(() => _showAddModal = true);
@@ -718,8 +726,10 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                     tooltip: 'Edit',
                   ),
                   IconButton(
-                    icon: const Icon(Icons.more_vert, size: 20),
+                    icon: const Icon(Icons.more_vert, size: 18),
                     color: const Color(0xFF78909C),
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(8),
                     onPressed: () {
                       // Show actions menu
                     },

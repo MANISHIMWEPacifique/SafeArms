@@ -501,22 +501,31 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.visibility, color: Color(0xFF78909C)),
+                  icon: const Icon(Icons.visibility,
+                      color: Color(0xFF78909C), size: 18),
                   onPressed: () => _showUserDetails(user),
                   tooltip: 'View',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.edit, color: Color(0xFF78909C)),
+                  icon: const Icon(Icons.edit,
+                      color: Color(0xFF78909C), size: 18),
                   onPressed: () => _showEditUserDialog(user, provider),
                   tooltip: 'Edit',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
                 ),
                 IconButton(
                   icon: const Icon(
                     Icons.delete_outline,
                     color: Color(0xFFEF5350),
+                    size: 18,
                   ),
                   onPressed: () => _deleteUser(user, provider),
                   tooltip: 'Delete',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
                 ),
               ],
             ),
@@ -1065,17 +1074,29 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     if (confirm == true) {
       final scaffoldMessenger = ScaffoldMessenger.of(context);
-      final success = await provider.deleteUser(user.userId);
-      if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            success ? 'User deleted successfully' : 'Failed to delete user',
+      try {
+        final success = await provider.deleteUser(user.userId);
+        if (!mounted) return;
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'User deleted successfully'
+                  : (provider.errorMessage ?? 'Failed to delete user'),
+            ),
+            backgroundColor:
+                success ? const Color(0xFF3CCB7F) : const Color(0xFFEF5350),
           ),
-          backgroundColor:
-              success ? const Color(0xFF3CCB7F) : const Color(0xFFEF5350),
-        ),
-      );
+        );
+      } catch (e) {
+        if (!mounted) return;
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Error deleting user: $e'),
+            backgroundColor: const Color(0xFFEF5350),
+          ),
+        );
+      }
     }
   }
 }

@@ -653,6 +653,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 IconButton(
                   icon: const Icon(Icons.edit,
                       size: 18, color: Color(0xFF78909C)),
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
                   onPressed: () {
                     // Edit firearm
                   },
@@ -660,6 +662,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 IconButton(
                   icon: const Icon(Icons.more_vert,
                       size: 18, color: Color(0xFF78909C)),
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
                   onPressed: () {
                     // More actions
                   },

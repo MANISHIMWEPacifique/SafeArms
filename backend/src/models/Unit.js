@@ -116,6 +116,18 @@ const Unit = {
     },
 
     async update(unitId, updates) {
+        // Map unit_type to valid CHECK constraint values
+        if (updates.unit_type) {
+            const validTypes = ['headquarters', 'district', 'station', 'specialized'];
+            if (!validTypes.includes(updates.unit_type)) {
+                if (updates.unit_type === 'training_school' || updates.unit_type === 'special_unit') {
+                    updates.unit_type = 'specialized';
+                } else {
+                    updates.unit_type = 'station';
+                }
+            }
+        }
+
         const fields = Object.keys(updates).map((key, idx) => `${key} = $${idx + 2}`);
         const values = [unitId, ...Object.values(updates)];
         const result = await query(

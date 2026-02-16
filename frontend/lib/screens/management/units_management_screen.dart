@@ -402,28 +402,31 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        unit['unit_name'] ?? 'Unknown',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (unit['commander_name'] != null)
+                  child: InkWell(
+                    onTap: () => _showUnitDetails(unit),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          'Cmd: ${unit['commander_name']}',
+                          unit['unit_name'] ?? 'Unknown',
                           style: const TextStyle(
-                            color: Color(0xFF78909C),
-                            fontSize: 11,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
-                    ],
+                        if (unit['commander_name'] != null)
+                          Text(
+                            'Cmd: ${unit['commander_name']}',
+                            style: const TextStyle(
+                              color: Color(0xFF78909C),
+                              fontSize: 11,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ],

@@ -170,23 +170,25 @@ class BallisticProfileProvider with ChangeNotifier {
   // Profiles can only be created during firearm registration at HQ
   // This ensures forensic integrity for investigative search and matching
 
-  // Forensic search
+  // Forensic search by ballistic characteristics
   Future<List<Map<String, dynamic>>> forensicSearch({
-    String? riflingPattern,
-    int? landGrooveCount,
-    String? twistDirection,
+    String? firingPin,
     String? caliber,
-    DateTime? startDate,
-    DateTime? endDate,
+    String? rifling,
+    String? chamberFeed,
+    String? breechFace,
+    String? serialNumber,
+    String? generalSearch,
   }) async {
     try {
       return await _ballisticProfileService.forensicSearch(
-        riflingPattern: riflingPattern,
-        landGrooveCount: landGrooveCount,
-        twistDirection: twistDirection,
+        firingPin: firingPin,
         caliber: caliber,
-        startDate: startDate,
-        endDate: endDate,
+        rifling: rifling,
+        chamberFeed: chamberFeed,
+        breechFace: breechFace,
+        serialNumber: serialNumber,
+        generalSearch: generalSearch,
       );
     } catch (e) {
       _errorMessage = e.toString();

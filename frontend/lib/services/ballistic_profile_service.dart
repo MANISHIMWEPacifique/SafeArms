@@ -164,38 +164,42 @@ class BallisticProfileService {
     }
   }
 
-  // Search ballistic profiles by characteristics for matching purposes
+  // Search ballistic profiles by the 5 ballistic characteristics
   // Read-only search for investigative support
   Future<List<Map<String, dynamic>>> forensicSearch({
-    String? riflingPattern,
-    int? landGrooveCount,
-    String? twistDirection,
+    String? firingPin,
     String? caliber,
-    DateTime? startDate,
-    DateTime? endDate,
+    String? rifling,
+    String? chamberFeed,
+    String? breechFace,
+    String? serialNumber,
+    String? generalSearch,
   }) async {
     try {
       final headers = await _getHeaders();
       var url = '${ApiConfig.baseUrl}/api/ballistic-profiles/forensic-search';
 
       List<String> queryParams = [];
-      if (riflingPattern != null && riflingPattern.isNotEmpty) {
-        queryParams.add('rifling_pattern=$riflingPattern');
-      }
-      if (landGrooveCount != null) {
-        queryParams.add('land_groove_count=$landGrooveCount');
-      }
-      if (twistDirection != null && twistDirection.isNotEmpty) {
-        queryParams.add('twist_direction=$twistDirection');
+      if (firingPin != null && firingPin.isNotEmpty) {
+        queryParams.add('firing_pin=${Uri.encodeComponent(firingPin)}');
       }
       if (caliber != null && caliber.isNotEmpty) {
-        queryParams.add('caliber=$caliber');
+        queryParams.add('caliber=${Uri.encodeComponent(caliber)}');
       }
-      if (startDate != null) {
-        queryParams.add('start_date=${startDate.toIso8601String()}');
+      if (rifling != null && rifling.isNotEmpty) {
+        queryParams.add('rifling=${Uri.encodeComponent(rifling)}');
       }
-      if (endDate != null) {
-        queryParams.add('end_date=${endDate.toIso8601String()}');
+      if (chamberFeed != null && chamberFeed.isNotEmpty) {
+        queryParams.add('chamber_feed=${Uri.encodeComponent(chamberFeed)}');
+      }
+      if (breechFace != null && breechFace.isNotEmpty) {
+        queryParams.add('breech_face=${Uri.encodeComponent(breechFace)}');
+      }
+      if (serialNumber != null && serialNumber.isNotEmpty) {
+        queryParams.add('firearm_serial=${Uri.encodeComponent(serialNumber)}');
+      }
+      if (generalSearch != null && generalSearch.isNotEmpty) {
+        queryParams.add('search=${Uri.encodeComponent(generalSearch)}');
       }
 
       if (queryParams.isNotEmpty) {

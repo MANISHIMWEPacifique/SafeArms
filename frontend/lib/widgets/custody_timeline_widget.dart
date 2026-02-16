@@ -15,6 +15,7 @@ class CustodyTimelineWidget extends StatelessWidget {
   final Map<String, dynamic>? summary;
   final bool isLoading;
   final String? errorMessage;
+  final String? incidentDate;
 
   const CustodyTimelineWidget({
     Key? key,
@@ -22,6 +23,7 @@ class CustodyTimelineWidget extends StatelessWidget {
     this.summary,
     this.isLoading = false,
     this.errorMessage,
+    this.incidentDate,
   }) : super(key: key);
 
   @override
@@ -129,6 +131,20 @@ class CustodyTimelineWidget extends StatelessWidget {
     );
   }
 
+  bool _isEventDuringIncident(Map<String, dynamic> event) {
+    if (incidentDate == null) return false;
+    final incident = DateTime.tryParse(incidentDate!);
+    if (incident == null) return false;
+    final issuedAt = _parseDateTime(event['issued_at']);
+    final returnedAt = event['returned_at'] != null
+        ? _parseDateTime(event['returned_at'])
+        : null;
+    if (issuedAt == null) return false;
+    if (issuedAt.isAfter(incident.add(const Duration(days: 1)))) return false;
+    if (returnedAt != null && returnedAt.isBefore(incident)) return false;
+    return true;
+  }
+
   Widget _buildTimelineEvent(
       Map<String, dynamic> event, bool isLast, int sequence) {
     final issuedAt = _parseDateTime(event['issued_at']);
@@ -136,6 +152,7 @@ class CustodyTimelineWidget extends StatelessWidget {
         ? _parseDateTime(event['returned_at'])
         : null;
     final isCrossUnit = event['is_cross_unit_transfer'] == true;
+    final isIncidentHolder = _isEventDuringIncident(event);
 
     return IntrinsicHeight(
       child: Row(
@@ -150,20 +167,29 @@ class CustodyTimelineWidget extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
+                    color: isIncidentHolder
+                        ? const Color(0xFFFFA726).withValues(alpha: 0.25)
+                        : const Color(0xFF42A5F5).withValues(alpha: 0.2),
                     shape: BoxShape.circle,
-                    border:
-                        Border.all(color: const Color(0xFF42A5F5), width: 2),
+                    border: Border.all(
+                      color: isIncidentHolder
+                          ? const Color(0xFFFFA726)
+                          : const Color(0xFF42A5F5),
+                      width: 2,
+                    ),
                   ),
                   child: Center(
-                    child: Text(
-                      '$sequence',
-                      style: const TextStyle(
-                        color: Color(0xFF42A5F5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: isIncidentHolder
+                        ? const Icon(Icons.priority_high,
+                            color: Color(0xFFFFA726), size: 16)
+                        : Text(
+                            '$sequence',
+                            style: const TextStyle(
+                              color: Color(0xFF42A5F5),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
                 if (!isLast)
@@ -182,8 +208,14 @@ class CustodyTimelineWidget extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF2A3040),
-                border: Border.all(color: const Color(0xFF37404F)),
+                color: isIncidentHolder
+                    ? const Color(0xFFFFA726).withValues(alpha: 0.04)
+                    : const Color(0xFF2A3040),
+                border: Border.all(
+                  color: isIncidentHolder
+                      ? const Color(0xFFFFA726).withValues(alpha: 0.35)
+                      : const Color(0xFF37404F),
+                ),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -202,12 +234,34 @@ class CustodyTimelineWidget extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (isCrossUnit)
+                      if (isIncidentHolder)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
+                            color:
+                                const Color(0xFFFFA726).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'HOLDER AT INCIDENT',
+                            style: TextStyle(
+                              color: Color(0xFFFFA726),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      if (isCrossUnit)
+                        Container(
+                          margin:
+                              EdgeInsets.only(left: isIncidentHolder ? 6 : 0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF42A5F5).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(

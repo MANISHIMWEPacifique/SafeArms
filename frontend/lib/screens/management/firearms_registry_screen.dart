@@ -18,6 +18,11 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   bool _showRegisterModal = false;
   FirearmModel? _selectedFirearmForDetail;
 
+  bool get _isInvestigator {
+    final authProvider = context.read<AuthProvider>();
+    return authProvider.currentUser?['role'] == 'investigator';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -103,16 +108,18 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             FirearmDetailModal(
               firearm: _selectedFirearmForDetail!,
               onClose: () => setState(() => _selectedFirearmForDetail = null),
-              onEdit: () {
-                final firearmToEdit = _selectedFirearmForDetail;
-                setState(() {
-                  _selectedFirearmForDetail = null;
-                  _showRegisterModal = true;
-                });
-                if (firearmToEdit != null) {
-                  firearmProvider.selectFirearm(firearmToEdit);
-                }
-              },
+              onEdit: isInvestigator
+                  ? null
+                  : () {
+                      final firearmToEdit = _selectedFirearmForDetail;
+                      setState(() {
+                        _selectedFirearmForDetail = null;
+                        _showRegisterModal = true;
+                      });
+                      if (firearmToEdit != null) {
+                        firearmProvider.selectFirearm(firearmToEdit);
+                      }
+                    },
             ),
         ],
       ),
@@ -652,23 +659,25 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                         style: TextStyle(fontSize: 13)),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.edit,
-                      size: 18, color: Color(0xFF78909C)),
-                  onPressed: () {
-                    final firearmProvider = context.read<FirearmProvider>();
-                    firearmProvider.selectFirearm(firearm);
-                    setState(() => _showRegisterModal = true);
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.more_vert,
-                      size: 18, color: Color(0xFF78909C)),
-                  onPressed: () {
-                    // More actions
-                  },
-                ),
+                if (!_isInvestigator) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.edit,
+                        size: 18, color: Color(0xFF78909C)),
+                    onPressed: () {
+                      final firearmProvider = context.read<FirearmProvider>();
+                      firearmProvider.selectFirearm(firearm);
+                      setState(() => _showRegisterModal = true);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.more_vert,
+                        size: 18, color: Color(0xFF78909C)),
+                    onPressed: () {
+                      // More actions
+                    },
+                  ),
+                ],
               ],
             ),
           ],

@@ -130,9 +130,22 @@ const BallisticProfile = {
 
     /**
      * Search ballistic profiles with access logging
+     * Supports filtering by all 5 ballistic characteristics:
+     * 1. Firing Pin Shape/Pattern (firing_pin_impression)
+     * 2. Caliber/Chambering (caliber from firearms table)
+     * 3. Barrel Rifling (rifling_characteristics)
+     * 4. Chamber/Feed System (chamber_marks)
+     * 5. Breech Face Pattern (ejector_marks, extractor_marks)
      */
     async search(searchParams, requestingUserId = null, reqInfo = {}) {
-        const { test_location, forensic_lab, firearm_serial, limit = 50 } = searchParams;
+        const { 
+            test_location, forensic_lab, firearm_serial, 
+            // Ballistic characteristic filters
+            firing_pin, caliber, rifling, chamber_feed, breech_face,
+            // General search
+            search,
+            limit = 50 
+        } = searchParams;
         let where = 'WHERE 1=1';
         let params = [];
         let pCount = 0;
@@ -145,8 +158,8 @@ const BallisticProfile = {
 
         if (forensic_lab) {
             pCount++;
-            where += ` AND bp.forensic_lab = $${pCount}`;
-            params.push(forensic_lab);
+            where += ` AND bp.forensic_lab ILIKE $${pCount}`;
+            params.push(`%${forensic_lab}%`);
         }
 
         if (firearm_serial) {
@@ -155,12 +168,64 @@ const BallisticProfile = {
             params.push(`%${firearm_serial}%`);
         }
 
+        // 1. Firing Pin Shape/Pattern
+        if (firing_pin) {
+            pCount++;
+            where += ` AND bp.firing_pin_impression ILIKE $${pCount}`;
+            params.push(`%${firing_pin}%`);
+        }
+
+        // 2. Caliber/Chambering
+        if (caliber) {
+            pCount++;
+            where += ` AND f.caliber ILIKE $${pCount}`;
+            params.push(`%${caliber}%`);
+        }
+
+        // 3. Barrel Rifling
+        if (rifling) {
+            pCount++;
+            where += ` AND bp.rifling_characteristics ILIKE $${pCount}`;
+            params.push(`%${rifling}%`);
+        }
+
+        // 4. Chamber/Feed System
+        if (chamber_feed) {
+            pCount++;
+            where += ` AND bp.chamber_marks ILIKE $${pCount}`;
+            params.push(`%${chamber_feed}%`);
+        }
+
+        // 5. Breech Face Pattern (searches both ejector and extractor marks)
+        if (breech_face) {
+            pCount++;
+            where += ` AND (bp.ejector_marks ILIKE $${pCount} OR bp.extractor_marks ILIKE $${pCount})`;
+            params.push(`%${breech_face}%`);
+        }
+
+        // General search across all characteristics
+        if (search) {
+            pCount++;
+            where += ` AND (
+                f.serial_number ILIKE $${pCount} OR 
+                f.manufacturer ILIKE $${pCount} OR 
+                f.model ILIKE $${pCount} OR 
+                f.caliber ILIKE $${pCount} OR
+                bp.firing_pin_impression ILIKE $${pCount} OR 
+                bp.rifling_characteristics ILIKE $${pCount} OR 
+                bp.chamber_marks ILIKE $${pCount} OR 
+                bp.ejector_marks ILIKE $${pCount} OR 
+                bp.extractor_marks ILIKE $${pCount}
+            )`;
+            params.push(`%${search}%`);
+        }
+
         pCount++;
         params.push(limit);
 
         const result = await query(`
-            SELECT bp.*, f.serial_number, f.manufacturer, f.model, f.current_status,
-                   f.assigned_unit_id, u.unit_name as assigned_unit_name
+            SELECT bp.*, f.serial_number, f.manufacturer, f.model, f.caliber, f.firearm_type,
+                   f.current_status, f.assigned_unit_id, u.unit_name as assigned_unit_name
             FROM ballistic_profiles bp
             JOIN firearms f ON bp.firearm_id = f.firearm_id
             LEFT JOIN units u ON f.assigned_unit_id = u.unit_id

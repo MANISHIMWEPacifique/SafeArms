@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+const { query, withTransaction } = require('../config/database');
 
 const Unit = {
     async findById(unitId) {
@@ -150,12 +150,37 @@ const Unit = {
     },
 
     async delete(unitId) {
-        // Soft delete - set is_active to false
-        const result = await query(
-            `UPDATE units SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE unit_id = $1 RETURNING *`,
-            [unitId]
-        );
-        return result.rows[0];
+        return await withTransaction(async (client) => {
+            // Delete records from tables that reference this unit with NOT NULL constraints
+            await client.query('DELETE FROM ml_training_features WHERE unit_id = $1', [unitId]);
+            await client.query('DELETE FROM anomalies WHERE unit_id = $1', [unitId]);
+            await client.query('DELETE FROM loss_reports WHERE unit_id = $1', [unitId]);
+            await client.query('DELETE FROM destruction_requests WHERE unit_id = $1', [unitId]);
+            await client.query('DELETE FROM procurement_requests WHERE unit_id = $1', [unitId]);
+
+            // Nullify nullable unit references
+            await client.query('UPDATE ballistic_access_logs SET current_custody_unit_id = NULL WHERE current_custody_unit_id = $1', [unitId]);
+            await client.query('UPDATE firearm_unit_movements SET from_unit_id = NULL WHERE from_unit_id = $1', [unitId]);
+
+            // Delete firearm unit movements where this unit is the destination
+            await client.query('DELETE FROM firearm_unit_movements WHERE to_unit_id = $1', [unitId]);
+
+            // Delete custody records for this unit
+            await client.query('DELETE FROM custody_records WHERE unit_id = $1', [unitId]);
+
+            // Nullify unit references on officers and firearms
+            await client.query('DELETE FROM officers WHERE unit_id = $1', [unitId]);
+            await client.query('UPDATE firearms SET assigned_unit_id = NULL WHERE assigned_unit_id = $1', [unitId]);
+            await client.query('UPDATE users SET unit_id = NULL WHERE unit_id = $1', [unitId]);
+
+            // Finally delete the unit
+            const result = await client.query(
+                'DELETE FROM units WHERE unit_id = $1 RETURNING *',
+                [unitId]
+            );
+
+            return result.rows[0];
+        });
     }
 };
 

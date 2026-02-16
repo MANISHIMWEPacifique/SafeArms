@@ -562,8 +562,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
           ],
         ),
         content: Text(
-          'Are you sure you want to deactivate "${unit['unit_name']}"? '
-          'This will mark the unit as inactive.',
+          'Are you sure you want to permanently delete "${unit['unit_name']}"? '
+          'This action cannot be undone.',
           style: const TextStyle(color: Color(0xFFB0BEC5)),
         ),
         actions: [
@@ -582,8 +582,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(success
-                        ? '${unit['unit_name']} deactivated successfully'
-                        : 'Failed to deactivate unit'),
+                        ? '${unit['unit_name']} deleted successfully'
+                        : 'Failed to delete unit'),
                     backgroundColor: success
                         ? const Color(0xFF3CCB7F)
                         : const Color(0xFFE85C5C),

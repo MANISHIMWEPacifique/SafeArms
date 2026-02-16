@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
+import '../../widgets/create_user_modal.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({Key? key}) : super(key: key);
@@ -794,7 +795,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Widget _buildModals(BuildContext context, UserProvider userProvider) {
     if (_showCreateModal) {
-      return _CreateUserModal(
+      return CreateUserModal(
         user: userProvider.selectedUser,
         onClose: () {
           setState(() {
@@ -896,26 +897,6 @@ class _TableHeader extends StatelessWidget {
         letterSpacing: 0.5,
       ),
     );
-  }
-}
-
-// Create/Edit User Modal (will be in separate file - placeholder for now)
-class _CreateUserModal extends StatelessWidget {
-  final UserModel? user;
-  final VoidCallback onClose;
-  final VoidCallback onSuccess;
-
-  const _CreateUserModal({
-    Key? key,
-    this.user,
-    required this.onClose,
-    required this.onSuccess,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    // This will be implemented in next iteration
-    return Container();
   }
 }
 

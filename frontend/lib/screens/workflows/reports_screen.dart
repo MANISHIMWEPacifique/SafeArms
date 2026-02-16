@@ -78,7 +78,12 @@ class _ReportsScreenState extends State<ReportsScreen>
         _destructionRequests = results[1] as List<Map<String, dynamic>>;
         _procurementRequests = results[2] as List<Map<String, dynamic>>;
         if (results.length > 3) {
-          _unitFirearms = results[3] as List<Map<String, dynamic>>;
+          final firearms = results[3];
+          _unitFirearms = (firearms as List)
+              .map((f) => f is Map<String, dynamic>
+                  ? f
+                  : (f as dynamic).toJson() as Map<String, dynamic>)
+              .toList();
         }
         _isLoading = false;
       });
@@ -101,8 +106,8 @@ class _ReportsScreenState extends State<ReportsScreen>
     final isStation = role == 'station_commander';
     final isHQ = role == 'hq_firearm_commander';
     final isInvestigator = role == 'investigator';
-    // Only HQ commander and admin can approve/reject
-    final canApprove = isHQ || role == 'admin';
+    // Only admin can approve/reject here — HQ commanders use the dedicated Approvals Portal
+    final canApprove = role == 'admin';
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
@@ -133,8 +138,9 @@ class _ReportsScreenState extends State<ReportsScreen>
       title = 'Unit Reports';
       subtitle = 'Submit loss reports, destruction and procurement requests';
     } else if (isHQ) {
-      title = 'Reports Oversight';
-      subtitle = 'Review and approve reports from all police stations';
+      title = 'Reports Overview';
+      subtitle =
+          'View reports from all police stations (approve via Approvals Portal)';
     } else if (isInvestigator) {
       title = 'Reports Review';
       subtitle = 'View submitted reports and requests across all units';
@@ -761,7 +767,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('Loss report submitted successfully'),
-                          backgroundColor: Color(0xFF1E88E5)),
+                          backgroundColor: Color(0xFF3CCB7F)),
                     );
                     _loadData();
                   }
@@ -860,7 +866,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('Destruction request submitted'),
-                          backgroundColor: Color(0xFF1E88E5)),
+                          backgroundColor: Color(0xFF3CCB7F)),
                     );
                     _loadData();
                   }
@@ -972,7 +978,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('Procurement request submitted'),
-                          backgroundColor: Color(0xFF1E88E5)),
+                          backgroundColor: Color(0xFF3CCB7F)),
                     );
                     _loadData();
                   }
@@ -1106,7 +1112,7 @@ class _ReportsScreenState extends State<ReportsScreen>
             content: Text(
                 'Request ${action == 'approved' ? 'approved' : 'rejected'} successfully'),
             backgroundColor: action == 'approved'
-                ? const Color(0xFF1E88E5)
+                ? const Color(0xFF3CCB7F)
                 : const Color(0xFFE85C5C),
           ),
         );

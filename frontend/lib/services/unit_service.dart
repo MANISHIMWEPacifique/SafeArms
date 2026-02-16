@@ -10,6 +10,9 @@ class UnitService {
 
   Future<Map<String, String>> _getHeaders() async {
     final token = await _authService.getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Not authenticated. Please log in again.');
+    }
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
@@ -109,7 +112,7 @@ class UnitService {
     }
   }
 
-  // Delete unit (soft delete)
+  // Delete unit (permanent delete)
   Future<bool> deleteUnit(String unitId) async {
     try {
       final headers = await _getHeaders();

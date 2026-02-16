@@ -37,9 +37,12 @@ class _StationCustodyManagementScreenState
     final unitId = authProvider.currentUser?['unit_id']?.toString();
 
     if (unitId != null) {
-      await custodyProvider.loadUnitCustody(unitId: unitId);
-      await custodyProvider.loadStats();
-      await custodyProvider.loadAnomalyStatus();
+      // Load all data in parallel for faster loading
+      await Future.wait([
+        custodyProvider.loadUnitCustody(unitId: unitId),
+        custodyProvider.loadStats(),
+        custodyProvider.loadAnomalyStatus(),
+      ]);
     }
   }
 

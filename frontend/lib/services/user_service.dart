@@ -13,6 +13,9 @@ class UserService {
   // Get authorization headers
   Future<Map<String, String>> _getHeaders() async {
     final token = await _authService.getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Not authenticated. Please log in again.');
+    }
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
@@ -28,7 +31,7 @@ class UserService {
     try {
       final headers = await _getHeaders();
       var url = ApiConfig.users;
-      
+
       // Build query parameters
       List<String> queryParams = [];
       if (role != null && role.isNotEmpty && role != 'all') {
@@ -40,15 +43,17 @@ class UserService {
       if (unitId != null && unitId.isNotEmpty && unitId != 'all') {
         queryParams.add('unit_id=$unitId');
       }
-      
+
       if (queryParams.isNotEmpty) {
         url += '?${queryParams.join('&')}';
       }
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -66,10 +71,12 @@ class UserService {
   Future<UserModel> getUserById(String userId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.users}/$userId'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.users}/$userId'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -108,11 +115,13 @@ class UserService {
         'must_change_password': mustChangePassword,
       });
 
-      final response = await http.post(
-        Uri.parse(ApiConfig.users),
-        headers: headers,
-        body: body,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.users),
+            headers: headers,
+            body: body,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -140,20 +149,23 @@ class UserService {
     try {
       final headers = await _getHeaders();
       final Map<String, dynamic> updates = {};
-      
+
       if (fullName != null) updates['full_name'] = fullName;
       if (email != null) updates['email'] = email;
       if (phoneNumber != null) updates['phone_number'] = phoneNumber;
       if (role != null) updates['role'] = role;
       if (unitId != null) updates['unit_id'] = unitId;
       if (isActive != null) updates['is_active'] = isActive;
-      if (mustChangePassword != null) updates['must_change_password'] = mustChangePassword;
+      if (mustChangePassword != null)
+        updates['must_change_password'] = mustChangePassword;
 
-      final response = await http.put(
-        Uri.parse('${ApiConfig.users}/$userId'),
-        headers: headers,
-        body: json.encode(updates),
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .put(
+            Uri.parse('${ApiConfig.users}/$userId'),
+            headers: headers,
+            body: json.encode(updates),
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -171,10 +183,12 @@ class UserService {
   Future<void> deleteUser(String userId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.delete(
-        Uri.parse('${ApiConfig.users}/$userId'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .delete(
+            Uri.parse('${ApiConfig.users}/$userId'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode != 200 && response.statusCode != 204) {
         final error = json.decode(response.body);
@@ -189,10 +203,12 @@ class UserService {
   Future<Map<String, dynamic>> getUserStats() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.users}/stats'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.users}/stats'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -209,10 +225,12 @@ class UserService {
   Future<List<UserModel>> searchUsers(String query) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.users}/search?q=$query'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.users}/search?q=$query'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

@@ -499,8 +499,14 @@ const extractAllFeatures = async (custodyRecord) => {
  */
 const storeFeatures = async (custodyRecord, features) => {
     try {
+        // Generate feature_id
+        const idResult = await query('SELECT COUNT(*) as count FROM ml_training_features');
+        const count = parseInt(idResult.rows[0].count) + 1;
+        const featureId = `FEAT-${String(count).padStart(5, '0')}`;
+
         await query(
             `INSERT INTO ml_training_features (
+        feature_id,
         officer_id, firearm_id, unit_id, custody_record_id,
         custody_duration_seconds, issue_hour, issue_day_of_week,
         is_night_issue, is_weekend_issue,
@@ -510,8 +516,10 @@ const storeFeatures = async (custodyRecord, features) => {
         cross_unit_movement_flag, rapid_exchange_flag,
         custody_duration_zscore, issue_frequency_zscore,
         has_ballistic_profile, ballistic_accesses_7d
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+      ON CONFLICT (feature_id) DO NOTHING`,
             [
+                featureId,
                 custodyRecord.officer_id,
                 custodyRecord.firearm_id,
                 custodyRecord.unit_id,
@@ -532,13 +540,7 @@ const storeFeatures = async (custodyRecord, features) => {
                 features.custody_duration_zscore,
                 features.issue_frequency_zscore,
                 features.has_ballistic_profile,
-                features.ballistic_accesses_7d,
-                // New chain-of-custody and ballistic timing features
-                features.is_cross_unit_transfer,
-                features.cross_unit_transfer_count_30d,
-                features.ballistic_accesses_24h,
-                features.ballistic_access_timing_score,
-                JSON.stringify(features.event_context)
+                features.ballistic_accesses_7d
             ]
         );
     } catch (error) {

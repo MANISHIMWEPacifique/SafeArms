@@ -104,11 +104,14 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               firearm: _selectedFirearmForDetail!,
               onClose: () => setState(() => _selectedFirearmForDetail = null),
               onEdit: () {
+                final firearmToEdit = _selectedFirearmForDetail;
                 setState(() {
                   _selectedFirearmForDetail = null;
                   _showRegisterModal = true;
                 });
-                firearmProvider.selectFirearm(_selectedFirearmForDetail!);
+                if (firearmToEdit != null) {
+                  firearmProvider.selectFirearm(firearmToEdit);
+                }
               },
             ),
         ],

@@ -31,7 +31,7 @@ router.put('/:id', authenticate, requireAdminOrHQ, logUpdate, asyncHandler(async
 router.delete('/:id', authenticate, requireAdminOrHQ, logDelete, asyncHandler(async (req, res) => {
     const unit = await Unit.delete(req.params.id);
     if (!unit) return res.status(404).json({ success: false, message: 'Unit not found' });
-    res.json({ success: true, message: 'Unit deactivated successfully', data: unit });
+    res.json({ success: true, message: 'Unit deleted successfully', data: unit });
 }));
 
 module.exports = router;

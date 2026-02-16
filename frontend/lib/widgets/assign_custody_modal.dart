@@ -64,21 +64,21 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
     final unitId = authProvider.currentUser?['unit_id']?.toString();
 
     try {
-      // Load firearms available in this unit (not in custody)
-      final firearms = await _firearmService.getAllFirearms(
-        unitId: unitId,
-        status: 'available',
-      );
-
-      // Load officers in this unit
-      final officers = await _officerService.getAllOfficers(
-        unitId: unitId,
-        activeStatus: 'true',
-      );
+      // Load firearms and officers in parallel for faster loading
+      final results = await Future.wait([
+        _firearmService.getAllFirearms(
+          unitId: unitId,
+          status: 'available',
+        ),
+        _officerService.getAllOfficers(
+          unitId: unitId,
+          activeStatus: 'true',
+        ),
+      ]);
 
       setState(() {
-        _availableFirearms = firearms;
-        _officers = officers;
+        _availableFirearms = (results[0] as List<dynamic>).cast<FirearmModel>();
+        _officers = (results[1] as List<dynamic>).cast<OfficerModel>();
         _isLoading = false;
       });
     } catch (e) {

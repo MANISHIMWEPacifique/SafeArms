@@ -11,6 +11,9 @@ class SettingsService {
 
   Future<Map<String, String>> _getHeaders() async {
     final token = await _authService.getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Not authenticated. Please log in again.');
+    }
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
@@ -21,10 +24,12 @@ class SettingsService {
   Future<Map<String, dynamic>> getSystemSettings() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/api/settings'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.baseUrl}/api/settings'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -41,11 +46,13 @@ class SettingsService {
   Future<bool> updateSettings(Map<String, dynamic> settings) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.put(
-        Uri.parse('${ApiConfig.baseUrl}/api/settings'),
-        headers: headers,
-        body: json.encode(settings),
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .put(
+            Uri.parse('${ApiConfig.baseUrl}/api/settings'),
+            headers: headers,
+            body: json.encode(settings),
+          )
+          .timeout(ApiConfig.timeout);
 
       return response.statusCode == 200;
     } catch (e) {
@@ -64,22 +71,26 @@ class SettingsService {
     try {
       final headers = await _getHeaders();
       var url = '${ApiConfig.baseUrl}/api/audit-logs';
-      
+
       List<String> queryParams = [];
-      if (startDate != null) queryParams.add('start_date=${startDate.toIso8601String()}');
-      if (endDate != null) queryParams.add('end_date=${endDate.toIso8601String()}');
+      if (startDate != null)
+        queryParams.add('start_date=${startDate.toIso8601String()}');
+      if (endDate != null)
+        queryParams.add('end_date=${endDate.toIso8601String()}');
       if (userId != null) queryParams.add('user_id=$userId');
       if (action != null) queryParams.add('action=$action');
       if (status != null) queryParams.add('status=$status');
-      
+
       if (queryParams.isNotEmpty) {
         url += '?${queryParams.join('&')}';
       }
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -96,10 +107,12 @@ class SettingsService {
   Future<Map<String, dynamic>> getSystemHealth() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/api/system/health'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.baseUrl}/api/system/health'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -116,10 +129,12 @@ class SettingsService {
   Future<Map<String, dynamic>> getMLConfiguration() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/api/ml/config'),
-        headers: headers,
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.baseUrl}/api/ml/config'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -136,11 +151,13 @@ class SettingsService {
   Future<bool> updateMLConfiguration(Map<String, dynamic> config) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.put(
-        Uri.parse('${ApiConfig.baseUrl}/api/ml/config'),
-        headers: headers,
-        body: json.encode(config),
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .put(
+            Uri.parse('${ApiConfig.baseUrl}/api/ml/config'),
+            headers: headers,
+            body: json.encode(config),
+          )
+          .timeout(ApiConfig.timeout);
 
       return response.statusCode == 200;
     } catch (e) {
@@ -152,10 +169,12 @@ class SettingsService {
   Future<bool> trainMLModel() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/api/ml/train'),
-        headers: headers,
-      ).timeout(const Duration(seconds: 120)); // Longer timeout for training
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/api/ml/train'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 120)); // Longer timeout for training
 
       return response.statusCode == 200;
     } catch (e) {

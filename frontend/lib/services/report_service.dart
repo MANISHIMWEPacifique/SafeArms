@@ -10,6 +10,9 @@ class ReportService {
 
   Future<Map<String, String>> _getHeaders() async {
     final token = await _authService.getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Not authenticated. Please log in again.');
+    }
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',

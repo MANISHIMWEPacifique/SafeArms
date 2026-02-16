@@ -20,13 +20,18 @@ const connectionConfig = process.env.DATABASE_URL
 const pool = new Pool({
   ...connectionConfig,
   max: 20,
-  idleTimeoutMillis: 30000,
+  min: 2,                      // Keep at least 2 connections warm
+  idleTimeoutMillis: 120000,   // Keep idle connections for 2 minutes (was 30s)
   connectionTimeoutMillis: 10000,
 });
 
-// Test database connection
+// Log only the first connection event
+let connectionLogged = false;
 pool.on('connect', () => {
-  console.log('✅ PostgreSQL database connected successfully');
+  if (!connectionLogged) {
+    console.log('✅ PostgreSQL database connected successfully');
+    connectionLogged = true;
+  }
 });
 
 pool.on('error', (err) => {
@@ -40,7 +45,10 @@ const query = async (text, params) => {
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
+    // Only log slow queries (>500ms) to reduce console noise
+    if (duration > 500) {
+      console.log('⚠️ Slow query', { text: text.substring(0, 80), duration, rows: res.rowCount });
+    }
     return res;
   } catch (error) {
     console.error('Database query error:', error);

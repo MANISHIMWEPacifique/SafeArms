@@ -636,7 +636,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      // View details
+                      setState(() => _selectedFirearmForDetail = firearm);
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF1E88E5),
@@ -653,17 +653,15 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 IconButton(
                   icon: const Icon(Icons.edit,
                       size: 18, color: Color(0xFF78909C)),
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(6),
                   onPressed: () {
-                    // Edit firearm
+                    final firearmProvider = context.read<FirearmProvider>();
+                    firearmProvider.selectFirearm(firearm);
+                    setState(() => _showRegisterModal = true);
                   },
                 ),
                 IconButton(
                   icon: const Icon(Icons.more_vert,
                       size: 18, color: Color(0xFF78909C)),
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(6),
                   onPressed: () {
                     // More actions
                   },

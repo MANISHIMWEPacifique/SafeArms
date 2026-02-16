@@ -71,7 +71,7 @@ const assignCustody = async (custodyData) => {
             const isCrossUnitTransfer = crossUnitCheck.isCrossUnit;
 
             // Generate custody ID
-            const idResult = await client.query(`SELECT 'CUS-' || LPAD(COALESCE(MAX(CAST(SUBSTRING(custody_id FROM 5) AS INTEGER)), 0) + 1, 3, '0') as next_id FROM custody_records`);
+            const idResult = await client.query(`SELECT 'CUS-' || LPAD(CAST(COALESCE(MAX(CAST(SUBSTRING(custody_id FROM 5) AS INTEGER)), 0) + 1 AS TEXT), 3, '0') as next_id FROM custody_records`);
             const custodyId = idResult.rows[0].next_id;
 
             // Create custody record

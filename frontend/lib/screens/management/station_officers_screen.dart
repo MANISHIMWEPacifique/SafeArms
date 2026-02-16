@@ -445,6 +445,57 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     );
   }
 
+  void _confirmDeleteOfficer(OfficerModel officer) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF2A3040),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber, color: Color(0xFFE85C5C)),
+            SizedBox(width: 12),
+            Text('Deactivate Officer', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to deactivate ${officer.fullName}? '
+          'This will mark the officer as inactive.',
+          style: const TextStyle(color: Color(0xFFB0BEC5)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel',
+                style: TextStyle(color: Color(0xFF78909C))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              final provider = context.read<OfficerProvider>();
+              final success = await provider.deleteOfficer(officer.officerId);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success
+                        ? '${officer.fullName} deactivated successfully'
+                        : provider.errorMessage ??
+                            'Failed to deactivate officer'),
+                    backgroundColor: success
+                        ? const Color(0xFF3CCB7F)
+                        : const Color(0xFFE85C5C),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE85C5C)),
+            child: const Text('Deactivate'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBulkActionsBar() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -605,29 +656,25 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      officer.fullName,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    officer.fullName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
                     ),
-                    Text(
-                      officer.officerNumber,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 12,
-                      ),
+                  ),
+                  Text(
+                    officer.officerNumber,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -682,6 +729,12 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
                 icon: const Icon(Icons.edit, size: 18),
                 color: const Color(0xFFFFC857),
                 tooltip: 'Edit',
+              ),
+              IconButton(
+                onPressed: () => _confirmDeleteOfficer(officer),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                color: const Color(0xFFE85C5C),
+                tooltip: 'Deactivate',
               ),
             ],
           ),

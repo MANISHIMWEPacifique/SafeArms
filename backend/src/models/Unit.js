@@ -147,6 +147,15 @@ const Unit = {
             FROM units
         `);
         return result.rows[0];
+    },
+
+    async delete(unitId) {
+        // Soft delete - set is_active to false
+        const result = await query(
+            `UPDATE units SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE unit_id = $1 RETURNING *`,
+            [unitId]
+        );
+        return result.rows[0];
     }
 };
 

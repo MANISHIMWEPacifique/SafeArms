@@ -108,4 +108,26 @@ class UnitService {
       throw Exception('Error updating unit: $e');
     }
   }
+
+  // Delete unit (soft delete)
+  Future<bool> deleteUnit(String unitId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http
+          .delete(
+            Uri.parse('${ApiConfig.units}/$unitId'),
+            headers: headers,
+          )
+          .timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Failed to delete unit');
+      }
+    } catch (e) {
+      throw Exception('Error deleting unit: $e');
+    }
+  }
 }

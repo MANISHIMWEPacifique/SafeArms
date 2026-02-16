@@ -71,10 +71,16 @@ const Officer = {
 
     async create(officerData) {
         const { officer_number, full_name, rank, unit_id, phone_number, email, date_of_birth, employment_date, firearm_certified, certification_date, certification_expiry } = officerData;
+
+        // Generate officer_id
+        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(officer_id FROM 5) AS INTEGER)), 0) as max_num FROM officers WHERE officer_id ~ '^OFF-[0-9]+$'`);
+        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+        const officer_id = `OFF-${String(nextNum).padStart(3, '0')}`;
+
         const result = await query(
-            `INSERT INTO officers (officer_number, full_name, rank, unit_id, phone_number, email, date_of_birth, employment_date, firearm_certified, certification_date, certification_expiry)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-            [officer_number, full_name, rank, unit_id, phone_number, email, date_of_birth, employment_date, firearm_certified || false, certification_date, certification_expiry]
+            `INSERT INTO officers (officer_id, officer_number, full_name, rank, unit_id, phone_number, email, date_of_birth, employment_date, firearm_certified, certification_date, certification_expiry)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+            [officer_id, officer_number, full_name, rank, unit_id, phone_number, email, date_of_birth, employment_date, firearm_certified || false, certification_date, certification_expiry]
         );
         return result.rows[0];
     },

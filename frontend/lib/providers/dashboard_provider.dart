@@ -26,6 +26,8 @@ class DashboardProvider with ChangeNotifier {
       _dashboardStats?['pending_approvals'];
   List<dynamic> get recentCustodyActivity =>
       _dashboardStats?['recent_custody'] ?? [];
+  List<dynamic> get recentActivities =>
+      _dashboardStats?['recent_activities'] ?? [];
 
   // Load all dashboard statistics with one API call
   Future<void> loadDashboardStats() async {

@@ -74,7 +74,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         dashboardData.active_units = parseInt(unitsCount.rows[0].total);
     }
 
-    // Station Commander specific stats: officers count and recent custody
+    // Station Commander specific stats: officers count
     if (role === 'station_commander') {
         // Officers in this unit
         const officersCount = await query(
@@ -82,27 +82,54 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
             [unit_id]
         );
         dashboardData.officers_count = parseInt(officersCount.rows[0].total);
-
-        // Recent custody activity for this unit
-        const recentCustody = await query(`
-            SELECT 
-                cr.custody_id,
-                cr.issued_at,
-                cr.returned_at,
-                cr.assignment_reason,
-                cr.custody_type,
-                o.full_name as officer_name,
-                f.serial_number,
-                f.firearm_type
-            FROM custody_records cr
-            JOIN officers o ON cr.officer_id = o.officer_id
-            JOIN firearms f ON cr.firearm_id = f.firearm_id
-            WHERE cr.unit_id = $1
-            ORDER BY cr.issued_at DESC
-            LIMIT 5
-        `, [unit_id]);
-        dashboardData.recent_custody = recentCustody.rows;
     }
+
+    // Recent custody activity - available for ALL roles
+    // Station commanders see their unit only; others see all units
+    const recentCustody = await query(`
+        SELECT 
+            cr.custody_id,
+            cr.issued_at,
+            cr.returned_at,
+            cr.assignment_reason,
+            cr.custody_type,
+            o.full_name as officer_name,
+            f.serial_number,
+            f.firearm_type,
+            u.unit_name
+        FROM custody_records cr
+        JOIN officers o ON cr.officer_id = o.officer_id
+        JOIN firearms f ON cr.firearm_id = f.firearm_id
+        LEFT JOIN units u ON cr.unit_id = u.unit_id
+        ${role === 'station_commander' ? 'WHERE cr.unit_id = $1' : ''}
+        ORDER BY cr.issued_at DESC
+        LIMIT 10
+    `, role === 'station_commander' ? [unit_id] : []);
+    dashboardData.recent_custody = recentCustody.rows;
+
+    // Recent activities from audit logs - available for ALL roles
+    const recentActivities = await query(`
+        SELECT 
+            al.log_id,
+            al.action_type,
+            al.table_name,
+            al.record_id,
+            al.created_at,
+            al.success,
+            u.full_name as actor_name,
+            COALESCE(
+                al.new_values->>'subject_name',
+                al.new_values->>'subject_type',
+                al.table_name
+            ) as subject_description
+        FROM audit_logs al
+        LEFT JOIN users u ON al.user_id = u.user_id
+        WHERE al.success = true
+        ${role === 'station_commander' ? "AND (u.unit_id = $1 OR al.new_values->>'actor_unit_id' = $1)" : ''}
+        ORDER BY al.created_at DESC
+        LIMIT 10
+    `, role === 'station_commander' ? [unit_id] : []);
+    dashboardData.recent_activities = recentActivities.rows;
 
     // Investigator specific stats
     if (role === 'investigator') {

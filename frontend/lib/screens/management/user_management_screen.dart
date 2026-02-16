@@ -505,16 +505,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       color: Color(0xFF78909C), size: 18),
                   onPressed: () => _showUserDetails(user),
                   tooltip: 'View',
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(6),
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit,
                       color: Color(0xFF78909C), size: 18),
                   onPressed: () => _showEditUserDialog(user, provider),
                   tooltip: 'Edit',
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(6),
                 ),
                 IconButton(
                   icon: const Icon(
@@ -524,8 +520,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   ),
                   onPressed: () => _deleteUser(user, provider),
                   tooltip: 'Delete',
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(6),
                 ),
               ],
             ),

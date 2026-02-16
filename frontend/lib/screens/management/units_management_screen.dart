@@ -531,15 +531,66 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                   padding: const EdgeInsets.all(4),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.visibility,
-                      color: Color(0xFF78909C), size: 18),
-                  onPressed: () => _showUnitDetails(unit),
-                  tooltip: 'View Details',
+                  icon: const Icon(Icons.delete_outline,
+                      color: Color(0xFFE85C5C), size: 18),
+                  onPressed: () => _confirmDeleteUnit(unit),
+                  tooltip: 'Delete',
                   constraints: const BoxConstraints(),
                   padding: const EdgeInsets.all(4),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteUnit(dynamic unit) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF2A3040),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber, color: Color(0xFFE85C5C)),
+            SizedBox(width: 12),
+            Text('Delete Unit', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to deactivate "${unit['unit_name']}"? '
+          'This will mark the unit as inactive.',
+          style: const TextStyle(color: Color(0xFFB0BEC5)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel',
+                style: TextStyle(color: Color(0xFF78909C))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final unitProvider = context.read<UnitProvider>();
+              Navigator.pop(dialogContext);
+              final success =
+                  await unitProvider.deleteUnit(unit['unit_id'].toString());
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success
+                        ? '${unit['unit_name']} deactivated successfully'
+                        : 'Failed to deactivate unit'),
+                    backgroundColor: success
+                        ? const Color(0xFF3CCB7F)
+                        : const Color(0xFFE85C5C),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE85C5C)),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -804,8 +855,6 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                           child: Text('Training School')),
                       DropdownMenuItem(
                           value: 'special_unit', child: Text('Special Unit')),
-                      DropdownMenuItem(
-                          value: 'specialized', child: Text('Specialized')),
                       DropdownMenuItem(
                           value: 'specialized', child: Text('Specialized')),
                     ],

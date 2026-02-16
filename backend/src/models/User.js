@@ -164,7 +164,6 @@ const User = {
             await client.query('UPDATE users SET created_by = NULL WHERE created_by = $1', [userId]);
 
             // Nullify nullable foreign key references
-            await client.query('UPDATE units SET created_by = NULL WHERE created_by = $1', [userId]);
             await client.query('UPDATE ballistic_profiles SET locked_by = NULL WHERE locked_by = $1', [userId]);
             await client.query('UPDATE ballistic_profiles SET created_by = NULL WHERE created_by = $1', [userId]);
             await client.query('UPDATE custody_records SET returned_to = NULL WHERE returned_to = $1', [userId]);

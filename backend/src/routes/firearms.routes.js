@@ -218,25 +218,28 @@ router.post('/', authenticate, requireHQCommander, logCreate, asyncHandler(async
         });
     }
     
-    const { getClient } = require('../config/database');
-    const client = await getClient();
+    const { withTransaction } = require('../config/database');
     
-    try {
-        await client.query('BEGIN');
-        
+    const result = await withTransaction(async (client) => {
+        // Generate firearm_id
+        const faIdResult = await client.query(`SELECT COALESCE(MAX(CAST(SUBSTRING(firearm_id FROM 4) AS INTEGER)), 0) as max_num FROM firearms WHERE firearm_id ~ '^FA-[0-9]+$'`);
+        const faNextNum = parseInt(faIdResult.rows[0].max_num) + 1;
+        const firearm_id = `FA-${String(faNextNum).padStart(3, '0')}`;
+
         // Create the firearm
         const firearmData = { ...req.body, registered_by: req.user.user_id, registration_level: 'hq' };
         delete firearmData.ballistic_profile; // Remove from firearm data
         
         const firearmInsert = `
             INSERT INTO firearms (
-                serial_number, manufacturer, model, firearm_type, caliber,
+                firearm_id, serial_number, manufacturer, model, firearm_type, caliber,
                 manufacture_year, acquisition_date, acquisition_source,
                 assigned_unit_id, registered_by, registration_level, notes
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
         `;
         const firearmValues = [
+            firearm_id,
             firearmData.serial_number,
             firearmData.manufacturer,
             firearmData.model,
@@ -263,16 +266,22 @@ router.post('/', authenticate, requireHQCommander, logCreate, asyncHandler(async
             ballistic_profile.ejector_marks ||
             ballistic_profile.extractor_marks
         )) {
+            // Generate ballistic_id
+            const bpIdResult = await client.query(`SELECT COALESCE(MAX(CAST(SUBSTRING(ballistic_id FROM 4) AS INTEGER)), 0) as max_num FROM ballistic_profiles WHERE ballistic_id ~ '^BP-[0-9]+$'`);
+            const bpNextNum = parseInt(bpIdResult.rows[0].max_num) + 1;
+            const ballistic_id = `BP-${String(bpNextNum).padStart(3, '0')}`;
+
             const profileInsert = `
                 INSERT INTO ballistic_profiles (
-                    firearm_id, rifling_characteristics, firing_pin_impression,
+                    ballistic_id, firearm_id, rifling_characteristics, firing_pin_impression,
                     ejector_marks, extractor_marks, chamber_marks,
                     test_ammunition, test_conducted_by, forensic_lab, notes,
                     created_by
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 RETURNING *
             `;
             const profileValues = [
+                ballistic_id,
                 firearm.firearm_id,
                 ballistic_profile.rifling_characteristics || null,
                 ballistic_profile.firing_pin_impression || null,
@@ -290,19 +299,14 @@ router.post('/', authenticate, requireHQCommander, logCreate, asyncHandler(async
             createdProfile = profileResult.rows[0];
         }
         
-        await client.query('COMMIT');
-        
-        res.status(201).json({ 
-            success: true, 
-            data: firearm,
-            ballistic_profile: createdProfile
-        });
-    } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-    } finally {
-        client.release();
-    }
+        return { firearm, createdProfile };
+    });
+    
+    res.status(201).json({ 
+        success: true, 
+        data: result.firearm,
+        ballistic_profile: result.createdProfile
+    });
 }));
 
 router.put('/:id', authenticate, requireCommander, requireUnitAccess, logUpdate, asyncHandler(async (req, res) => {

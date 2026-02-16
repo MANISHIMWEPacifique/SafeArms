@@ -384,6 +384,8 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
               _buildStatsCards(provider),
               const SizedBox(height: 24),
               _buildRecentActivity(provider),
+              const SizedBox(height: 24),
+              _buildRecentActivitiesLog(provider),
             ],
           ),
         );
@@ -560,6 +562,117 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         ],
       ),
     );
+  }
+
+  Widget _buildRecentActivitiesLog(DashboardProvider provider) {
+    final activities = provider.recentActivities;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252A3A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF37404F), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Recent Activities',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (activities.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'No recent activities',
+                  style: TextStyle(color: Color(0xFF78909C)),
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: activities.length,
+              separatorBuilder: (context, index) => const Divider(
+                color: Color(0xFF37404F),
+                height: 1,
+              ),
+              itemBuilder: (context, index) {
+                final activity = activities[index];
+                final actionType = activity['action_type'] ?? '';
+                return ListTile(
+                  leading: Icon(
+                    _getActivityIcon(actionType),
+                    color: _getActivityColor(actionType),
+                    size: 22,
+                  ),
+                  title: Text(
+                    _formatActionType(actionType, activity['table_name'] ?? ''),
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    'By ${activity['actor_name'] ?? 'System'} ${activity['subject_description'] != null ? '- ${activity['subject_description']}' : ''}',
+                    style:
+                        const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                  ),
+                  trailing: Text(
+                    _formatDate(activity['created_at']),
+                    style:
+                        const TextStyle(color: Color(0xFF78909C), fontSize: 11),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getActivityIcon(String actionType) {
+    switch (actionType.toUpperCase()) {
+      case 'CREATE':
+        return Icons.add_circle_outline;
+      case 'UPDATE':
+        return Icons.edit_outlined;
+      case 'DELETE':
+        return Icons.delete_outline;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  Color _getActivityColor(String actionType) {
+    switch (actionType.toUpperCase()) {
+      case 'CREATE':
+        return const Color(0xFF3CCB7F);
+      case 'UPDATE':
+        return const Color(0xFF1E88E5);
+      case 'DELETE':
+        return const Color(0xFFE85C5C);
+      default:
+        return const Color(0xFF78909C);
+    }
+  }
+
+  String _formatActionType(String actionType, String tableName) {
+    final entity = tableName.replaceAll('_', ' ');
+    switch (actionType.toUpperCase()) {
+      case 'CREATE':
+        return 'Created $entity';
+      case 'UPDATE':
+        return 'Updated $entity';
+      case 'DELETE':
+        return 'Deleted $entity';
+      default:
+        return '$actionType $entity';
+    }
   }
 
   String _formatDate(String? dateStr) {

@@ -3,7 +3,7 @@ const router = express.Router();
 const Unit = require('../models/Unit');
 const { authenticate } = require('../middleware/authentication');
 const { requireAdmin, requireAdminOrHQ } = require('../middleware/authorization');
-const { logCreate, logUpdate } = require('../middleware/auditLogger');
+const { logCreate, logUpdate, logDelete } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 router.get('/', authenticate, asyncHandler(async (req, res) => {
@@ -26,6 +26,12 @@ router.put('/:id', authenticate, requireAdminOrHQ, logUpdate, asyncHandler(async
     const unit = await Unit.update(req.params.id, req.body);
     if (!unit) return res.status(404).json({ success: false, message: 'Unit not found' });
     res.json({ success: true, data: unit });
+}));
+
+router.delete('/:id', authenticate, requireAdminOrHQ, logDelete, asyncHandler(async (req, res) => {
+    const unit = await Unit.delete(req.params.id);
+    if (!unit) return res.status(404).json({ success: false, message: 'Unit not found' });
+    res.json({ success: true, message: 'Unit deactivated successfully', data: unit });
 }));
 
 module.exports = router;

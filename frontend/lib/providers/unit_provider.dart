@@ -100,4 +100,24 @@ class UnitProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
   }
+
+  // Delete unit
+  Future<bool> deleteUnit(String unitId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _unitService.deleteUnit(unitId);
+      _units.removeWhere((u) => u['unit_id'] == unitId);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
 }

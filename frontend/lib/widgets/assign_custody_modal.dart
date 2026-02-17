@@ -181,6 +181,8 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              _buildUnitInfoBanner(unitName),
+                              const SizedBox(height: 24),
                               _buildFirearmSelection(),
                               const SizedBox(height: 24),
                               _buildOfficerSelection(),
@@ -324,7 +326,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               border: Border.all(color: const Color(0xFF37404F)),
             ),
             child: DropdownButtonFormField<String>(
-              value: _selectedFirearmId,
+              initialValue: _selectedFirearmId,
               decoration: const InputDecoration(
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -394,7 +396,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               border: Border.all(color: const Color(0xFF37404F)),
             ),
             child: DropdownButtonFormField<String>(
-              value: _selectedOfficerId,
+              initialValue: _selectedOfficerId,
               decoration: const InputDecoration(
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -66,6 +66,8 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildUnitBanner(unitName),
+                        const SizedBox(height: 24),
                         _buildStatsRow(firearmProvider),
                         const SizedBox(height: 24),
                         _buildFilterBar(firearmProvider),

@@ -73,6 +73,10 @@ class _StationCustodyManagementScreenState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildUnitBanner(unitName),
+                        const SizedBox(height: 24),
+                        _buildMLStatus(custodyProvider),
+                        const SizedBox(height: 24),
                         _buildStatsRow(custodyProvider),
                         const SizedBox(height: 24),
                         _buildFilterBar(custodyProvider),

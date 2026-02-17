@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/firearm_provider.dart';
@@ -12,7 +13,6 @@ import '../auth/login_screen.dart';
 import '../management/units_management_screen.dart';
 import '../management/firearms_registry_screen.dart';
 import '../management/ballistic_profiles_screen.dart';
-import '../workflows/approvals_portal_screen.dart';
 import '../workflows/reports_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 
@@ -25,7 +25,6 @@ class HqCommanderDashboard extends StatefulWidget {
 
 class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   int _selectedIndex = 0;
-  int _currentPage = 1;
 
   @override
   void initState() {
@@ -85,25 +84,25 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
     final anomaliesCount = anomalyProvider.anomalies.length;
 
     return [
-      _NavItem(icon: Icons.dashboard, label: 'Dashboard', badge: null),
-      _NavItem(icon: Icons.business, label: 'Units', badge: null),
-      _NavItem(icon: Icons.gps_fixed, label: 'Firearms', badge: null),
+      _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard', badge: null),
       _NavItem(
-          icon: Icons.track_changes, label: 'Ballistic Profiles', badge: null),
+          icon: Icons.account_balance_outlined, label: 'Units', badge: null),
+      _NavItem(icon: Icons.security_outlined, label: 'Firearms', badge: null),
       _NavItem(
-        icon: Icons.check_circle_outline,
+          icon: Icons.fingerprint, label: 'Ballistic Profiles', badge: null),
+      _NavItem(
+        icon: Icons.task_alt,
         label: 'Approvals',
         badge:
             totalPendingApprovals > 0 ? totalPendingApprovals.toString() : null,
         badgeColor: const Color(0xFFE85C5C),
       ),
       _NavItem(
-        icon: Icons.warning_amber,
+        icon: Icons.report_problem_outlined,
         label: 'Anomalies',
         badge: anomaliesCount > 0 ? anomaliesCount.toString() : null,
         badgeColor: const Color(0xFFFFC857),
       ),
-      _NavItem(icon: Icons.assessment, label: 'Reports', badge: null),
     ];
   }
 
@@ -140,11 +139,11 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   }
 
   Widget _buildSideNavigation() {
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.currentUser;
 
     return Container(
-      width: 260,
+      width: 220,
       decoration: const BoxDecoration(
         color: Color(0xFF252A3A),
         border: Border(right: BorderSide(color: Color(0xFF37404F), width: 1)),
@@ -272,10 +271,8 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                               children: [
                                 Icon(
                                   item.icon,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : const Color(0xFF78909C),
-                                  size: 20,
+                                  color: Colors.white,
+                                  size: 24,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -405,59 +402,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
             ],
           ),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.search, color: Color(0xFF78909C)),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-          Builder(
-            builder: (context) {
-              final anomalyProvider = Provider.of<AnomalyProvider>(context);
-              final notificationCount = anomalyProvider.anomalies.length;
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Color(0xFF78909C),
-                    ),
-                    onPressed: () {
-                      // Navigate to anomalies
-                      setState(() {
-                        _selectedIndex = 5;
-                      });
-                    },
-                  ),
-                  if (notificationCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE85C5C),
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          notificationCount > 9 ? '9+' : '$notificationCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(width: 8),
           Builder(
             builder: (context) {
               final authProvider = Provider.of<AuthProvider>(context);
@@ -508,14 +452,11 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         // Ballistic Profiles
         return const BallisticProfilesScreen();
       case 4:
-        // Approvals Portal
-        return const ApprovalsPortalScreen();
+        // Approvals - using ReportsScreen with HQ role for approve/reject
+        return const ReportsScreen(roleType: 'hq');
       case 5:
         // Anomalies Detection
         return const AnomalyDetectionScreen();
-      case 6:
-        // Reports
-        return const ReportsScreen(roleType: 'hq');
       default:
         return _buildDashboardOverview();
     }
@@ -629,7 +570,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.schedule, color: Color(0xFFFFC857), size: 36),
+              const Icon(Icons.schedule, color: Color(0xFF1E88E5), size: 36),
               if (total > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -699,7 +640,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.business, color: Color(0xFF42A5F5), size: 36),
+          const Icon(Icons.business, color: Color(0xFF1E88E5), size: 36),
           const SizedBox(height: 16),
           dashboardProvider.isLoading
               ? const CircularProgressIndicator()
@@ -758,7 +699,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.shield_outlined, color: Color(0xFFE85C5C), size: 36),
+          const Icon(Icons.shield_outlined, color: Color(0xFF1E88E5), size: 36),
           const SizedBox(height: 16),
           dashboardProvider.isLoading
               ? const CircularProgressIndicator()
@@ -816,6 +757,25 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   }
 
   Widget _buildDistributionChart() {
+    final dashProvider = Provider.of<DashboardProvider>(context, listen: false);
+    final firearms = dashProvider.firearmsStats;
+    final anomalies = dashProvider.anomaliesStats ?? [];
+
+    final available =
+        double.tryParse(firearms?['available']?.toString() ?? '0') ?? 0;
+    final inCustody =
+        double.tryParse(firearms?['in_custody']?.toString() ?? '0') ?? 0;
+    final maintenance =
+        double.tryParse(firearms?['maintenance']?.toString() ?? '0') ?? 0;
+
+    // Build anomaly severity data for bar chart
+    final Map<String, double> severityData = {};
+    for (final a in anomalies) {
+      final severity = a['severity']?.toString() ?? 'unknown';
+      final count = double.tryParse(a['count']?.toString() ?? '0') ?? 0;
+      severityData[severity] = count;
+    }
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -826,7 +786,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Firearm Distribution by Unit',
+            'Firearm Status & Anomalies',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -835,27 +795,158 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Top 10 Units',
+            'Current distribution overview',
             style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
           ),
           const SizedBox(height: 24),
-          Container(
+          SizedBox(
             height: 250,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1F2E).withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Center(
-              child: Text(
-                'Horizontal Bar Chart Placeholder\n(Use fl_chart package)',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
-              ),
-            ),
+            child: (available + inCustody + maintenance) == 0 &&
+                    severityData.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No data available',
+                      style: TextStyle(color: Color(0xFF78909C)),
+                    ),
+                  )
+                : BarChart(
+                    BarChartData(
+                      alignment: BarChartAlignment.spaceAround,
+                      maxY: [
+                                available,
+                                inCustody,
+                                maintenance,
+                                ...severityData.values
+                              ].fold(0.0, (a, b) => a > b ? a : b) *
+                              1.2 +
+                          1,
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            final labels = [
+                              'Available',
+                              'In Custody',
+                              'Maintenance',
+                              ...severityData.keys.map(
+                                  (s) => s[0].toUpperCase() + s.substring(1))
+                            ];
+                            return BarTooltipItem(
+                              '${labels[groupIndex]}\n${rod.toY.toInt()}',
+                              const TextStyle(
+                                  color: Colors.white, fontSize: 12),
+                            );
+                          },
+                        ),
+                      ),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final labels = [
+                                'Avail',
+                                'Custody',
+                                'Maint',
+                                ...severityData.keys.map((s) =>
+                                    s.length > 6 ? '${s.substring(0, 5)}.' : s)
+                              ];
+                              final idx = value.toInt();
+                              if (idx >= 0 && idx < labels.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    labels[idx],
+                                    style: const TextStyle(
+                                        color: Color(0xFF78909C), fontSize: 11),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 30,
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                value.toInt().toString(),
+                                style: const TextStyle(
+                                    color: Color(0xFF78909C), fontSize: 11),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: 1,
+                        getDrawingHorizontalLine: (value) => FlLine(
+                          color: const Color(0xFF37404F),
+                          strokeWidth: 0.5,
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      barGroups: [
+                        _makeBarGroup(0, available, const Color(0xFF3CCB7F)),
+                        _makeBarGroup(1, inCustody, const Color(0xFF42A5F5)),
+                        _makeBarGroup(2, maintenance, const Color(0xFFFFB74D)),
+                        ...severityData.entries
+                            .toList()
+                            .asMap()
+                            .entries
+                            .map((entry) {
+                          final color = _getSeverityColor(entry.value.key);
+                          return _makeBarGroup(
+                              3 + entry.key, entry.value.value, color);
+                        }),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
     );
+  }
+
+  BarChartGroupData _makeBarGroup(int x, double y, Color color) {
+    return BarChartGroupData(
+      x: x,
+      barRods: [
+        BarChartRodData(
+          toY: y,
+          color: color,
+          width: 22,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(4),
+            topRight: Radius.circular(4),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getSeverityColor(String severity) {
+    switch (severity.toLowerCase()) {
+      case 'critical':
+        return const Color(0xFF1E88E5);
+      case 'high':
+        return const Color(0xFF1E88E5);
+      case 'medium':
+        return const Color(0xFF1E88E5);
+      case 'low':
+        return const Color(0xFF1E88E5);
+      default:
+        return const Color(0xFF1E88E5);
+    }
   }
 
   Widget _buildApprovalQueue() {
@@ -913,45 +1004,52 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildApprovalItem(
-            Icons.close,
-            const Color(0xFFE85C5C),
-            'Loss Report',
-            'Nyamirambo Station',
-            'Glock 17 - GLK-2024-0445',
-            '2 hours ago',
-            true,
-          ),
-          _buildApprovalItem(
-            Icons.delete_outline,
-            const Color(0xFFFFC857),
-            'Destruction Request',
-            'Remera Station',
-            'AK-47 - AK-2019-0234',
-            '5 hours ago',
-            false,
-          ),
-          _buildApprovalItem(
-            Icons.add_circle_outline,
-            const Color(0xFF3CCB7F),
-            'Procurement Request',
-            'Training Academy',
-            '10 x Glock 17',
-            '1 day ago',
-            false,
-          ),
+          if (total == 0)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Text(
+                  'No pending approvals',
+                  style: TextStyle(color: Color(0xFF78909C)),
+                ),
+              ),
+            )
+          else ...[
+            if (lossReports > 0)
+              _buildApprovalSummaryCard(
+                Icons.report_problem_outlined,
+                const Color(0xFFE85C5C),
+                'Loss Reports',
+                '$lossReports pending review',
+                lossReports > 1,
+              ),
+            if (destruction > 0)
+              _buildApprovalSummaryCard(
+                Icons.delete_outline,
+                const Color(0xFFFFC857),
+                'Destruction Requests',
+                '$destruction pending review',
+                false,
+              ),
+            if (procurement > 0)
+              _buildApprovalSummaryCard(
+                Icons.add_circle_outline,
+                const Color(0xFF3CCB7F),
+                'Procurement Requests',
+                '$procurement pending review',
+                false,
+              ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildApprovalItem(
+  Widget _buildApprovalSummaryCard(
     IconData icon,
     Color color,
     String type,
-    String unit,
-    String firearm,
-    String time,
+    String description,
     bool isUrgent,
   ) {
     return Container(
@@ -961,7 +1059,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         border: Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -1006,48 +1104,32 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                     ],
                   ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
-                  unit,
+                  description,
                   style: const TextStyle(
-                    color: Color(0xFFB0BEC5),
+                    color: Color(0xFF78909C),
                     fontSize: 13,
                   ),
                 ),
-                Text(
-                  firearm,
-                  style: const TextStyle(
-                    color: Color(0xFF78909C),
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  time,
-                  style: const TextStyle(
-                    color: Color(0xFF78909C),
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E88E5),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    child: const Text(
-                      'Review',
-                      style: TextStyle(color: Colors.white, fontSize: 13),
-                    ),
-                  ),
-                ),
               ],
+            ),
+          ),
+          OutlinedButton(
+            onPressed: () {
+              setState(() => _selectedIndex = 4); // Go to Approvals tab
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF1E88E5),
+              side: const BorderSide(color: Color(0xFF1E88E5)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+            child: const Text(
+              'Review',
+              style: TextStyle(color: Color(0xFF1E88E5), fontSize: 13),
             ),
           ),
         ],
@@ -1227,8 +1309,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
               rows: _buildAnomalyRows(),
             ),
           ),
-          const SizedBox(height: 16),
-          _buildPagination(),
         ],
       ),
     );
@@ -1298,19 +1378,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         statusColor,
       );
     }).toList();
-  }
-
-  Color _getSeverityColor(String severity) {
-    switch (severity.toLowerCase()) {
-      case 'critical':
-        return const Color(0xFFE85C5C);
-      case 'high':
-        return const Color(0xFFFFC857);
-      case 'medium':
-      case 'low':
-      default:
-        return const Color(0xFF42A5F5);
-    }
   }
 
   Color _getStatusColor(String status) {
@@ -1448,51 +1515,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
               style: TextStyle(color: Color(0xFF1E88E5), fontSize: 13),
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPagination() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left, color: Color(0xFF78909C)),
-          onPressed:
-              _currentPage > 1 ? () => setState(() => _currentPage--) : null,
-        ),
-        for (int i = 1; i <= 3; i++)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: InkWell(
-              onTap: () => setState(() => _currentPage = i),
-              child: Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: _currentPage == i
-                      ? const Color(0xFF1E88E5)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '$i',
-                  style: TextStyle(
-                    color: _currentPage == i
-                        ? Colors.white
-                        : const Color(0xFFB0BEC5),
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        IconButton(
-          icon: const Icon(Icons.chevron_right, color: Color(0xFF78909C)),
-          onPressed:
-              _currentPage < 3 ? () => setState(() => _currentPage++) : null,
         ),
       ],
     );

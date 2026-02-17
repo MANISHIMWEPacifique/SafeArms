@@ -71,8 +71,6 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildUnitBanner(unitName),
-                        const SizedBox(height: 24),
                         _buildStatsRow(officerProvider),
                         const SizedBox(height: 24),
                         _buildFilterBar(officerProvider),
@@ -585,40 +583,44 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF252A3A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF37404F)),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(const Color(0xFF1A1F2E)),
-          dataRowColor: WidgetStateProperty.all(const Color(0xFF252A3A)),
-          columns: const [
-            DataColumn(
-                label: Text('Officer',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600))),
-            DataColumn(
-                label: Text('Rank',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600))),
-            DataColumn(
-                label: Text('Phone',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600))),
-            DataColumn(
-                label: Text('Status',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600))),
-            DataColumn(
-                label: Text('Actions',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600))),
-          ],
-          rows: officers.map((officer) => _buildOfficerRow(officer)).toList(),
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF252A3A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF37404F)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: DataTable(
+            columnSpacing: 32,
+            headingRowColor: WidgetStateProperty.all(const Color(0xFF1A1F2E)),
+            dataRowColor: WidgetStateProperty.all(const Color(0xFF252A3A)),
+            columns: const [
+              DataColumn(
+                  label: Text('Officer',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600))),
+              DataColumn(
+                  label: Text('Rank',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600))),
+              DataColumn(
+                  label: Text('Phone',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600))),
+              DataColumn(
+                  label: Text('Status',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600))),
+              DataColumn(
+                  label: Text('Actions',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600))),
+            ],
+            rows: officers.map((officer) => _buildOfficerRow(officer)).toList(),
+          ),
         ),
       ),
     );

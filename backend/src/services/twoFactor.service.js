@@ -4,6 +4,11 @@ const { sendOTPEmail } = require('./email.service');
 const logger = require('../utils/logger');
 
 /**
+ * @deprecated This service duplicates auth.service.js OTP logic.
+ * All OTP operations should use auth.service.js instead.
+ * This file is kept for backward compatibility but is not imported anywhere.
+ * Safe to remove in a future cleanup.
+ *
  * Email-based Two-Factor Authentication Service
  * Generates and manages 6-digit OTP codes sent via email
  */
@@ -34,7 +39,7 @@ const generateAndSendOTP = async (userId) => {
         // Log OTP to console in development mode
         if (process.env.NODE_ENV !== 'production') {
             console.log('\n========================================');
-            console.log(`🔐 OTP for ${email}: ${otp}`);
+            console.log(`[AUTH] OTP for ${email}: ${otp}`);
             console.log('========================================\n');
         }
 

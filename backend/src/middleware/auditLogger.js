@@ -236,13 +236,28 @@ const logChainOfCustodyEvent = async (params) => {
  * Middleware to capture old values before update
  * Use this before update operations to enable change tracking
  */
+const ALLOWED_TABLES = new Set([
+    'users', 'officers', 'firearms', 'units', 'anomalies',
+    'custody_records', 'ballistic_profiles', 'loss_reports',
+    'destruction_requests', 'procurement_requests', 'audit_logs'
+]);
+
 const captureOldValues = (tableName, idField = 'id') => {
+    // Validate table name against whitelist to prevent SQL injection
+    if (!ALLOWED_TABLES.has(tableName)) {
+        throw new Error(`captureOldValues: Invalid table name '${tableName}'`);
+    }
+
+    // Validate idField contains only safe characters
+    const safeIdField = idField.replace(/[^a-zA-Z0-9_]/g, '');
+
     return async (req, res, next) => {
         try {
             const recordId = req.params.id || req.params[idField] || req.body?.id;
             if (recordId) {
+                const columnName = safeIdField.includes('_id') ? safeIdField : `${safeIdField}_id`;
                 const result = await query(
-                    `SELECT * FROM ${tableName} WHERE ${idField.replace('_id', '')}${idField.includes('_id') ? '' : '_id'} = $1`,
+                    `SELECT * FROM ${tableName} WHERE ${columnName} = $1`,
                     [recordId]
                 );
                 req.oldValues = result.rows[0] || null;

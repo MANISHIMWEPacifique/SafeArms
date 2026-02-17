@@ -56,17 +56,17 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     final anomaliesCount = anomalyProvider.anomalies.length;
 
     return [
-      _NavItem(icon: Icons.dashboard, label: 'Dashboard'),
-      _NavItem(icon: Icons.gavel, label: 'Firearms'),
-      _NavItem(icon: Icons.people, label: 'Officers'),
-      _NavItem(icon: Icons.sync_alt, label: 'Custody'),
+      _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
+      _NavItem(icon: Icons.security_outlined, label: 'Firearms'),
+      _NavItem(icon: Icons.badge_outlined, label: 'Officers'),
+      _NavItem(icon: Icons.swap_horiz_rounded, label: 'Custody'),
       _NavItem(
-        icon: Icons.warning_amber,
+        icon: Icons.report_problem_outlined,
         label: 'Anomalies',
         badge: anomaliesCount > 0 ? anomaliesCount.toString() : null,
         badgeColor: const Color(0xFFFFC857),
       ),
-      _NavItem(icon: Icons.assessment, label: 'Reports'),
+      _NavItem(icon: Icons.analytics_outlined, label: 'Reports'),
     ];
   }
 
@@ -107,7 +107,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     final user = authProvider.currentUser;
 
     return Container(
-      width: 260,
+      width: 220,
       decoration: const BoxDecoration(
         color: Color(0xFF252A3A),
         border: Border(right: BorderSide(color: Color(0xFF37404F), width: 1)),
@@ -138,20 +138,6 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Color(0xFF78909C).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    'v1.0',
-                    style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
                   ),
                 ),
               ],
@@ -216,63 +202,71 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
                     return Container(
                       margin: const EdgeInsets.symmetric(
-                        horizontal: 8,
+                        horizontal: 12,
                         vertical: 2,
                       ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFF1E88E5).withValues(alpha: 0.1)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isSelected
-                              ? const Color(0xFF1E88E5)
-                              : Colors.transparent,
-                          width: 1,
-                        ),
-                      ),
-                      child: ListTile(
-                        leading: Icon(
-                          item.icon,
-                          color: isSelected
-                              ? const Color(0xFF1E88E5)
-                              : const Color(0xFFB0BEC5),
-                          size: 22,
-                        ),
-                        title: Text(
-                          item.label,
-                          style: TextStyle(
-                            color: isSelected
-                                ? const Color(0xFF1E88E5)
-                                : const Color(0xFFB0BEC5),
-                            fontSize: 14,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        trailing: item.badge != null
-                            ? Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedIndex = index),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFF1E88E5)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  item.icon,
+                                  color: Colors.white,
+                                  size: 24,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: item.badgeColor ??
-                                      const Color(0xFFE85C5C),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  item.badge!,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    item.label,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : const Color(0xFFB0BEC5),
+                                      fontSize: 14,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                    ),
                                   ),
                                 ),
-                              )
-                            : null,
-                        onTap: () => setState(() => _selectedIndex = index),
+                                if (item.badge != null)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: item.badgeColor ??
+                                          const Color(0xFFE85C5C),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      item.badge!,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -325,17 +319,6 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
             ),
           ),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            color: const Color(0xFFB0BEC5),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            color: const Color(0xFFB0BEC5),
-            onPressed: _loadDashboardData,
-          ),
         ],
       ),
     );
@@ -384,8 +367,6 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
               _buildStatsCards(provider),
               const SizedBox(height: 24),
               _buildRecentActivity(provider),
-              const SizedBox(height: 24),
-              _buildRecentActivitiesLog(provider),
             ],
           ),
         );
@@ -414,7 +395,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
           child: _buildStatCard(
             'Total Firearms',
             totalFirearms,
-            Icons.gavel,
+            Icons.security_outlined,
             const Color(0xFF1E88E5),
           ),
         ),
@@ -423,8 +404,8 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
           child: _buildStatCard(
             'Active Custody',
             inCustody,
-            Icons.sync_alt,
-            const Color(0xFF3CCB7F),
+            Icons.swap_horiz_rounded,
+            const Color(0xFF1E88E5),
           ),
         ),
         const SizedBox(width: 16),
@@ -432,8 +413,8 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
           child: _buildStatCard(
             'Officers',
             provider.officersCount.toString(),
-            Icons.people,
-            const Color(0xFFFFCA28),
+            Icons.badge_outlined,
+            const Color(0xFF1E88E5),
           ),
         ),
         const SizedBox(width: 16),
@@ -441,8 +422,8 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
           child: _buildStatCard(
             'Anomalies',
             anomalyCount.toString(),
-            Icons.warning_amber,
-            const Color(0xFFE85C5C),
+            Icons.report_problem_outlined,
+            const Color(0xFF1E88E5),
           ),
         ),
       ],
@@ -467,7 +448,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 20),
+              Icon(icon, color: color, size: 28),
               const Spacer(),
               Text(
                 value,
@@ -493,6 +474,18 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
   }
 
   Widget _buildRecentActivity(DashboardProvider provider) {
+    // Station commander sees only custody events from their unit
+    final custodyEvents = provider.recentCustodyActivity;
+
+    // Build display list from custody events only
+    final List<Map<String, dynamic>> displayList = custodyEvents
+        .take(8)
+        .map<Map<String, dynamic>>((event) => {
+              'type': 'custody',
+              'data': event,
+            })
+        .toList();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -504,15 +497,20 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Recent Custody Activity',
+            'Recent Station Activity',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
+          const SizedBox(height: 4),
+          const Text(
+            'Custody events in your unit',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
+          ),
           const SizedBox(height: 16),
-          if (provider.recentCustodyActivity.isEmpty)
+          if (displayList.isEmpty)
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(24),
@@ -526,37 +524,14 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: provider.recentCustodyActivity.length,
+              itemCount: displayList.length,
               separatorBuilder: (context, index) => const Divider(
                 color: Color(0xFF37404F),
                 height: 1,
               ),
               itemBuilder: (context, index) {
-                final activity = provider.recentCustodyActivity[index];
-                return ListTile(
-                  leading: Icon(
-                    activity['returned_at'] == null
-                        ? Icons.arrow_forward
-                        : Icons.arrow_back,
-                    color: activity['returned_at'] == null
-                        ? const Color(0xFFE85C5C)
-                        : const Color(0xFF3CCB7F),
-                  ),
-                  title: Text(
-                    '${activity['firearm_type'] ?? ''} - ${activity['serial_number'] ?? 'Unknown'}',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  subtitle: Text(
-                    '${activity['assignment_reason'] ?? activity['purpose'] ?? 'N/A'} - ${activity['officer_name'] ?? 'N/A'}',
-                    style: const TextStyle(color: Color(0xFF78909C)),
-                  ),
-                  trailing: Text(
-                    _formatDate(
-                        activity['issued_at'] ?? activity['checked_out_at']),
-                    style:
-                        const TextStyle(color: Color(0xFF78909C), fontSize: 12),
-                  ),
-                );
+                final item = displayList[index];
+                return _buildCustodyItem(item['data']);
               },
             ),
         ],
@@ -564,115 +539,38 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     );
   }
 
-  Widget _buildRecentActivitiesLog(DashboardProvider provider) {
-    final activities = provider.recentActivities;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF252A3A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF37404F), width: 1),
+  Widget _buildCustodyItem(Map<String, dynamic> activity) {
+    final isAssigned = activity['returned_at'] == null;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color:
+              (isAssigned ? const Color(0xFFE85C5C) : const Color(0xFF3CCB7F))
+                  .withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          isAssigned ? Icons.arrow_forward : Icons.arrow_back,
+          color: isAssigned ? const Color(0xFFE85C5C) : const Color(0xFF3CCB7F),
+          size: 20,
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Recent Activities',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (activities.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'No recent activities',
-                  style: TextStyle(color: Color(0xFF78909C)),
-                ),
-              ),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: activities.length,
-              separatorBuilder: (context, index) => const Divider(
-                color: Color(0xFF37404F),
-                height: 1,
-              ),
-              itemBuilder: (context, index) {
-                final activity = activities[index];
-                final actionType = activity['action_type'] ?? '';
-                return ListTile(
-                  leading: Icon(
-                    _getActivityIcon(actionType),
-                    color: _getActivityColor(actionType),
-                    size: 22,
-                  ),
-                  title: Text(
-                    _formatActionType(actionType, activity['table_name'] ?? ''),
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                  subtitle: Text(
-                    'By ${activity['actor_name'] ?? 'System'} ${activity['subject_description'] != null ? '- ${activity['subject_description']}' : ''}',
-                    style:
-                        const TextStyle(color: Color(0xFF78909C), fontSize: 12),
-                  ),
-                  trailing: Text(
-                    _formatDate(activity['created_at']),
-                    style:
-                        const TextStyle(color: Color(0xFF78909C), fontSize: 11),
-                  ),
-                );
-              },
-            ),
-        ],
+      title: Text(
+        '${activity['firearm_type'] ?? ''} - ${activity['serial_number'] ?? 'Unknown'}',
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+      ),
+      subtitle: Text(
+        '${isAssigned ? 'Assigned to' : 'Returned by'} ${activity['officer_name'] ?? 'N/A'}',
+        style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+      ),
+      trailing: Text(
+        _formatDate(activity['issued_at'] ?? activity['checked_out_at']),
+        style: const TextStyle(color: Color(0xFF78909C), fontSize: 11),
       ),
     );
-  }
-
-  IconData _getActivityIcon(String actionType) {
-    switch (actionType.toUpperCase()) {
-      case 'CREATE':
-        return Icons.add_circle_outline;
-      case 'UPDATE':
-        return Icons.edit_outlined;
-      case 'DELETE':
-        return Icons.delete_outline;
-      default:
-        return Icons.info_outline;
-    }
-  }
-
-  Color _getActivityColor(String actionType) {
-    switch (actionType.toUpperCase()) {
-      case 'CREATE':
-        return const Color(0xFF3CCB7F);
-      case 'UPDATE':
-        return const Color(0xFF1E88E5);
-      case 'DELETE':
-        return const Color(0xFFE85C5C);
-      default:
-        return const Color(0xFF78909C);
-    }
-  }
-
-  String _formatActionType(String actionType, String tableName) {
-    final entity = tableName.replaceAll('_', ' ');
-    switch (actionType.toUpperCase()) {
-      case 'CREATE':
-        return 'Created $entity';
-      case 'UPDATE':
-        return 'Updated $entity';
-      case 'DELETE':
-        return 'Deleted $entity';
-      default:
-        return '$actionType $entity';
-    }
   }
 
   String _formatDate(String? dateStr) {

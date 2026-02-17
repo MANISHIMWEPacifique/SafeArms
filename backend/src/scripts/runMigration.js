@@ -17,25 +17,25 @@ async function runMigration() {
   const migrationPath = path.join(__dirname, '../../../database/migrations', migrationFile);
 
   if (!fs.existsSync(migrationPath)) {
-    console.error(`❌ Migration file not found: ${migrationPath}`);
+    console.error(`[ERROR] Migration file not found: ${migrationPath}`);
     process.exit(1);
   }
 
   const client = await pool.connect();
 
   try {
-    console.log(`🚀 Running migration: ${migrationFile}\n`);
+    console.log(`[INFO] Running migration: ${migrationFile}\n`);
 
     const sql = fs.readFileSync(migrationPath, 'utf8');
-    console.log('📄 Migration loaded from:', migrationPath);
-    console.log('📊 Size:', Math.round(sql.length / 1024), 'KB\n');
+    console.log('[INFO] Migration loaded from:', migrationPath);
+    console.log('[INFO] Size:', Math.round(sql.length / 1024), 'KB\n');
 
-    console.log('⏳ Executing migration...');
+    console.log('[WAIT] Executing migration...');
     await client.query(sql);
 
-    console.log('\n✅ Migration executed successfully!');
+    console.log('\n[OK] Migration executed successfully!');
   } catch (error) {
-    console.error('\n❌ Migration Error:', error.message);
+    console.error('\n[ERROR] Migration Error:', error.message);
     if (error.position) {
       const pos = parseInt(error.position);
       const sql = fs.readFileSync(migrationPath, 'utf8');

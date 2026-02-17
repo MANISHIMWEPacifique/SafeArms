@@ -28,14 +28,14 @@ const runModelTraining = async () => {
         // Train new model
         const result = await trainModel();
 
-        logger.info(`✅ Model training completed successfully`);
+        logger.info(`[OK] Model training completed successfully`);
         logger.info(`Model ID: ${result.model_id}`);
         logger.info(`Training samples: ${result.training_samples}`);
         logger.info(`Silhouette score: ${result.silhouette_score?.toFixed(4)}`);
         logger.info(`Outlier threshold: ${result.outlier_threshold?.toFixed(4)}`);
 
     } catch (error) {
-        logger.error('❌ Model training job failed:', error);
+        logger.error('[ERROR] Model training job failed:', error);
         // Don't throw - job failure shouldn't crash the server
     } finally {
         logger.info('=== Model Training Job Finished ===');
@@ -59,7 +59,7 @@ const scheduleModelTraining = () => {
         timezone: 'Africa/Kigali'
     });
 
-    logger.info('✅ Model training job scheduled successfully');
+    logger.info('[OK] Model training job scheduled successfully');
 
     return task;
 };

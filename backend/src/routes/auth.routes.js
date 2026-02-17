@@ -8,11 +8,47 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { isValidPassword } = require('../utils/validators');
 
 /**
+ * Simple in-memory rate limiter for auth endpoints
+ * Prevents brute-force attacks on login/OTP endpoints
+ */
+const rateLimitStore = new Map();
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX = 10; // max attempts per window
+
+const authRateLimit = (req, res, next) => {
+    const key = req.ip || req.connection?.remoteAddress || 'unknown';
+    const now = Date.now();
+    const record = rateLimitStore.get(key);
+
+    if (record && now - record.start < RATE_LIMIT_WINDOW_MS) {
+        record.count++;
+        if (record.count > RATE_LIMIT_MAX) {
+            return res.status(429).json({
+                success: false,
+                message: 'Too many attempts. Please try again later.',
+                retry_after_seconds: Math.ceil((RATE_LIMIT_WINDOW_MS - (now - record.start)) / 1000)
+            });
+        }
+    } else {
+        rateLimitStore.set(key, { start: now, count: 1 });
+    }
+
+    // Clean up old entries periodically
+    if (rateLimitStore.size > 1000) {
+        for (const [k, v] of rateLimitStore) {
+            if (now - v.start > RATE_LIMIT_WINDOW_MS) rateLimitStore.delete(k);
+        }
+    }
+
+    next();
+};
+
+/**
  * @route POST /api/auth/login
  * @desc Login with username and password, sends OTP to email
  * @access Public
  */
-router.post('/login', logLogin, asyncHandler(async (req, res) => {
+router.post('/login', authRateLimit, logLogin, asyncHandler(async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
@@ -36,7 +72,7 @@ router.post('/login', logLogin, asyncHandler(async (req, res) => {
  * @desc Verify OTP and get JWT token
  * @access Public
  */
-router.post('/verify-otp', verifyEmailOTP, asyncHandler(async (req, res) => {
+router.post('/verify-otp', authRateLimit, verifyEmailOTP, asyncHandler(async (req, res) => {
     const { username, otp } = req.body;
 
     const result = await verifyOTP(username, otp);
@@ -53,7 +89,7 @@ router.post('/verify-otp', verifyEmailOTP, asyncHandler(async (req, res) => {
  * @desc Resend OTP code
  * @access Public
  */
-router.post('/resend-otp', asyncHandler(async (req, res) => {
+router.post('/resend-otp', authRateLimit, asyncHandler(async (req, res) => {
     const { username } = req.body;
 
     if (!username) {

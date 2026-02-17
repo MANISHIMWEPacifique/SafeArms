@@ -4,7 +4,7 @@ const LossReport = require('../models/LossReport');
 const DestructionRequest = require('../models/DestructionRequest');
 const ProcurementRequest = require('../models/ProcurementRequest');
 const { authenticate } = require('../middleware/authentication');
-const { requireCommander, requireRole, PERMISSIONS } = require('../middleware/authorization');
+const { requireCommander, requireRole, PERMISSIONS, ROLES } = require('../middleware/authorization');
 const { logCreate, logLossReport, exportLegalChainOfCustody, verifyChainIntegrity } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
@@ -34,7 +34,7 @@ const { query } = require('../config/database');
  */
 router.get('/chain-of-custody/:firearm_id', 
     authenticate, 
-    requireRole(PERMISSIONS.CHAIN_OF_CUSTODY_EXPORT || ['hq_commander', 'investigator', 'admin']),
+    requireRole([ROLES.HQ_COMMANDER, ROLES.INVESTIGATOR, ROLES.ADMIN]),
     asyncHandler(async (req, res) => {
         const { firearm_id } = req.params;
         const { start_date, end_date, format } = req.query;
@@ -117,7 +117,7 @@ router.get('/chain-of-custody/:firearm_id',
  */
 router.get('/chain-of-custody/:firearm_id/verify', 
     authenticate, 
-    requireRole(PERMISSIONS.CHAIN_OF_CUSTODY_VERIFY || ['hq_commander', 'investigator', 'admin']),
+    requireRole([ROLES.HQ_COMMANDER, ROLES.INVESTIGATOR, ROLES.ADMIN]),
     asyncHandler(async (req, res) => {
         const { firearm_id } = req.params;
 
@@ -142,7 +142,7 @@ router.get('/chain-of-custody/:firearm_id/verify',
  */
 router.get('/audit-trail/:entity_type/:entity_id', 
     authenticate, 
-    requireRole(['admin', 'hq_commander']),
+    requireRole([ROLES.ADMIN, ROLES.HQ_COMMANDER]),
     asyncHandler(async (req, res) => {
         const { entity_type, entity_id } = req.params;
         const { limit = 100, offset = 0 } = req.query;
@@ -181,7 +181,7 @@ router.get('/audit-trail/:entity_type/:entity_id',
  */
 router.get('/audit-summary', 
     authenticate, 
-    requireRole(['admin']),
+    requireRole([ROLES.ADMIN]),
     asyncHandler(async (req, res) => {
         const { days = 30 } = req.query;
 

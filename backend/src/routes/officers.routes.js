@@ -5,6 +5,7 @@ const { authenticate } = require('../middleware/authentication');
 const { requireCommander, requireUnitAccess } = require('../middleware/authorization');
 const { logCreate, logUpdate } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { query } = require('../config/database');
 
 router.get('/', authenticate, asyncHandler(async (req, res) => {
     const { unit_id } = req.query;
@@ -83,8 +84,7 @@ router.get('/search', authenticate, asyncHandler(async (req, res) => {
         params.push(userUnitId);
     }
     
-    const { query: dbQuery } = require('../config/database');
-    const result = await dbQuery(`
+    const result = await query(`
         SELECT o.*, u.unit_name
         FROM officers o
         JOIN units u ON o.unit_id = u.unit_id

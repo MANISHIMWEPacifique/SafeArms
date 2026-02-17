@@ -69,12 +69,10 @@ class _StationCustodyManagementScreenState
               Expanded(
                 child: SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.all(32.0),
+                    padding: const EdgeInsets.all(24.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildUnitBanner(unitName),
-                        const SizedBox(height: 24),
                         _buildStatsRow(custodyProvider),
                         const SizedBox(height: 24),
                         _buildFilterBar(custodyProvider),
@@ -148,45 +146,30 @@ class _StationCustodyManagementScreenState
             ],
           ),
           const Spacer(),
-          Flexible(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () => setState(() => _showAssignModal = true),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Assign Custody',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3CCB7F),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    onPressed: _loadUnitCustody,
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('Refresh'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFB0BEC5),
-                      side: const BorderSide(color: Color(0xFF37404F)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  _buildMLStatus(provider),
-                ],
-              ),
+          ElevatedButton.icon(
+            onPressed: () => setState(() => _showAssignModal = true),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Assign Custody',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E88E5),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: _loadUnitCustody,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Refresh'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFB0BEC5),
+              side: const BorderSide(color: Color(0xFF37404F)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],

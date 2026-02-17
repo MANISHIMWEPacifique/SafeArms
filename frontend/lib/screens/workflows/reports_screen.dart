@@ -106,14 +106,14 @@ class _ReportsScreenState extends State<ReportsScreen>
     final isStation = role == 'station_commander';
     final isHQ = role == 'hq_firearm_commander';
     final isInvestigator = role == 'investigator';
-    // Only admin can approve/reject here — HQ commanders use the dedicated Approvals Portal
-    final canApprove = role == 'admin';
+    // HQ commanders and admin can approve/reject
+    final canApprove = role == 'admin' || role == 'hq_firearm_commander';
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
       body: Column(
         children: [
-          _buildHeader(isStation, isHQ, isInvestigator),
+          if (!isHQ) _buildHeader(isStation, isHQ, isInvestigator),
           _buildStatsRow(),
           _buildTabBar(),
           Expanded(
@@ -138,9 +138,8 @@ class _ReportsScreenState extends State<ReportsScreen>
       title = 'Unit Reports';
       subtitle = 'Submit loss reports, destruction and procurement requests';
     } else if (isHQ) {
-      title = 'Reports Overview';
-      subtitle =
-          'View reports from all police stations (approve via Approvals Portal)';
+      title = 'Approvals';
+      subtitle = 'Review and approve station requests nationwide';
     } else if (isInvestigator) {
       title = 'Reports Review';
       subtitle = 'View submitted reports and requests across all units';
@@ -179,10 +178,10 @@ class _ReportsScreenState extends State<ReportsScreen>
           ),
           if (isStation) ...[
             _buildActionButton('Report Loss', Icons.report_problem,
-                const Color(0xFFE85C5C), _showLossReportDialog),
+                const Color(0xFF1E88E5), _showLossReportDialog),
             const SizedBox(width: 12),
             _buildActionButton('Request Destruction', Icons.delete_forever,
-                const Color(0xFFFFC857), _showDestructionRequestDialog),
+                const Color(0xFF1E88E5), _showDestructionRequestDialog),
             const SizedBox(width: 12),
             _buildActionButton('Request Firearms', Icons.add_shopping_cart,
                 const Color(0xFF1E88E5), _showProcurementRequestDialog),
@@ -224,14 +223,14 @@ class _ReportsScreenState extends State<ReportsScreen>
                   'Loss Reports',
                   _lossReports.length.toString(),
                   pendingLoss,
-                  const Color(0xFFE85C5C))),
+                  const Color(0xFF1E88E5))),
           const SizedBox(width: 12),
           Expanded(
               child: _buildStatCard(
                   'Destruction Requests',
                   _destructionRequests.length.toString(),
                   pendingDestruction,
-                  const Color(0xFFFFC857))),
+                  const Color(0xFF1E88E5))),
           const SizedBox(width: 12),
           Expanded(
               child: _buildStatCard(

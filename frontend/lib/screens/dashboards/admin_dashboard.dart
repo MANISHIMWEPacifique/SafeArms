@@ -3,6 +3,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
@@ -51,12 +53,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   final List<_NavItem> _navItems = [
-    _NavItem(icon: Icons.dashboard, label: 'Dashboard'),
-    _NavItem(icon: Icons.business, label: 'Units'),
-    _NavItem(icon: Icons.people, label: 'Users'),
-    _NavItem(icon: Icons.settings, label: 'System Settings'),
-    _NavItem(icon: Icons.assessment, label: 'Reports'),
-    _NavItem(icon: Icons.warning_amber, label: 'Anomaly Summary'),
+    _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
+    _NavItem(icon: Icons.account_balance_outlined, label: 'Units'),
+    _NavItem(icon: Icons.group_outlined, label: 'Users'),
+    _NavItem(icon: Icons.settings_outlined, label: 'System Settings'),
+    _NavItem(icon: Icons.analytics_outlined, label: 'Reports'),
+    _NavItem(icon: Icons.report_problem_outlined, label: 'Anomaly Summary'),
   ];
 
   void _handleLogout() async {
@@ -94,11 +96,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildSideNavigation() {
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.currentUser;
 
     return Container(
-      width: 260,
+      width: 220,
       decoration: const BoxDecoration(
         color: Color(0xFF252A3A),
         border: Border(right: BorderSide(color: Color(0xFF37404F), width: 1)),
@@ -129,20 +131,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF78909C).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    'v1.0',
-                    style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
                   ),
                 ),
               ],
@@ -229,10 +217,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           children: [
                             Icon(
                               item.icon,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF78909C),
-                              size: 20,
+                              color: Colors.white,
+                              size: 24,
                             ),
                             const SizedBox(width: 12),
                             Text(
@@ -329,62 +315,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.search, color: Color(0xFF78909C)),
-            onPressed: () {},
-            constraints: const BoxConstraints(),
-            padding: const EdgeInsets.all(8),
-          ),
-          const SizedBox(width: 8),
-          Builder(
-            builder: (context) {
-              final anomalyProvider = Provider.of<AnomalyProvider>(context);
-              final notificationCount = anomalyProvider.anomalies.length;
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Color(0xFF78909C),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _selectedIndex = 5; // Anomaly Summary
-                      });
-                    },
-                    constraints: const BoxConstraints(),
-                    padding: const EdgeInsets.all(8),
-                  ),
-                  if (notificationCount > 0)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE85C5C),
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          notificationCount > 9 ? '9+' : '$notificationCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(width: 8),
           Builder(
             builder: (context) {
               final authProvider = Provider.of<AuthProvider>(context);
@@ -595,102 +525,104 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildStatsCards() {
-    final dashboardProvider = Provider.of<DashboardProvider>(context);
+    return Consumer<DashboardProvider>(
+      builder: (context, dashboardProvider, _) {
+        final totalUsers = dashboardProvider.totalUsersCount;
+        final activeUnits = dashboardProvider.activeUnitsCount;
+        final anomaliesData = dashboardProvider.anomaliesStats;
 
-    final totalUsers = dashboardProvider.totalUsersCount;
-    final activeUnits = dashboardProvider.activeUnitsCount;
-    final anomaliesData = dashboardProvider.anomaliesStats;
-
-    int totalAnomalies = 0, critical = 0, high = 0;
-    if (anomaliesData != null) {
-      for (var item in anomaliesData) {
-        final count = int.tryParse(item['count']?.toString() ?? '0') ?? 0;
-        final severity = item['severity']?.toString().toLowerCase() ?? '';
-        totalAnomalies += count;
-        if (severity == 'critical')
-          critical = count;
-        else if (severity == 'high') high = count;
-      }
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 800;
-        final cards = [
-          _buildStatCard(
-            icon: Icons.people,
-            iconColor: const Color(0xFF42A5F5),
-            number: totalUsers.toString(),
-            label: 'Total Users',
-            trend: '',
-            trendColor: const Color(0xFF78909C),
-            showUpArrow: false,
-            isLoading: dashboardProvider.isLoading,
-          ),
-          _buildStatCard(
-            icon: Icons.business,
-            iconColor: const Color(0xFF1E88E5),
-            number: activeUnits.toString(),
-            label: 'Active Units',
-            trend: 'Nationwide',
-            trendColor: const Color(0xFF78909C),
-            showUpArrow: false,
-            isLoading: dashboardProvider.isLoading,
-          ),
-          _buildStatCard(
-            icon: Icons.favorite,
-            iconColor: const Color(0xFF3CCB7F),
-            number: 'Healthy',
-            label: 'System Status',
-            trend: '99.8% uptime',
-            trendColor: const Color(0xFF78909C),
-            showUpArrow: false,
-            isLoading: false,
-          ),
-          _buildStatCard(
-            icon: Icons.warning_amber,
-            iconColor: const Color(0xFFFFC857),
-            number: totalAnomalies.toString(),
-            label: 'Anomalies (30 days)',
-            trend: '$critical critical, $high high',
-            trendColor: const Color(0xFFE85C5C),
-            showUpArrow: false,
-            isLoading: dashboardProvider.isLoading,
-          ),
-        ];
-
-        if (isNarrow) {
-          return Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(child: cards[0]),
-                  const SizedBox(width: 16),
-                  Expanded(child: cards[1]),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: cards[2]),
-                  const SizedBox(width: 16),
-                  Expanded(child: cards[3]),
-                ],
-              ),
-            ],
-          );
+        int totalAnomalies = 0, critical = 0, high = 0;
+        if (anomaliesData != null) {
+          for (var item in anomaliesData) {
+            final count = int.tryParse(item['count']?.toString() ?? '0') ?? 0;
+            final severity = item['severity']?.toString().toLowerCase() ?? '';
+            totalAnomalies += count;
+            if (severity == 'critical')
+              critical = count;
+            else if (severity == 'high') high = count;
+          }
         }
 
-        return Row(
-          children: [
-            Expanded(child: cards[0]),
-            const SizedBox(width: 16),
-            Expanded(child: cards[1]),
-            const SizedBox(width: 16),
-            Expanded(child: cards[2]),
-            const SizedBox(width: 16),
-            Expanded(child: cards[3]),
-          ],
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 800;
+            final cards = [
+              _buildStatCard(
+                icon: Icons.people,
+                iconColor: const Color(0xFF1E88E5),
+                number: totalUsers.toString(),
+                label: 'Total Users',
+                trend: '',
+                trendColor: const Color(0xFF78909C),
+                showUpArrow: false,
+                isLoading: dashboardProvider.isLoading,
+              ),
+              _buildStatCard(
+                icon: Icons.business,
+                iconColor: const Color(0xFF1E88E5),
+                number: activeUnits.toString(),
+                label: 'Active Units',
+                trend: 'Nationwide',
+                trendColor: const Color(0xFF78909C),
+                showUpArrow: false,
+                isLoading: dashboardProvider.isLoading,
+              ),
+              _buildStatCard(
+                icon: Icons.favorite,
+                iconColor: const Color(0xFF1E88E5),
+                number: 'Healthy',
+                label: 'System Status',
+                trend: '99.8% uptime',
+                trendColor: const Color(0xFF78909C),
+                showUpArrow: false,
+                isLoading: false,
+              ),
+              _buildStatCard(
+                icon: Icons.warning_amber,
+                iconColor: const Color(0xFF1E88E5),
+                number: totalAnomalies.toString(),
+                label: 'Anomalies (30 days)',
+                trend: '$critical critical, $high high',
+                trendColor: const Color(0xFFE85C5C),
+                showUpArrow: false,
+                isLoading: dashboardProvider.isLoading,
+              ),
+            ];
+
+            if (isNarrow) {
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: cards[0]),
+                      const SizedBox(width: 16),
+                      Expanded(child: cards[1]),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: cards[2]),
+                      const SizedBox(width: 16),
+                      Expanded(child: cards[3]),
+                    ],
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: cards[0]),
+                const SizedBox(width: 16),
+                Expanded(child: cards[1]),
+                const SizedBox(width: 16),
+                Expanded(child: cards[2]),
+                const SizedBox(width: 16),
+                Expanded(child: cards[3]),
+              ],
+            );
+          },
         );
       },
     );
@@ -753,10 +685,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildChartsSection() {
+    final dashProvider = Provider.of<DashboardProvider>(context, listen: false);
+    final firearms = dashProvider.firearmsStats;
+    final recentActivities = dashProvider.recentActivities;
+
+    final available =
+        double.tryParse(firearms?['available']?.toString() ?? '0') ?? 0;
+    final inCustody =
+        double.tryParse(firearms?['in_custody']?.toString() ?? '0') ?? 0;
+    final maintenance =
+        double.tryParse(firearms?['maintenance']?.toString() ?? '0') ?? 0;
+    final total = available + inCustody + maintenance;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // User Activity Chart (60%)
+        // Firearm Status Distribution Pie Chart (60%)
         Expanded(
           flex: 6,
           child: Container(
@@ -769,7 +713,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'User Activity',
+                  'Firearm Status Distribution',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -777,25 +721,86 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Last 7 days',
-                  style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                Text(
+                  'Total: ${total.toInt()} firearms',
+                  style:
+                      const TextStyle(color: Color(0xFF78909C), fontSize: 14),
                 ),
                 const SizedBox(height: 24),
-                // Placeholder for chart
-                Container(
+                SizedBox(
                   height: 200,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1F2E).withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'Chart Placeholder\n(Use fl_chart package for line chart)',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
-                    ),
-                  ),
+                  child: total == 0
+                      ? const Center(
+                          child: Text(
+                            'No firearm data available',
+                            style: TextStyle(color: Color(0xFF78909C)),
+                          ),
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: PieChart(
+                                PieChartData(
+                                  sectionsSpace: 2,
+                                  centerSpaceRadius: 40,
+                                  sections: [
+                                    PieChartSectionData(
+                                      value: available,
+                                      title:
+                                          '${(available / total * 100).toStringAsFixed(0)}%',
+                                      color: const Color(0xFF3CCB7F),
+                                      radius: 50,
+                                      titleStyle: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    PieChartSectionData(
+                                      value: inCustody,
+                                      title:
+                                          '${(inCustody / total * 100).toStringAsFixed(0)}%',
+                                      color: const Color(0xFF42A5F5),
+                                      radius: 50,
+                                      titleStyle: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    PieChartSectionData(
+                                      value: maintenance,
+                                      title:
+                                          '${(maintenance / total * 100).toStringAsFixed(0)}%',
+                                      color: const Color(0xFFFFB74D),
+                                      radius: 50,
+                                      titleStyle: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 24),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLegendItem(const Color(0xFF3CCB7F),
+                                    'Available', available.toInt()),
+                                const SizedBox(height: 12),
+                                _buildLegendItem(const Color(0xFF42A5F5),
+                                    'In Custody', inCustody.toInt()),
+                                const SizedBox(height: 12),
+                                _buildLegendItem(const Color(0xFFFFB74D),
+                                    'Maintenance', maintenance.toInt()),
+                              ],
+                            ),
+                          ],
+                        ),
                 ),
               ],
             ),
@@ -803,7 +808,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         const SizedBox(width: 16),
 
-        // Recent Actions (40%)
+        // Recent Actions from real audit data (40%)
         Expanded(
           flex: 4,
           child: Container(
@@ -824,33 +829,104 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _buildRecentAction(
-                  Icons.person_add,
-                  const Color(0xFF3CCB7F),
-                  'User created',
-                  'John Doe created HQ Commander account',
-                  '2 mins ago',
-                ),
-                _buildRecentAction(
-                  Icons.edit,
-                  const Color(0xFF42A5F5),
-                  'Unit updated',
-                  'Nyamirambo Station details modified',
-                  '15 mins ago',
-                ),
-                _buildRecentAction(
-                  Icons.settings,
-                  const Color(0xFF1E88E5),
-                  'Settings changed',
-                  '2FA settings updated',
-                  '1 hour ago',
-                ),
+                if (recentActivities.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: Text(
+                        'No recent activity',
+                        style: TextStyle(color: Color(0xFF78909C)),
+                      ),
+                    ),
+                  )
+                else
+                  ...recentActivities.take(5).map((activity) {
+                    final actionType =
+                        activity['action_type']?.toString() ?? '';
+                    final tableName = activity['table_name']?.toString() ?? '';
+                    final actorName =
+                        activity['actor_name']?.toString() ?? 'System';
+                    final createdAt = activity['created_at']?.toString();
+                    final timeAgo = _formatTimeAgo(createdAt);
+                    final actionInfo = _getActionInfo(actionType, tableName);
+                    return _buildRecentAction(
+                      actionInfo['icon'] as IconData,
+                      actionInfo['color'] as Color,
+                      actionInfo['title'] as String,
+                      '$actorName - $tableName',
+                      timeAgo,
+                    );
+                  }),
               ],
             ),
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildLegendItem(Color color, String label, int count) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$label ($count)',
+          style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+        ),
+      ],
+    );
+  }
+
+  String _formatTimeAgo(String? dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final date = DateTime.parse(dateStr);
+      final diff = DateTime.now().difference(date);
+      if (diff.inMinutes < 1) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      return DateFormat('MMM d').format(date);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Map<String, dynamic> _getActionInfo(String actionType, String tableName) {
+    switch (actionType.toUpperCase()) {
+      case 'CREATE':
+        return {
+          'icon': Icons.add_circle_outline,
+          'color': const Color(0xFF3CCB7F),
+          'title': 'Created $tableName',
+        };
+      case 'UPDATE':
+        return {
+          'icon': Icons.edit_outlined,
+          'color': const Color(0xFF42A5F5),
+          'title': 'Updated $tableName',
+        };
+      case 'DELETE':
+        return {
+          'icon': Icons.delete_outline,
+          'color': const Color(0xFFE85C5C),
+          'title': 'Deleted $tableName',
+        };
+      default:
+        return {
+          'icon': Icons.info_outline,
+          'color': const Color(0xFF1E88E5),
+          'title': '$actionType on $tableName',
+        };
+    }
   }
 
   Widget _buildRecentAction(
@@ -1116,14 +1192,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Color _getSeverityColor(dynamic severity) {
     switch (severity?.toString().toLowerCase()) {
       case 'critical':
-        return const Color(0xFFE85C5C);
+        return const Color(0xFF1E88E5);
       case 'high':
-        return const Color(0xFFFFA726);
+        return const Color(0xFF1E88E5);
       case 'medium':
-        return const Color(0xFFFFC857);
+        return const Color(0xFF1E88E5);
       case 'low':
       default:
-        return const Color(0xFF42A5F5);
+        return const Color(0xFF1E88E5);
     }
   }
 

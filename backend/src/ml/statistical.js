@@ -291,10 +291,13 @@ const grubbsTest = (values, alpha = 0.05) => {
         }
     });
 
-    // Critical value for Grubbs' test (simplified)
+    // Critical value for Grubbs' test
+    // Map common alpha values to t-distribution approximations
     const n = values.length;
+    const tValues = { 0.01: 2.576, 0.05: 1.96, 0.10: 1.645 };
+    const tCritical = tValues[alpha] || 1.96;
     const criticalValue = ((n - 1) / Math.sqrt(n)) *
-        Math.sqrt(Math.pow(1.96, 2) / (n - 2 + Math.pow(1.96, 2)));
+        Math.sqrt(Math.pow(tCritical, 2) / (n - 2 + Math.pow(tCritical, 2)));
 
     return {
         hasOutlier: maxDeviation > criticalValue,

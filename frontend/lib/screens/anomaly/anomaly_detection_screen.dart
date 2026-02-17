@@ -201,7 +201,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                   'Critical',
                   critical.toString(),
                   Icons.error,
-                  const Color(0xFFE85C5C),
+                  const Color(0xFF1E88E5),
                 ),
               ),
               const SizedBox(width: 16),
@@ -210,7 +210,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                   'High Priority',
                   high.toString(),
                   Icons.warning,
-                  const Color(0xFFFFA726),
+                  const Color(0xFF1E88E5),
                 ),
               ),
               const SizedBox(width: 16),
@@ -219,7 +219,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                   'Medium',
                   medium.toString(),
                   Icons.info,
-                  const Color(0xFFFFCA28),
+                  const Color(0xFF1E88E5),
                 ),
               ),
               const SizedBox(width: 16),
@@ -228,7 +228,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                   'Open Cases',
                   open.toString(),
                   Icons.folder_open,
-                  const Color(0xFF3CCB7F),
+                  const Color(0xFF1E88E5),
                 ),
               ),
             ],
@@ -512,19 +512,19 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
     Color severityColor;
     switch (severity) {
       case 'critical':
-        severityColor = const Color(0xFFE85C5C);
+        severityColor = const Color(0xFF1E88E5);
         break;
       case 'high':
-        severityColor = const Color(0xFFFFA726);
+        severityColor = const Color(0xFF1E88E5);
         break;
       case 'medium':
-        severityColor = const Color(0xFFFFCA28);
+        severityColor = const Color(0xFF1E88E5);
         break;
       case 'low':
-        severityColor = const Color(0xFF3CCB7F);
+        severityColor = const Color(0xFF1E88E5);
         break;
       default:
-        severityColor = const Color(0xFF78909C);
+        severityColor = const Color(0xFF1E88E5);
     }
 
     return Container(

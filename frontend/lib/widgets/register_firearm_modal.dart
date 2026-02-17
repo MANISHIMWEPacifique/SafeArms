@@ -163,19 +163,42 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
     }
 
     final firearmProvider = context.read<FirearmProvider>();
-    final success = await firearmProvider.registerFirearm(
-      serialNumber: _serialNumberController.text.trim(),
-      manufacturer: _manufacturerController.text.trim(),
-      model: _modelController.text.trim(),
-      firearmType: _firearmType,
-      caliber: _caliberController.text.trim(),
-      manufactureYear: int.tryParse(_manufactureYearController.text),
-      acquisitionDate: _acquisitionDate,
-      acquisitionSource: _acquisitionSourceController.text.trim(),
-      assignedUnitId: _assignedUnitId!,
-      notes: _notesController.text.trim(),
-      ballisticProfile: ballisticProfile,
-    );
+    bool success;
+
+    if (widget.firearm != null) {
+      // Edit mode — update existing firearm
+      final updates = <String, dynamic>{
+        'serial_number': _serialNumberController.text.trim(),
+        'manufacturer': _manufacturerController.text.trim(),
+        'model': _modelController.text.trim(),
+        'firearm_type': _firearmType,
+        'caliber': _caliberController.text.trim(),
+        'manufacture_year': int.tryParse(_manufactureYearController.text),
+        'acquisition_date': _acquisitionDate.toIso8601String(),
+        'acquisition_source': _acquisitionSourceController.text.trim(),
+        'assigned_unit_id': _assignedUnitId,
+        'notes': _notesController.text.trim(),
+      };
+      success = await firearmProvider.updateFirearm(
+        firearmId: widget.firearm!.firearmId,
+        updates: updates,
+      );
+    } else {
+      // Create mode — register new firearm
+      success = await firearmProvider.registerFirearm(
+        serialNumber: _serialNumberController.text.trim(),
+        manufacturer: _manufacturerController.text.trim(),
+        model: _modelController.text.trim(),
+        firearmType: _firearmType,
+        caliber: _caliberController.text.trim(),
+        manufactureYear: int.tryParse(_manufactureYearController.text),
+        acquisitionDate: _acquisitionDate,
+        acquisitionSource: _acquisitionSourceController.text.trim(),
+        assignedUnitId: _assignedUnitId!,
+        notes: _notesController.text.trim(),
+        ballisticProfile: ballisticProfile,
+      );
+    }
 
     setState(() => _isLoading = false);
 
@@ -183,9 +206,11 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
       widget.onSuccess();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(ballisticProfile != null
-              ? 'Firearm and ballistic profile registered successfully'
-              : 'Firearm registered successfully'),
+          content: Text(widget.firearm != null
+              ? 'Firearm updated successfully'
+              : ballisticProfile != null
+                  ? 'Firearm and ballistic profile registered successfully'
+                  : 'Firearm registered successfully'),
           backgroundColor: const Color(0xFF3CCB7F),
         ),
       );

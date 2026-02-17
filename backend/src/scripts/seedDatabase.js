@@ -18,17 +18,17 @@ async function seedDatabase() {
   const client = await pool.connect();
   
   try {
-    console.log('🚀 Starting SafeArms Database Seeding...\n');
-    console.log('⚠️  This will clear existing data and create fresh demo data.\n');
+    console.log('[INFO] Starting SafeArms Database Seeding...\n');
+    console.log('[WARN] This will clear existing data and create fresh demo data.\n');
 
     // Generate password hash for all test users (Admin@123)
     const passwordHash = await bcrypt.hash('Admin@123', 10);
-    console.log('✅ Password hash generated for: Admin@123');
+    console.log('[OK] Password hash generated for: Admin@123');
 
     // ============================================
     // CLEAR EXISTING DATA
     // ============================================
-    console.log('\n🗑️  Clearing existing data...');
+    console.log('\n[CLEAN] Clearing existing data...');
     await client.query('DELETE FROM anomaly_investigations');
     await client.query('DELETE FROM anomalies');
     await client.query('DELETE FROM ml_training_features');
@@ -45,12 +45,12 @@ async function seedDatabase() {
     await client.query('DELETE FROM audit_logs');
     await client.query('DELETE FROM users');
     await client.query('DELETE FROM units');
-    console.log('✅ Existing data cleared');
+    console.log('[OK] Existing data cleared');
 
     // ============================================
     // UNITS - User-Friendly IDs
     // ============================================
-    console.log('\n📍 Seeding Units...');
+    console.log('\n[SEED] Seeding Units...');
     
     await client.query(`
       INSERT INTO units (unit_id, unit_name, unit_type, location, province, district, commander_name, is_active)
@@ -62,19 +62,19 @@ async function seedDatabase() {
         ('UNIT-KIC', 'Kicukiro Police Station', 'station', 'Kicukiro, Kigali', 'Kigali', 'Kicukiro', 'CSP Niyonsaba Claire', true),
         ('UNIT-PTS', 'Police Training School Gishari', 'specialized', 'Gishari, Eastern Province', 'Eastern', 'Rwamagana', 'ACP Karangwa Emmanuel', true)
     `);
-    console.log('✅ 6 units seeded (UNIT-HQ, UNIT-NYA, UNIT-KIM, UNIT-REM, UNIT-KIC, UNIT-PTS)');
+    console.log('[OK] 6 units seeded (UNIT-HQ, UNIT-NYA, UNIT-KIM, UNIT-REM, UNIT-KIC, UNIT-PTS)');
 
     // ============================================
     // USERS
     // ============================================
-    console.log('\n👤 Seeding Users...');
+    console.log('\n[SEED] Seeding Users...');
 
     // Admin
     await client.query(`
       INSERT INTO users (user_id, username, password_hash, full_name, email, phone_number, role, unit_id, otp_verified, unit_confirmed, is_active, must_change_password)
       VALUES ('USR-001', 'admin', $1, 'System Administrator', 'admin@rnp.gov.rw', '+250788000000', 'admin', 'UNIT-HQ', true, true, true, false)
     `, [passwordHash]);
-    console.log('  ✅ admin (System Admin) at HQ');
+    console.log('  [OK] admin (System Admin) at HQ');
 
     // HQ Commanders
     await client.query(`
@@ -83,7 +83,7 @@ async function seedDatabase() {
         ('USR-002', 'hq_commander', $1, 'CSP Nkusi Patrick', 'nkusi.patrick@rnp.gov.rw', '+250788000001', 'hq_firearm_commander', 'UNIT-HQ', true, true, true, false),
         ('USR-003', 'hq_commander2', $1, 'CSP Mukamana Jeanne', 'mukamana.jeanne@rnp.gov.rw', '+250788000002', 'hq_firearm_commander', 'UNIT-HQ', true, true, true, false)
     `, [passwordHash]);
-    console.log('  ✅ hq_commander, hq_commander2 (HQ Firearm Commanders) at HQ');
+    console.log('  [OK] hq_commander, hq_commander2 (HQ Firearm Commanders) at HQ');
 
     // Station Commanders - Each at their respective station
     await client.query(`
@@ -94,7 +94,7 @@ async function seedDatabase() {
         ('USR-006', 'station_remera', $1, 'IP Habimana Pierre', 'habimana.pierre@rnp.gov.rw', '+250788000005', 'station_commander', 'UNIT-REM', true, true, true, false),
         ('USR-007', 'station_kicukiro', $1, 'IP Niyonsaba Claire', 'niyonsaba.claire@rnp.gov.rw', '+250788000006', 'station_commander', 'UNIT-KIC', true, true, true, false)
     `, [passwordHash]);
-    console.log('  ✅ station_nyamirambo (UNIT-NYA), station_kimironko (UNIT-KIM), station_remera (UNIT-REM), station_kicukiro (UNIT-KIC)');
+    console.log('  [OK] station_nyamirambo (UNIT-NYA), station_kimironko (UNIT-KIM), station_remera (UNIT-REM), station_kicukiro (UNIT-KIC)');
 
     // Investigators
     await client.query(`
@@ -103,12 +103,12 @@ async function seedDatabase() {
         ('USR-008', 'investigator', $1, 'IP Kamanzi Eric', 'kamanzi.eric@rnp.gov.rw', '+250788000007', 'investigator', 'UNIT-HQ', true, true, true, false),
         ('USR-009', 'investigator2', $1, 'IP Ingabire Alice', 'ingabire.alice@rnp.gov.rw', '+250788000008', 'investigator', 'UNIT-HQ', true, true, true, false)
     `, [passwordHash]);
-    console.log('  ✅ investigator, investigator2 (Investigators) at HQ');
+    console.log('  [OK] investigator, investigator2 (Investigators) at HQ');
 
     // ============================================
     // OFFICERS - Assigned to specific units
     // ============================================
-    console.log('\n👮 Seeding Officers...');
+    console.log('\n[SEED] Seeding Officers...');
 
     // Nyamirambo Station Officers (UNIT-NYA)
     await client.query(`
@@ -118,7 +118,7 @@ async function seedDatabase() {
         ('OFF-002', 'RNP-2024-002', 'P/Cst. Uwase Marie', 'Police Constable', 'UNIT-NYA', '+250788100002', 'uwase.marie@rnp.gov.rw', true, true),
         ('OFF-003', 'RNP-2024-003', 'Sgt. Ndayisaba Paul', 'Sergeant', 'UNIT-NYA', '+250788100003', 'ndayisaba.paul@rnp.gov.rw', true, true)
     `);
-    console.log('  ✅ 3 officers at Nyamirambo Station (UNIT-NYA)');
+    console.log('  [OK] 3 officers at Nyamirambo Station (UNIT-NYA)');
 
     // Kimironko Station Officers (UNIT-KIM)
     await client.query(`
@@ -128,7 +128,7 @@ async function seedDatabase() {
         ('OFF-005', 'RNP-2024-005', 'P/Cst. Mukamana Rose', 'Police Constable', 'UNIT-KIM', '+250788100005', 'mukamana.rose@rnp.gov.rw', true, true),
         ('OFF-006', 'RNP-2024-006', 'Sgt. Uwimana Claude', 'Sergeant', 'UNIT-KIM', '+250788100006', 'uwimana.claude@rnp.gov.rw', true, true)
     `);
-    console.log('  ✅ 3 officers at Kimironko Station (UNIT-KIM)');
+    console.log('  [OK] 3 officers at Kimironko Station (UNIT-KIM)');
 
     // Remera Station Officers (UNIT-REM)
     await client.query(`
@@ -137,7 +137,7 @@ async function seedDatabase() {
         ('OFF-007', 'RNP-2024-007', 'Sgt. Nshimiyimana Felix', 'Sergeant', 'UNIT-REM', '+250788100007', 'nshimiyimana.felix@rnp.gov.rw', true, true),
         ('OFF-008', 'RNP-2024-008', 'P/Cst. Uwera Diane', 'Police Constable', 'UNIT-REM', '+250788100008', 'uwera.diane@rnp.gov.rw', true, true)
     `);
-    console.log('  ✅ 2 officers at Remera Station (UNIT-REM)');
+    console.log('  [OK] 2 officers at Remera Station (UNIT-REM)');
 
     // Kicukiro Station Officers (UNIT-KIC)
     await client.query(`
@@ -146,12 +146,12 @@ async function seedDatabase() {
         ('OFF-009', 'RNP-2024-009', 'Sgt. Karangwa Patrick', 'Sergeant', 'UNIT-KIC', '+250788100009', 'karangwa.patrick@rnp.gov.rw', true, true),
         ('OFF-010', 'RNP-2024-010', 'P/Cst. Ingabire Grace', 'Police Constable', 'UNIT-KIC', '+250788100010', 'ingabire.grace@rnp.gov.rw', true, true)
     `);
-    console.log('  ✅ 2 officers at Kicukiro Station (UNIT-KIC)');
+    console.log('  [OK] 2 officers at Kicukiro Station (UNIT-KIC)');
 
     // ============================================
     // FIREARMS - Each assigned to a SPECIFIC unit
     // ============================================
-    console.log('\n🔫 Seeding Firearms...');
+    console.log('\n[SEED] Seeding Firearms...');
 
     // Nyamirambo Station Firearms (UNIT-NYA) - 3 firearms
     await client.query(`
@@ -161,7 +161,7 @@ async function seedDatabase() {
         ('FA-002', 'GLK-NYA-0002', 'Glock', 'Glock 17 Gen5', 'pistol', '9mm', 2023, '2023-06-15', 'Government Procurement', 'hq', 'USR-002', 'UNIT-NYA', 'available', true),
         ('FA-003', 'RFL-NYA-0001', 'FN Herstal', 'FN SCAR-L', 'rifle', '5.56mm NATO', 2022, '2022-03-20', 'Government Procurement', 'hq', 'USR-002', 'UNIT-NYA', 'available', true)
     `);
-    console.log('  ✅ 3 firearms assigned to Nyamirambo Station (UNIT-NYA)');
+    console.log('  [OK] 3 firearms assigned to Nyamirambo Station (UNIT-NYA)');
 
     // Kimironko Station Firearms (UNIT-KIM) - 3 firearms
     await client.query(`
@@ -171,7 +171,7 @@ async function seedDatabase() {
         ('FA-005', 'GLK-KIM-0002', 'Glock', 'Glock 19 Gen5', 'pistol', '9mm', 2023, '2023-07-10', 'Government Procurement', 'hq', 'USR-002', 'UNIT-KIM', 'available', true),
         ('FA-006', 'SIG-KIM-0001', 'SIG Sauer', 'P320', 'pistol', '9mm', 2024, '2024-01-15', 'Government Procurement', 'hq', 'USR-002', 'UNIT-KIM', 'available', true)
     `);
-    console.log('  ✅ 3 firearms assigned to Kimironko Station (UNIT-KIM)');
+    console.log('  [OK] 3 firearms assigned to Kimironko Station (UNIT-KIM)');
 
     // Remera Station Firearms (UNIT-REM) - 2 firearms
     await client.query(`
@@ -180,7 +180,7 @@ async function seedDatabase() {
         ('FA-007', 'GLK-REM-0001', 'Glock', 'Glock 17', 'pistol', '9mm', 2022, '2022-05-20', 'Government Procurement', 'hq', 'USR-002', 'UNIT-REM', 'available', true),
         ('FA-008', 'BRT-REM-0001', 'Beretta', '92FS', 'pistol', '9mm', 2021, '2021-11-10', 'Government Procurement', 'hq', 'USR-002', 'UNIT-REM', 'available', true)
     `);
-    console.log('  ✅ 2 firearms assigned to Remera Station (UNIT-REM)');
+    console.log('  [OK] 2 firearms assigned to Remera Station (UNIT-REM)');
 
     // Kicukiro Station Firearms (UNIT-KIC) - 2 firearms
     await client.query(`
@@ -189,7 +189,7 @@ async function seedDatabase() {
         ('FA-009', 'GLK-KIC-0001', 'Glock', 'Glock 17 Gen4', 'pistol', '9mm', 2022, '2022-08-15', 'Government Procurement', 'hq', 'USR-002', 'UNIT-KIC', 'available', true),
         ('FA-010', 'SHT-KIC-0001', 'Remington', 'Model 870', 'shotgun', '12 gauge', 2020, '2020-04-10', 'Government Procurement', 'hq', 'USR-002', 'UNIT-KIC', 'available', true)
     `);
-    console.log('  ✅ 2 firearms assigned to Kicukiro Station (UNIT-KIC)');
+    console.log('  [OK] 2 firearms assigned to Kicukiro Station (UNIT-KIC)');
 
     // HQ Reserved Firearms (UNIT-HQ) - 2 firearms (unassigned to stations)
     await client.query(`
@@ -198,12 +198,12 @@ async function seedDatabase() {
         ('FA-011', 'GLK-HQ-0001', 'Glock', 'Glock 17 Gen5', 'pistol', '9mm', 2024, '2024-01-20', 'Government Procurement', 'hq', 'USR-002', 'UNIT-HQ', 'available', true),
         ('FA-012', 'SIG-HQ-0001', 'SIG Sauer', 'P226', 'pistol', '9mm', 2024, '2024-01-20', 'Government Procurement', 'hq', 'USR-002', 'UNIT-HQ', 'available', true)
     `);
-    console.log('  ✅ 2 firearms reserved at HQ (UNIT-HQ)');
+    console.log('  [OK] 2 firearms reserved at HQ (UNIT-HQ)');
 
     // ============================================
     // BALLISTIC PROFILES
     // ============================================
-    console.log('\n🔬 Seeding Ballistic Profiles...');
+    console.log('\n[SEED] Seeding Ballistic Profiles...');
 
     await client.query(`
       INSERT INTO ballistic_profiles (ballistic_id, firearm_id, test_date, test_location, rifling_characteristics, firing_pin_impression, ejector_marks, test_conducted_by, forensic_lab, created_by)
@@ -213,12 +213,12 @@ async function seedDatabase() {
         ('BP-003', 'FA-004', '2023-07-15', 'RNP Forensic Laboratory', '6 grooves, right-hand twist, 1:10 pitch', 'Circular, slightly off-center, 0.75mm diameter', 'Semi-circular impression at 4 oclock position', 'Dr. Ingabire Alice', 'RNP Central Forensic Lab', 'USR-009'),
         ('BP-004', 'FA-007', '2022-06-01', 'RNP Forensic Laboratory', '6 grooves, right-hand twist, 1:10 pitch', 'Circular, centered, 0.8mm diameter', 'Rectangular impression at 2 oclock position', 'Dr. Kamanzi Eric', 'RNP Central Forensic Lab', 'USR-008')
     `);
-    console.log('✅ 4 ballistic profiles seeded');
+    console.log('[OK] 4 ballistic profiles seeded');
 
     // ============================================
     // SAMPLE CUSTODY RECORDS
     // ============================================
-    console.log('\n📋 Seeding Sample Custody Records...');
+    console.log('\n[SEED] Seeding Sample Custody Records...');
 
     // Nyamirambo custody records
     await client.query(`
@@ -227,7 +227,7 @@ async function seedDatabase() {
         ('CUS-001', 'FA-001', 'OFF-001', 'UNIT-NYA', 'permanent', 'USR-004', 'Regular duty assignment'),
         ('CUS-002', 'FA-002', 'OFF-002', 'UNIT-NYA', 'temporary', 'USR-004', 'Night patrol duty')
     `);
-    console.log('  ✅ 2 custody records for Nyamirambo Station');
+    console.log('  [OK] 2 custody records for Nyamirambo Station');
 
     // Kimironko custody records
     await client.query(`
@@ -235,7 +235,7 @@ async function seedDatabase() {
       VALUES 
         ('CUS-003', 'FA-004', 'OFF-004', 'UNIT-KIM', 'permanent', 'USR-005', 'Regular duty assignment')
     `);
-    console.log('  ✅ 1 custody record for Kimironko Station');
+    console.log('  [OK] 1 custody record for Kimironko Station');
 
     // Update firearms to in_custody status for those assigned
     await client.query(`
@@ -246,7 +246,7 @@ async function seedDatabase() {
     // ============================================
     // UNIT MOVEMENTS (Initial Assignments)
     // ============================================
-    console.log('\n🚚 Seeding Unit Movement Records...');
+    console.log('\n[SEED] Seeding Unit Movement Records...');
 
     await client.query(`
       INSERT INTO firearm_unit_movements (movement_id, firearm_id, from_unit_id, to_unit_id, movement_type, authorized_by, reason)
@@ -264,28 +264,28 @@ async function seedDatabase() {
         ('MOV-011', 'FA-011', NULL, 'UNIT-HQ', 'initial_assignment', 'USR-002', 'HQ reserve stock'),
         ('MOV-012', 'FA-012', NULL, 'UNIT-HQ', 'initial_assignment', 'USR-002', 'HQ reserve stock')
     `);
-    console.log('✅ 12 unit movement records seeded');
+    console.log('[OK] 12 unit movement records seeded');
 
     // ============================================
     // REFRESH MATERIALIZED VIEWS
     // ============================================
-    console.log('\n🔄 Refreshing materialized views...');
+    console.log('\n[REFRESH] Refreshing materialized views...');
     try {
       await client.query('REFRESH MATERIALIZED VIEW officer_behavior_profile');
       await client.query('REFRESH MATERIALIZED VIEW firearm_usage_profile');
-      console.log('✅ Materialized views refreshed');
+      console.log('[OK] Materialized views refreshed');
     } catch (err) {
-      console.log('⚠️  Could not refresh materialized views (they may not exist yet)');
+      console.log('[WARN] Could not refresh materialized views (they may not exist yet)');
     }
 
     // ============================================
     // SUMMARY
     // ============================================
     console.log('\n' + '='.repeat(60));
-    console.log('🎉 DATABASE SEEDING COMPLETED SUCCESSFULLY!');
+    console.log('[DONE] DATABASE SEEDING COMPLETED SUCCESSFULLY!');
     console.log('='.repeat(60));
 
-    console.log('\n📊 DATA SUMMARY:');
+    console.log('\n[SUMMARY] DATA SUMMARY:');
     console.log('┌────────────────────────┬──────────────────────────────────┐');
     console.log('│ Entity                 │ Count                            │');
     console.log('├────────────────────────┼──────────────────────────────────┤');
@@ -298,7 +298,7 @@ async function seedDatabase() {
     console.log('│ Custody Records        │ 3                                │');
     console.log('└────────────────────────┴──────────────────────────────────┘');
 
-    console.log('\n🔑 UNIT IDs (User-Friendly):');
+    console.log('\n[UNITS] UNIT IDs (User-Friendly):');
     console.log('┌─────────────┬─────────────────────────────────────────────┐');
     console.log('│ Unit ID     │ Unit Name                                   │');
     console.log('├─────────────┼─────────────────────────────────────────────┤');
@@ -310,7 +310,7 @@ async function seedDatabase() {
     console.log('│ UNIT-PTS    │ Police Training School Gishari              │');
     console.log('└─────────────┴─────────────────────────────────────────────┘');
 
-    console.log('\n🔫 FIREARMS BY UNIT:');
+    console.log('\n[FIREARMS] FIREARMS BY UNIT:');
     console.log('┌─────────────┬──────────────────────────────────────────────┐');
     console.log('│ Unit        │ Firearms                                     │');
     console.log('├─────────────┼──────────────────────────────────────────────┤');
@@ -322,7 +322,7 @@ async function seedDatabase() {
     console.log('│ UNIT-PTS    │ None                                         │');
     console.log('└─────────────┴──────────────────────────────────────────────┘');
 
-    console.log('\n📋 TEST USER CREDENTIALS (Password: Admin@123)');
+    console.log('\n[CREDENTIALS] TEST USER CREDENTIALS (Password: Admin@123)');
     console.log('┌─────────────────────┬──────────────────────┬─────────────┐');
     console.log('│ Username            │ Role                 │ Unit        │');
     console.log('├─────────────────────┼──────────────────────┼─────────────┤');
@@ -337,14 +337,14 @@ async function seedDatabase() {
     console.log('│ investigator2       │ Investigator         │ UNIT-HQ     │');
     console.log('└─────────────────────┴──────────────────────┴─────────────┘');
 
-    console.log('\n⚠️  IMPORTANT ACCESS RULES:');
+    console.log('\n[IMPORTANT] ACCESS RULES:');
     console.log('   • Station Commanders can ONLY see firearms assigned to their unit');
     console.log('   • HQ Commanders, Admin, and Investigators see ALL firearms');
     console.log('   • Officers can only receive custody of firearms in their unit');
     console.log('\n');
 
   } catch (error) {
-    console.error('❌ Seeding Error:', error.message);
+    console.error('[ERROR] Seeding Error:', error.message);
     console.error(error.stack);
     throw error;
   } finally {

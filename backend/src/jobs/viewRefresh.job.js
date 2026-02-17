@@ -20,18 +20,18 @@ const refreshViews = async () => {
         // Refresh officer_behavior_profile
         logger.info('Refreshing officer_behavior_profile...');
         await query('REFRESH MATERIALIZED VIEW CONCURRENTLY officer_behavior_profile');
-        logger.info('✅ officer_behavior_profile refreshed');
+        logger.info('[OK] officer_behavior_profile refreshed');
 
         // Refresh firearm_usage_profile
         logger.info('Refreshing firearm_usage_profile...');
         await query('REFRESH MATERIALIZED VIEW CONCURRENTLY firearm_usage_profile');
-        logger.info('✅ firearm_usage_profile refreshed');
+        logger.info('[OK] firearm_usage_profile refreshed');
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-        logger.info(`✅ All materialized views refreshed in ${duration}s`);
+        logger.info(`[OK] All materialized views refreshed in ${duration}s`);
 
     } catch (error) {
-        logger.error('❌ Materialized view refresh failed:', error);
+        logger.error('[ERROR] Materialized view refresh failed:', error);
         // Don't throw - job failure shouldn't crash the server
     } finally {
         logger.info('=== Materialized View Refresh Finished ===');
@@ -55,7 +55,7 @@ const scheduleViewRefresh = () => {
         timezone: 'Africa/Kigali'
     });
 
-    logger.info('✅ Materialized view refresh job scheduled successfully');
+    logger.info('[OK] Materialized view refresh job scheduled successfully');
 
     return task;
 };
@@ -79,10 +79,10 @@ const analyzeDatabase = async () => {
 
         for (const table of tables) {
             await query(`ANALYZE ${table}`);
-            logger.info(`✅ Analyzed table: ${table}`);
+            logger.info(`[OK] Analyzed table: ${table}`);
         }
 
-        logger.info('✅ Database analysis complete');
+        logger.info('[OK] Database analysis complete');
     } catch (error) {
         logger.error('Database analysis error:', error);
     }

@@ -20,6 +20,10 @@ const consoleFormat = winston.format.combine(
 
 // Create logs directory if it doesn't exist
 const logsDir = path.join(__dirname, '../../logs');
+const fs = require('fs');
+if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
+}
 
 // Create logger instance
 const logger = winston.createLogger({

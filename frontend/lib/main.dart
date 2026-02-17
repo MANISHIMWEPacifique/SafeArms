@@ -15,9 +15,11 @@ import 'providers/approvals_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/ballistic_profile_provider.dart';
+import 'providers/operations_provider.dart';
 import 'screens/auth/login_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const SafeArmsApp());
 }
 
@@ -40,6 +42,7 @@ class SafeArmsApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => BallisticProfileProvider()),
+        ChangeNotifierProvider(create: (_) => OperationsProvider()),
       ],
       child: MaterialApp(
         title: 'SafeArms',

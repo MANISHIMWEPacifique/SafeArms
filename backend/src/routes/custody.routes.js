@@ -250,7 +250,6 @@ router.get('/firearm/:firearm_id/history', authenticate, asyncHandler(async (req
     
     // SECURITY: Station commanders can only access custody history for firearms in their unit
     if (role === 'station_commander') {
-        const { query } = require('../config/database');
         const firearmResult = await query('SELECT assigned_unit_id FROM firearms WHERE firearm_id = $1', [req.params.firearm_id]);
         if (firearmResult.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Firearm not found' });

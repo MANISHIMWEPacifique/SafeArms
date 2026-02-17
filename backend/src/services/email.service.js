@@ -13,13 +13,11 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Verify transporter configuration
-transporter.verify((error, success) => {
-    if (error) {
-        logger.error('Email transporter error:', error);
-    } else {
-        logger.info('✅ Email service ready');
-    }
+// Verify transporter configuration (non-blocking)
+transporter.verify().then(() => {
+    logger.info('[OK] Email service ready');
+}).catch((error) => {
+    logger.warn('[WARN] Email service not available (SMTP unreachable):', error.message);
 });
 
 /**
@@ -52,7 +50,7 @@ const sendOTPEmail = async (email, fullName, otp) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🔒 SafeArms</h1>
+              <h1>SafeArms</h1>
               <p>Rwanda National Police - Firearm Control System</p>
             </div>
             <div class="content">
@@ -64,7 +62,7 @@ const sendOTPEmail = async (email, fullName, otp) => {
               <p><strong>This code will expire in 5 minutes.</strong></p>
               
               <div class="warning">
-                <strong>⚠️ Security Notice:</strong><br>
+                <strong>Security Notice:</strong><br>
                 If you did not request this code, please contact your system administrator immediately.
                 Do not share this code with anyone.
               </div>
@@ -121,7 +119,7 @@ const sendAnomalyAlert = async (email, fullName, anomalyData) => {
         const mailOptions = {
             from: `${process.env.SMTP_FROM_NAME || 'SafeArms System'} <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
             to: email,
-            subject: `🚨 SafeArms: ${severity.toUpperCase()} Anomaly Detected - ${anomaly_id}`,
+            subject: `[ALERT] SafeArms: ${severity.toUpperCase()} Anomaly Detected - ${anomaly_id}`,
             html: `
         <!DOCTYPE html>
         <html>
@@ -143,7 +141,7 @@ const sendAnomalyAlert = async (email, fullName, anomalyData) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🚨 Anomaly Alert</h1>
+              <h1>Anomaly Alert</h1>
               <h2>${severity.toUpperCase()} Severity</h2>
             </div>
             <div class="content">

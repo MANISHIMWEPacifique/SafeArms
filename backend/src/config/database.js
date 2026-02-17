@@ -29,14 +29,14 @@ const pool = new Pool({
 let connectionLogged = false;
 pool.on('connect', () => {
   if (!connectionLogged) {
-    console.log('✅ PostgreSQL database connected successfully');
+    console.log('[OK] PostgreSQL database connected successfully');
     connectionLogged = true;
   }
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Unexpected database error:', err);
-  process.exit(-1);
+  console.error('[ERROR] Unexpected database error:', err);
+  // Don't exit - let the app try to recover with remaining pool connections
 });
 
 // Helper function for parameterized queries
@@ -47,7 +47,7 @@ const query = async (text, params) => {
     const duration = Date.now() - start;
     // Only log slow queries (>500ms) to reduce console noise
     if (duration > 500) {
-      console.log('⚠️ Slow query', { text: text.substring(0, 80), duration, rows: res.rowCount });
+      console.log('[WARN] Slow query', { text: text.substring(0, 80), duration, rows: res.rowCount });
     }
     return res;
   } catch (error) {

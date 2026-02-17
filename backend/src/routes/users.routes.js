@@ -70,7 +70,10 @@ router.post('/', authenticate, requireAdmin, logCreate, asyncHandler(async (req,
 }));
 
 router.put('/:id', authenticate, requireAdminOrHQ, logUpdate, asyncHandler(async (req, res) => {
-    const user = await User.update(req.params.id, req.body);
+    // Prevent direct password_hash modification - use change-password endpoint instead
+    const { password_hash, password, otp_code, otp_expires_at, otp_verified, ...safeUpdates } = req.body;
+    
+    const user = await User.update(req.params.id, safeUpdates);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     res.json({ success: true, data: user });
 }));

@@ -241,11 +241,13 @@ const Anomaly = {
      */
     async getTypeSummary(filters = {}) {
         const { unit_id, days = 30 } = filters;
-        let where = `WHERE a.detected_at >= CURRENT_TIMESTAMP - INTERVAL '${days} days'`;
-        let params = [];
+        let where = `WHERE a.detected_at >= CURRENT_TIMESTAMP - INTERVAL '1 day' * $1`;
+        let params = [parseInt(days)];
+        let pCount = 1;
 
         if (unit_id) {
-            where += ` AND a.unit_id = $1`;
+            pCount++;
+            where += ` AND a.unit_id = $${pCount}`;
             params.push(unit_id);
         }
 

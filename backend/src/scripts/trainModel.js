@@ -28,7 +28,7 @@ const trainMLModel = async () => {
         console.log(`\nTraining samples available: ${sampleCount}`);
         
         if (sampleCount < 100) {
-            console.log('\n❌ Insufficient training data!');
+            console.log('\n[ERROR] Insufficient training data!');
             console.log(`   Need at least 100 samples, you have ${sampleCount}.`);
             console.log('\nOptions:');
             console.log('  1. Create more custody records in the app');
@@ -51,7 +51,7 @@ const trainMLModel = async () => {
         const result = await trainModel({ k: 6, minSamples: 100 });
 
         console.log('\n' + '='.repeat(60));
-        console.log('✅ MODEL TRAINING COMPLETE');
+        console.log('[OK] MODEL TRAINING COMPLETE');
         console.log('='.repeat(60));
         console.log(`Model ID: ${result.model_id}`);
         console.log(`Training samples: ${result.training_samples}`);
@@ -70,13 +70,13 @@ const trainMLModel = async () => {
         `);
 
         if (activeModel.rows.length > 0) {
-            console.log(`\n✅ Active model: ${activeModel.rows[0].model_id}`);
+            console.log(`\n[OK] Active model: ${activeModel.rows[0].model_id}`);
             console.log('\nThe model is now ready for anomaly detection.');
             console.log('Anomalies will be automatically detected on new custody transactions.');
         }
 
     } catch (error) {
-        console.error('\n❌ Training failed:', error.message);
+        console.error('\n[ERROR] Training failed:', error.message);
         throw error;
     } finally {
         await pool.end();

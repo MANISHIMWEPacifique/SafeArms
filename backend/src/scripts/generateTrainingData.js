@@ -15,7 +15,7 @@ const generateTrainingData = async () => {
     console.log('='.repeat(60));
     console.log('SafeArms Sample Training Data Generator');
     console.log('='.repeat(60));
-    console.log('\n⚠️  WARNING: This is for DEVELOPMENT/TESTING only!');
+    console.log('\n[WARN] WARNING: This is for DEVELOPMENT/TESTING only!');
     console.log('    Do not use synthetic data in production.\n');
 
     try {
@@ -26,7 +26,7 @@ const generateTrainingData = async () => {
         const users = await query(`SELECT user_id FROM users WHERE role IN ('station_commander', 'hq_firearm_commander') LIMIT 5`);
 
         if (officers.rows.length === 0 || firearms.rows.length === 0 || units.rows.length === 0) {
-            console.log('❌ Not enough base data. Make sure you have:');
+            console.log('[ERROR] Not enough base data. Make sure you have:');
             console.log('   - Officers in the officers table');
             console.log('   - Firearms in the firearms table');
             console.log('   - Units in the units table');

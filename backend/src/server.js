@@ -110,27 +110,27 @@ const PORT = SERVER_CONFIG.port;
 
 const server = app.listen(PORT, async () => {
     console.log('\n========================================');
-    console.log('🔷 SafeArms Backend Server');
+    console.log('[SafeArms] Backend Server');
     console.log('========================================');
-    console.log(`✅ Server running on port ${PORT}`);
-    console.log(`✅ Environment: ${SERVER_CONFIG.nodeEnv}`);
-    console.log(`✅ API Base URL: ${SERVER_CONFIG.apiBaseUrl}`);
+    console.log(`[OK] Server running on port ${PORT}`);
+    console.log(`[OK] Environment: ${SERVER_CONFIG.nodeEnv}`);
+    console.log(`[OK] API Base URL: ${SERVER_CONFIG.apiBaseUrl}`);
 
     // Test database connection
     try {
         await pool.query('SELECT NOW()');
-        console.log('✅ Database connected successfully');
+        console.log('[OK] Database connected successfully');
     } catch (error) {
-        console.error('❌ Database connection failed:', error.message);
+        console.error('[ERROR] Database connection failed:', error.message);
     }
 
     // Schedule background jobs
     try {
         scheduleModelTraining();
         scheduleViewRefresh();
-        console.log('✅ Background jobs scheduled');
+        console.log('[OK] Background jobs scheduled');
     } catch (error) {
-        console.error('⚠️  Failed to schedule background jobs:', error.message);
+        console.error('[WARN] Failed to schedule background jobs:', error.message);
     }
 
     console.log('========================================\n');
@@ -147,6 +147,23 @@ process.on('SIGTERM', () => {
             process.exit(0);
         });
     });
+});
+
+process.on('SIGINT', () => {
+    logger.info('SIGINT received, shutting down gracefully...');
+    server.close(() => {
+        pool.end(() => process.exit(0));
+    });
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection at:', { promise, reason: reason?.toString() });
+});
+
+process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', { message: error.message, stack: error.stack });
+    // Give time for logging, then exit
+    setTimeout(() => process.exit(1), 1000);
 });
 
 process.on('SIGINT', () => {

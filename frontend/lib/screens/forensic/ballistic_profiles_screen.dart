@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/ballistic_profile_provider.dart';
-import '../../providers/auth_provider.dart';
 
 class BallisticProfilesScreen extends StatefulWidget {
   const BallisticProfilesScreen({Key? key}) : super(key: key);
@@ -40,8 +39,6 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
   @override
   Widget build(BuildContext context) {
     final profileProvider = context.watch<BallisticProfileProvider>();
-    final authProvider = context.watch<AuthProvider>();
-    final isHQCommander = authProvider.userRole == 'hq_firearm_commander';
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
@@ -53,7 +50,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
                 // LEFT PANEL - Profile List (40%)
                 Expanded(
                   flex: 4,
-                  child: _buildLeftPanel(profileProvider, isHQCommander),
+                  child: _buildLeftPanel(profileProvider),
                 ),
                 Container(width: 1, color: const Color(0xFF37404F)),
                 // RIGHT PANEL - Profile Details (60%)
@@ -69,13 +66,12 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
     );
   }
 
-  Widget _buildLeftPanel(
-      BallisticProfileProvider provider, bool isHQCommander) {
+  Widget _buildLeftPanel(BallisticProfileProvider provider) {
     return Container(
       color: const Color(0xFF252A3A),
       child: Column(
         children: [
-          _buildLeftPanelHeader(isHQCommander),
+          _buildLeftPanelHeader(),
           _buildStatsBar(provider),
           _buildFilterButtons(provider),
           Expanded(child: _buildProfileList(provider)),
@@ -84,7 +80,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
     );
   }
 
-  Widget _buildLeftPanelHeader(bool isHQCommander) {
+  Widget _buildLeftPanelHeader() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
@@ -176,7 +172,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
               icon: Icons.fingerprint,
               label: 'With Rifling',
               value: '${stats['with_rifling'] ?? 0}',
-              color: const Color(0xFF66BB6A),
+              color: const Color(0xFF3CCB7F),
             ),
           ),
           const SizedBox(width: 12),
@@ -798,10 +794,10 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
 
   IconData _getFirearmIcon(dynamic type) {
     final typeStr = type?.toString() ?? '';
-    if (typeStr.contains('pistol')) return Icons.sports_martial_arts;
-    if (typeStr.contains('rifle')) return Icons.yard;
-    if (typeStr.contains('shotgun')) return Icons.wifi_protected_setup;
-    return Icons.hardware;
+    if (typeStr.contains('pistol')) return Icons.gps_fixed;
+    if (typeStr.contains('rifle')) return Icons.straighten;
+    if (typeStr.contains('shotgun')) return Icons.center_focus_strong;
+    return Icons.shield_outlined;
   }
 
   String _formatDate(dynamic date) {

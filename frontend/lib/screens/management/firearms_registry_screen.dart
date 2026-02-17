@@ -17,6 +17,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _showRegisterModal = false;
   FirearmModel? _selectedFirearmForDetail;
+  FirearmModel? _firearmToEdit;
 
   bool get _isInvestigator {
     final authProvider = context.read<AuthProvider>();
@@ -96,9 +97,16 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
           // Modal Overlays
           if (_showRegisterModal)
             RegisterFirearmModal(
-              onClose: () => setState(() => _showRegisterModal = false),
+              firearm: _firearmToEdit,
+              onClose: () => setState(() {
+                _showRegisterModal = false;
+                _firearmToEdit = null;
+              }),
               onSuccess: () {
-                setState(() => _showRegisterModal = false);
+                setState(() {
+                  _showRegisterModal = false;
+                  _firearmToEdit = null;
+                });
                 firearmProvider.loadFirearms();
                 firearmProvider.loadStats();
               },
@@ -114,11 +122,9 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                       final firearmToEdit = _selectedFirearmForDetail;
                       setState(() {
                         _selectedFirearmForDetail = null;
+                        _firearmToEdit = firearmToEdit;
                         _showRegisterModal = true;
                       });
-                      if (firearmToEdit != null) {
-                        firearmProvider.selectFirearm(firearmToEdit);
-                      }
                     },
             ),
         ],
@@ -208,7 +214,10 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
           const SizedBox(width: 16),
           if (isHQCommander)
             ElevatedButton.icon(
-              onPressed: () => setState(() => _showRegisterModal = true),
+              onPressed: () => setState(() {
+                _firearmToEdit = null;
+                _showRegisterModal = true;
+              }),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Register Firearm',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
@@ -665,9 +674,10 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                     icon: const Icon(Icons.edit,
                         size: 18, color: Color(0xFF78909C)),
                     onPressed: () {
-                      final firearmProvider = context.read<FirearmProvider>();
-                      firearmProvider.selectFirearm(firearm);
-                      setState(() => _showRegisterModal = true);
+                      setState(() {
+                        _firearmToEdit = firearm;
+                        _showRegisterModal = true;
+                      });
                     },
                   ),
                   IconButton(

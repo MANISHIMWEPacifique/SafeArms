@@ -1,8 +1,13 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 require('dotenv').config();
 
-// JWT Configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_change_in_production_min_32_chars';
+// JWT Configuration - require explicit secret in production
+const JWT_SECRET = process.env.JWT_SECRET || (
+    process.env.NODE_ENV === 'production'
+        ? (() => { throw new Error('JWT_SECRET environment variable is required in production'); })()
+        : 'dev_only_jwt_secret_not_for_production_use_32ch'
+);
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
 // Email OTP Configuration
@@ -49,11 +54,11 @@ const verifyToken = (token) => {
 };
 
 /**
- * Generate random 6-digit OTP code
+ * Generate cryptographically secure random 6-digit OTP code
  * @returns {string} 6-digit OTP code
  */
 const generateOTP = () => {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 999999).toString();
     return otp;
 };
 

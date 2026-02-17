@@ -29,12 +29,6 @@ class SafeArmsColors {
   static const Color textMuted = Color(0xFF78909C);
   static const Color textDisabled = Color(0xFF546E7A);
 
-  // Severity colors
-  static const Color severityCritical = Color(0xFFE85C5C);
-  static const Color severityHigh = Color(0xFFFF8A65);
-  static const Color severityMedium = Color(0xFFFFC857);
-  static const Color severityLow = Color(0xFF42A5F5);
-
   // Status indicator colors
   static const Color active = Color(0xFF3CCB7F);
   static const Color inactive = Color(0xFF78909C);

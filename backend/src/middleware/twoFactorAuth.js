@@ -1,4 +1,5 @@
 const { query } = require('../config/database');
+const crypto = require('crypto');
 
 /**
  * Email OTP Verification Middleware
@@ -61,8 +62,10 @@ const verifyEmailOTP = async (req, res, next) => {
             });
         }
 
-        // Verify OTP code
-        if (user.otp_code !== otp) {
+        // Verify OTP code (use timing-safe comparison to prevent timing attacks)
+        const otpBuffer = Buffer.from(otp.padEnd(6, '0'));
+        const storedBuffer = Buffer.from(user.otp_code.padEnd(6, '0'));
+        if (!crypto.timingSafeEqual(otpBuffer, storedBuffer)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid OTP code. Please check and try again.'

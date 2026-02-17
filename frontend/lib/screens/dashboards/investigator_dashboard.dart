@@ -137,17 +137,20 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
     final anomaliesCount = anomalyProvider.anomalies.length;
 
     return [
-      _NavItem(icon: Icons.dashboard, label: 'Dashboard', badge: null),
-      _NavItem(icon: Icons.search, label: 'Investigation Search', badge: null),
-      _NavItem(icon: Icons.timeline, label: 'Custody Timeline', badge: null),
-      _NavItem(icon: Icons.gps_fixed, label: 'Firearms', badge: null),
+      _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard', badge: null),
       _NavItem(
-        icon: Icons.warning_amber,
+          icon: Icons.manage_search,
+          label: 'Investigation Search',
+          badge: null),
+      _NavItem(icon: Icons.timeline, label: 'Custody Timeline', badge: null),
+      _NavItem(icon: Icons.security_outlined, label: 'Firearms', badge: null),
+      _NavItem(
+        icon: Icons.report_problem_outlined,
         label: 'Anomalies',
         badge: anomaliesCount > 0 ? anomaliesCount.toString() : null,
         badgeColor: const Color(0xFFFFC857),
       ),
-      _NavItem(icon: Icons.assessment, label: 'Reports', badge: null),
+      _NavItem(icon: Icons.analytics_outlined, label: 'Reports', badge: null),
     ];
   }
 
@@ -192,7 +195,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
     final user = authProvider.currentUser;
 
     return Container(
-      width: 260,
+      width: 220,
       decoration: const BoxDecoration(
         color: Color(0xFF252A3A),
         border: Border(right: BorderSide(color: Color(0xFF37404F), width: 1)),
@@ -333,10 +336,8 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
                           children: [
                             Icon(
                               item.icon,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF78909C),
-                              size: 20,
+                              color: Colors.white,
+                              size: 24,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -465,51 +466,6 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
             ],
           ),
           const Spacer(),
-          // Forensic Search Bar
-          Container(
-            width: 320,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A3040),
-              border: Border.all(color: const Color(0xFF37404F)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextField(
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'Search ballistic profiles, firearms...',
-                hintStyle: const TextStyle(color: Color(0xFF78909C)),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: Color(0xFF1E88E5),
-                  size: 20,
-                ),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Stack(
-            children: [
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.notifications, color: Color(0xFF78909C)),
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE85C5C),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
           const SizedBox(width: 8),
           IconButton(
             onPressed: () {},
@@ -581,7 +537,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
         children: [
           _buildInvestigationMetrics(),
           const SizedBox(height: 32),
-          _buildActivityAndAnomalies(),
+          _buildRecentActivitySection(),
           const SizedBox(height: 32),
           _buildRecentCustodyEvents(),
           const SizedBox(height: 32),
@@ -734,7 +690,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.fingerprint, color: Color(0xFF42A5F5), size: 36),
+          const Icon(Icons.fingerprint, color: Color(0xFF1E88E5), size: 36),
           const SizedBox(height: 16),
           Text(
             ballisticCount,
@@ -780,7 +736,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.shield, color: Color(0xFFE85C5C), size: 36),
+          const Icon(Icons.shield, color: Color(0xFF1E88E5), size: 36),
           const SizedBox(height: 16),
           isLoading
               ? const SizedBox(
@@ -859,7 +815,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.timeline, color: Color(0xFF3CCB7F), size: 36),
+          const Icon(Icons.timeline, color: Color(0xFF1E88E5), size: 36),
           const SizedBox(height: 16),
           Text(
             totalCustody.toString(),
@@ -885,19 +841,8 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   }
 
   // =====================================
-  // RECENT ACTIVITY + ANOMALY QUEUE
+  // RECENT ACTIVITY
   // =====================================
-
-  Widget _buildActivityAndAnomalies() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 60, child: _buildRecentActivitySection()),
-        const SizedBox(width: 16),
-        Expanded(flex: 40, child: _buildAnomalyQueue()),
-      ],
-    );
-  }
 
   /// Recent Activity - uses real audit logs from backend
   Widget _buildRecentActivitySection() {
@@ -914,6 +859,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -943,7 +889,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (dashboardProvider.isLoading)
             const Center(
               child: Padding(
@@ -964,7 +910,8 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
           else
             ...recentActivities
                 .take(6)
-                .map((activity) => _buildActivityItem(activity)),
+                .map((activity) => _buildActivityItem(activity))
+                .toList(),
         ],
       ),
     );
@@ -1024,8 +971,8 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
         border: Border(left: BorderSide(color: actColor, width: 4)),
@@ -1084,241 +1031,6 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
     );
   }
 
-  /// Anomaly Investigation Queue - real data from anomaly provider
-  Widget _buildAnomalyQueue() {
-    final anomalyProvider = Provider.of<AnomalyProvider>(context);
-    final anomalies = anomalyProvider.anomalies;
-    final highPriorityAnomalies = anomalies
-        .where(
-          (a) => [
-            'critical',
-            'high',
-          ].contains(a['severity']?.toString().toLowerCase()),
-        )
-        .take(4)
-        .toList();
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Anomaly Investigation Queue',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE85C5C),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '${anomalies.length} Flagged',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          anomalyProvider.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : highPriorityAnomalies.isEmpty
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: Text(
-                          'No high-priority anomalies',
-                          style: TextStyle(color: Color(0xFF78909C)),
-                        ),
-                      ),
-                    )
-                  : Column(
-                      children: highPriorityAnomalies
-                          .map((anomaly) => _buildAnomalyQueueItem(anomaly))
-                          .toList(),
-                    ),
-          if (anomalies.length > 4) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () {
-                  setState(() {
-                    _selectedIndex = 4; // Navigate to anomalies tab
-                  });
-                },
-                child: Text(
-                  'View all ${anomalies.length} anomalies',
-                  style: const TextStyle(
-                    color: Color(0xFF64B5F6),
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAnomalyQueueItem(Map<String, dynamic> anomaly) {
-    final severity = anomaly['severity']?.toString().toUpperCase() ?? 'MEDIUM';
-    final severityColor = _getSeverityColor(severity);
-    final score =
-        double.tryParse(anomaly['anomaly_score']?.toString() ?? '0.0') ?? 0.0;
-    final timeAgo = _formatTimeAgo(anomaly['detected_at']?.toString());
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF252A3A),
-        border: Border(left: BorderSide(color: severityColor, width: 4)),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '#${anomaly['anomaly_id'] ?? 'N/A'}',
-                style: const TextStyle(
-                  color: Color(0xFF64B5F6),
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: severityColor,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      severity,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    timeAgo,
-                    style: const TextStyle(
-                      color: Color(0xFF78909C),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            anomaly['anomaly_type']?.toString() ?? 'Anomaly Detected',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${anomaly['serial_number'] ?? ''} - ${anomaly['unit_name'] ?? 'N/A'}',
-            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
-          ),
-          const SizedBox(height: 8),
-          // Anomaly Score Bar
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Anomaly Score',
-                    style: TextStyle(color: Color(0xFF78909C), fontSize: 11),
-                  ),
-                  Text(
-                    score.toStringAsFixed(2),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Container(
-                height: 6,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF37404F),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: FractionallySizedBox(
-                  widthFactor: score.clamp(0.0, 1.0),
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [const Color(0xFFFFC857), severityColor],
-                      ),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                setState(() {
-                  _selectedIndex = 4; // Go to anomalies tab
-                });
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF1E88E5),
-                side: const BorderSide(color: Color(0xFF1E88E5)),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-              ),
-              child: const Text('Investigate', style: TextStyle(fontSize: 12)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // =====================================
   // RECENT CUSTODY EVENTS - REAL DATA
   // =====================================
@@ -1337,6 +1049,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1388,9 +1101,9 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
                   const Color(0xFF252A3A),
                 ),
                 dataRowColor: WidgetStateProperty.all(const Color(0xFF2A3040)),
-                headingRowHeight: 48,
-                dataRowMinHeight: 56,
-                dataRowMaxHeight: 56,
+                headingRowHeight: 44,
+                dataRowMinHeight: 48,
+                dataRowMaxHeight: 48,
                 columnSpacing: 20,
                 columns: const [
                   DataColumn(
@@ -1454,7 +1167,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
                     ),
                   ),
                 ],
-                rows: custodyEvents.take(8).map<DataRow>((event) {
+                rows: custodyEvents.take(6).map<DataRow>((event) {
                   final custodyStatus =
                       event['custody_status']?.toString() ?? 'active';
                   final isActive = custodyStatus == 'active';
@@ -1643,7 +1356,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
                 const Color(0xFF3CCB7F),
               ),
               _buildCharacteristicLegend(
-                Icons.settings,
+                Icons.precision_manufacturing,
                 'Chamber/Feed',
                 const Color(0xFFCE93D8),
               ),
@@ -1811,7 +1524,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Icon(
-                                  Icons.gps_fixed,
+                                  Icons.security_outlined,
                                   color: Color(0xFF78909C),
                                   size: 14,
                                 ),
@@ -2501,19 +2214,6 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   // =====================================
   // UTILITY METHODS
   // =====================================
-
-  Color _getSeverityColor(String severity) {
-    switch (severity.toLowerCase()) {
-      case 'critical':
-        return const Color(0xFFE85C5C);
-      case 'high':
-        return const Color(0xFFFFC857);
-      case 'medium':
-      case 'low':
-      default:
-        return const Color(0xFF42A5F5);
-    }
-  }
 
   String _formatTimeAgo(String? timestamp) {
     if (timestamp == null) return 'N/A';

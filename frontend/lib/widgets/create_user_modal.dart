@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
+import '../../providers/unit_provider.dart';
 import '../../models/user_model.dart';
 
 class CreateUserModal extends StatefulWidget {
@@ -56,6 +57,10 @@ class _CreateUserModalState extends State<CreateUserModal> {
       _isActive = widget.user!.isActive;
       _mustChangePassword = widget.user!.mustChangePassword;
     }
+    // Load units from backend for the unit dropdown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UnitProvider>().loadUnits();
+    });
   }
 
   @override
@@ -86,7 +91,7 @@ class _CreateUserModalState extends State<CreateUserModal> {
         email: _emailController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         role: _selectedRole,
-        unitId: _selectedRole == 'station_commander' ? _selectedUnit : null,
+        unitId: _selectedUnit,
         isActive: _isActive,
         mustChangePassword: _mustChangePassword,
       );
@@ -98,7 +103,7 @@ class _CreateUserModalState extends State<CreateUserModal> {
         email: _emailController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         role: _selectedRole,
-        unitId: _selectedRole == 'station_commander' ? _selectedUnit : null,
+        unitId: _selectedUnit,
         isActive: _isActive,
         mustChangePassword: _mustChangePassword,
       );
@@ -166,10 +171,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
                         ],
                         const SizedBox(height: 24),
                         _buildRoleSelection(),
-                        if (_selectedRole == 'station_commander') ...[
-                          const SizedBox(height: 24),
-                          _buildUnitAssignment(),
-                        ],
+                        const SizedBox(height: 24),
+                        _buildUnitAssignment(),
                         const SizedBox(height: 24),
                         _buildStatusToggle(),
                         if (widget.user == null) ...[
@@ -504,53 +507,77 @@ class _CreateUserModalState extends State<CreateUserModal> {
   }
 
   Widget _buildUnitAssignment() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: const [
-            Text(
-              'Assigned Unit',
-              style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-            ),
-            SizedBox(width: 4),
-            Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A3040),
-            border: Border.all(color: const Color(0xFF37404F)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedUnit,
-              isExpanded: true,
-              hint: const Text(
-                'Select police unit...',
-                style: TextStyle(color: Color(0xFF78909C)),
-              ),
-              dropdownColor: const Color(0xFF2A3040),
-              style: const TextStyle(color: Colors.white),
-              items: const [
-                DropdownMenuItem(
-                  value: 'unit1',
-                  child: Text('Nyamirambo Police Station'),
+    return Consumer<UnitProvider>(
+      builder: (context, unitProvider, _) {
+        final units = unitProvider.units;
+        // Reset selection if the selected unit is no longer in the list
+        if (_selectedUnit != null &&
+            units.isNotEmpty &&
+            !units.any((u) => u['unit_id'] == _selectedUnit)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() => _selectedUnit = null);
+          });
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Text(
+                  'Assigned Unit',
+                  style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
                 ),
-                DropdownMenuItem(
-                  value: 'unit2',
-                  child: Text('Kicukiro Police Station'),
-                ),
-                // Add more units from backend
+                SizedBox(width: 4),
+                Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
               ],
-              onChanged: (value) => setState(() => _selectedUnit = value),
             ),
-          ),
-        ),
-      ],
+            const SizedBox(height: 8),
+            if (unitProvider.isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A3040),
+                  border: Border.all(color: const Color(0xFF37404F)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedUnit,
+                    isExpanded: true,
+                    hint: Text(
+                      units.isEmpty
+                          ? 'No units available'
+                          : 'Select police unit...',
+                      style: const TextStyle(color: Color(0xFF78909C)),
+                    ),
+                    dropdownColor: const Color(0xFF2A3040),
+                    style: const TextStyle(color: Colors.white),
+                    items: units.map<DropdownMenuItem<String>>((unit) {
+                      return DropdownMenuItem<String>(
+                        value: unit['unit_id']?.toString() ?? '',
+                        child: Text(
+                          unit['unit_name']?.toString() ?? 'Unknown Unit',
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) => setState(() => _selectedUnit = value),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 

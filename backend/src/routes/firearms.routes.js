@@ -49,8 +49,7 @@ router.get('/search', authenticate, asyncHandler(async (req, res) => {
         params.push(userUnitId);
     }
     
-    const { query: dbQuery } = require('../config/database');
-    const result = await dbQuery(`
+    const result = await query(`
         SELECT f.*, u.unit_name
         FROM firearms f
         LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
@@ -130,7 +129,6 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
         `;
     }
     
-    const { query } = require('../config/database');
     const result = await query(statsQuery, params);
     
     // Also get type breakdown
@@ -217,8 +215,6 @@ router.post('/', authenticate, requireHQCommander, logCreate, asyncHandler(async
             message: 'Firearm must be assigned to a unit at registration. Please provide assigned_unit_id.'
         });
     }
-    
-    const { withTransaction } = require('../config/database');
     
     const result = await withTransaction(async (client) => {
         // Generate firearm_id

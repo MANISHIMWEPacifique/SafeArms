@@ -9,7 +9,7 @@ require('dotenv').config();
 const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!DATABASE_URL) {
-  console.error('❌ DATABASE_URL not found in environment variables');
+  console.error('[ERROR] DATABASE_URL not found in environment variables');
   process.exit(1);
 }
 
@@ -19,24 +19,24 @@ const pool = new Pool({
 });
 
 async function runSeedData() {
-  console.log('🌱 Starting database seeding...\n');
+  console.log('[INFO] Starting database seeding...\n');
 
   try {
     // Read the seed data SQL file
     const sqlFilePath = path.join(__dirname, '..', '..', '..', 'database', 'seed_data_new.sql');
     const sql = fs.readFileSync(sqlFilePath, 'utf8');
 
-    console.log('📂 Read seed data file:', sqlFilePath);
-    console.log('📝 SQL file size:', sql.length, 'characters\n');
+    console.log('[INFO] Read seed data file:', sqlFilePath);
+    console.log('[INFO] SQL file size:', sql.length, 'characters\n');
 
     // Execute the SQL
-    console.log('🔄 Executing SQL statements...\n');
+    console.log('[WAIT] Executing SQL statements...\n');
     await pool.query(sql);
 
-    console.log('✅ Seed data loaded successfully!\n');
+    console.log('[OK] Seed data loaded successfully!\n');
 
     // Verify the data was loaded
-    console.log('📊 Verifying data counts:\n');
+    console.log('[INFO] Verifying data counts:\n');
     
     const tables = [
       'units',
@@ -56,8 +56,8 @@ async function runSeedData() {
       console.log(`   ${table}: ${result.rows[0].count} records`);
     }
 
-    console.log('\n✅ Database seeding complete!');
-    console.log('\n📋 Login Credentials:');
+    console.log('\n[OK] Database seeding complete!');
+    console.log('\n[INFO] Login Credentials:');
     console.log('   Admin:           admin / Admin@123');
     console.log('   HQ Commander:    hq_commander / Admin@123');
     console.log('   Nyamirambo:      station_nyamirambo / Admin@123');
@@ -67,7 +67,7 @@ async function runSeedData() {
     console.log('   Investigator:    investigator / Admin@123');
 
   } catch (error) {
-    console.error('❌ Error seeding database:', error.message);
+    console.error('[ERROR] Error seeding database:', error.message);
     if (error.detail) {
       console.error('   Detail:', error.detail);
     }

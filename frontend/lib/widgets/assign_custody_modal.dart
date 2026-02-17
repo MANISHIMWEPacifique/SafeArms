@@ -181,8 +181,6 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildUnitInfoBanner(unitName),
-                              const SizedBox(height: 24),
                               _buildFirearmSelection(),
                               const SizedBox(height: 24),
                               _buildOfficerSelection(),
@@ -214,12 +212,12 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF3CCB7F).withValues(alpha: 0.1),
+              color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.assignment_ind,
-              color: Color(0xFF3CCB7F),
+              color: Color(0xFF1E88E5),
               size: 28,
             ),
           ),
@@ -595,7 +593,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3CCB7F),
+              backgroundColor: const Color(0xFF1E88E5),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               shape: RoundedRectangleBorder(

@@ -92,18 +92,18 @@ const populateTrainingFeatures = async () => {
         console.log(`\nTotal training features now: ${finalCount.rows[0].count}`);
 
         if (parseInt(finalCount.rows[0].count) >= 100) {
-            console.log('\n✅ You have enough data to train the ML model!');
+            console.log('\n[OK] You have enough data to train the ML model!');
             console.log('\nTo train the model:');
             console.log('  1. Start the backend server: npm start');
             console.log('  2. POST to /api/settings/train (as admin)');
             console.log('  OR run: node src/scripts/trainModel.js');
         } else {
-            console.log(`\n⚠️  You need at least 100 samples. Currently: ${finalCount.rows[0].count}`);
+            console.log(`\n[WARN] You need at least 100 samples. Currently: ${finalCount.rows[0].count}`);
             console.log('Create more custody records to generate training data.');
         }
 
     } catch (error) {
-        console.error('\n❌ Error:', error.message);
+        console.error('\n[ERROR] Error:', error.message);
         throw error;
     } finally {
         await pool.end();

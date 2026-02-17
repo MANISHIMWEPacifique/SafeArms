@@ -247,7 +247,7 @@ class CustodyTimelineWidget extends StatelessWidget {
                             'HOLDER AT INCIDENT',
                             style: TextStyle(
                               color: Color(0xFFFFA726),
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 0.5,
                             ),
@@ -268,7 +268,7 @@ class CustodyTimelineWidget extends StatelessWidget {
                             'CROSS-UNIT',
                             style: TextStyle(
                               color: Color(0xFF42A5F5),
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

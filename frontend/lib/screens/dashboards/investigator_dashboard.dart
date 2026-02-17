@@ -7,6 +7,10 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
+import '../../services/firearm_service.dart';
+import '../../services/forensic_traceability_service.dart';
+import '../../models/firearm_model.dart';
+import '../../widgets/custody_timeline_widget.dart';
 import '../auth/login_screen.dart';
 import '../forensic/forensic_search_screen.dart';
 import '../management/firearms_registry_screen.dart';
@@ -22,8 +26,20 @@ class InvestigatorDashboard extends StatefulWidget {
 
 class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   int _selectedIndex = 0;
-  String? _selectedFirearm;
-  String _dateRange = 'Last 30 Days';
+
+  // Custody Timeline search state
+  final TextEditingController _firearmSearchController =
+      TextEditingController();
+  final FirearmService _firearmService = FirearmService();
+  final ForensicTraceabilityService _traceabilityService =
+      ForensicTraceabilityService();
+  List<FirearmModel> _firearmSearchResults = [];
+  bool _isSearchingFirearms = false;
+  FirearmModel? _selectedFirearmForTimeline;
+  bool _isLoadingTimeline = false;
+  List<Map<String, dynamic>> _custodyTimelineData = [];
+  Map<String, dynamic>? _custodyTimelineSummary;
+  String? _timelineError;
 
   @override
   void initState() {
@@ -48,6 +64,72 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       dashboardProvider.loadDashboardStats(),
       anomalyProvider.loadAnomalies(limit: 15),
     ]);
+  }
+
+  @override
+  void dispose() {
+    _firearmSearchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _searchFirearmsForTimeline(String query) async {
+    if (query.trim().length < 2) {
+      setState(() {
+        _firearmSearchResults = [];
+      });
+      return;
+    }
+
+    setState(() => _isSearchingFirearms = true);
+
+    try {
+      final results = await _firearmService.searchFirearms(query.trim());
+      if (mounted) {
+        setState(() {
+          _firearmSearchResults = results;
+          _isSearchingFirearms = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _firearmSearchResults = [];
+          _isSearchingFirearms = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadCustodyTimelineForFirearm(FirearmModel firearm) async {
+    setState(() {
+      _selectedFirearmForTimeline = firearm;
+      _isLoadingTimeline = true;
+      _timelineError = null;
+      _firearmSearchResults = [];
+    });
+
+    try {
+      final response =
+          await _traceabilityService.getCustodyTimeline(firearm.firearmId);
+      final timelineData = response['timeline'];
+      if (mounted) {
+        setState(() {
+          _custodyTimelineData = timelineData is List
+              ? List<Map<String, dynamic>>.from(timelineData)
+              : [];
+          _custodyTimelineSummary =
+              response['summary'] as Map<String, dynamic>?;
+          _isLoadingTimeline = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _timelineError = 'Unable to load custody timeline';
+          _isLoadingTimeline = false;
+        });
+      }
+    }
   }
 
   List<_NavItem> _buildNavItems(BuildContext context) {
@@ -1910,122 +1992,510 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   }
 
   // =====================================
-  // CUSTODY TIMELINE - FIREARM SELECTOR
+  // CUSTODY TIMELINE - SEARCHABLE FIREARM FINDER
   // =====================================
 
   Widget _buildCustodyTimeline() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Search bar
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A3040),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Cross-Unit Custody Timeline',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              const SizedBox(height: 6),
+              const Text(
+                'Search for any firearm nationwide by serial number, manufacturer, model, or caliber',
+                style: TextStyle(color: Color(0xFF90A4AE), fontSize: 14),
+              ),
+              const SizedBox(height: 20),
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF252A3A),
-                      border: Border.all(color: const Color(0xFF37404F)),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: DropdownButton<String>(
-                      value: _selectedFirearm,
-                      hint: const Text(
-                        'Select Firearm',
-                        style: TextStyle(color: Color(0xFFB0BEC5)),
+                  Expanded(
+                    child: TextField(
+                      controller: _firearmSearchController,
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      decoration: InputDecoration(
+                        hintText:
+                            'Type serial number, manufacturer, model, or caliber to search...',
+                        hintStyle: const TextStyle(
+                            color: Color(0xFF546E7A), fontSize: 14),
+                        prefixIcon: const Icon(Icons.search,
+                            color: Color(0xFF64B5F6), size: 22),
+                        suffixIcon: _firearmSearchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear,
+                                    color: Color(0xFF78909C), size: 20),
+                                onPressed: () {
+                                  _firearmSearchController.clear();
+                                  setState(() {
+                                    _firearmSearchResults = [];
+                                  });
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: const Color(0xFF1A1F2E),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 16),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: Color(0xFF37404F)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: Color(0xFF37404F)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF1E88E5), width: 2),
+                        ),
                       ),
-                      dropdownColor: const Color(0xFF252A3A),
-                      underline: Container(),
-                      style: const TextStyle(color: Colors.white),
-                      items: const [],
                       onChanged: (value) {
-                        setState(() {
-                          _selectedFirearm = value;
-                        });
+                        _searchFirearmsForTimeline(value);
+                      },
+                      onSubmitted: (value) {
+                        _searchFirearmsForTimeline(value);
                       },
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF252A3A),
-                      border: Border.all(color: const Color(0xFF37404F)),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: DropdownButton<String>(
-                      value: _dateRange,
-                      dropdownColor: const Color(0xFF252A3A),
-                      underline: Container(),
-                      style: const TextStyle(color: Colors.white),
-                      items: ['Last 7 Days', 'Last 30 Days', 'Last 90 Days']
-                          .map(
-                            (range) => DropdownMenuItem(
-                              value: range,
-                              child: Text(range),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _dateRange = value!;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E88E5),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                  SizedBox(
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      onPressed: _isSearchingFirearms
+                          ? null
+                          : () => _searchFirearmsForTimeline(
+                              _firearmSearchController.text),
+                      icon: _isSearchingFirearms
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.search, size: 20),
+                      label: const Text('Search',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E88E5),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
                       ),
                     ),
-                    child: const Text('Search'),
                   ),
                 ],
               ),
+
+              // Selected firearm chip
+              if (_selectedFirearmForTimeline != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.gps_fixed,
+                          color: Color(0xFF64B5F6), size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${_selectedFirearmForTimeline!.serialNumber} — ${_selectedFirearmForTimeline!.manufacturer} ${_selectedFirearmForTimeline!.model} (${_selectedFirearmForTimeline!.caliber ?? "N/A"})',
+                          style: const TextStyle(
+                              color: Color(0xFF64B5F6),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _selectedFirearmForTimeline!.unitDisplayName,
+                        style: const TextStyle(
+                            color: Color(0xFF90A4AE), fontSize: 13),
+                      ),
+                      const SizedBox(width: 12),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedFirearmForTimeline = null;
+                            _custodyTimelineData = [];
+                            _custodyTimelineSummary = null;
+                            _timelineError = null;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: const Icon(Icons.close,
+                            color: Color(0xFF78909C), size: 18),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              // Search results list
+              if (_firearmSearchResults.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 300),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1F2E),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF37404F)),
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: _firearmSearchResults.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, color: Color(0xFF2E3546)),
+                    itemBuilder: (context, index) {
+                      final firearm = _firearmSearchResults[index];
+                      return InkWell(
+                        onTap: () {
+                          _firearmSearchController.text = firearm.serialNumber;
+                          _loadCustodyTimelineForFirearm(firearm);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E88E5)
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(Icons.gps_fixed,
+                                    color: Color(0xFF64B5F6), size: 18),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${firearm.manufacturer} ${firearm.model}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'SN: ${firearm.serialNumber}  •  ${firearm.caliber ?? "N/A"}  •  ${firearm.firearmType}',
+                                      style: const TextStyle(
+                                          color: Color(0xFF90A4AE),
+                                          fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    firearm.unitDisplayName,
+                                    style: const TextStyle(
+                                        color: Color(0xFF78909C), fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: _getFirearmStatusColor(
+                                              firearm.currentStatus)
+                                          .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      firearm.currentStatus
+                                          .replaceAll('_', ' ')
+                                          .toUpperCase(),
+                                      style: TextStyle(
+                                        color: _getFirearmStatusColor(
+                                            firearm.currentStatus),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 10),
+                              const Icon(Icons.arrow_forward_ios,
+                                  color: Color(0xFF546E7A), size: 14),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+
+              // Searching indicator
+              if (_isSearchingFirearms && _firearmSearchResults.isEmpty) ...[
+                const SizedBox(height: 16),
+                const Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Color(0xFF64B5F6)),
+                      ),
+                      SizedBox(width: 12),
+                      Text('Searching firearms...',
+                          style: TextStyle(
+                              color: Color(0xFF90A4AE), fontSize: 14)),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 32),
-          Center(
-            child: Column(
-              children: const [
-                Icon(Icons.search, color: Color(0xFF78909C), size: 64),
-                SizedBox(height: 16),
-                Text(
-                  'Select a firearm to view custody timeline',
-                  style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 16),
+        ),
+
+        const SizedBox(height: 24),
+
+        // Timeline content
+        if (_selectedFirearmForTimeline != null)
+          _buildTimelineResultPanel()
+        else if (_firearmSearchResults.isEmpty &&
+            _firearmSearchController.text.isEmpty)
+          // Empty state
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 60),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A3040),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF37404F)),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.timeline,
+                      size: 56,
+                      color: const Color(0xFF546E7A).withValues(alpha: 0.5)),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Search for a firearm to view its custody timeline',
+                    style: TextStyle(color: Color(0xFF90A4AE), fontSize: 16),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Track firearm movement and custody chain across all units nationwide',
+                    style: TextStyle(color: Color(0xFF546E7A), fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTimelineResultPanel() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A3040),
+        borderRadius: BorderRadius.circular(12),
+        border:
+            Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFF2E3546))),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.timeline,
+                      color: Color(0xFF64B5F6), size: 20),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Track firearm movement across units',
-                  style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Text(
+                    'Custody Chain of Evidence',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600),
+                  ),
                 ),
+                if (_custodyTimelineSummary != null) ...[
+                  _buildTimelineSummaryChip(
+                      'Transfers',
+                      _custodyTimelineSummary!['total_transfers']?.toString() ??
+                          '0'),
+                  const SizedBox(width: 8),
+                  _buildTimelineSummaryChip(
+                      'Current',
+                      _custodyTimelineSummary!['current_holder']?.toString() ??
+                          'Unknown'),
+                ],
               ],
             ),
           ),
-          const SizedBox(height: 32),
+
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: _buildTimelineContentBody(),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildTimelineSummaryChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1F2E),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF2E3546)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('$label: ',
+              style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineContentBody() {
+    if (_isLoadingTimeline) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: Column(
+            children: [
+              SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.5, color: Color(0xFF1E88E5))),
+              SizedBox(height: 14),
+              Text('Loading custody chain...',
+                  style: TextStyle(color: Color(0xFF90A4AE), fontSize: 14)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_timelineError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Column(
+            children: [
+              const Icon(Icons.error_outline,
+                  color: Color(0xFFE57373), size: 28),
+              const SizedBox(height: 10),
+              Text(_timelineError!,
+                  style:
+                      const TextStyle(color: Color(0xFFE57373), fontSize: 14)),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () => _loadCustodyTimelineForFirearm(
+                    _selectedFirearmForTimeline!),
+                child: const Text('Retry', style: TextStyle(fontSize: 14)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_custodyTimelineData.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: Column(
+            children: [
+              Icon(Icons.timeline, color: Color(0xFF546E7A), size: 36),
+              SizedBox(height: 14),
+              Text('No custody records found for this firearm',
+                  style: TextStyle(color: Color(0xFF90A4AE), fontSize: 14)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return CustodyTimelineWidget(
+      timeline: _custodyTimelineData,
+      summary: _custodyTimelineSummary,
+    );
+  }
+
+  Color _getFirearmStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return const Color(0xFF4CAF50);
+      case 'assigned':
+        return const Color(0xFF42A5F5);
+      case 'in_maintenance':
+        return const Color(0xFFFFA726);
+      case 'decommissioned':
+        return const Color(0xFFE57373);
+      default:
+        return const Color(0xFF78909C);
+    }
   }
 
   // =====================================

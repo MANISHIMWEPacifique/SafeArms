@@ -222,44 +222,20 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                 'Investigation Search',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.3,
                 ),
               ),
-              SizedBox(height: 2),
+              SizedBox(height: 4),
               Text(
                 'Search ballistic profiles and trace custody chain for firearm investigations',
-                style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
+                style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 15),
               ),
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E88E5).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
-            ),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.shield_outlined, color: Color(0xFF64B5F6), size: 14),
-              SizedBox(width: 6),
-              Text(
-                'Access Logged',
-                style: TextStyle(
-                  color: Color(0xFF64B5F6),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
+        const SizedBox.shrink(),
       ],
     );
   }
@@ -290,9 +266,9 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                       hintText:
                           'Search serial number, manufacturer, model, caliber...',
                       hintStyle: const TextStyle(
-                          color: Color(0xFF546E7A), fontSize: 13),
+                          color: Color(0xFF78909C), fontSize: 14),
                       prefixIcon: const Icon(Icons.search,
-                          color: Color(0xFF546E7A), size: 20),
+                          color: Color(0xFF64B5F6), size: 22),
                       filled: true,
                       fillColor: const Color(0xFF1A1F2E),
                       contentPadding: const EdgeInsets.symmetric(
@@ -383,7 +359,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                             'Clear all',
                             style: TextStyle(
                               color: Color(0xFFE57373),
-                              fontSize: 11,
+                              fontSize: 13,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -460,8 +436,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     const Text(
                       'INVESTIGATION CONTEXT',
                       style: TextStyle(
-                        color: Color(0xFF546E7A),
-                        fontSize: 10,
+                        color: Color(0xFF90A4AE),
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.2,
                       ),
@@ -475,8 +451,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     const Text(
                       'Optional',
                       style: TextStyle(
-                        color: Color(0xFF455A64),
-                        fontSize: 10,
+                        color: Color(0xFF78909C),
+                        fontSize: 12,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -523,22 +499,22 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFF90A4AE),
-            fontSize: 11,
+            color: Color(0xFFB0BEC5),
+            fontSize: 13,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.3,
           ),
         ),
         const SizedBox(height: 6),
         SizedBox(
-          height: 40,
+          height: 44,
           child: TextField(
             controller: controller,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            style: const TextStyle(color: Colors.white, fontSize: 14),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle:
-                  const TextStyle(color: Color(0xFF455A64), fontSize: 12),
+                  const TextStyle(color: Color(0xFF78909C), fontSize: 13),
               filled: true,
               fillColor: const Color(0xFF1A1F2E),
               contentPadding:
@@ -574,23 +550,23 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFF90A4AE),
-            fontSize: 11,
+            color: Color(0xFFB0BEC5),
+            fontSize: 13,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.3,
           ),
         ),
         const SizedBox(height: 6),
         SizedBox(
-          height: 40,
+          height: 44,
           child: TextField(
             controller: controller,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            style: const TextStyle(color: Colors.white, fontSize: 14),
             readOnly: true,
             decoration: InputDecoration(
               hintText: hint,
               hintStyle:
-                  const TextStyle(color: Color(0xFF455A64), fontSize: 12),
+                  const TextStyle(color: Color(0xFF78909C), fontSize: 13),
               filled: true,
               fillColor: const Color(0xFF1A1F2E),
               contentPadding:
@@ -824,7 +800,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                       'Case: ${_caseNumberController.text}',
                       style: const TextStyle(
                         color: Color(0xFF64B5F6),
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -833,8 +809,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                 const Text(
                   'Click a row to view custody chain',
                   style: TextStyle(
-                    color: Color(0xFF546E7A),
-                    fontSize: 11,
+                    color: Color(0xFF78909C),
+                    fontSize: 13,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -913,7 +889,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                       profile['serial_number']?.toString() ?? 'N/A',
                       style: const TextStyle(
                         color: Color(0xFF64B5F6),
-                        fontSize: 12,
+                        fontSize: 13,
                         fontFamily: 'monospace',
                         fontWeight: FontWeight.w500,
                       ),
@@ -921,7 +897,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     DataCell(Text(
                       profile['caliber']?.toString() ?? '\u2014',
                       style: const TextStyle(
-                          color: Color(0xFFB0BEC5), fontSize: 12),
+                          color: Color(0xFFB0BEC5), fontSize: 13),
                     )),
                     DataCell(_buildCellValue(
                         profile['firing_pin_impression']?.toString())),
@@ -936,7 +912,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     DataCell(Text(
                       profile['assigned_unit_name']?.toString() ?? '\u2014',
                       style: const TextStyle(
-                          color: Color(0xFF90A4AE), fontSize: 12),
+                          color: Color(0xFF90A4AE), fontSize: 13),
                     )),
                     DataCell(
                       Container(
@@ -955,7 +931,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                             color: isLocked && hasHash
                                 ? const Color(0xFF4CAF50)
                                 : const Color(0xFFFFA726),
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -988,7 +964,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                             children: [
                               Icon(
                                 Icons.timeline,
-                                size: 13,
+                                size: 15,
                                 color: isSelected
                                     ? const Color(0xFF64B5F6)
                                     : const Color(0xFF546E7A),
@@ -1000,7 +976,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                                   color: isSelected
                                       ? const Color(0xFF64B5F6)
                                       : const Color(0xFF78909C),
-                                  fontSize: 11,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -1020,8 +996,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
   }
 
   static const TextStyle _columnHeaderStyle = TextStyle(
-    color: Color(0xFF78909C),
-    fontSize: 10,
+    color: Color(0xFFB0BEC5),
+    fontSize: 12,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.8,
   );
@@ -1030,7 +1006,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
     if (value == null || value.isEmpty || value == 'null') {
       return const Text(
         '\u2014',
-        style: TextStyle(color: Color(0xFF455A64), fontSize: 12),
+        style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
       );
     }
     final display = value.length > 24 ? '${value.substring(0, 24)}...' : value;
@@ -1038,7 +1014,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       message: value,
       child: Text(
         display,
-        style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+        style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -1191,15 +1167,15 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
           Text(
             '$label: ',
             style: const TextStyle(
-              color: Color(0xFF546E7A),
-              fontSize: 11,
+              color: Color(0xFF78909C),
+              fontSize: 13,
             ),
           ),
           Text(
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
           ),

@@ -40,7 +40,7 @@ class BallisticProfileProvider with ChangeNotifier {
       filtered = filtered.where((profile) {
         final query = _searchQuery.toLowerCase();
         final serialNumber =
-            (profile['firearm_serial'] ?? '').toString().toLowerCase();
+            (profile['serial_number'] ?? '').toString().toLowerCase();
         final manufacturer =
             (profile['manufacturer'] ?? '').toString().toLowerCase();
         return serialNumber.contains(query) || manufacturer.contains(query);

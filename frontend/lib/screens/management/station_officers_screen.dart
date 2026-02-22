@@ -198,14 +198,14 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
           ElevatedButton.icon(
             onPressed: () => setState(() => _showAddModal = true),
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add Officer'),
+            label: const Text('Add Officer',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3CCB7F),
+              backgroundColor: const Color(0xFF1E88E5),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],
@@ -577,7 +577,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
               icon: const Icon(Icons.add),
               label: const Text('Add Officer'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3CCB7F),
+                backgroundColor: const Color(0xFF1E88E5),
               ),
             ),
           ],

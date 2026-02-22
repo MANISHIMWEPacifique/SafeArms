@@ -49,7 +49,7 @@ class ConfirmationDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: const Color(0xFF2A3040),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -94,8 +94,8 @@ class ConfirmationDialog extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: confirmColor,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero,
                     ),
                   ),
                   child: Text(confirmText),

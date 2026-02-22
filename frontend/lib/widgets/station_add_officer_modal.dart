@@ -105,7 +105,40 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
           data: ThemeData.dark().copyWith(
             colorScheme: const ColorScheme.dark(
               primary: Color(0xFF1E88E5),
+              onPrimary: Colors.white,
               surface: Color(0xFF252A3A),
+              onSurface: Colors.white,
+            ),
+            dialogTheme: const DialogThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
+            ),
+            datePickerTheme: DatePickerThemeData(
+              backgroundColor: const Color(0xFF252A3A),
+              headerBackgroundColor: const Color(0xFF1A1F2E),
+              headerForegroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
+              dayStyle: const TextStyle(color: Colors.white),
+              yearStyle: const TextStyle(color: Colors.white),
+              dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) return Colors.white;
+                if (states.contains(WidgetState.disabled))
+                  return const Color(0xFF546E7A);
+                return Colors.white;
+              }),
+              dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected))
+                  return const Color(0xFF1E88E5);
+                return Colors.transparent;
+              }),
+              todayForegroundColor:
+                  WidgetStateProperty.all(const Color(0xFF42A5F5)),
+              todayBackgroundColor: WidgetStateProperty.all(Colors.transparent),
+              todayBorder: const BorderSide(color: Color(0xFF42A5F5)),
             ),
           ),
           child: child!,
@@ -140,7 +173,6 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
           ),
           decoration: BoxDecoration(
             color: const Color(0xFF252A3A),
-            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.3),
@@ -170,7 +202,8 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE85C5C).withValues(alpha: 0.1),
+                              color: const Color(0xFFE85C5C)
+                                  .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                               border:
                                   Border.all(color: const Color(0xFFE85C5C)),
@@ -258,10 +291,6 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
         color: Color(0xFF1A1F2E),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-        ),
       ),
       child: Row(
         children: [
@@ -269,7 +298,6 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.person_add,
                 color: Color(0xFF3CCB7F), size: 24),
@@ -319,7 +347,8 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
+        border:
+            Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -483,12 +512,13 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
       child: ElevatedButton(
         onPressed: _isSubmitting ? null : _submitForm,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF3CCB7F),
-          disabledBackgroundColor: const Color(0xFF3CCB7F).withValues(alpha: 0.5),
+          backgroundColor: const Color(0xFF1E88E5),
+          disabledBackgroundColor:
+              const Color(0xFF1E88E5).withValues(alpha: 0.5),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
           ),
         ),
         child: _isSubmitting

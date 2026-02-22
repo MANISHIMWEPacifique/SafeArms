@@ -134,14 +134,13 @@ class _CreateUserModalState extends State<CreateUserModal> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1A1F2E).withValues(alpha: 0.95),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Center(
         child: Container(
           width: 800,
           constraints: const BoxConstraints(maxHeight: 700),
           decoration: BoxDecoration(
             color: const Color(0xFF252A3A),
-            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.6),
@@ -700,14 +699,14 @@ class _CreateUserModalState extends State<CreateUserModal> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        OutlinedButton(
+        ElevatedButton(
           onPressed: widget.onClose,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFFB0BEC5),
-            side: const BorderSide(color: Color(0xFF37404F)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF37404F),
+            foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           ),
           child: const Text('Cancel', style: TextStyle(fontSize: 15)),
         ),
@@ -731,7 +730,7 @@ class _CreateUserModalState extends State<CreateUserModal> {
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           ),
         ),
       ],

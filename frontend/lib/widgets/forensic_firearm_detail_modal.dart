@@ -192,7 +192,7 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1A1F2E).withValues(alpha: 0.95),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Row(
         children: [
           Expanded(
@@ -425,7 +425,6 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
             decoration: BoxDecoration(
               color: const Color(0xFF2A3040),
               border: Border.all(color: const Color(0xFF37404F)),
-              borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
@@ -483,7 +482,6 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         border: Border.all(color: const Color(0xFF37404F)),
-        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         children: const [
@@ -513,7 +511,7 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
       context: context,
       builder: (context) => Dialog(
         backgroundColor: const Color(0xFF252A3A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         child: Container(
           width: 500,
           constraints: const BoxConstraints(maxHeight: 600),
@@ -653,8 +651,8 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
                 backgroundColor: const Color(0xFF42A5F5),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero),
               ),
             ),
           ),
@@ -671,8 +669,8 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
               foregroundColor: const Color(0xFF42A5F5),
               side: const BorderSide(color: Color(0xFF42A5F5)),
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+              shape:
+                  const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             ),
           ),
         ),
@@ -689,8 +687,8 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
               foregroundColor: const Color(0xFF78909C),
               side: const BorderSide(color: Color(0xFF37404F)),
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+              shape:
+                  const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             ),
           ),
         ),
@@ -782,7 +780,6 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         displayText,
@@ -801,7 +798,6 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFF42A5F5)),
-        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

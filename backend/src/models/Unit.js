@@ -26,7 +26,7 @@ const Unit = {
             ) c ON u.unit_id = c.unit_id
             LEFT JOIN (
                 SELECT unit_id, COUNT(*) as anomaly_count 
-                FROM anomalies WHERE status = 'pending' 
+                FROM anomalies WHERE status IN ('open', 'pending') 
                 GROUP BY unit_id
             ) a ON u.unit_id = a.unit_id
             WHERE u.unit_id = $1
@@ -81,7 +81,7 @@ const Unit = {
             ) c ON u.unit_id = c.unit_id
             LEFT JOIN (
                 SELECT unit_id, COUNT(*) as anomaly_count 
-                FROM anomalies WHERE status = 'pending' 
+                FROM anomalies WHERE status IN ('open', 'pending') 
                 GROUP BY unit_id
             ) a ON u.unit_id = a.unit_id
             ${where} 
@@ -95,8 +95,8 @@ const Unit = {
         const { unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, is_active } = unitData;
 
         // Generate unit_id
-        const idResult = await query(`SELECT COUNT(*) as count FROM units`);
-        const count = parseInt(idResult.rows[0].count) + 1;
+        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(unit_id FROM 6) AS INTEGER)), 0) as max_num FROM units WHERE unit_id ~ '^UNIT-[0-9]+$'`);
+        const count = parseInt(idResult.rows[0].max_num) + 1;
         const unit_id = `UNIT-${String(count).padStart(3, '0')}`;
 
         // Map unit_type to valid CHECK constraint values

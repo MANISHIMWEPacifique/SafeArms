@@ -107,15 +107,21 @@ const BallisticProfile = {
         // Generate integrity hash
         const registrationHash = this.generateRegistrationHash(profileData);
 
+        // Generate ballistic_id
+        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(ballistic_id FROM 4) AS INTEGER)), 0) as max_num FROM ballistic_profiles WHERE ballistic_id ~ '^BP-[0-9]+$'`);
+        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+        const ballistic_id = `BP-${String(nextNum).padStart(3, '0')}`;
+
         const result = await query(`
             INSERT INTO ballistic_profiles (
-                firearm_id, test_date, test_location, rifling_characteristics,
+                ballistic_id, firearm_id, test_date, test_location, rifling_characteristics,
                 firing_pin_impression, ejector_marks, extractor_marks, chamber_marks,
                 test_conducted_by, forensic_lab, test_ammunition, notes,
                 created_by, is_locked, locked_at, locked_by, registration_hash
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true, CURRENT_TIMESTAMP, $13, $14)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, CURRENT_TIMESTAMP, $14, $15)
             RETURNING *
         `, [
+            ballistic_id,
             firearm_id, test_date, test_location, rifling_characteristics, 
             firing_pin_impression, ejector_marks, extractor_marks, chamber_marks,
             test_conducted_by, forensic_lab, test_ammunition, notes,

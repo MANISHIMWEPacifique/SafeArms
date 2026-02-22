@@ -47,7 +47,7 @@ class CustodyDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: const Color(0xFF2A3040),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 500),
         child: Padding(
@@ -94,8 +94,8 @@ class CustodyDialog extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: actionColor,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
                       ),
                     ),
                     child: isLoading

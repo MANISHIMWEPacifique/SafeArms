@@ -43,6 +43,9 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: const Color(0xFF2A3040),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+          ),
           title: Row(
             children: [
               const Icon(Icons.history, color: Color(0xFF1E88E5)),
@@ -88,7 +91,6 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: const Color(0xFF1A1F2E),
-                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFF37404F)),
                         ),
                         child: Column(
@@ -182,6 +184,9 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A3040),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+        ),
         title: const Row(
           children: [
             Icon(Icons.description, color: Color(0xFF1E88E5)),
@@ -223,12 +228,11 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
   Widget _buildReportOption(String title, IconData icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.zero,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: const Color(0xFF1A1F2E),
-          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFF37404F)),
         ),
         child: Row(
@@ -252,6 +256,9 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A3040),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+        ),
         title: Row(
           children: [
             const Icon(Icons.preview, color: Color(0xFF1E88E5)),
@@ -273,7 +280,6 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
               ),
               child: SelectableText(
                 reportContent,
@@ -398,7 +404,7 @@ This is an official forensic document.
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1A1F2E).withValues(alpha: 0.95),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Row(
         children: [
           Expanded(
@@ -723,7 +729,6 @@ This is an official forensic document.
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         border: Border.all(color: const Color(0xFF37404F)),
-        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         children: rows,
@@ -789,7 +794,6 @@ This is an official forensic document.
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         displayText,
@@ -810,7 +814,6 @@ This is an official forensic document.
         border: Border.all(
           color: isHQ ? const Color(0xFF1E88E5) : const Color(0xFF3CCB7F),
         ),
-        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

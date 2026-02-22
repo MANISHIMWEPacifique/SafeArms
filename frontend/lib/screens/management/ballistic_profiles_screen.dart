@@ -371,7 +371,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
                         ),
                       ),
                       Text(
-                        profile['firearm_serial'] ??
+                        profile['serial_number'] ??
                             profile['firearm_id'] ??
                             'Unknown',
                         style: const TextStyle(
@@ -487,7 +487,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
                 _buildDetailRow('Profile ID', profile['ballistic_id'] ?? 'N/A'),
                 _buildDetailRow('Firearm ID', profile['firearm_id'] ?? 'N/A'),
                 _buildDetailRow(
-                    'Serial Number', profile['firearm_serial'] ?? 'N/A'),
+                    'Serial Number', profile['serial_number'] ?? 'N/A'),
                 _buildDetailRow('Test Date', _formatDate(profile['test_date'])),
                 _buildDetailRow(
                     'Test Location', profile['test_location'] ?? 'N/A'),

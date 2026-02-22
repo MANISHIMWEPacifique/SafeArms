@@ -117,15 +117,21 @@ const detectAnomaly = async (custodyRecord) => {
  */
 const recordAnomaly = async (custodyRecord, features, detectionResult, modelId) => {
     try {
+        // Generate anomaly_id
+        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(anomaly_id FROM 6) AS INTEGER)), 0) as max_num FROM anomalies WHERE anomaly_id ~ '^ANOM-[0-9]+$'`);
+        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+        const anomaly_id = `ANOM-${String(nextNum).padStart(3, '0')}`;
+
         const result = await query(`
       INSERT INTO anomalies (
-        custody_record_id, firearm_id, officer_id, unit_id,
+        anomaly_id, custody_record_id, firearm_id, officer_id, unit_id,
         anomaly_score, anomaly_type, detection_method, model_id,
         severity, confidence_level, contributing_factors, feature_importance,
         is_mandatory_review, event_context, ballistic_access_context
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING anomaly_id
     `, [
+            anomaly_id,
             custodyRecord.custody_id,
             custodyRecord.firearm_id,
             custodyRecord.officer_id,

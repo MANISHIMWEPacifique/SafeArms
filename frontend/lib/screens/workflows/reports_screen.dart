@@ -401,7 +401,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Loss Report #${report['loss_report_id']?.toString().substring(0, 8) ?? 'N/A'}',
+                  'Loss Report #${report['loss_id']?.toString().substring(0, 8) ?? 'N/A'}',
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
@@ -410,12 +410,11 @@ class _ReportsScreenState extends State<ReportsScreen>
             ],
           ),
           const SizedBox(height: 12),
-          _buildInfoRow('Firearm',
-              report['serial_number'] ?? report['firearm_serial'] ?? 'N/A'),
-          _buildInfoRow('Circumstance', report['circumstance'] ?? 'N/A'),
+          _buildInfoRow('Firearm', report['serial_number'] ?? 'N/A'),
+          _buildInfoRow('Circumstances', report['circumstances'] ?? 'N/A'),
           _buildInfoRow('Date Reported', createdAt),
-          if (report['description'] != null)
-            _buildInfoRow('Description', report['description']),
+          if (report['loss_location'] != null)
+            _buildInfoRow('Location', report['loss_location']),
           if (!isStation && report['unit_name'] != null)
             _buildInfoRow('Reporting Unit', report['unit_name']),
           if (canApprove && status == 'pending') ...[
@@ -427,7 +426,14 @@ class _ReportsScreenState extends State<ReportsScreen>
                   onPressed: () =>
                       _handleReportAction(report, 'loss', 'rejected'),
                   style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFE85C5C)),
+                    foregroundColor: const Color(0xFFE85C5C),
+                    side: const BorderSide(color: Color(0xFF37404F)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: const Text('Reject'),
                 ),
                 const SizedBox(width: 8),
@@ -435,7 +441,14 @@ class _ReportsScreenState extends State<ReportsScreen>
                   onPressed: () =>
                       _handleReportAction(report, 'loss', 'approved'),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E88E5)),
+                    backgroundColor: const Color(0xFF1E88E5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: const Text('Approve'),
                 ),
               ],
@@ -494,7 +507,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Destruction Request #${request['destruction_request_id']?.toString().substring(0, 8) ?? 'N/A'}',
+                  'Destruction Request #${request['destruction_id']?.toString().substring(0, 8) ?? 'N/A'}',
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
@@ -503,12 +516,11 @@ class _ReportsScreenState extends State<ReportsScreen>
             ],
           ),
           const SizedBox(height: 12),
-          _buildInfoRow('Firearm',
-              request['serial_number'] ?? request['firearm_serial'] ?? 'N/A'),
-          _buildInfoRow('Reason', request['reason'] ?? 'N/A'),
+          _buildInfoRow('Firearm', request['serial_number'] ?? 'N/A'),
+          _buildInfoRow('Reason', request['destruction_reason'] ?? 'N/A'),
           _buildInfoRow('Date Requested', createdAt),
-          if (request['notes'] != null)
-            _buildInfoRow('Notes', request['notes']),
+          if (request['condition_description'] != null)
+            _buildInfoRow('Condition', request['condition_description']),
           if (!isStation && request['unit_name'] != null)
             _buildInfoRow('Requesting Unit', request['unit_name']),
           if (canApprove && status == 'pending') ...[
@@ -520,7 +532,14 @@ class _ReportsScreenState extends State<ReportsScreen>
                   onPressed: () =>
                       _handleReportAction(request, 'destruction', 'rejected'),
                   style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFE85C5C)),
+                    foregroundColor: const Color(0xFFE85C5C),
+                    side: const BorderSide(color: Color(0xFF37404F)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: const Text('Reject'),
                 ),
                 const SizedBox(width: 8),
@@ -528,7 +547,14 @@ class _ReportsScreenState extends State<ReportsScreen>
                   onPressed: () =>
                       _handleReportAction(request, 'destruction', 'approved'),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E88E5)),
+                    backgroundColor: const Color(0xFF1E88E5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: const Text('Approve'),
                 ),
               ],
@@ -587,7 +613,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Procurement Request #${request['procurement_request_id']?.toString().substring(0, 8) ?? 'N/A'}',
+                  'Procurement Request #${request['procurement_id']?.toString().substring(0, 8) ?? 'N/A'}',
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
@@ -611,7 +637,14 @@ class _ReportsScreenState extends State<ReportsScreen>
                   onPressed: () =>
                       _handleReportAction(request, 'procurement', 'rejected'),
                   style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFE85C5C)),
+                    foregroundColor: const Color(0xFFE85C5C),
+                    side: const BorderSide(color: Color(0xFF37404F)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: const Text('Reject'),
                 ),
                 const SizedBox(width: 8),
@@ -619,7 +652,14 @@ class _ReportsScreenState extends State<ReportsScreen>
                   onPressed: () =>
                       _handleReportAction(request, 'procurement', 'approved'),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E88E5)),
+                    backgroundColor: const Color(0xFF1E88E5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: const Text('Approve'),
                 ),
               ],
@@ -703,10 +743,13 @@ class _ReportsScreenState extends State<ReportsScreen>
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF2A3040),
+          backgroundColor: const Color(0xFF252A3A),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+          ),
           title: const Row(
             children: [
-              Icon(Icons.report_problem, color: Color(0xFFE85C5C)),
+              Icon(Icons.report_problem, color: Color(0xFF1E88E5)),
               SizedBox(width: 12),
               Text('Report Firearm Loss',
                   style: TextStyle(color: Colors.white)),
@@ -739,10 +782,18 @@ class _ReportsScreenState extends State<ReportsScreen>
             ),
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Color(0xFF78909C))),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFB0BEC5),
+                side: const BorderSide(color: Color(0xFF37404F)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Cancel', style: TextStyle(fontSize: 15)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -781,7 +832,11 @@ class _ReportsScreenState extends State<ReportsScreen>
                 }
               },
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE85C5C)),
+                  backgroundColor: const Color(0xFF1E88E5),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  )),
               child: const Text('Submit Report'),
             ),
           ],
@@ -799,10 +854,13 @@ class _ReportsScreenState extends State<ReportsScreen>
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF2A3040),
+          backgroundColor: const Color(0xFF252A3A),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+          ),
           title: const Row(
             children: [
-              Icon(Icons.delete_forever, color: Color(0xFFFFC857)),
+              Icon(Icons.delete_forever, color: Color(0xFF1E88E5)),
               SizedBox(width: 12),
               Text('Request Destruction',
                   style: TextStyle(color: Colors.white)),
@@ -839,10 +897,18 @@ class _ReportsScreenState extends State<ReportsScreen>
             ),
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Color(0xFF78909C))),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFB0BEC5),
+                side: const BorderSide(color: Color(0xFF37404F)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Cancel', style: TextStyle(fontSize: 15)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -880,7 +946,11 @@ class _ReportsScreenState extends State<ReportsScreen>
                 }
               },
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFC857)),
+                  backgroundColor: const Color(0xFF1E88E5),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  )),
               child: const Text('Submit Request'),
             ),
           ],
@@ -898,7 +968,10 @@ class _ReportsScreenState extends State<ReportsScreen>
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF2A3040),
+          backgroundColor: const Color(0xFF252A3A),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+          ),
           title: const Row(
             children: [
               Icon(Icons.add_shopping_cart, color: Color(0xFF1E88E5)),
@@ -951,10 +1024,18 @@ class _ReportsScreenState extends State<ReportsScreen>
             ),
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Color(0xFF78909C))),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFB0BEC5),
+                side: const BorderSide(color: Color(0xFF37404F)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Cancel', style: TextStyle(fontSize: 15)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -992,7 +1073,11 @@ class _ReportsScreenState extends State<ReportsScreen>
                 }
               },
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88E5)),
+                  backgroundColor: const Color(0xFF1E88E5),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  )),
               child: const Text('Submit Request'),
             ),
           ],
@@ -1003,7 +1088,7 @@ class _ReportsScreenState extends State<ReportsScreen>
 
   Widget _buildFirearmDropdown(String? value, Function(String?) onChanged) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       hint: const Text('Select Firearm',
           style: TextStyle(color: Color(0xFF78909C))),
       dropdownColor: const Color(0xFF2A3040),
@@ -1038,7 +1123,7 @@ class _ReportsScreenState extends State<ReportsScreen>
   Widget _buildDropdownField(String label, String value, List<String> items,
       Function(String?) onChanged) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       dropdownColor: const Color(0xFF2A3040),
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
@@ -1096,13 +1181,13 @@ class _ReportsScreenState extends State<ReportsScreen>
       // Handle approval/rejection based on type
       if (type == 'loss') {
         await _reportService.updateLossReportStatus(
-            report['loss_report_id'].toString(), action);
+            report['loss_id'].toString(), action);
       } else if (type == 'destruction') {
         await _reportService.updateDestructionRequestStatus(
-            report['destruction_request_id'].toString(), action);
+            report['destruction_id'].toString(), action);
       } else if (type == 'procurement') {
         await _reportService.updateProcurementRequestStatus(
-            report['procurement_request_id'].toString(), action);
+            report['procurement_id'].toString(), action);
       }
 
       if (mounted) {

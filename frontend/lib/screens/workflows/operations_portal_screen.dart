@@ -429,7 +429,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  report['loss_report_id'] ?? 'LOSS-XXXX',
+                  report['loss_id']?.toString().substring(0, 8) ?? 'LOSS-XXXX',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -447,7 +447,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
                     color: Color(0xFF78909C), size: 14),
                 const SizedBox(width: 6),
                 Text(
-                  _formatDate(report['submitted_date']),
+                  _formatDate(report['created_at']),
                   style:
                       const TextStyle(color: Color(0xFF78909C), fontSize: 13),
                 ),
@@ -479,7 +479,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  report['firearm_serial'] ?? 'Unknown',
+                                  report['serial_number'] ?? 'Unknown',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 16,
@@ -498,7 +498,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Last Custody: ${report['officer_name'] ?? 'Unknown'}',
+                        'Reported by: ${report['reporter_name'] ?? 'Unknown'}',
                         style: const TextStyle(
                             color: Color(0xFFB0BEC5), fontSize: 13),
                       ),
@@ -572,7 +572,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
                   color: _getStatusColor(requests[index]['status']), width: 4)),
         ),
         child: Text(
-          'Destruction Request - ${requests[index]['destruction_request_id']}',
+          'Destruction Request - ${requests[index]['destruction_id']}',
           style: const TextStyle(color: Colors.white),
         ),
       ),
@@ -594,7 +594,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
                   color: _getStatusColor(requests[index]['status']), width: 4)),
         ),
         child: Text(
-          'Procurement Request - ${requests[index]['procurement_request_id']}',
+          'Procurement Request - ${requests[index]['procurement_id']}',
           style: const TextStyle(color: Colors.white),
         ),
       ),

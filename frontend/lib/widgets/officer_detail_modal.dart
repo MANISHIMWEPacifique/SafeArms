@@ -27,7 +27,6 @@ class OfficerDetailModal extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: const Color(0xFF252A3A),
-            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.3),
@@ -90,10 +89,6 @@ class OfficerDetailModal extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
         color: Color(0xFF1A1F2E),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-        ),
       ),
       child: Row(
         children: [
@@ -101,7 +96,6 @@ class OfficerDetailModal extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.person, color: Color(0xFF1E88E5), size: 24),
           ),
@@ -171,7 +165,6 @@ class OfficerDetailModal extends StatelessWidget {
               color: officer.isActive
                   ? const Color(0xFF3CCB7F).withValues(alpha: 0.15)
                   : const Color(0xFFE85C5C).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               officer.isActive ? 'Active' : 'Inactive',
@@ -206,7 +199,6 @@ class OfficerDetailModal extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color(0xFF1A1F2E),
-            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFF37404F)),
           ),
           child: Column(children: children),
@@ -251,10 +243,6 @@ class OfficerDetailModal extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
         color: Color(0xFF1A1F2E),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -265,8 +253,8 @@ class OfficerDetailModal extends StatelessWidget {
               backgroundColor: const Color(0xFF37404F),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
               ),
             ),
             child: const Text('Close'),

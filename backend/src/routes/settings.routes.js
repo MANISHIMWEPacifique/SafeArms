@@ -119,7 +119,7 @@ router.get('/health', authenticate, asyncHandler(async (req, res) => {
             (SELECT COUNT(*) FROM users WHERE is_active = true) as active_users,
             (SELECT COUNT(*) FROM firearms WHERE is_active = true) as total_firearms,
             (SELECT COUNT(*) FROM custody_records WHERE returned_at IS NULL) as active_custody,
-            (SELECT COUNT(*) FROM anomalies WHERE status = 'pending') as pending_anomalies
+            (SELECT COUNT(*) FROM anomalies WHERE status IN ('open', 'pending')) as pending_anomalies
     `);
     
     res.json({

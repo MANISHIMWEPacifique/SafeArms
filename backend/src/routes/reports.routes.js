@@ -243,7 +243,7 @@ router.patch('/loss/:id/status', authenticate, requireRole(['hq_firearm_commande
         status, 
         review_notes,
         reviewed_by: req.user.user_id,
-        reviewed_at: new Date().toISOString()
+        review_date: new Date().toISOString()
     });
     if (!report) return res.status(404).json({ success: false, message: 'Loss report not found' });
     res.json({ success: true, data: report });
@@ -272,7 +272,7 @@ router.patch('/destruction/:id/status', authenticate, requireRole(['hq_firearm_c
         status, 
         review_notes,
         reviewed_by: req.user.user_id,
-        reviewed_at: new Date().toISOString()
+        review_date: new Date().toISOString()
     });
     if (!request) return res.status(404).json({ success: false, message: 'Destruction request not found' });
     res.json({ success: true, data: request });
@@ -299,7 +299,7 @@ router.patch('/procurement/:id/status', authenticate, requireRole(['hq_firearm_c
         status, 
         review_notes,
         reviewed_by: req.user.user_id,
-        reviewed_at: new Date().toISOString()
+        review_date: new Date().toISOString()
     });
     if (!request) return res.status(404).json({ success: false, message: 'Procurement request not found' });
     res.json({ success: true, data: request });

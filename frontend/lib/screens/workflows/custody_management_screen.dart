@@ -434,7 +434,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
 
           // Firearm details
           Text(
-            custody['firearm_serial'] ?? 'Unknown',
+            custody['serial_number'] ?? 'Unknown',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,

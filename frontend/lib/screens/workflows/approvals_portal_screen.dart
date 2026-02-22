@@ -466,8 +466,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
       itemBuilder: (context, index) {
         final report = provider.pendingLossReports[index];
         final isSelected = provider.selectedRequest != null &&
-            provider.selectedRequest!['loss_report_id'] ==
-                report['loss_report_id'];
+            provider.selectedRequest!['loss_id'] == report['loss_id'];
 
         return InkWell(
           onTap: () => provider.selectRequest(report),
@@ -491,7 +490,8 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      report['loss_report_id'] ?? 'LOSS-XXXX',
+                      report['loss_id']?.toString().substring(0, 8) ??
+                          'LOSS-XXXX',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -504,13 +504,13 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  report['station_name'] ?? 'Unknown Station',
+                  report['unit_name'] ?? 'Unknown Station',
                   style:
                       const TextStyle(color: Color(0xFF78909C), fontSize: 12),
                 ),
                 const Divider(color: Color(0xFF37404F), height: 16),
                 Text(
-                  '${report['manufacturer']} ${report['model']} - ${report['firearm_serial']}',
+                  '${report['manufacturer']} ${report['model']} - ${report['serial_number']}',
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
@@ -597,7 +597,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                request['loss_report_id'] ?? 'LOSS-XXXX',
+                request['loss_id']?.toString().substring(0, 8) ?? 'LOSS-XXXX',
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -628,7 +628,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
             ],
           ),
           Text(
-            _formatDate(request['submitted_date']),
+            _formatDate(request['created_at']),
             style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
           ),
         ],
@@ -655,7 +655,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            request['station_name'] ?? 'Unknown Station',
+            request['unit_name'] ?? 'Unknown Station',
             style: const TextStyle(
                 color: Color(0xFF1E88E5),
                 fontSize: 18,
@@ -663,7 +663,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Commander: ${request['commander_name'] ?? 'Unknown'}',
+            'Commander: ${request['reporter_name'] ?? 'Unknown'}',
             style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
           ),
         ],
@@ -690,7 +690,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            request['firearm_serial'] ?? 'Unknown',
+            request['serial_number'] ?? 'Unknown',
             style: const TextStyle(
                 color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
@@ -763,7 +763,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
             child: ElevatedButton.icon(
               onPressed: () {
                 // Show approval modal
-                provider.approveLossReport(reportId: request['loss_report_id']);
+                provider.approveLossReport(reportId: request['loss_id']);
               },
               icon: const Icon(Icons.check_circle),
               label: const Text('Approve Loss Report'),

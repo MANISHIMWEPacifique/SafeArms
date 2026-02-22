@@ -77,6 +77,11 @@ const processLossReport = async (lossId, approvalData) => {
 
             const lossReport = lossCheck.rows[0];
 
+            // Guard against re-processing already reviewed reports
+            if (lossReport.status !== 'pending') {
+                throw new Error(`Loss report has already been ${lossReport.status}`);
+            }
+
             // Update loss report status
             const result = await client.query(
                 `UPDATE loss_reports 
@@ -194,6 +199,11 @@ const processDestructionRequest = async (destructionId, approvalData) => {
 
             const destructionRequest = destructionCheck.rows[0];
 
+            // Guard against re-processing already reviewed requests
+            if (destructionRequest.status !== 'pending') {
+                throw new Error(`Destruction request has already been ${destructionRequest.status}`);
+            }
+
             const result = await client.query(
                 `UPDATE destruction_requests 
          SET status = $1, reviewed_by = $2, review_date = CURRENT_TIMESTAMP, review_notes = $3
@@ -276,6 +286,18 @@ const processProcurementRequest = async (procurementId, approvalData) => {
     const { reviewed_by, status, review_notes } = approvalData;
 
     try {
+        // Check current status before processing
+        const checkResult = await query(
+            'SELECT status FROM procurement_requests WHERE procurement_id = $1',
+            [procurementId]
+        );
+        if (checkResult.rows.length === 0) {
+            throw new Error('Procurement request not found');
+        }
+        if (checkResult.rows[0].status !== 'pending') {
+            throw new Error(`Procurement request has already been ${checkResult.rows[0].status}`);
+        }
+
         const result = await query(
             `UPDATE procurement_requests 
        SET status = $1, reviewed_by = $2, review_date = CURRENT_TIMESTAMP, review_notes = $3

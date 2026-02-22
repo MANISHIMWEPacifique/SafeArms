@@ -79,7 +79,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
 
   Widget _buildHeader(String? role) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: const BoxDecoration(
         color: Color(0xFF252A3A),
         border: Border(
@@ -88,69 +88,35 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Anomaly Detection',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  role == 'station_commander'
-                      ? 'Unit-level anomaly monitoring'
-                      : 'ML-powered custody pattern analysis',
-                  style: const TextStyle(
-                    color: Color(0xFFB0BEC5),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+          const Text(
+            'Anomaly Detection',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          // Auto-refresh toggle
-          Row(
-            children: [
-              Icon(
-                Icons.refresh,
-                color: _autoRefresh
-                    ? const Color(0xFF3CCB7F)
-                    : const Color(0xFF78909C),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Switch(
-                value: _autoRefresh,
-                onChanged: (value) {
-                  setState(() => _autoRefresh = value);
-                  if (value) _startAutoRefresh();
-                },
-                activeThumbColor: const Color(0xFF3CCB7F),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Auto-refresh',
-                style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Text(
+            role == 'station_commander'
+                ? 'Unit-level monitoring'
+                : 'ML-powered analysis',
+            style: const TextStyle(
+              color: Color(0xFF78909C),
+              fontSize: 13,
+            ),
           ),
-          const SizedBox(width: 16),
-          ElevatedButton.icon(
+          const Spacer(),
+          OutlinedButton.icon(
             onPressed: _loadAnomalies,
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Refresh'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
-              foregroundColor: Colors.white,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFB0BEC5),
+              side: const BorderSide(color: Color(0xFF37404F)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],
@@ -603,7 +569,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
           Expanded(
             flex: 2,
             child: Text(
-              anomaly['firearm_serial'] ?? 'N/A',
+              anomaly['serial_number'] ?? 'N/A',
               style: const TextStyle(
                 color: Color(0xFFB0BEC5),
                 fontSize: 13,
@@ -818,7 +784,7 @@ class _AnomalyDetailDialog extends StatelessWidget {
                     ]),
                     const SizedBox(height: 24),
                     _buildInfoSection('Custody Information', [
-                      _InfoRow('Firearm', anomaly['firearm_serial'] ?? 'N/A'),
+                      _InfoRow('Firearm', anomaly['serial_number'] ?? 'N/A'),
                       _InfoRow('Officer', anomaly['officer_name'] ?? 'N/A'),
                       _InfoRow('Unit', anomaly['unit_name'] ?? 'N/A'),
                       _InfoRow(
@@ -861,9 +827,29 @@ class _AnomalyDetailDialog extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: Mark as investigating
+                    onPressed: () async {
+                      final anomalyId = anomaly['anomaly_id']?.toString();
+                      if (anomalyId == null) return;
+
+                      final provider =
+                          Provider.of<AnomalyProvider>(context, listen: false);
+                      final success = await provider.updateAnomaly(anomalyId, {
+                        'status': 'investigating',
+                      });
+
+                      if (!context.mounted) return;
                       Navigator.pop(context);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(success
+                              ? 'Anomaly marked as investigating'
+                              : provider.error ?? 'Failed to update anomaly'),
+                          backgroundColor: success
+                              ? const Color(0xFF3CCB7F)
+                              : const Color(0xFFE85C5C),
+                        ),
+                      );
                     },
                     icon: const Icon(Icons.search, size: 18),
                     label: const Text('Mark as Investigating'),

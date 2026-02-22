@@ -347,7 +347,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    profile['firearm_serial'] ?? 'Unknown',
+                    profile['serial_number'] ?? 'Unknown',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -477,7 +477,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  profile['firearm_serial'] ?? 'Unknown',
+                  profile['serial_number'] ?? 'Unknown',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,

@@ -743,7 +743,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                         value: isActive,
                         onChanged: (value) =>
                             setDialogState(() => isActive = value),
-                        activeColor: const Color(0xFF3CCB7F),
+                        activeThumbColor: const Color(0xFF3CCB7F),
                       ),
                       Text(isActive ? 'Active' : 'Inactive',
                           style: TextStyle(
@@ -895,7 +895,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                         value: isActive,
                         onChanged: (value) =>
                             setDialogState(() => isActive = value),
-                        activeColor: const Color(0xFF3CCB7F),
+                        activeThumbColor: const Color(0xFF3CCB7F),
                       ),
                       Text(isActive ? 'Active' : 'Inactive',
                           style: TextStyle(
@@ -992,7 +992,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     required void Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       items: items,
       onChanged: onChanged,
       dropdownColor: const Color(0xFF2A3040),

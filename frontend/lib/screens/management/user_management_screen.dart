@@ -850,7 +850,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Widget _buildRoleDropdown(String value, Function(String?) onChanged) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: 'Role',
         labelStyle: const TextStyle(color: Color(0xFF78909C)),

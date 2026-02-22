@@ -597,7 +597,44 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     data: ThemeData.dark().copyWith(
                       colorScheme: const ColorScheme.dark(
                         primary: Color(0xFF1E88E5),
-                        surface: Color(0xFF232838),
+                        onPrimary: Colors.white,
+                        surface: Color(0xFF252A3A),
+                        onSurface: Colors.white,
+                      ),
+                      dialogTheme: const DialogThemeData(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                      ),
+                      datePickerTheme: DatePickerThemeData(
+                        backgroundColor: const Color(0xFF252A3A),
+                        headerBackgroundColor: const Color(0xFF1A1F2E),
+                        headerForegroundColor: Colors.white,
+                        surfaceTintColor: Colors.transparent,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        dayStyle: const TextStyle(color: Colors.white),
+                        yearStyle: const TextStyle(color: Colors.white),
+                        dayForegroundColor:
+                            WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.selected))
+                            return Colors.white;
+                          if (states.contains(WidgetState.disabled))
+                            return const Color(0xFF546E7A);
+                          return Colors.white;
+                        }),
+                        dayBackgroundColor:
+                            WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.selected))
+                            return const Color(0xFF1E88E5);
+                          return Colors.transparent;
+                        }),
+                        todayForegroundColor:
+                            WidgetStateProperty.all(const Color(0xFF42A5F5)),
+                        todayBackgroundColor:
+                            WidgetStateProperty.all(Colors.transparent),
+                        todayBorder: const BorderSide(color: Color(0xFF42A5F5)),
                       ),
                     ),
                     child: child!,

@@ -1372,7 +1372,9 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         severityColor,
         anomaly['unit_name']?.toString() ?? 'N/A',
         anomaly['officer_name']?.toString() ?? 'N/A',
-        anomaly['firearm_serial']?.toString() ?? 'N/A',
+        anomaly['firearm_serial']?.toString() ??
+            anomaly['serial_number']?.toString() ??
+            'N/A',
         _formatDateTime(anomaly['detected_at']?.toString()),
         anomaly['status']?.toString() ?? 'N/A',
         statusColor,

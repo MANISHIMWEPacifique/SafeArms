@@ -166,15 +166,4 @@ process.on('uncaughtException', (error) => {
     setTimeout(() => process.exit(1), 1000);
 });
 
-process.on('SIGINT', () => {
-    logger.info('SIGINT received, shutting down gracefully...');
-    server.close(() => {
-        logger.info('Server closed');
-        pool.end(() => {
-            logger.info('Database pool closed');
-            process.exit(0);
-        });
-    });
-});
-
 module.exports = app;

@@ -135,6 +135,46 @@ class AuthService {
     return token != null && token.isNotEmpty;
   }
 
+  /// Confirm unit assignment (Station Commanders)
+  Future<Map<String, dynamic>> confirmUnit(String unitId) async {
+    final token = await getToken();
+    if (token == null) {
+      return {'success': false, 'message': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.confirmUnitUrl),
+            headers: ApiConfig.authHeaders(token),
+            body: json.encode({'unit_id': unitId}),
+          )
+          .timeout(ApiConfig.connectionTimeout);
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        // Update stored user data with unit_confirmed = true
+        final userData = await getUserData();
+        if (userData != null) {
+          userData['unit_confirmed'] = true;
+          await _storage.write(key: _userKey, value: json.encode(userData));
+        }
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Unit confirmed'
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Failed to confirm unit',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: ${e.toString()}'};
+    }
+  }
+
   /// Logout and clear stored data
   Future<void> logout() async {
     try {

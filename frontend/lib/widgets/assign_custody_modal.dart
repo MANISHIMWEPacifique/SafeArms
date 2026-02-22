@@ -147,19 +147,18 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
         authProvider.currentUser?['unit_name']?.toString() ?? 'Your Unit';
 
     return Material(
-      color: const Color(0xFF1A1F2E).withValues(alpha: 0.95),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Center(
         child: Container(
           width: 650,
           constraints: const BoxConstraints(maxHeight: 700),
           decoration: BoxDecoration(
             color: const Color(0xFF252A3A),
-            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.6),
-                blurRadius: 40,
-                offset: const Offset(0, 8),
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
@@ -205,17 +204,16 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
 
   Widget _buildHeader(String unitName) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
+        color: Color(0xFF1A1F2E),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
             ),
             child: const Icon(
               Icons.assignment_ind,
@@ -555,21 +553,21 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
 
   Widget _buildActionButtons() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFF37404F), width: 1)),
+        color: Color(0xFF1A1F2E),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          OutlinedButton(
+          ElevatedButton(
             onPressed: widget.onClose,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB0BEC5),
-              side: const BorderSide(color: Color(0xFF37404F)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF37404F),
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
               ),
             ),
             child: const Text('Cancel', style: TextStyle(fontSize: 15)),
@@ -598,8 +596,8 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               backgroundColor: const Color(0xFF1E88E5),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
               ),
             ),
           ),
@@ -688,6 +686,54 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               initialDate: value ?? DateTime.now().add(const Duration(days: 7)),
               firstDate: DateTime.now(),
               lastDate: DateTime.now().add(const Duration(days: 365)),
+              builder: (context, child) {
+                return Theme(
+                  data: ThemeData.dark().copyWith(
+                    colorScheme: const ColorScheme.dark(
+                      primary: Color(0xFF1E88E5),
+                      onPrimary: Colors.white,
+                      surface: Color(0xFF252A3A),
+                      onSurface: Colors.white,
+                    ),
+                    dialogTheme: const DialogThemeData(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
+                    ),
+                    datePickerTheme: DatePickerThemeData(
+                      backgroundColor: const Color(0xFF252A3A),
+                      headerBackgroundColor: const Color(0xFF1A1F2E),
+                      headerForegroundColor: Colors.white,
+                      surfaceTintColor: Colors.transparent,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      dayStyle: const TextStyle(color: Colors.white),
+                      yearStyle: const TextStyle(color: Colors.white),
+                      dayForegroundColor:
+                          WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected))
+                          return Colors.white;
+                        if (states.contains(WidgetState.disabled))
+                          return const Color(0xFF546E7A);
+                        return Colors.white;
+                      }),
+                      dayBackgroundColor:
+                          WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected))
+                          return const Color(0xFF1E88E5);
+                        return Colors.transparent;
+                      }),
+                      todayForegroundColor:
+                          WidgetStateProperty.all(const Color(0xFF42A5F5)),
+                      todayBackgroundColor:
+                          WidgetStateProperty.all(Colors.transparent),
+                      todayBorder: const BorderSide(color: Color(0xFF42A5F5)),
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
             );
             if (picked != null) onChanged(picked);
           },
@@ -696,7 +742,6 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
             decoration: BoxDecoration(
               color: const Color(0xFF2A3040),
               border: Border.all(color: const Color(0xFF37404F)),
-              borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [

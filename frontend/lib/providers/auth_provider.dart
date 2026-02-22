@@ -139,6 +139,36 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Confirm unit assignment
+  Future<bool> confirmUnit() async {
+    final unitId = _currentUser?['unit_id']?.toString();
+    if (unitId == null) {
+      _errorMessage = 'No unit assigned';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _authService.confirmUnit(unitId);
+
+      if (result['success']) {
+        _currentUser?['unit_confirmed'] = true;
+        _errorMessage = null;
+        return true;
+      } else {
+        _errorMessage = result['message'];
+        return false;
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Clear error message
   void clearError() {
     _errorMessage = null;

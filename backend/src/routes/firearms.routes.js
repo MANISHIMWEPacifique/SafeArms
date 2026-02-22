@@ -14,7 +14,7 @@ const {
 } = require('../middleware/authorization');
 const { logCreate, logUpdate } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { query } = require('../config/database');
+const { query, withTransaction } = require('../config/database');
 
 /**
  * Firearms Routes - Chain of Custody and Registry Management

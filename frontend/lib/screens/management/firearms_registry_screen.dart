@@ -788,11 +788,223 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   }
 
   Widget _buildListView(FirearmProvider provider) {
-    // Placeholder - would implement similar to User Management table
-    return const Center(
-      child: Text(
-        'List view implementation',
-        style: TextStyle(color: Colors.white),
+    if (provider.isLoading) {
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
+    }
+
+    final firearms = provider.paginatedFirearms;
+
+    if (firearms.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return Column(
+      children: [
+        // Table header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          decoration: const BoxDecoration(
+            color: Color(0xFF252A3A),
+            border: Border(
+              bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+            ),
+          ),
+          child: const Row(
+            children: [
+              SizedBox(width: 48),
+              Expanded(
+                flex: 3,
+                child: Text('SERIAL / MODEL',
+                    style: TextStyle(
+                        color: Color(0xFF78909C),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.8)),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text('TYPE / CALIBER',
+                    style: TextStyle(
+                        color: Color(0xFF78909C),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.8)),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text('UNIT',
+                    style: TextStyle(
+                        color: Color(0xFF78909C),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.8)),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text('LEVEL',
+                    style: TextStyle(
+                        color: Color(0xFF78909C),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.8)),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text('STATUS',
+                    style: TextStyle(
+                        color: Color(0xFF78909C),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.8)),
+              ),
+              SizedBox(width: 80),
+            ],
+          ),
+        ),
+        // Table rows
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: firearms.length,
+          itemBuilder: (context, index) =>
+              _buildFirearmListRow(firearms[index], index),
+        ),
+        const SizedBox(height: 24),
+        _buildPagination(provider),
+      ],
+    );
+  }
+
+  Widget _buildFirearmListRow(FirearmModel firearm, int index) {
+    return InkWell(
+      onTap: () => setState(() => _selectedFirearmForDetail = firearm),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color:
+              index.isEven ? const Color(0xFF252A3A) : const Color(0xFF232838),
+          border: const Border(
+            bottom: BorderSide(color: Color(0xFF37404F), width: 0.5),
+          ),
+        ),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 36,
+              height: 36,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: const BoxDecoration(
+                color: Color(0xFF2A3040),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _getFirearmIcon(firearm.firearmType),
+                color: const Color(0xFF42A5F5),
+                size: 18,
+              ),
+            ),
+            // Serial / Model
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    firearm.serialNumber,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'monospace',
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${firearm.manufacturer} ${firearm.model}',
+                    style:
+                        const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            // Type / Caliber
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _formatFirearmType(firearm.firearmType),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    firearm.caliber ?? 'N/A',
+                    style:
+                        const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            // Unit
+            Expanded(
+              flex: 2,
+              child: Text(
+                firearm.unitDisplayName,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            // Registration Level
+            Expanded(
+              flex: 1,
+              child: _buildRegistrationLevelBadge(firearm.registrationLevel),
+            ),
+            // Status
+            Expanded(
+              flex: 1,
+              child: _buildStatusBadge(firearm.currentStatus),
+            ),
+            // Actions
+            SizedBox(
+              width: 80,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.visibility,
+                        size: 18, color: Color(0xFF42A5F5)),
+                    onPressed: () =>
+                        setState(() => _selectedFirearmForDetail = firearm),
+                    tooltip: 'View Details',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  if (!_isInvestigator) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.edit,
+                          size: 18, color: Color(0xFF78909C)),
+                      onPressed: () {
+                        setState(() {
+                          _firearmToEdit = firearm;
+                          _showRegisterModal = true;
+                        });
+                      },
+                      tooltip: 'Edit',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

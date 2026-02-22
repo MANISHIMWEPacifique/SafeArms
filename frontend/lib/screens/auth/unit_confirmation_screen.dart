@@ -22,18 +22,28 @@ class _UnitConfirmationScreenState extends State<UnitConfirmationScreen> {
 
     setState(() => _isLoading = true);
 
-    // TODO: Call API to confirm unit
-    await Future.delayed(const Duration(seconds: 1)); // Simulate API call
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.confirmUnit();
 
     if (!mounted) return;
 
-    // Navigate to Station Commander Dashboard
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => const StationCommanderDashboard(),
-      ),
-      (route) => false,
-    );
+    if (success) {
+      // Navigate to Station Commander Dashboard
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => const StationCommanderDashboard(),
+        ),
+        (route) => false,
+      );
+    } else {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.errorMessage ?? 'Failed to confirm unit'),
+          backgroundColor: const Color(0xFFE85C5C),
+        ),
+      );
+    }
   }
 
   @override
@@ -293,9 +303,8 @@ class _UnitConfirmationScreenState extends State<UnitConfirmationScreen> {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: _isConfirmed
-                  ? const Color(0xFF1E88E5)
-                  : Colors.transparent,
+              color:
+                  _isConfirmed ? const Color(0xFF1E88E5) : Colors.transparent,
               border: Border.all(
                 color: _isConfirmed
                     ? const Color(0xFF1E88E5)
@@ -359,7 +368,108 @@ class _UnitConfirmationScreenState extends State<UnitConfirmationScreen> {
         const SizedBox(height: 4),
         TextButton(
           onPressed: () {
-            // TODO: Show contact admin dialog
+            showDialog(
+              context: context,
+              builder: (context) => Dialog(
+                backgroundColor: const Color(0xFF252A3A),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
+                child: Container(
+                  width: 420,
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.support_agent,
+                          color: Color(0xFF1E88E5),
+                          size: 40,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Contact System Administrator',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'If your unit assignment is incorrect, please contact the system administrator to request a reassignment.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFFB0BEC5),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A3040),
+                          border: Border.all(color: const Color(0xFF37404F)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Column(
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.email_outlined,
+                                    color: Color(0xFF78909C), size: 18),
+                                SizedBox(width: 12),
+                                Text(
+                                  'admin@safearms.rw',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 14),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Icon(Icons.phone_outlined,
+                                    color: Color(0xFF78909C), size: 18),
+                                SizedBox(width: 12),
+                                Text(
+                                  '+250 788 000 000',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E88E5),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          ),
+                          child: const Text('Close'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
           },
           child: const Text(
             'Contact System Administrator',

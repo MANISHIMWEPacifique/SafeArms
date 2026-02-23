@@ -129,9 +129,7 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
         `;
     }
     
-    const result = await query(statsQuery, params);
-    
-    // Also get type breakdown
+    // Run stats and type breakdown in parallel
     let typeQuery;
     if (queryUnitId) {
         typeQuery = `
@@ -149,7 +147,11 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
             ORDER BY count DESC
         `;
     }
-    const typeResult = await query(typeQuery, queryUnitId ? [queryUnitId] : []);
+
+    const [result, typeResult] = await Promise.all([
+        query(statsQuery, params),
+        query(typeQuery, queryUnitId ? [queryUnitId] : [])
+    ]);
     
     res.json({ 
         success: true, 

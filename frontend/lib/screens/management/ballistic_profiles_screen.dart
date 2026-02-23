@@ -463,122 +463,274 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
   void _showProfileDetails(Map<String, dynamic> profile) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A3040),
-        title: Row(
-          children: [
-            const Icon(Icons.fingerprint, color: Color(0xFF1E88E5)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Ballistic Profile - ${profile['ballistic_id'] ?? 'N/A'}',
-                style: const TextStyle(color: Colors.white),
-                overflow: TextOverflow.ellipsis,
-              ),
+      barrierColor: Colors.transparent,
+      builder: (context) => Material(
+        color: Colors.black.withValues(alpha: 0.5),
+        child: Center(
+          child: Container(
+            width: 600,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.9,
             ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildDetailSection('Profile Details', [
-                _buildDetailRow('Profile ID', profile['ballistic_id'] ?? 'N/A'),
-                _buildDetailRow('Firearm ID', profile['firearm_id'] ?? 'N/A'),
-                _buildDetailRow(
-                    'Serial Number', profile['serial_number'] ?? 'N/A'),
-                _buildDetailRow('Test Date', _formatDate(profile['test_date'])),
-                _buildDetailRow(
-                    'Test Location', profile['test_location'] ?? 'N/A'),
-              ]),
-              const SizedBox(height: 16),
-              _buildDetailSection('Ballistic Characteristics', [
-                _buildDetailRow('Rifling Characteristics',
-                    profile['rifling_characteristics'] ?? 'Not recorded'),
-                _buildDetailRow('Firing Pin Impression',
-                    profile['firing_pin_impression'] ?? 'Not recorded'),
-                _buildDetailRow('Ejector Marks',
-                    profile['ejector_marks'] ?? 'Not recorded'),
-                _buildDetailRow('Extractor Marks',
-                    profile['extractor_marks'] ?? 'Not recorded'),
-                _buildDetailRow('Chamber Marks',
-                    profile['chamber_marks'] ?? 'Not recorded'),
-              ]),
-              const SizedBox(height: 16),
-              _buildDetailSection('Test Information', [
-                _buildDetailRow('Conducted By',
-                    profile['test_conducted_by'] ?? 'Not recorded'),
-                _buildDetailRow(
-                    'Forensic Lab', profile['forensic_lab'] ?? 'Not recorded'),
-                _buildDetailRow('Test Ammunition',
-                    profile['test_ammunition'] ?? 'Not recorded'),
-                _buildDetailRow('Notes', profile['notes'] ?? 'None'),
-              ]),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-          // Edit button removed - profiles are immutable after HQ registration
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(4),
+              color: const Color(0xFF252A3A),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-            child: const Row(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.lock, color: Color(0xFF3CCB7F), size: 14),
-                SizedBox(width: 4),
-                Text('Read-Only Profile',
-                    style: TextStyle(color: Color(0xFF3CCB7F), fontSize: 12)),
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1F2E),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+                        ),
+                        child: const Icon(Icons.fingerprint,
+                            color: Color(0xFF1E88E5), size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Ballistic Profile #${profile['ballistic_id'] ?? 'N/A'}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Serial: ${profile['serial_number'] ?? 'N/A'}',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.lock,
+                                color: Color(0xFF3CCB7F), size: 14),
+                            SizedBox(width: 4),
+                            Text(
+                              'IMMUTABLE',
+                              style: TextStyle(
+                                color: Color(0xFF3CCB7F),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, color: Colors.white54),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildDetailSection(
+                            'Profile Details', Icons.info_outline, [
+                          _buildDetailField('Profile ID',
+                              profile['ballistic_id']?.toString() ?? 'N/A',
+                              icon: Icons.tag),
+                          _buildDetailField('Firearm ID',
+                              profile['firearm_id']?.toString() ?? 'N/A',
+                              icon: Icons.gps_fixed),
+                          _buildDetailField('Serial Number',
+                              profile['serial_number'] ?? 'N/A',
+                              icon: Icons.confirmation_number),
+                          _buildDetailField(
+                              'Test Date', _formatDate(profile['test_date']),
+                              icon: Icons.calendar_today),
+                          _buildDetailField('Test Location',
+                              profile['test_location'] ?? 'N/A',
+                              icon: Icons.location_on),
+                        ]),
+                        const SizedBox(height: 20),
+                        _buildDetailSection(
+                            'Ballistic Characteristics', Icons.track_changes, [
+                          _buildDetailField(
+                              'Rifling Characteristics',
+                              profile['rifling_characteristics'] ??
+                                  'Not recorded',
+                              icon: Icons.track_changes),
+                          _buildDetailField(
+                              'Firing Pin Impression',
+                              profile['firing_pin_impression'] ??
+                                  'Not recorded',
+                              icon: Icons.radio_button_checked),
+                          _buildDetailField('Ejector Marks',
+                              profile['ejector_marks'] ?? 'Not recorded',
+                              icon: Icons.arrow_forward),
+                          _buildDetailField('Extractor Marks',
+                              profile['extractor_marks'] ?? 'Not recorded',
+                              icon: Icons.arrow_back),
+                          _buildDetailField('Chamber Marks',
+                              profile['chamber_marks'] ?? 'Not recorded',
+                              icon: Icons.circle),
+                        ]),
+                        const SizedBox(height: 20),
+                        _buildDetailSection('Test Information', Icons.science, [
+                          _buildDetailField('Conducted By',
+                              profile['test_conducted_by'] ?? 'Not recorded',
+                              icon: Icons.person),
+                          _buildDetailField('Forensic Lab',
+                              profile['forensic_lab'] ?? 'Not recorded',
+                              icon: Icons.biotech),
+                          _buildDetailField('Test Ammunition',
+                              profile['test_ammunition'] ?? 'Not recorded',
+                              icon: Icons.inventory_2),
+                          if (profile['notes'] != null &&
+                              profile['notes'].toString().isNotEmpty)
+                            _buildDetailField('Notes', profile['notes'],
+                                icon: Icons.notes),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ),
+                // Action bar
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1F2E),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E88E5),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 12),
+                          shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero),
+                        ),
+                        child: const Text('Close',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailSection(
+      String title, IconData sectionIcon, List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A3040),
+        border: Border.all(color: const Color(0xFF37404F)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(sectionIcon, color: const Color(0xFF1E88E5), size: 18),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...children,
         ],
       ),
     );
   }
 
-  Widget _buildDetailSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Color(0xFF1E88E5),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...children,
-      ],
-    );
-  }
+  Widget _buildDetailField(String label, String value, {IconData? icon}) {
+    final hasValue =
+        value != 'Not recorded' && value != 'N/A' && value != 'None';
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1F2E),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF37404F)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 140,
-            child: Text(
-              '$label:',
-              style: const TextStyle(color: Color(0xFF78909C)),
-            ),
-          ),
+          if (icon != null) ...[
+            Icon(icon, color: Colors.white54, size: 20),
+            const SizedBox(width: 12),
+          ],
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: Colors.white),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: hasValue ? Colors.white : const Color(0xFF546E7A),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

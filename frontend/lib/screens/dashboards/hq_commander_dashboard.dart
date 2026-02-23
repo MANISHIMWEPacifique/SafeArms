@@ -14,6 +14,7 @@ import '../management/units_management_screen.dart';
 import '../management/firearms_registry_screen.dart';
 import '../management/ballistic_profiles_screen.dart';
 import '../workflows/reports_screen.dart';
+import '../workflows/hq_reports_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 
 class HqCommanderDashboard extends StatefulWidget {
@@ -70,14 +71,20 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
 
     // Calculate pending approvals total
     final pendingApprovals = approvalProvider.pendingApprovals;
-    final lossReports =
-        int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ?? 0;
-    final destruction = int.tryParse(
-            pendingApprovals?['destruction_requests']?.toString() ?? '0') ??
-        0;
-    final procurement = int.tryParse(
-            pendingApprovals?['procurement_requests']?.toString() ?? '0') ??
-        0;
+    final lossReports = (pendingApprovals?['loss_reports'] is List)
+        ? (pendingApprovals!['loss_reports'] as List).length
+        : (int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ??
+            0);
+    final destruction = (pendingApprovals?['destruction_requests'] is List)
+        ? (pendingApprovals!['destruction_requests'] as List).length
+        : (int.tryParse(
+                pendingApprovals?['destruction_requests']?.toString() ?? '0') ??
+            0);
+    final procurement = (pendingApprovals?['procurement_requests'] is List)
+        ? (pendingApprovals!['procurement_requests'] as List).length
+        : (int.tryParse(
+                pendingApprovals?['procurement_requests']?.toString() ?? '0') ??
+            0);
     final totalPendingApprovals = lossReports + destruction + procurement;
 
     // Get anomalies count
@@ -103,6 +110,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         badge: anomaliesCount > 0 ? anomaliesCount.toString() : null,
         badgeColor: const Color(0xFFFFC857),
       ),
+      _NavItem(icon: Icons.analytics_outlined, label: 'Reports', badge: null),
     ];
   }
 
@@ -407,7 +415,41 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
               final authProvider = Provider.of<AuthProvider>(context);
               final userName = authProvider.userName ?? 'Commander';
               return TextButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  showMenu(
+                    context: context,
+                    position: const RelativeRect.fromLTRB(1000, 64, 0, 0),
+                    color: const Color(0xFF2A3040),
+                    items: <PopupMenuEntry<dynamic>>[
+                      PopupMenuItem(
+                        enabled: false,
+                        child: Text(userName,
+                            style: const TextStyle(
+                                color: Color(0xFF78909C), fontSize: 13)),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        onTap: () {
+                          authProvider.logout();
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                                builder: (_) => const LoginScreen()),
+                            (route) => false,
+                          );
+                        },
+                        child: const Row(
+                          children: [
+                            Icon(Icons.logout,
+                                color: Color(0xFFE85C5C), size: 18),
+                            SizedBox(width: 8),
+                            Text('Logout',
+                                style: TextStyle(color: Color(0xFFE85C5C))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
                 icon: const CircleAvatar(
                   radius: 16,
                   backgroundColor: Color(0xFF1E88E5),
@@ -457,6 +499,9 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
       case 5:
         // Anomalies Detection
         return const AnomalyDetectionScreen();
+      case 6:
+        // National Reports
+        return const HqReportsScreen();
       default:
         return _buildDashboardOverview();
     }
@@ -545,16 +590,20 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   Widget _buildPendingApprovalsCard() {
     final approvalProvider = Provider.of<ApprovalProvider>(context);
     final pendingApprovals = approvalProvider.pendingApprovals;
-    final lossReports =
-        int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ?? 0;
-    final destruction = int.tryParse(
-          pendingApprovals?['destruction_requests']?.toString() ?? '0',
-        ) ??
-        0;
-    final procurement = int.tryParse(
-          pendingApprovals?['procurement_requests']?.toString() ?? '0',
-        ) ??
-        0;
+    final lossReports = (pendingApprovals?['loss_reports'] is List)
+        ? (pendingApprovals!['loss_reports'] as List).length
+        : (int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ??
+            0);
+    final destruction = (pendingApprovals?['destruction_requests'] is List)
+        ? (pendingApprovals!['destruction_requests'] as List).length
+        : (int.tryParse(
+                pendingApprovals?['destruction_requests']?.toString() ?? '0') ??
+            0);
+    final procurement = (pendingApprovals?['procurement_requests'] is List)
+        ? (pendingApprovals!['procurement_requests'] as List).length
+        : (int.tryParse(
+                pendingApprovals?['procurement_requests']?.toString() ?? '0') ??
+            0);
     final total = lossReports + destruction + procurement;
 
     return Container(
@@ -656,11 +705,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
           const Text(
             'Police Units Nationwide',
             style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            '2 Special Units',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
           ),
         ],
       ),
@@ -937,29 +981,35 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   Color _getSeverityColor(String severity) {
     switch (severity.toLowerCase()) {
       case 'critical':
-        return const Color(0xFF1E88E5);
+        return const Color(0xFFEF5350);
       case 'high':
-        return const Color(0xFF1E88E5);
+        return const Color(0xFFFF7043);
       case 'medium':
-        return const Color(0xFF1E88E5);
+        return const Color(0xFFFFC857);
       case 'low':
-        return const Color(0xFF1E88E5);
+        return const Color(0xFF42A5F5);
       default:
-        return const Color(0xFF1E88E5);
+        return const Color(0xFF78909C);
     }
   }
 
   Widget _buildApprovalQueue() {
     final approvalProvider = Provider.of<ApprovalProvider>(context);
     final pendingApprovals = approvalProvider.pendingApprovals;
-    final lossReports =
-        int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ?? 0;
-    final destruction = int.tryParse(
-            pendingApprovals?['destruction_requests']?.toString() ?? '0') ??
-        0;
-    final procurement = int.tryParse(
-            pendingApprovals?['procurement_requests']?.toString() ?? '0') ??
-        0;
+    final lossReports = (pendingApprovals?['loss_reports'] is List)
+        ? (pendingApprovals!['loss_reports'] as List).length
+        : (int.tryParse(pendingApprovals?['loss_reports']?.toString() ?? '0') ??
+            0);
+    final destruction = (pendingApprovals?['destruction_requests'] is List)
+        ? (pendingApprovals!['destruction_requests'] as List).length
+        : (int.tryParse(
+                pendingApprovals?['destruction_requests']?.toString() ?? '0') ??
+            0);
+    final procurement = (pendingApprovals?['procurement_requests'] is List)
+        ? (pendingApprovals!['procurement_requests'] as List).length
+        : (int.tryParse(
+                pendingApprovals?['procurement_requests']?.toString() ?? '0') ??
+            0);
     final total = lossReports + destruction + procurement;
 
     return Container(
@@ -1190,7 +1240,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                   ),
                   const SizedBox(width: 12),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () => setState(() => _selectedIndex = 5),
                     child: const Text(
                       'View All',
                       style: TextStyle(color: Color(0xFF64B5F6), fontSize: 13),
@@ -1399,11 +1449,13 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   String _formatDateTime(String? dateTime) {
     if (dateTime == null) return 'N/A';
     try {
-      final dt = DateTime.parse(dateTime);
+      final dt = DateTime.parse(dateTime).toLocal();
       final now = DateTime.now();
       final difference = now.difference(dt);
 
-      if (difference.inMinutes < 60) {
+      if (difference.inSeconds < 60) {
+        return 'Just now';
+      } else if (difference.inMinutes < 60) {
         return '${difference.inMinutes} min ago';
       } else if (difference.inHours < 24) {
         return '${difference.inHours} hours ago';
@@ -1504,7 +1556,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         ),
         DataCell(
           OutlinedButton(
-            onPressed: () {},
+            onPressed: () => setState(() => _selectedIndex = 5),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Color(0xFF1E88E5)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

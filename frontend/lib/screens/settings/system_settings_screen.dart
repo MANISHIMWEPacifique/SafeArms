@@ -616,7 +616,15 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               ),
               const SizedBox(width: 12),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Training history will be available in a future update.'),
+                      backgroundColor: Color(0xFF37404F),
+                    ),
+                  );
+                },
                 child: const Text('View Training History'),
               ),
             ],

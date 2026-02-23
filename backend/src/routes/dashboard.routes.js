@@ -88,11 +88,8 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         );
     }
 
-    await Promise.all(roleQueries);
-
-    // Recent custody activity - available for ALL roles
-    // Station commanders see their unit only; others see all units
-    const recentCustody = await query(`
+    // Run role queries AND common activity queries in parallel to reduce total time
+    const recentCustodyPromise = query(`
         SELECT 
             cr.custody_id,
             cr.issued_at,
@@ -102,7 +99,8 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
             o.full_name as officer_name,
             f.serial_number,
             f.firearm_type,
-            u.unit_name
+            u.unit_name,
+            CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as custody_status
         FROM custody_records cr
         JOIN officers o ON cr.officer_id = o.officer_id
         JOIN firearms f ON cr.firearm_id = f.firearm_id
@@ -111,10 +109,8 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         ORDER BY cr.issued_at DESC
         LIMIT 10
     `, role === 'station_commander' ? [unit_id] : []);
-    dashboardData.recent_custody = recentCustody.rows;
 
-    // Recent activities from audit logs - available for ALL roles
-    const recentActivities = await query(`
+    const recentActivitiesPromise = query(`
         SELECT 
             al.log_id,
             al.action_type,
@@ -135,96 +131,98 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         ORDER BY al.created_at DESC
         LIMIT 10
     `, role === 'station_commander' ? [unit_id] : []);
+
+    // Wait for all role queries + activity queries in parallel
+    const [, recentCustody, recentActivities] = await Promise.all([
+        Promise.all(roleQueries),
+        recentCustodyPromise,
+        recentActivitiesPromise
+    ]);
+
+    dashboardData.recent_custody = recentCustody.rows;
     dashboardData.recent_activities = recentActivities.rows;
 
     // Investigator specific stats
     if (role === 'investigator') {
-        // Ballistic profiles count
-        const ballisticCount = await query(`SELECT COUNT(*) as total FROM ballistic_profiles`);
+        // Run all investigator queries in parallel
+        const [ballisticCount, totalCustody, lossReportStats, pendingAnomalies, recentProfiles, recentCustodyEvents] = await Promise.all([
+            query(`SELECT COUNT(*) as total FROM ballistic_profiles`),
+            query(`SELECT COUNT(*) as total FROM custody_records`),
+            query(`
+                SELECT 
+                    COUNT(*) as total,
+                    COUNT(*) FILTER (WHERE status = 'pending') as pending,
+                    COUNT(*) FILTER (WHERE status = 'approved') as approved,
+                    COUNT(*) FILTER (WHERE status = 'rejected') as rejected
+                FROM loss_reports
+            `),
+            query(`
+                SELECT 
+                    COUNT(*) as total,
+                    COUNT(*) FILTER (WHERE severity = 'critical') as critical,
+                    COUNT(*) FILTER (WHERE severity = 'high') as high,
+                    COUNT(*) FILTER (WHERE severity IN ('critical', 'high') AND status = 'open') as mandatory_pending
+                FROM anomalies
+                WHERE status IN ('open', 'investigating')
+            `),
+            query(`
+                SELECT 
+                    bp.ballistic_id,
+                    bp.firearm_id,
+                    bp.test_date,
+                    bp.test_location,
+                    bp.rifling_characteristics,
+                    bp.firing_pin_impression,
+                    bp.ejector_marks,
+                    bp.extractor_marks,
+                    bp.chamber_marks,
+                    bp.forensic_lab,
+                    bp.is_locked,
+                    bp.registration_hash,
+                    bp.created_at,
+                    f.serial_number,
+                    f.manufacturer,
+                    f.model,
+                    f.caliber,
+                    f.firearm_type,
+                    f.current_status as firearm_status,
+                    u.unit_name as assigned_unit_name
+                FROM ballistic_profiles bp
+                JOIN firearms f ON bp.firearm_id = f.firearm_id
+                LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
+                ORDER BY bp.created_at DESC
+                LIMIT 10
+            `),
+            query(`
+                SELECT 
+                    cr.custody_id,
+                    cr.custody_type,
+                    cr.issued_at,
+                    cr.returned_at,
+                    cr.assignment_reason,
+                    f.serial_number,
+                    f.manufacturer,
+                    f.model,
+                    f.firearm_type,
+                    f.caliber,
+                    o.full_name as officer_name,
+                    o.rank as officer_rank,
+                    u.unit_name,
+                    CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as custody_status
+                FROM custody_records cr
+                JOIN firearms f ON cr.firearm_id = f.firearm_id
+                JOIN officers o ON cr.officer_id = o.officer_id
+                LEFT JOIN units u ON cr.unit_id = u.unit_id
+                ORDER BY cr.issued_at DESC
+                LIMIT 15
+            `)
+        ]);
+
         dashboardData.ballistic_profiles_count = parseInt(ballisticCount.rows[0].total);
-
-        // Total custody records (for tracing)
-        const totalCustody = await query(`SELECT COUNT(*) as total FROM custody_records`);
         dashboardData.total_custody_traces = parseInt(totalCustody.rows[0].total);
-
-        // Loss reports summary (active cases for investigator)
-        const lossReportStats = await query(`
-            SELECT 
-                COUNT(*) as total,
-                COUNT(*) FILTER (WHERE status = 'pending') as pending,
-                COUNT(*) FILTER (WHERE status = 'approved') as approved,
-                COUNT(*) FILTER (WHERE status = 'rejected') as rejected
-            FROM loss_reports
-        `);
         dashboardData.loss_reports_summary = lossReportStats.rows[0];
-
-        // Anomalies needing investigator review (open or investigating)
-        const pendingAnomalies = await query(`
-            SELECT 
-                COUNT(*) as total,
-                COUNT(*) FILTER (WHERE severity = 'critical') as critical,
-                COUNT(*) FILTER (WHERE severity = 'high') as high,
-                COUNT(*) FILTER (WHERE severity IN ('critical', 'high') AND status = 'open') as mandatory_pending
-            FROM anomalies
-            WHERE status IN ('open', 'investigating')
-        `);
         dashboardData.pending_anomalies_summary = pendingAnomalies.rows[0];
-
-        // Recent ballistic profiles with full characteristics for dashboard table
-        const recentProfiles = await query(`
-            SELECT 
-                bp.ballistic_id,
-                bp.firearm_id,
-                bp.test_date,
-                bp.test_location,
-                bp.rifling_characteristics,
-                bp.firing_pin_impression,
-                bp.ejector_marks,
-                bp.extractor_marks,
-                bp.chamber_marks,
-                bp.forensic_lab,
-                bp.is_locked,
-                bp.registration_hash,
-                bp.created_at,
-                f.serial_number,
-                f.manufacturer,
-                f.model,
-                f.caliber,
-                f.firearm_type,
-                f.current_status as firearm_status,
-                u.unit_name as assigned_unit_name
-            FROM ballistic_profiles bp
-            JOIN firearms f ON bp.firearm_id = f.firearm_id
-            LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
-            ORDER BY bp.created_at DESC
-            LIMIT 10
-        `);
         dashboardData.recent_ballistic_profiles = recentProfiles.rows;
-
-        // Recent custody events across all units (for investigator timeline)
-        const recentCustodyEvents = await query(`
-            SELECT 
-                cr.custody_id,
-                cr.custody_type,
-                cr.issued_at,
-                cr.returned_at,
-                cr.assignment_reason,
-                f.serial_number,
-                f.manufacturer,
-                f.model,
-                f.firearm_type,
-                f.caliber,
-                o.full_name as officer_name,
-                o.rank as officer_rank,
-                u.unit_name,
-                CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as custody_status
-            FROM custody_records cr
-            JOIN firearms f ON cr.firearm_id = f.firearm_id
-            JOIN officers o ON cr.officer_id = o.officer_id
-            LEFT JOIN units u ON cr.unit_id = u.unit_id
-            ORDER BY cr.issued_at DESC
-            LIMIT 15
-        `);
         dashboardData.recent_custody_events = recentCustodyEvents.rows;
     }
 

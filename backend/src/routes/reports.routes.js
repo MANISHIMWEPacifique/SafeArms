@@ -13,12 +13,319 @@ const { query } = require('../config/database');
  * Reports Routes
  * 
  * Includes:
+ * - Report Generation (NEW)
  * - Loss Reports
  * - Destruction Requests
  * - Procurement Requests
- * - Legal Chain-of-Custody Export (NEW)
- * - Audit Trail Reports (NEW)
+ * - Legal Chain-of-Custody Export
+ * - Audit Trail Reports
  */
+
+// ============================================
+// REPORT GENERATION ENDPOINT
+// Unified endpoint for all role-based reports
+// ============================================
+
+router.get('/generate', authenticate, asyncHandler(async (req, res) => {
+    const { type, start_date, end_date, unit_id, serial_number, case_ref, user_id, role: filterRole } = req.query;
+    const userRole = req.user.role;
+
+    // Build date filter
+    let dateFilter = '';
+    const dateParams = [];
+    let paramIdx = 1;
+
+    if (start_date) {
+        dateFilter += ` AND created_at >= $${paramIdx}`;
+        dateParams.push(new Date(start_date));
+        paramIdx++;
+    }
+    if (end_date) {
+        const endDate = new Date(end_date);
+        endDate.setHours(23, 59, 59, 999);
+        dateFilter += ` AND created_at <= $${paramIdx}`;
+        dateParams.push(endDate);
+        paramIdx++;
+    }
+
+    let data = {};
+
+    switch (type) {
+        // ===== FIREARM HISTORY =====
+        case 'firearm_history': {
+            let firearmFilter = 'WHERE 1=1';
+            const fParams = [...dateParams];
+            let fIdx = paramIdx;
+
+            if (serial_number) {
+                firearmFilter += ` AND f.serial_number ILIKE $${fIdx}`;
+                fParams.push(`%${serial_number}%`);
+                fIdx++;
+            }
+            if (unit_id) {
+                firearmFilter += ` AND f.assigned_unit_id = $${fIdx}`;
+                fParams.push(unit_id);
+                fIdx++;
+            }
+
+            const firearms = await query(`
+                SELECT f.firearm_id, f.serial_number, f.firearm_type, f.caliber,
+                       f.registration_date, f.current_status,
+                       u.unit_name
+                FROM firearms f
+                LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
+                ${firearmFilter.replace('created_at', 'f.registration_date')}
+                ORDER BY f.registration_date DESC
+                LIMIT 100
+            `, fParams);
+
+            // Get custody records for those firearms
+            const firearmIds = firearms.rows.map(f => f.firearm_id);
+            let custodyRecords = [];
+            let anomalies = [];
+            let ballisticProfile = null;
+
+            if (firearmIds.length > 0) {
+                const custodyResult = await query(`
+                    SELECT cr.custody_id, cr.firearm_id, cr.issued_at, cr.returned_at,
+                           cr.custody_status, cr.custody_type,
+                           o.full_name as officer_name, o.officer_id,
+                           u.unit_name,
+                           CASE WHEN cr.returned_at IS NOT NULL 
+                                THEN EXTRACT(DAY FROM (cr.returned_at - cr.issued_at)) || ' days'
+                                ELSE 'Active'
+                           END as duration
+                    FROM custody_records cr
+                    LEFT JOIN officers o ON cr.officer_id = o.officer_id
+                    LEFT JOIN units u ON cr.unit_id = u.unit_id
+                    WHERE cr.firearm_id = ANY($1)
+                    ORDER BY cr.issued_at DESC
+                    LIMIT 50
+                `, [firearmIds]);
+                custodyRecords = custodyResult.rows;
+
+                const anomalyResult = await query(`
+                    SELECT anomaly_id, severity, status
+                    FROM anomalies
+                    WHERE firearm_id = ANY($1)
+                    ORDER BY detected_at DESC
+                `, [firearmIds]);
+                anomalies = anomalyResult.rows;
+
+                // Get ballistic profile for first firearm (for investigator detail view)
+                if (firearmIds.length === 1 || serial_number) {
+                    const bpResult = await query(`
+                        SELECT bp.caliber, bp.barrel_length, bp.rifling_type,
+                               bp.chamber_type, bp.breech_face_marks, bp.firing_pin_shape,
+                               bp.created_at
+                        FROM ballistic_profiles bp
+                        WHERE bp.firearm_id = $1
+                        LIMIT 1
+                    `, [firearmIds[0]]);
+                    if (bpResult.rows.length > 0) {
+                        ballisticProfile = bpResult.rows[0];
+                    }
+                }
+            }
+
+            data = {
+                firearms: firearms.rows,
+                custody_records: custodyRecords,
+                anomalies: anomalies,
+                ballistic_profile: ballisticProfile,
+            };
+            break;
+        }
+
+        // ===== CUSTODY TIMELINE =====
+        case 'custody_timeline': {
+            let custodyFilter = 'WHERE 1=1';
+            const cParams = [...dateParams];
+            let cIdx = paramIdx;
+
+            if (serial_number) {
+                custodyFilter += ` AND f.serial_number ILIKE $${cIdx}`;
+                cParams.push(`%${serial_number}%`);
+                cIdx++;
+            }
+            if (unit_id) {
+                custodyFilter += ` AND cr.unit_id = $${cIdx}`;
+                cParams.push(unit_id);
+                cIdx++;
+            }
+
+            const custody = await query(`
+                SELECT cr.custody_id, cr.issued_at, cr.returned_at,
+                       cr.custody_status, cr.custody_type,
+                       f.serial_number, f.firearm_type,
+                       o.full_name as officer_name,
+                       u.unit_name
+                FROM custody_records cr
+                LEFT JOIN firearms f ON cr.firearm_id = f.firearm_id
+                LEFT JOIN officers o ON cr.officer_id = o.officer_id
+                LEFT JOIN units u ON cr.unit_id = u.unit_id
+                ${custodyFilter.replace('created_at', 'cr.issued_at')}
+                ORDER BY cr.issued_at DESC
+                LIMIT 100
+            `, cParams);
+
+            data = { custody_records: custody.rows };
+            break;
+        }
+
+        // ===== BALLISTIC REFERENCE SUMMARY =====
+        case 'ballistic_summary': {
+            let bpFilter = 'WHERE 1=1';
+            const bParams = [...dateParams];
+            let bIdx = paramIdx;
+
+            if (serial_number) {
+                bpFilter += ` AND f.serial_number ILIKE $${bIdx}`;
+                bParams.push(`%${serial_number}%`);
+                bIdx++;
+            }
+            if (unit_id) {
+                bpFilter += ` AND f.assigned_unit_id = $${bIdx}`;
+                bParams.push(unit_id);
+                bIdx++;
+            }
+
+            const profiles = await query(`
+                SELECT bp.profile_id, bp.caliber, bp.barrel_length,
+                       bp.rifling_type, bp.chamber_type,
+                       bp.breech_face_marks, bp.firing_pin_shape,
+                       bp.created_at,
+                       f.serial_number, f.firearm_type
+                FROM ballistic_profiles bp
+                LEFT JOIN firearms f ON bp.firearm_id = f.firearm_id
+                ${bpFilter.replace('created_at', 'bp.created_at')}
+                ORDER BY bp.created_at DESC
+                LIMIT 100
+            `, bParams);
+
+            data = { profiles: profiles.rows };
+            break;
+        }
+
+        // ===== ANOMALY SUMMARY =====
+        case 'anomaly_summary': {
+            let aFilter = 'WHERE 1=1';
+            const aParams = [...dateParams];
+            let aIdx = paramIdx;
+
+            if (unit_id) {
+                aFilter += ` AND a.unit_id = $${aIdx}`;
+                aParams.push(unit_id);
+                aIdx++;
+            }
+
+            const anomalies = await query(`
+                SELECT a.anomaly_id, a.severity, a.status,
+                       a.detected_at, a.anomaly_type,
+                       f.serial_number,
+                       u.unit_name
+                FROM anomalies a
+                LEFT JOIN firearms f ON a.firearm_id = f.firearm_id
+                LEFT JOIN units u ON a.unit_id = u.unit_id
+                ${aFilter.replace('created_at', 'a.detected_at')}
+                ORDER BY a.detected_at DESC
+                LIMIT 100
+            `, aParams);
+
+            // Summary counts
+            const total = anomalies.rows.length;
+            const high = anomalies.rows.filter(a => a.severity?.toLowerCase() === 'high' || a.severity?.toLowerCase() === 'critical').length;
+            const medium = anomalies.rows.filter(a => a.severity?.toLowerCase() === 'medium').length;
+            const low = anomalies.rows.filter(a => a.severity?.toLowerCase() === 'low').length;
+            const reviewed = anomalies.rows.filter(a => a.status?.toLowerCase() === 'reviewed' || a.status?.toLowerCase() === 'resolved').length;
+            const pending = anomalies.rows.filter(a => a.status?.toLowerCase() === 'pending' || a.status?.toLowerCase() === 'open').length;
+
+            data = {
+                anomalies: anomalies.rows,
+                summary: { total, high, medium, low, reviewed, pending }
+            };
+            break;
+        }
+
+        // ===== USER ACTIVITY (Admin only) =====
+        case 'user_activity': {
+            if (userRole !== 'admin') {
+                return res.status(403).json({ success: false, message: 'Admin access required' });
+            }
+
+            let uaFilter = 'WHERE al.success = true';
+            const uaParams = [...dateParams];
+            let uaIdx = paramIdx;
+
+            if (user_id) {
+                uaFilter += ` AND al.user_id = $${uaIdx}`;
+                uaParams.push(user_id);
+                uaIdx++;
+            }
+            if (filterRole) {
+                uaFilter += ` AND u.role = $${uaIdx}`;
+                uaParams.push(filterRole);
+                uaIdx++;
+            }
+
+            const activities = await query(`
+                SELECT al.log_id, al.action_type, al.table_name,
+                       al.record_id, al.created_at,
+                       u.username, u.role, u.full_name
+                FROM audit_logs al
+                LEFT JOIN users u ON al.user_id = u.user_id
+                ${uaFilter.replace(/created_at/g, 'al.created_at')}
+                ORDER BY al.created_at DESC
+                LIMIT 200
+            `, uaParams);
+
+            data = { activities: activities.rows };
+            break;
+        }
+
+        // ===== SYSTEM AUDIT LOG (Admin only) =====
+        case 'audit_log': {
+            if (userRole !== 'admin') {
+                return res.status(403).json({ success: false, message: 'Admin access required' });
+            }
+
+            let alFilter = 'WHERE 1=1';
+            const alParams = [...dateParams];
+            let alIdx = paramIdx;
+
+            if (user_id) {
+                alFilter += ` AND al.user_id = $${alIdx}`;
+                alParams.push(user_id);
+                alIdx++;
+            }
+            if (filterRole) {
+                alFilter += ` AND u.role = $${alIdx}`;
+                alParams.push(filterRole);
+                alIdx++;
+            }
+
+            const logs = await query(`
+                SELECT al.log_id, al.action_type, al.table_name,
+                       al.record_id, al.created_at, al.success,
+                       al.ip_address,
+                       u.username, u.full_name as actor_name, u.role
+                FROM audit_logs al
+                LEFT JOIN users u ON al.user_id = u.user_id
+                ${alFilter.replace(/created_at/g, 'al.created_at')}
+                ORDER BY al.created_at DESC
+                LIMIT 200
+            `, alParams);
+
+            data = { audit_logs: logs.rows };
+            break;
+        }
+
+        default:
+            return res.status(400).json({ success: false, message: `Unknown report type: ${type}` });
+    }
+
+    res.json({ success: true, data });
+}));
 
 // ============================================
 // LEGAL CHAIN-OF-CUSTODY REPORTS

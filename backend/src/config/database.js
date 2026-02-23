@@ -19,17 +19,25 @@ const connectionConfig = process.env.DATABASE_URL
 
 const pool = new Pool({
   ...connectionConfig,
-  max: 20,
-  min: 2,                      // Keep at least 2 connections warm
-  idleTimeoutMillis: 120000,   // Keep idle connections for 2 minutes (was 30s)
-  connectionTimeoutMillis: 10000,
+  max: 30,                         // Increased from 20 to handle dashboard burst
+  min: 2,                          // Keep at least 2 connections warm
+  idleTimeoutMillis: 30000,        // Release idle connections after 30s (was 2min)
+  connectionTimeoutMillis: 30000,  // Wait up to 30s for a connection (was 10s)
+  statement_timeout: 30000,        // Kill queries running longer than 30s
+  query_timeout: 30000,            // Query timeout 30s
+  keepalive: true,                 // Enable TCP keepalive
+  keepaliveInitialDelayMillis: 10000, // Start keepalive after 10s idle
+  allowExitOnIdle: false,          // Don't let pool close when idle
 });
 
 // Log only the first connection event
 let connectionLogged = false;
-pool.on('connect', () => {
+pool.on('connect', (client) => {
+  // Set timezone and statement timeout for each connection
+  const tz = process.env.DB_TIMEZONE || 'Africa/Johannesburg';
+  client.query(`SET timezone = '${tz}'; SET statement_timeout = '30s';`);
   if (!connectionLogged) {
-    console.log('[OK] PostgreSQL database connected successfully');
+    console.log(`[OK] PostgreSQL database connected successfully (timezone: ${tz})`);
     connectionLogged = true;
   }
 });

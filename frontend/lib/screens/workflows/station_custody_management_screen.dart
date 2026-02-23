@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/custody_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/dashboard_provider.dart';
 import '../../widgets/assign_custody_modal.dart';
 import '../../widgets/return_custody_modal.dart';
 
@@ -95,6 +96,8 @@ class _StationCustodyManagementScreenState
               onSuccess: () {
                 setState(() => _showAssignModal = false);
                 _loadUnitCustody();
+                // Refresh dashboard stats so active custody count updates
+                context.read<DashboardProvider>().loadDashboardStats();
               },
             ),
 
@@ -111,6 +114,8 @@ class _StationCustodyManagementScreenState
                   _selectedCustodyForReturn = null;
                 });
                 _loadUnitCustody();
+                // Refresh dashboard stats so active custody count and recent activity update
+                context.read<DashboardProvider>().loadDashboardStats();
               },
             ),
         ],

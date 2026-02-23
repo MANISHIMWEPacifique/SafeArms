@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
@@ -208,7 +209,13 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () => setState(() => _selectedIndex = index),
+                          onTap: () {
+                            setState(() => _selectedIndex = index);
+                            // Reload dashboard data when switching back to Dashboard tab
+                            if (index == 0) {
+                              _loadDashboardData();
+                            }
+                          },
                           borderRadius: BorderRadius.circular(6),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -366,7 +373,20 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
             children: [
               _buildStatsCards(provider),
               const SizedBox(height: 24),
-              _buildRecentActivity(provider),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: _buildFirearmStatusChart(provider),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    flex: 5,
+                    child: _buildRecentActivity(provider),
+                  ),
+                ],
+              ),
             ],
           ),
         );
@@ -473,6 +493,145 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     );
   }
 
+  Widget _buildFirearmStatusChart(DashboardProvider provider) {
+    final stats = provider.dashboardStats;
+    final firearms = stats?['firearms'];
+
+    final available =
+        double.tryParse(firearms?['available']?.toString() ?? '0') ?? 0;
+    final inCustody =
+        double.tryParse(firearms?['in_custody']?.toString() ?? '0') ?? 0;
+    final maintenance =
+        double.tryParse(firearms?['maintenance']?.toString() ?? '0') ?? 0;
+    final total = available + inCustody + maintenance;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252A3A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF37404F), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Unit Firearm Status',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Total: ${total.toInt()} firearms in your unit',
+            style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 200,
+            child: total == 0
+                ? const Center(
+                    child: Text(
+                      'No firearm data available',
+                      style: TextStyle(color: Color(0xFF78909C)),
+                    ),
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: PieChart(
+                          PieChartData(
+                            sectionsSpace: 2,
+                            centerSpaceRadius: 40,
+                            sections: [
+                              if (available > 0)
+                                PieChartSectionData(
+                                  value: available,
+                                  title:
+                                      '${(available / total * 100).toStringAsFixed(0)}%',
+                                  color: const Color(0xFF3CCB7F),
+                                  radius: 50,
+                                  titleStyle: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              if (inCustody > 0)
+                                PieChartSectionData(
+                                  value: inCustody,
+                                  title:
+                                      '${(inCustody / total * 100).toStringAsFixed(0)}%',
+                                  color: const Color(0xFF42A5F5),
+                                  radius: 50,
+                                  titleStyle: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              if (maintenance > 0)
+                                PieChartSectionData(
+                                  value: maintenance,
+                                  title:
+                                      '${(maintenance / total * 100).toStringAsFixed(0)}%',
+                                  color: const Color(0xFFFFB74D),
+                                  radius: 50,
+                                  titleStyle: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLegendItem(const Color(0xFF3CCB7F), 'Available',
+                              available.toInt()),
+                          const SizedBox(height: 12),
+                          _buildLegendItem(const Color(0xFF42A5F5),
+                              'In Custody', inCustody.toInt()),
+                          const SizedBox(height: 12),
+                          _buildLegendItem(const Color(0xFFFFB74D),
+                              'Maintenance', maintenance.toInt()),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendItem(Color color, String label, int count) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$label ($count)',
+          style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+        ),
+      ],
+    );
+  }
+
   Widget _buildRecentActivity(DashboardProvider provider) {
     // Station commander sees only custody events from their unit
     final custodyEvents = provider.recentCustodyActivity;
@@ -567,19 +726,34 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
       ),
       trailing: Text(
-        _formatDate(activity['issued_at'] ?? activity['checked_out_at']),
+        _formatTimeAgo(isAssigned
+            ? (activity['issued_at'] ?? activity['checked_out_at'])
+            : (activity['returned_at'] ?? activity['issued_at'])),
         style: const TextStyle(color: Color(0xFF78909C), fontSize: 11),
       ),
     );
   }
 
-  String _formatDate(String? dateStr) {
-    if (dateStr == null) return '';
+  String _formatTimeAgo(String? timestamp) {
+    if (timestamp == null) return '';
     try {
-      final date = DateTime.parse(dateStr);
-      return '${date.day}/${date.month}/${date.year}';
+      final dt = DateTime.parse(timestamp).toLocal();
+      final now = DateTime.now();
+      final difference = now.difference(dt);
+
+      if (difference.inSeconds < 60) {
+        return 'Just now';
+      } else if (difference.inMinutes < 60) {
+        return '${difference.inMinutes}m ago';
+      } else if (difference.inHours < 24) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays}d ago';
+      } else {
+        return '${dt.day}/${dt.month}/${dt.year}';
+      }
     } catch (e) {
-      return dateStr;
+      return timestamp;
     }
   }
 }

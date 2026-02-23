@@ -172,7 +172,9 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                     ),
                   ),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      _tabController.animateTo(0);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE85C5C),
                       foregroundColor: Colors.white,
@@ -402,20 +404,221 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
   }
 
   Widget _buildDestructionTab(ApprovalsProvider provider) {
-    return const Center(
-      child: Text(
-        'Destruction Review interface',
-        style: TextStyle(color: Color(0xFF78909C)),
-      ),
+    return Row(
+      children: [
+        Expanded(
+          flex: 40,
+          child: Container(
+            color: const Color(0xFF252A3A),
+            child: Column(
+              children: [
+                _buildFilterBar(provider, 'destruction'),
+                Expanded(
+                  child: provider.isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              color: Color(0xFF1E88E5)))
+                      : provider.pendingDestructionRequests.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No pending destruction requests',
+                                style: TextStyle(color: Color(0xFF78909C)),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount:
+                                  provider.pendingDestructionRequests.length,
+                              itemBuilder: (context, index) {
+                                final req =
+                                    provider.pendingDestructionRequests[index];
+                                final isSelected =
+                                    provider.selectedRequest != null &&
+                                        provider.selectedRequest![
+                                                'destruction_id'] ==
+                                            req['destruction_id'];
+                                return InkWell(
+                                  onTap: () => provider.selectRequest(req),
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFF2A3040)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: const Border(
+                                        left: BorderSide(
+                                            color: Color(0xFFFFA726), width: 4),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          req['destruction_id']
+                                                  ?.toString()
+                                                  .substring(0, 8) ??
+                                              'DEST-XXXX',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            fontFamily: 'monospace',
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          req['unit_name'] ?? 'Unknown Station',
+                                          style: const TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12),
+                                        ),
+                                        const Divider(
+                                            color: Color(0xFF37404F),
+                                            height: 16),
+                                        Text(
+                                          '${req['serial_number'] ?? ''} - ${req['reason'] ?? 'No reason provided'}',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Container(width: 1, color: const Color(0xFF37404F)),
+        Expanded(
+          flex: 60,
+          child: provider.selectedRequest == null
+              ? _buildEmptyDetailState()
+              : _buildDetailView(provider),
+        ),
+      ],
     );
   }
 
   Widget _buildProcurementTab(ApprovalsProvider provider) {
-    return const Center(
-      child: Text(
-        'Procurement Review interface',
-        style: TextStyle(color: Color(0xFF78909C)),
-      ),
+    return Row(
+      children: [
+        Expanded(
+          flex: 40,
+          child: Container(
+            color: const Color(0xFF252A3A),
+            child: Column(
+              children: [
+                _buildFilterBar(provider, 'procurement'),
+                Expanded(
+                  child: provider.isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              color: Color(0xFF1E88E5)))
+                      : provider.pendingProcurementRequests.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No pending procurement requests',
+                                style: TextStyle(color: Color(0xFF78909C)),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount:
+                                  provider.pendingProcurementRequests.length,
+                              itemBuilder: (context, index) {
+                                final req =
+                                    provider.pendingProcurementRequests[index];
+                                final isSelected =
+                                    provider.selectedRequest != null &&
+                                        provider.selectedRequest![
+                                                'procurement_id'] ==
+                                            req['procurement_id'];
+                                return InkWell(
+                                  onTap: () => provider.selectRequest(req),
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFF2A3040)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: const Border(
+                                        left: BorderSide(
+                                            color: Color(0xFF3CCB7F), width: 4),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          req['procurement_id']
+                                                  ?.toString()
+                                                  .substring(0, 8) ??
+                                              'PROC-XXXX',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            fontFamily: 'monospace',
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          req['unit_name'] ?? 'Unknown Station',
+                                          style: const TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12),
+                                        ),
+                                        const Divider(
+                                            color: Color(0xFF37404F),
+                                            height: 16),
+                                        Text(
+                                          '${req['firearm_type'] ?? 'N/A'} × ${req['quantity'] ?? 1}',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          req['justification'] ??
+                                              'No justification',
+                                          style: const TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Container(width: 1, color: const Color(0xFF37404F)),
+        Expanded(
+          flex: 60,
+          child: provider.selectedRequest == null
+              ? _buildEmptyDetailState()
+              : _buildDetailView(provider),
+        ),
+      ],
     );
   }
 

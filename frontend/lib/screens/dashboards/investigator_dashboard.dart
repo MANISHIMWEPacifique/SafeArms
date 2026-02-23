@@ -14,7 +14,7 @@ import '../../widgets/custody_timeline_widget.dart';
 import '../auth/login_screen.dart';
 import '../forensic/forensic_search_screen.dart';
 import '../management/firearms_registry_screen.dart';
-import '../workflows/reports_screen.dart';
+import '../workflows/investigator_reports_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 
 class InvestigatorDashboard extends StatefulWidget {
@@ -468,7 +468,41 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
           const Spacer(),
           const SizedBox(width: 8),
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              final authProvider =
+                  Provider.of<AuthProvider>(context, listen: false);
+              showMenu(
+                context: context,
+                position: const RelativeRect.fromLTRB(1000, 64, 0, 0),
+                color: const Color(0xFF2A3040),
+                items: <PopupMenuEntry<dynamic>>[
+                  PopupMenuItem(
+                    enabled: false,
+                    child: Text(authProvider.userName ?? 'Investigator',
+                        style: const TextStyle(
+                            color: Color(0xFF78909C), fontSize: 13)),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    onTap: () {
+                      authProvider.logout();
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        (route) => false,
+                      );
+                    },
+                    child: const Row(
+                      children: [
+                        Icon(Icons.logout, color: Color(0xFFE85C5C), size: 18),
+                        SizedBox(width: 8),
+                        Text('Logout',
+                            style: TextStyle(color: Color(0xFFE85C5C))),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
             icon: const Icon(Icons.account_circle, color: Color(0xFF78909C)),
           ),
         ],
@@ -493,7 +527,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       case 4:
         return const AnomalyDetectionScreen();
       case 5:
-        return const ReportsScreen(roleType: 'investigator');
+        return const InvestigatorReportsScreen();
       default:
         return _buildDashboardOverview();
     }
@@ -925,48 +959,40 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
     final subjectDesc = activity['subject_description']?.toString() ?? '';
     final timeAgo = _formatTimeAgo(createdAt);
 
-    // Determine icon and color by action type
+    // Determine icon and label by action type
     IconData actIcon;
-    Color actColor;
     String actLabel;
 
     switch (actionType.toUpperCase()) {
       case 'CUSTODY_ASSIGN':
       case 'CUSTODY_RETURN':
         actIcon = Icons.swap_horiz;
-        actColor = const Color(0xFF42A5F5);
         actLabel = actionType == 'CUSTODY_ASSIGN'
             ? 'Custody Assigned'
             : 'Custody Returned';
         break;
       case 'BALLISTIC_ACCESS':
         actIcon = Icons.fingerprint;
-        actColor = const Color(0xFFFFC857);
         actLabel = 'Ballistic Access';
         break;
       case 'CREATE':
         actIcon = Icons.add_circle_outline;
-        actColor = const Color(0xFF3CCB7F);
         actLabel = 'Record Created';
         break;
       case 'UPDATE':
         actIcon = Icons.edit;
-        actColor = const Color(0xFF42A5F5);
         actLabel = 'Record Updated';
         break;
       case 'LOGIN':
         actIcon = Icons.login;
-        actColor = const Color(0xFF78909C);
         actLabel = 'User Login';
         break;
       case 'SEARCH':
         actIcon = Icons.search;
-        actColor = const Color(0xFF42A5F5);
         actLabel = 'Search Performed';
         break;
       default:
         actIcon = Icons.info_outline;
-        actColor = const Color(0xFF78909C);
         actLabel = actionType.replaceAll('_', ' ');
     }
 
@@ -975,7 +1001,6 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
-        border: Border(left: BorderSide(color: actColor, width: 4)),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -983,10 +1008,10 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: actColor.withValues(alpha: 0.15),
+              color: const Color(0xFF37404F),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(actIcon, color: actColor, size: 20),
+            child: Icon(actIcon, color: const Color(0xFFB0BEC5), size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1094,180 +1119,147 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
               ),
             )
           else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(
-                  const Color(0xFF252A3A),
-                ),
-                dataRowColor: WidgetStateProperty.all(const Color(0xFF2A3040)),
-                headingRowHeight: 44,
-                dataRowMinHeight: 48,
-                dataRowMaxHeight: 48,
-                columnSpacing: 20,
-                columns: const [
-                  DataColumn(
-                    label: Text(
-                      'STATUS',
-                      style: TextStyle(
-                        color: Color(0xFFB0BEC5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'FIREARM',
-                      style: TextStyle(
-                        color: Color(0xFFB0BEC5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'OFFICER',
-                      style: TextStyle(
-                        color: Color(0xFFB0BEC5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'UNIT',
-                      style: TextStyle(
-                        color: Color(0xFFB0BEC5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'TYPE',
-                      style: TextStyle(
-                        color: Color(0xFFB0BEC5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'ISSUED',
-                      style: TextStyle(
-                        color: Color(0xFFB0BEC5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-                rows: custodyEvents.take(6).map<DataRow>((event) {
-                  final custodyStatus =
-                      event['custody_status']?.toString() ?? 'active';
-                  final isActive = custodyStatus == 'active';
-                  final statusColor = isActive
-                      ? const Color(0xFF3CCB7F)
-                      : const Color(0xFF78909C);
-
-                  return DataRow(
-                    cells: [
-                      DataCell(
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            isActive ? 'Active' : 'Returned',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      DataCell(
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.gps_fixed,
-                              color: Color(0xFF78909C),
-                              size: 14,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${event['manufacturer'] ?? ''} ${event['model'] ?? ''}\n${event['serial_number'] ?? ''}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      DataCell(
-                        Text(
-                          event['officer_name']?.toString() ?? 'N/A',
-                          style: const TextStyle(
-                            color: Color(0xFFB0BEC5),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      DataCell(
-                        Text(
-                          event['unit_name']?.toString() ?? 'N/A',
-                          style: const TextStyle(
-                            color: Color(0xFFB0BEC5),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      DataCell(
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF37404F),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            (event['custody_type']?.toString() ?? '')
-                                .replaceAll('_', ' '),
-                            style: const TextStyle(
-                              color: Color(0xFFB0BEC5),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                      ),
-                      DataCell(
-                        Text(
-                          _formatTimeAgo(event['issued_at']?.toString()),
-                          style: const TextStyle(
-                            color: Color(0xFF78909C),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                }).toList(),
+            DataTable(
+              headingRowColor: WidgetStateProperty.all(
+                const Color(0xFF252A3A),
               ),
+              dataRowColor: WidgetStateProperty.all(const Color(0xFF2A3040)),
+              headingRowHeight: 44,
+              dataRowMinHeight: 48,
+              dataRowMaxHeight: 48,
+              columnSpacing: 20,
+              columns: const [
+                DataColumn(
+                  label: Text(
+                    'STATUS',
+                    style: TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'FIREARM',
+                    style: TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'OFFICER',
+                    style: TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'UNIT',
+                    style: TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'TYPE',
+                    style: TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'ISSUED',
+                    style: TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+              rows: custodyEvents.take(6).map<DataRow>((event) {
+                final custodyStatus =
+                    event['custody_status']?.toString() ?? 'active';
+                final isActive = custodyStatus == 'active';
+
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Text(
+                        isActive ? 'Active' : 'Returned',
+                        style: const TextStyle(
+                          color: Color(0xFFB0BEC5),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        '${event['manufacturer'] ?? ''} ${event['model'] ?? ''} - ${event['serial_number'] ?? ''}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        event['officer_name']?.toString() ?? 'N/A',
+                        style: const TextStyle(
+                          color: Color(0xFFB0BEC5),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        event['unit_name']?.toString() ?? 'N/A',
+                        style: const TextStyle(
+                          color: Color(0xFFB0BEC5),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        (event['custody_type']?.toString() ?? '')
+                            .replaceAll('_', ' '),
+                        style: const TextStyle(
+                          color: Color(0xFFB0BEC5),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        _formatTimeAgo(
+                          (event['custody_status'] == 'returned'
+                                  ? event['returned_at']?.toString()
+                                  : event['issued_at']?.toString()) ??
+                              event['issued_at']?.toString(),
+                        ),
+                        style: const TextStyle(
+                          color: Color(0xFF78909C),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
             ),
         ],
       ),
@@ -2218,16 +2210,20 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   String _formatTimeAgo(String? timestamp) {
     if (timestamp == null) return 'N/A';
     try {
-      final dt = DateTime.parse(timestamp);
+      final dt = DateTime.parse(timestamp).toLocal();
       final now = DateTime.now();
       final difference = now.difference(dt);
 
-      if (difference.inMinutes < 60) {
+      if (difference.inSeconds < 60) {
+        return 'Just now';
+      } else if (difference.inMinutes < 60) {
         return '${difference.inMinutes}m ago';
       } else if (difference.inHours < 24) {
         return '${difference.inHours}h ago';
-      } else {
+      } else if (difference.inDays < 7) {
         return '${difference.inDays}d ago';
+      } else {
+        return '${dt.day}/${dt.month}/${dt.year}';
       }
     } catch (e) {
       return timestamp;

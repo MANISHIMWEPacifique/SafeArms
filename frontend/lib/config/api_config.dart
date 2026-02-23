@@ -2,8 +2,12 @@
 // Contains API base URL and endpoint configurations
 
 class ApiConfig {
-  // Base URL for backend API
-  static const String baseUrl = 'http://localhost:3000';
+  // Base URL for backend API — override at build time with:
+  //   flutter run --dart-define=API_BASE_URL=https://your-server.com
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:3000',
+  );
 
   // API Version
   static const String apiVersion = '/api';

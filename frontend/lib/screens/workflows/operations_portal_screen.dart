@@ -531,7 +531,51 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: const Color(0xFF252A3A),
+                        title: Text(
+                          report['serial_number'] ?? 'Loss Report',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        content: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildDialogRow('Firearm',
+                                  '${report['manufacturer']} ${report['model']}'),
+                              _buildDialogRow(
+                                  'Loss Type',
+                                  report['loss_type']
+                                          ?.toString()
+                                          .toUpperCase() ??
+                                      'N/A'),
+                              _buildDialogRow('Loss Date',
+                                  _formatDate(report['loss_date'])),
+                              _buildDialogRow('Location',
+                                  report['loss_location'] ?? 'Not specified'),
+                              _buildDialogRow('Reporter',
+                                  report['reporter_name'] ?? 'Unknown'),
+                              _buildDialogRow('Status', status.toUpperCase()),
+                              if (report['description'] != null)
+                                _buildDialogRow(
+                                    'Description', report['description']),
+                            ],
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Close',
+                                style: TextStyle(color: Color(0xFF78909C))),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1E88E5),
                     side: const BorderSide(color: Color(0xFF1E88E5)),
@@ -541,7 +585,41 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
                 if (status == 'pending') ...[
                   const SizedBox(width: 8),
                   OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: const Color(0xFF252A3A),
+                          title: const Text('Withdraw Report?',
+                              style: TextStyle(color: Colors.white)),
+                          content: const Text(
+                            'This will withdraw the pending loss report. This action cannot be undone.',
+                            style: TextStyle(color: Color(0xFFB0BEC5)),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel',
+                                  style: TextStyle(color: Color(0xFF78909C))),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                final provider =
+                                    context.read<OperationsProvider>();
+                                provider.withdrawLossReport(
+                                    report['loss_id']?.toString() ?? '');
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE85C5C),
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Withdraw'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFE85C5C),
                       side: const BorderSide(color: Color(0xFFE85C5C)),
@@ -662,6 +740,26 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDialogRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(label,
+                style: const TextStyle(color: Color(0xFF78909C), fontSize: 13)),
+          ),
+          Expanded(
+            child: Text(value,
+                style: const TextStyle(color: Colors.white, fontSize: 13)),
+          ),
+        ],
+      ),
     );
   }
 

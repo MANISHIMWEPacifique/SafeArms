@@ -325,8 +325,10 @@ const processProcurementRequest = async (procurementId, approvalData) => {
  */
 const getPendingApprovals = async () => {
     try {
-        const lossReports = await query(
-            `SELECT 
+        // Run all three queries in parallel instead of sequentially
+        const [lossReports, destructionRequests, procurementRequests] = await Promise.all([
+            query(
+                `SELECT 
         lr.*,
         f.serial_number,
         u.unit_name,
@@ -337,10 +339,9 @@ const getPendingApprovals = async () => {
        JOIN users reported_by_user ON lr.reported_by = reported_by_user.user_id
        WHERE lr.status = 'pending'
        ORDER BY lr.created_at DESC`
-        );
-
-        const destructionRequests = await query(
-            `SELECT 
+            ),
+            query(
+                `SELECT 
         dr.*,
         f.serial_number,
         u.unit_name,
@@ -351,10 +352,9 @@ const getPendingApprovals = async () => {
        JOIN users requested_by_user ON dr.requested_by = requested_by_user.user_id
        WHERE dr.status = 'pending'
        ORDER BY dr.created_at DESC`
-        );
-
-        const procurementRequests = await query(
-            `SELECT 
+            ),
+            query(
+                `SELECT 
         pr.*,
         u.unit_name,
         requested_by_user.full_name as requested_by_name
@@ -363,7 +363,8 @@ const getPendingApprovals = async () => {
        JOIN users requested_by_user ON pr.requested_by = requested_by_user.user_id
        WHERE pr.status = 'pending'
        ORDER BY pr.created_at DESC`
-        );
+            )
+        ]);
 
         return {
             loss_reports: lossReports.rows,

@@ -536,66 +536,111 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
             ],
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Ballistic Characteristics',
-            style: TextStyle(
-                color: Color(0xFFB0BEC5),
-                fontSize: 16,
-                fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            controller: _riflingController,
-            label: 'Rifling Characteristics',
-            hint: 'Describe rifling pattern, twist rate...',
-            maxLines: 3,
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            controller: _firingPinController,
-            label: 'Firing Pin Impression',
-            hint: 'Describe firing pin marks...',
-            maxLines: 2,
-          ),
-          const SizedBox(height: 16),
+          // Section header matching forensic search layout
           Row(
+            children: [
+              const Text(
+                'BALLISTIC CHARACTERISTICS',
+                style: TextStyle(
+                  color: Color(0xFFCFD8DC),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(height: 1, color: const Color(0xFF37404F)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'These fields map directly to the investigation search filters used by investigators',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
+          ),
+          const SizedBox(height: 16),
+          // Row 1: Firing Pin, Rifling
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildTextField(
+                  controller: _firingPinController,
+                  label: 'Firing Pin',
+                  hint: 'e.g. round, rectangular, hemispherical',
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildTextField(
+                  controller: _riflingController,
+                  label: 'Rifling',
+                  hint: 'e.g. 6 grooves right-hand twist',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Row 2: Chamber / Feed
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildTextField(
+                  controller: _chamberMarksController,
+                  label: 'Chamber / Feed',
+                  hint: 'e.g. detachable magazine, chamber markings',
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Row 3: Breech Face — Ejector + Extractor (side by side, aligned)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _buildTextField(
                   controller: _ejectorMarksController,
-                  label: 'Ejector Marks',
-                  hint: 'Ejector characteristics...',
-                  maxLines: 2,
+                  label: 'Breech Face — Ejector Marks',
+                  hint: 'e.g. rectangular, offset right',
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildTextField(
                   controller: _extractorMarksController,
-                  label: 'Extractor Marks',
-                  hint: 'Extractor characteristics...',
-                  maxLines: 2,
+                  label: 'Breech Face — Extractor Marks',
+                  hint: 'e.g. linear, at 3 o\'clock position',
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            controller: _chamberMarksController,
-            label: 'Chamber Marks',
-            hint: 'Chamber markings...',
-            maxLines: 2,
-          ),
           const SizedBox(height: 24),
-          const Text(
-            'Test Details',
-            style: TextStyle(
-                color: Color(0xFFB0BEC5),
-                fontSize: 16,
-                fontWeight: FontWeight.bold),
+          // Test Details section
+          Row(
+            children: [
+              const Text(
+                'TEST DETAILS',
+                style: TextStyle(
+                  color: Color(0xFFCFD8DC),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(height: 1, color: const Color(0xFF37404F)),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _buildTextField(
@@ -615,21 +660,25 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
             ],
           ),
           const SizedBox(height: 16),
-          _buildTextField(
-            controller: _testAmmunitionController,
-            label: 'Test Ammunition',
-            hint: 'Ammunition type used for testing',
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            controller: _ballisticNotesController,
-            label: 'Additional Notes',
-            hint: 'Any additional ballistic observations...',
-            maxLines: 4,
-          ),
-          const SizedBox(height: 24),
-          _buildInfoBox(
-            'Ballistic Profile: This data will be used for forensic tracing and criminal investigation support. Accuracy is critical.',
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildTextField(
+                  controller: _testAmmunitionController,
+                  label: 'Test Ammunition',
+                  hint: 'Ammunition type used for testing',
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildTextField(
+                  controller: _ballisticNotesController,
+                  label: 'Additional Notes',
+                  hint: 'Any additional ballistic observations...',
+                ),
+              ),
+            ],
           ),
         ],
       ),

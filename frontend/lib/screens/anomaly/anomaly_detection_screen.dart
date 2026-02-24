@@ -32,7 +32,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   }
 
   void _startAutoRefresh() {
-    Future.delayed(const Duration(seconds: 30), () {
+    Future.delayed(const Duration(seconds: 120), () {
       if (mounted && _autoRefresh) {
         _loadAnomalies();
         _startAutoRefresh();
@@ -79,7 +79,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
 
   Widget _buildHeader(String? role) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       decoration: const BoxDecoration(
         color: Color(0xFF252A3A),
         border: Border(
@@ -92,29 +92,29 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             'Anomaly Detection',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Text(
             role == 'station_commander'
                 ? 'Unit-level monitoring'
                 : 'ML-powered analysis',
             style: const TextStyle(
               color: Color(0xFF78909C),
-              fontSize: 13,
+              fontSize: 12,
             ),
           ),
           const Spacer(),
           OutlinedButton.icon(
             onPressed: _loadAnomalies,
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Refresh'),
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Refresh', style: TextStyle(fontSize: 12)),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFFB0BEC5),
               side: const BorderSide(color: Color(0xFF37404F)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
@@ -137,7 +137,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             .length;
 
         return Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Row(
             children: [
               Expanded(
@@ -148,7 +148,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                   const Color(0xFF1E88E5),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   'Critical',
@@ -157,7 +157,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                   const Color(0xFF1E88E5),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   'High Priority',
@@ -166,7 +166,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                   const Color(0xFF1E88E5),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   'Medium',
@@ -175,7 +175,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                   const Color(0xFF1E88E5),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   'Open Cases',
@@ -194,35 +194,31 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   Widget _buildStatCard(
       String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFF37404F), width: 1),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const Spacer(),
-              Text(
-                value,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFFB0BEC5),
+                fontSize: 12,
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 8),
           Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFFB0BEC5),
-              fontSize: 14,
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -231,101 +227,178 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   }
 
   Widget _buildFilters() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Row(
-        children: [
-          const Text(
-            'Filters:',
-            style: TextStyle(
-              color: Color(0xFFB0BEC5),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF252A3A),
+          border: Border.all(color: const Color(0xFF37404F)),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildFilterDropdown(
+                label: 'Severity',
+                value: _selectedSeverity,
+                items: [
+                  {'value': 'all', 'label': 'All Severities'},
+                  {'value': 'critical', 'label': 'Critical'},
+                  {'value': 'high', 'label': 'High'},
+                  {'value': 'medium', 'label': 'Medium'},
+                  {'value': 'low', 'label': 'Low'},
+                ],
+                onChanged: (value) {
+                  setState(() => _selectedSeverity = value!);
+                  _loadAnomalies();
+                },
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          _buildFilterDropdown(
-            'Severity',
-            _selectedSeverity,
-            ['all', 'critical', 'high', 'medium', 'low'],
-            (value) {
-              setState(() => _selectedSeverity = value!);
-              _loadAnomalies();
-            },
-          ),
-          const SizedBox(width: 16),
-          _buildFilterDropdown(
-            'Status',
-            _selectedStatus,
-            [
-              'all',
-              'open',
-              'detected',
-              'investigating',
-              'resolved',
-              'false_positive'
-            ],
-            (value) {
-              setState(() => _selectedStatus = value!);
-              _loadAnomalies();
-            },
-          ),
-          const Spacer(),
-          Text(
-            'Last updated: ${DateFormat('HH:mm:ss').format(DateTime.now())}',
-            style: const TextStyle(
-              color: Color(0xFF78909C),
-              fontSize: 12,
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildFilterDropdown(
+                label: 'Status',
+                value: _selectedStatus,
+                items: [
+                  {'value': 'all', 'label': 'All Statuses'},
+                  {'value': 'open', 'label': 'Open'},
+                  {'value': 'detected', 'label': 'Detected'},
+                  {'value': 'investigating', 'label': 'Investigating'},
+                  {'value': 'resolved', 'label': 'Resolved'},
+                  {'value': 'false_positive', 'label': 'False Positive'},
+                ],
+                onChanged: (value) {
+                  setState(() => _selectedStatus = value!);
+                  _loadAnomalies();
+                },
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Auto Refresh',
+                      style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 12)),
+                  const SizedBox(height: 4),
+                  Container(
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A3040),
+                      border: Border.all(color: const Color(0xFF37404F)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.timer_outlined,
+                            color: Color(0xFF78909C), size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          _autoRefresh ? 'Every 2min' : 'Disabled',
+                          style: TextStyle(
+                            color: _autoRefresh
+                                ? Colors.white
+                                : const Color(0xFF78909C),
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Spacer(),
+                        Switch(
+                          value: _autoRefresh,
+                          onChanged: (val) {
+                            setState(() => _autoRefresh = val);
+                            if (val) _startAutoRefresh();
+                          },
+                          activeThumbColor: const Color(0xFF3CCB7F),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('', style: TextStyle(fontSize: 12)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    if (_selectedSeverity != 'all' || _selectedStatus != 'all')
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _selectedSeverity = 'all';
+                            _selectedStatus = 'all';
+                          });
+                          _loadAnomalies();
+                        },
+                        icon: const Icon(Icons.clear, size: 18),
+                        label: const Text('Clear'),
+                        style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF64B5F6)),
+                      ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Updated ${DateFormat('HH:mm:ss').format(DateTime.now())}',
+                      style: const TextStyle(
+                        color: Color(0xFF78909C),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildFilterDropdown(
-    String label,
-    String value,
-    List<String> items,
-    Function(String?) onChanged,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF252A3A),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFF37404F), width: 1),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(
-              color: Color(0xFF78909C),
-              fontSize: 13,
+  Widget _buildFilterDropdown({
+    required String label,
+    required String value,
+    required List<Map<String, String>> items,
+    required Function(String?) onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12)),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A3040),
+            border: Border.all(color: const Color(0xFF37404F)),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down,
+                  color: Color(0xFF78909C)),
+              dropdownColor: const Color(0xFF2A3040),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              items: items
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item['value'],
+                        child: Text(item['label']!),
+                      ))
+                  .toList(),
+              onChanged: onChanged,
             ),
           ),
-          DropdownButton<String>(
-            value: value,
-            onChanged: onChanged,
-            underline: const SizedBox(),
-            dropdownColor: const Color(0xFF252A3A),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-            ),
-            items: items.map((item) {
-              return DropdownMenuItem(
-                value: item,
-                child: Text(
-                  item.toUpperCase(),
-                  style: const TextStyle(fontSize: 13),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -393,18 +466,25 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
           );
         }
 
+        // Show the last 4 anomalies to fill available space
+        final displayAnomalies = provider.anomalies.length > 4
+            ? provider.anomalies.sublist(provider.anomalies.length - 4)
+            : provider.anomalies;
+
         return Container(
-          margin: const EdgeInsets.all(24),
+          margin:
+              const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 8),
           decoration: BoxDecoration(
             color: const Color(0xFF252A3A),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: const Color(0xFF37404F), width: 1),
           ),
           child: Column(
             children: [
               // Table Header
               Container(
-                padding: const EdgeInsets.all(16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: const BoxDecoration(
                   border: Border(
                     bottom: BorderSide(color: Color(0xFF37404F), width: 1),
@@ -425,16 +505,12 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                   ],
                 ),
               ),
-              // Table Body
-              Expanded(
-                child: ListView.builder(
-                  itemCount: provider.anomalies.length,
-                  itemBuilder: (context, index) {
-                    final anomaly = provider.anomalies[index];
-                    return _buildAnomalyRow(anomaly, index);
-                  },
-                ),
-              ),
+              // Table Body - last 3 anomalies
+              ...displayAnomalies.asMap().entries.map((entry) {
+                return _buildAnomalyRow(entry.value, entry.key);
+              }),
+              // Fill remaining space
+              const Expanded(child: SizedBox()),
             ],
           ),
         );
@@ -449,7 +525,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
         label,
         style: const TextStyle(
           color: Color(0xFF78909C),
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
         ),
@@ -460,7 +536,8 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   Widget _buildAnomalyRow(Map<String, dynamic> anomaly, int index) {
     final severity = anomaly['severity'] ?? 'medium';
     final status = anomaly['status'] ?? 'open';
-    final score = (anomaly['anomaly_score'] ?? 0.0) as double;
+    final score =
+        double.tryParse(anomaly['anomaly_score']?.toString() ?? '0') ?? 0.0;
 
     Color severityColor;
     switch (severity) {
@@ -481,7 +558,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color:
             index % 2 == 0 ? const Color(0xFF2A3040) : const Color(0xFF252A3A),
@@ -494,7 +571,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
           Expanded(
             flex: 2,
             child: Text(
-              '#${anomaly['anomaly_id']?.toString().substring(0, 8) ?? 'N/A'}',
+              '#${anomaly['anomaly_id']?.toString() ?? 'N/A'}',
               style: const TextStyle(
                 color: Color(0xFF1E88E5),
                 fontSize: 13,
@@ -746,7 +823,7 @@ class _AnomalyDetailDialog extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'ID: ${anomaly['anomaly_id']?.toString().substring(0, 12) ?? 'N/A'}',
+                          'ID: ${anomaly['anomaly_id']?.toString() ?? 'N/A'}',
                           style: const TextStyle(
                             color: Color(0xFF78909C),
                             fontSize: 12,
@@ -774,11 +851,11 @@ class _AnomalyDetailDialog extends StatelessWidget {
                       _InfoRow('Type', anomaly['anomaly_type'] ?? 'N/A'),
                       _InfoRow('Severity', anomaly['severity'] ?? 'N/A'),
                       _InfoRow('Score',
-                          '${((anomaly['anomaly_score'] ?? 0.0) * 100).toStringAsFixed(1)}%'),
+                          '${((double.tryParse(anomaly['anomaly_score']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
                       _InfoRow('Detection Method',
                           anomaly['detection_method'] ?? 'N/A'),
                       _InfoRow('Confidence',
-                          '${((anomaly['confidence_level'] ?? 0.0) * 100).toStringAsFixed(1)}%'),
+                          '${((double.tryParse(anomaly['confidence_level']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
                       _InfoRow('Detected At',
                           _formatDateTime(anomaly['detected_at'])),
                     ]),
@@ -971,7 +1048,8 @@ class _AnomalyDetailDialog extends StatelessWidget {
           ),
           child: Column(
             children: features.entries.map((entry) {
-              final value = (entry.value as num).toDouble();
+              final value =
+                  double.tryParse(entry.value?.toString() ?? '0') ?? 0.0;
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Column(

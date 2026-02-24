@@ -1,6 +1,7 @@
 const { query, withTransaction } = require('../config/database');
 const logger = require('../utils/logger');
 const { sendApprovalNotification } = require('./email.service');
+const { parseDecimalFields } = require('../utils/helpers');
 
 /**
  * Workflow Service
@@ -269,7 +270,7 @@ const submitProcurementRequest = async (procurementData) => {
 
         logger.info(`Procurement request submitted: ${result.rows[0].procurement_id}`);
 
-        return result.rows[0];
+        return parseDecimalFields(result.rows[0], ['estimated_cost']);
     } catch (error) {
         logger.error('Submit procurement request error:', error);
         throw error;
@@ -312,7 +313,7 @@ const processProcurementRequest = async (procurementId, approvalData) => {
 
         logger.info(`Procurement request ${status}: ${procurementId}`);
 
-        return result.rows[0];
+        return parseDecimalFields(result.rows[0], ['estimated_cost']);
     } catch (error) {
         logger.error('Process procurement request error:', error);
         throw error;

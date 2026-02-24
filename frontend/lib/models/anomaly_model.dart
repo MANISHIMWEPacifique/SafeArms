@@ -50,6 +50,14 @@ class AnomalyModel {
     this.updatedAt,
   });
 
+  /// Safely parse a numeric value that may come as String from PostgreSQL DECIMAL columns
+  static double _parseDouble(dynamic value, [double defaultValue = 0.0]) {
+    if (value == null) return defaultValue;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
+
   factory AnomalyModel.fromJson(Map<String, dynamic> json) {
     return AnomalyModel(
       anomalyId: json['anomaly_id'] ?? '',
@@ -57,13 +65,13 @@ class AnomalyModel {
       firearmId: json['firearm_id'] ?? '',
       officerId: json['officer_id'] ?? '',
       unitId: json['unit_id'] ?? '',
-      anomalyScore: (json['anomaly_score'] ?? 0.0).toDouble(),
+      anomalyScore: _parseDouble(json['anomaly_score']),
       anomalyType: json['anomaly_type'] ?? '',
       detectionMethod: json['detection_method'] ?? '',
       modelId: json['model_id'],
       severity: json['severity'] ?? 'medium',
       confidenceLevel: json['confidence_level'] != null
-          ? (json['confidence_level'] as num).toDouble()
+          ? _parseDouble(json['confidence_level'])
           : null,
       contributingFactors:
           json['contributing_factors'] as Map<String, dynamic>?,

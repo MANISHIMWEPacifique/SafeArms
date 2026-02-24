@@ -137,7 +137,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Platform Configuration',
+                  'SafeArms Configuration',
                   style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
                 ),
                 const SizedBox(height: 12),
@@ -167,16 +167,10 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               children: [
                 _buildMenuItem('general', Icons.settings, 'General Settings'),
                 _buildMenuItem(
-                    'security', Icons.shield, 'Security & Authentication'),
-                _buildMenuItem('ml', Icons.psychology, 'ML.js Configuration'),
-                _buildMenuItem('email', Icons.email, 'Email Settings'),
-                _buildMenuItem('audit', Icons.list_alt, 'Audit Logs'),
-                _buildMenuItem('health', Icons.favorite, 'System Health'),
-                _buildMenuItem('backup', Icons.backup, 'Backup & Recovery'),
-                _buildMenuItem('permissions', Icons.people, 'User Permissions'),
-                _buildMenuItem(
-                    'notifications', Icons.notifications, 'Notifications'),
-                _buildMenuItem('advanced', Icons.tune, 'Advanced Settings'),
+                    'security', Icons.shield, 'Access Control & Security'),
+                _buildMenuItem('ml', Icons.psychology, 'Anomaly Detection'),
+                _buildMenuItem('audit', Icons.list_alt, 'Audit Trail'),
+                _buildMenuItem('health', Icons.monitor_heart, 'System Health'),
               ],
             ),
           ),
@@ -267,7 +261,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Configure platform-wide settings',
+                    'Configure SafeArms platform settings for Rwanda National Police',
                     style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
                   ),
                 ],
@@ -416,9 +410,14 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Security & Authentication',
+            'Access Control & Security',
             style: TextStyle(
                 color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Role-based access control and authentication settings',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
           ),
           const SizedBox(height: 8),
           Container(
@@ -433,7 +432,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                 Icon(Icons.warning, color: Color(0xFFFFC857), size: 20),
                 SizedBox(width: 12),
                 Text(
-                  'Changes to security settings require immediate effect',
+                  'Changes to security settings take effect immediately',
                   style: TextStyle(color: Color(0xFFFFC857), fontSize: 14),
                 ),
               ],
@@ -510,7 +509,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   Text(
-                    'ML.js Anomaly Detection Configuration',
+                    'Anomaly Detection Configuration',
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -518,7 +517,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Configure machine learning parameters for custody anomaly detection',
+                    'ML.js-based anomaly detection for unusual custody patterns and firearm events',
                     style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
                   ),
                 ],
@@ -635,10 +634,65 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   }
 
   Widget _buildAuditLogs() {
-    return const Center(
-      child: Text(
-        'Audit Logs interface coming soon',
-        style: TextStyle(color: Color(0xFF78909C), fontSize: 16),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Audit Trail',
+            style: TextStyle(
+                color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Verifiable log of all system activities for accountability and compliance',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+          ),
+          const SizedBox(height: 24),
+          _buildSettingsCard(
+            'Audit Log Configuration',
+            Column(
+              children: [
+                _buildToggleField(
+                  'Log All Firearm Access',
+                  true,
+                  (v) {},
+                  'Record every view, edit, and access to firearm records',
+                ),
+                const SizedBox(height: 16),
+                _buildToggleField(
+                  'Log Custody Changes',
+                  true,
+                  (v) {},
+                  'Track all issuance, transfer, and return events',
+                ),
+                const SizedBox(height: 16),
+                _buildToggleField(
+                  'Log Approval Workflows',
+                  true,
+                  (v) {},
+                  'Record loss reports, destruction, and procurement approvals',
+                ),
+                const SizedBox(height: 16),
+                _buildToggleField(
+                  'Log User Authentication',
+                  true,
+                  (v) {},
+                  'Record logins, logouts, and failed authentication attempts',
+                ),
+                const SizedBox(height: 16),
+                _buildNumberField(
+                  'Audit Log Retention Period',
+                  365,
+                  (v) {},
+                  unit: 'days',
+                  helperText: 'Logs older than this period will be archived',
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -653,7 +707,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'System Health Dashboard',
+                'System Health',
                 style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,

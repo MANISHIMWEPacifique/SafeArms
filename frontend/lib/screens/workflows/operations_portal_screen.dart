@@ -429,7 +429,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  report['loss_id']?.toString().substring(0, 8) ?? 'LOSS-XXXX',
+                  report['loss_id']?.toString() ?? 'LOSS-XXXX',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,

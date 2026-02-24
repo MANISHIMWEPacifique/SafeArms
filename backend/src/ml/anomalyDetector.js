@@ -5,6 +5,9 @@ const { detectStatisticalOutliers } = require('./statistical');
 const { calculateEnsembleScore } = require('./scorer');
 const { sendAnomalyAlert } = require('../services/email.service');
 const logger = require('../utils/logger');
+const { parseDecimalFields } = require('../utils/helpers');
+
+const ANOMALY_DECIMAL_FIELDS = ['anomaly_score', 'confidence_level'];
 
 /**
  * Main Anomaly Detector - EVENT-BASED Detection System
@@ -335,7 +338,7 @@ const getUnitAnomalies = async (unitId, filters = {}) => {
       LIMIT ${limitParam} OFFSET ${offsetParam}
     `, params);
 
-        return result.rows;
+        return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
     } catch (error) {
         logger.error('Get unit anomalies error:', error);
         throw error;
@@ -401,7 +404,7 @@ const getAllAnomalies = async (filters = {}) => {
       LIMIT ${limitParam} OFFSET ${offsetParam}
     `, params);
 
-        return result.rows;
+        return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
     } catch (error) {
         logger.error('Get all anomalies error:', error);
         throw error;

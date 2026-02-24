@@ -6,6 +6,7 @@ const { requireHQCommander } = require('../middleware/authorization');
 const { logApproval } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
+const { parseDecimalFields } = require('../utils/helpers');
 
 // ===== STATISTICS =====
 router.get('/stats', authenticate, requireHQCommander, asyncHandler(async (req, res) => {

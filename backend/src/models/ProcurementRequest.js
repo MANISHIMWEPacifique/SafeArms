@@ -1,4 +1,7 @@
 const { query } = require('../config/database');
+const { parseDecimalFields } = require('../utils/helpers');
+
+const PROCUREMENT_DECIMAL_FIELDS = ['estimated_cost'];
 
 const ProcurementRequest = {
     async findById(procurementId) {
@@ -13,7 +16,7 @@ const ProcurementRequest = {
       LEFT JOIN users reviewer ON pr.reviewed_by = reviewer.user_id
       WHERE pr.procurement_id = $1
     `, [procurementId]);
-        return result.rows[0];
+        return parseDecimalFields(result.rows[0], PROCUREMENT_DECIMAL_FIELDS);
     },
 
     async findAll(filters = {}) {
@@ -62,7 +65,7 @@ const ProcurementRequest = {
         pr.created_at DESC
       LIMIT $${pCount - 1} OFFSET $${pCount}
     `, params);
-        return result.rows;
+        return parseDecimalFields(result.rows, PROCUREMENT_DECIMAL_FIELDS);
     },
 
     async create(requestData) {
@@ -76,7 +79,7 @@ const ProcurementRequest = {
       RETURNING *
     `, [unit_id, requested_by, firearm_type, quantity, justification, priority || 'routine', estimated_cost, preferred_supplier]);
 
-        return result.rows[0];
+        return parseDecimalFields(result.rows[0], PROCUREMENT_DECIMAL_FIELDS);
     },
 
     async update(procurementId, updates) {
@@ -101,7 +104,7 @@ const ProcurementRequest = {
             `UPDATE procurement_requests SET ${fields.join(', ')} WHERE procurement_id = $${pCount} RETURNING *`,
             values
         );
-        return result.rows[0];
+        return parseDecimalFields(result.rows[0], PROCUREMENT_DECIMAL_FIELDS);
     }
 };
 

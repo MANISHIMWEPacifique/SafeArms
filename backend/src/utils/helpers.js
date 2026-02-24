@@ -170,6 +170,29 @@ const calculateCustodyDuration = (issuedAt, returnedAt = new Date()) => {
     return Math.round(durationHours * 10) / 10; // Round to 1 decimal
 };
 
+/**
+ * Convert PostgreSQL DECIMAL string values to JavaScript numbers.
+ * pg driver returns DECIMAL/NUMERIC columns as strings (e.g. "0.950").
+ * This converts specified fields to proper floats in a row or array of rows.
+ * @param {Object|Array} rows - Single row or array of rows
+ * @param {string[]} fields - Column names to convert
+ * @returns {Object|Array}
+ */
+const parseDecimalFields = (rows, fields) => {
+    const convert = (row) => {
+        if (!row) return row;
+        const converted = { ...row };
+        for (const field of fields) {
+            if (converted[field] !== undefined && converted[field] !== null) {
+                converted[field] = parseFloat(converted[field]);
+            }
+        }
+        return converted;
+    };
+    if (Array.isArray(rows)) return rows.map(convert);
+    return convert(rows);
+};
+
 module.exports = {
     formatDate,
     formatDateTime,
@@ -183,5 +206,6 @@ module.exports = {
     sleep,
     isBusinessHours,
     formatNumber,
-    calculateCustodyDuration
+    calculateCustodyDuration,
+    parseDecimalFields
 };

@@ -305,7 +305,7 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
                 training_date: model.training_date,
                 training_samples: model.training_samples,
                 num_clusters: model.num_clusters,
-                silhouette_score: model.silhouette_score
+                silhouette_score: parseFloat(model.silhouette_score) || 0
             } : null,
             available_training_samples: availableSamples,
             minimum_required_samples: 100,

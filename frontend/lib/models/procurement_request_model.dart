@@ -34,18 +34,26 @@ class ProcurementRequestModel {
     this.createdAt,
   });
 
+  /// Safely parse a numeric value that may come as String from PostgreSQL DECIMAL columns
+  static double? _parseDoubleNullable(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
   factory ProcurementRequestModel.fromJson(Map<String, dynamic> json) {
     return ProcurementRequestModel(
       procurementId: json['procurement_id'] ?? '',
       unitId: json['unit_id'] ?? '',
       requestedBy: json['requested_by'] ?? '',
       firearmType: json['firearm_type'] ?? '',
-      quantity: json['quantity'] ?? 0,
+      quantity: json['quantity'] is String
+          ? (int.tryParse(json['quantity']) ?? 0)
+          : (json['quantity'] ?? 0),
       justification: json['justification'] ?? '',
       priority: json['priority'] ?? 'routine',
-      estimatedCost: json['estimated_cost'] != null
-          ? (json['estimated_cost'] as num).toDouble()
-          : null,
+      estimatedCost: _parseDoubleNullable(json['estimated_cost']),
       preferredSupplier: json['preferred_supplier'],
       status: json['status'] ?? 'pending',
       reviewedBy: json['reviewed_by'],

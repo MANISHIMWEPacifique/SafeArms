@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/approval_provider.dart';
+import '../../providers/dashboard_provider.dart';
 import '../../services/report_service.dart';
 import '../../services/firearm_service.dart';
 
@@ -401,7 +403,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Loss Report #${report['loss_id']?.toString().substring(0, 8) ?? 'N/A'}',
+                  'Loss Report #${report['loss_id']?.toString() ?? 'N/A'}',
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
@@ -507,7 +509,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Destruction Request #${request['destruction_id']?.toString().substring(0, 8) ?? 'N/A'}',
+                  'Destruction Request #${request['destruction_id']?.toString() ?? 'N/A'}',
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
@@ -613,7 +615,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Procurement Request #${request['procurement_id']?.toString().substring(0, 8) ?? 'N/A'}',
+                  'Procurement Request #${request['procurement_id']?.toString() ?? 'N/A'}',
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
@@ -1201,6 +1203,10 @@ class _ReportsScreenState extends State<ReportsScreen>
           ),
         );
         _loadData();
+        // Refresh approval badge counts and dashboard stats so navigation
+        // back to the dashboard overview reflects the updated state
+        context.read<ApprovalProvider>().loadPendingApprovals();
+        context.read<DashboardProvider>().loadDashboardStats();
       }
     } catch (e) {
       if (mounted) {

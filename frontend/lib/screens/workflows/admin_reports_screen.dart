@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import '../../config/api_config.dart';
 import '../../services/auth_service.dart';
 
-/// System Admin – Audit & Compliance Reports Screen
-/// Report types: User Activity, System Audit Log, Anomaly System Summary
+/// System Admin – Audit, Compliance & System Oversight Reports
+/// Report types: User Activity Audit, System Audit Log, Anomaly Detection Summary
 class AdminReportsScreen extends StatefulWidget {
   const AdminReportsScreen({super.key});
 
@@ -20,8 +20,8 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   // Filter state
   DateTime? _dateFrom;
   DateTime? _dateTo;
-  String? _selectedUserId;
-  String? _selectedRole;
+  final TextEditingController _usernameController = TextEditingController();
+  String _selectedRole = '';
   String _selectedReportType = 'user_activity';
 
   // Data state
@@ -32,9 +32,9 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   List<Map<String, dynamic>> _users = [];
 
   final List<Map<String, String>> _reportTypes = [
-    {'value': 'user_activity', 'label': 'User Activity Report'},
-    {'value': 'audit_log', 'label': 'System Audit Log Report'},
-    {'value': 'anomaly_summary', 'label': 'Anomaly System Summary Report'},
+    {'value': 'user_activity', 'label': 'User Activity Audit'},
+    {'value': 'audit_log', 'label': 'System Audit Trail'},
+    {'value': 'anomaly_summary', 'label': 'Anomaly Detection Summary'},
   ];
 
   final List<Map<String, String>> _roles = [
@@ -49,6 +49,12 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   void initState() {
     super.initState();
     _loadUsers();
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    super.dispose();
   }
 
   Future<Map<String, String>> _getHeaders() async {
@@ -92,11 +98,20 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       if (_dateTo != null) {
         queryParams['end_date'] = _dateTo!.toIso8601String();
       }
-      if (_selectedUserId != null && _selectedUserId!.isNotEmpty) {
-        queryParams['user_id'] = _selectedUserId!;
+      if (_usernameController.text.trim().isNotEmpty) {
+        // Find user by name
+        final matchedUser = _users.firstWhere(
+          (u) => (u['full_name']?.toString() ?? '').toLowerCase().contains(
+                _usernameController.text.trim().toLowerCase(),
+              ),
+          orElse: () => {},
+        );
+        if (matchedUser.isNotEmpty) {
+          queryParams['user_id'] = matchedUser['user_id'].toString();
+        }
       }
-      if (_selectedRole != null && _selectedRole!.isNotEmpty) {
-        queryParams['role'] = _selectedRole!;
+      if (_selectedRole.isNotEmpty) {
+        queryParams['role'] = _selectedRole;
       }
 
       final uri = Uri.parse('${ApiConfig.reportsUrl}/generate')
@@ -134,7 +149,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         children: [
           // Title
           const Text(
-            'System Audit & Compliance Reports',
+            'System Oversight Reports',
             style: TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -143,7 +158,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Generate audit trail and compliance reports for system oversight',
+            'Generate audit trail, user activity, and anomaly detection reports for system accountability',
             style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
           ),
           const SizedBox(height: 24),
@@ -194,126 +209,282 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
 
   Widget _buildFilterSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF37404F)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Date From
-          Expanded(
-            child: _buildDatePicker('From', _dateFrom, (date) {
-              setState(() => _dateFrom = date);
-            }),
+          const Text(
+            'Report Parameters',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const SizedBox(width: 12),
-          // Date To
-          Expanded(
-            child: _buildDatePicker('To', _dateTo, (date) {
-              setState(() => _dateTo = date);
-            }),
+          const SizedBox(height: 6),
+          const Text(
+            'Fill in the fields below and click Generate to create your report',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
           ),
-          const SizedBox(width: 12),
-          // User Filter
-          Expanded(
-            child: _buildDropdown(
-              label: 'User',
-              value: _selectedUserId,
-              items: [
-                const DropdownMenuItem(value: '', child: Text('All Users')),
-                ..._users.map((u) => DropdownMenuItem(
-                      value: u['user_id']?.toString() ?? '',
-                      child: Text(
-                        u['full_name']?.toString() ??
-                            u['username']?.toString() ??
-                            '',
-                        overflow: TextOverflow.ellipsis,
+          const SizedBox(height: 20),
+
+          // Report Type Selection
+          const Text('Select Report Type',
+              style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: _reportTypes.map((rt) {
+              final isSelected = _selectedReportType == rt['value'];
+              return InkWell(
+                onTap: () => setState(() => _selectedReportType = rt['value']!),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFF1E88E5).withValues(alpha: 0.15)
+                        : const Color(0xFF1A1F2E),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF1E88E5)
+                          : const Color(0xFF37404F),
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isSelected
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
+                        color: isSelected
+                            ? const Color(0xFF1E88E5)
+                            : const Color(0xFF78909C),
+                        size: 18,
                       ),
-                    )),
-              ],
-              onChanged: (v) => setState(() => _selectedUserId = v),
-            ),
+                      const SizedBox(width: 8),
+                      Text(
+                        rt['label']!,
+                        style: TextStyle(
+                          color: isSelected
+                              ? const Color(0xFF1E88E5)
+                              : const Color(0xFFB0BEC5),
+                          fontSize: 14,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
           ),
-          const SizedBox(width: 12),
-          // Role Filter
-          Expanded(
-            child: _buildDropdown(
-              label: 'Role',
-              value: _selectedRole,
-              items: _roles
-                  .map((r) => DropdownMenuItem(
-                        value: r['value'],
-                        child: Text(r['label']!),
-                      ))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedRole = v),
-            ),
+          const SizedBox(height: 20),
+
+          // Date Range Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildFormDateField('Start Date', _dateFrom, (date) {
+                  setState(() => _dateFrom = date);
+                }),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildFormDateField('End Date', _dateTo, (date) {
+                  setState(() => _dateTo = date);
+                }),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          // Report Type
-          Expanded(
-            child: _buildDropdown(
-              label: 'Report Type',
-              value: _selectedReportType,
-              items: _reportTypes
-                  .map((rt) => DropdownMenuItem(
-                        value: rt['value'],
-                        child:
-                            Text(rt['label']!, overflow: TextOverflow.ellipsis),
-                      ))
-                  .toList(),
-              onChanged: (v) =>
-                  setState(() => _selectedReportType = v ?? 'user_activity'),
-            ),
+          const SizedBox(height: 16),
+
+          // Username and Role Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildFormTextField(
+                  'Username (optional)',
+                  _usernameController,
+                  'Type username to filter',
+                  Icons.person_outline,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Role (optional)',
+                        style:
+                            TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: _roles.map((r) {
+                        final isSelected = _selectedRole == r['value'];
+                        return InkWell(
+                          onTap: () =>
+                              setState(() => _selectedRole = r['value']!),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFF1E88E5)
+                                      .withValues(alpha: 0.15)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFF1E88E5)
+                                    : const Color(0xFF37404F),
+                              ),
+                            ),
+                            child: Text(
+                              r['label']!,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? const Color(0xFF1E88E5)
+                                    : const Color(0xFFB0BEC5),
+                                fontSize: 12,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          // Generate
-          ElevatedButton.icon(
-            onPressed: _isLoading ? null : _generateReport,
-            icon: const Icon(Icons.play_arrow, size: 18),
-            label: const Text('Generate Report'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Export PDF
-          OutlinedButton.icon(
-            onPressed: _reportGenerated ? () {} : null,
-            icon: const Icon(Icons.picture_as_pdf, size: 18),
-            label: const Text('Export PDF'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _reportGenerated
-                  ? const Color(0xFFB0BEC5)
-                  : const Color(0xFF546E7A),
-              side: BorderSide(
-                  color: _reportGenerated
-                      ? const Color(0xFF37404F)
-                      : const Color(0xFF37404F).withValues(alpha: 0.5)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
+          const SizedBox(height: 24),
+
+          // Action Buttons
+          Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _generateReport,
+                icon: const Icon(Icons.play_arrow, size: 18),
+                label: const Text('Generate Report'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E88E5),
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: _reportGenerated ? () {} : null,
+                icon: const Icon(Icons.picture_as_pdf, size: 18),
+                label: const Text('Export PDF'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _reportGenerated
+                      ? const Color(0xFFB0BEC5)
+                      : const Color(0xFF546E7A),
+                  side: BorderSide(
+                      color: _reportGenerated
+                          ? const Color(0xFF37404F)
+                          : const Color(0xFF37404F).withValues(alpha: 0.5)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const Spacer(),
+              if (_usernameController.text.isNotEmpty ||
+                  _selectedRole.isNotEmpty ||
+                  _dateFrom != null ||
+                  _dateTo != null)
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _usernameController.clear();
+                      _selectedRole = '';
+                      _dateFrom = null;
+                      _dateTo = null;
+                    });
+                  },
+                  icon: const Icon(Icons.clear, size: 16),
+                  label: const Text('Clear All'),
+                  style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF78909C)),
+                ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDatePicker(
-      String label, DateTime? value, ValueChanged<DateTime?> onChanged) {
+  Widget _buildFormTextField(
+    String label,
+    TextEditingController controller,
+    String hint,
+    IconData icon,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
-        const SizedBox(height: 6),
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1F2E),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF37404F)),
+          ),
+          child: TextField(
+            controller: controller,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle:
+                  const TextStyle(color: Color(0xFF78909C), fontSize: 13),
+              prefixIcon: Icon(icon, color: const Color(0xFF78909C), size: 18),
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormDateField(
+    String label,
+    DateTime? value,
+    ValueChanged<DateTime?> onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        const SizedBox(height: 8),
         InkWell(
           onTap: () async {
             final date = await showDatePicker(
@@ -331,8 +502,10 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
             );
             if (date != null) onChanged(date);
           },
+          borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFF1A1F2E),
               borderRadius: BorderRadius.circular(8),
@@ -340,58 +513,25 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
             ),
             child: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    value != null
-                        ? DateFormat('MMM d, yyyy').format(value)
-                        : 'Select date',
-                    style: TextStyle(
-                      color: value != null
-                          ? Colors.white
-                          : const Color(0xFF78909C),
-                      fontSize: 13,
-                    ),
+                Icon(
+                  Icons.calendar_today,
+                  color: value != null
+                      ? const Color(0xFF1E88E5)
+                      : const Color(0xFF78909C),
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  value != null
+                      ? DateFormat('MMM d, yyyy').format(value)
+                      : 'Select date',
+                  style: TextStyle(
+                    color:
+                        value != null ? Colors.white : const Color(0xFF78909C),
+                    fontSize: 14,
                   ),
                 ),
-                const Icon(Icons.calendar_today,
-                    color: Color(0xFF78909C), size: 16),
               ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String? value,
-    required List<DropdownMenuItem<String>> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1F2E),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF37404F)),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              items: items,
-              onChanged: onChanged,
-              isExpanded: true,
-              dropdownColor: const Color(0xFF252A3A),
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              icon: const Icon(Icons.expand_more,
-                  color: Color(0xFF78909C), size: 18),
             ),
           ),
         ),

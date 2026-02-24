@@ -586,24 +586,24 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
                         _buildDetailSection(
                             'Ballistic Characteristics', Icons.track_changes, [
                           _buildDetailField(
-                              'Rifling Characteristics',
-                              profile['rifling_characteristics'] ??
-                                  'Not recorded',
-                              icon: Icons.track_changes),
-                          _buildDetailField(
-                              'Firing Pin Impression',
+                              'Firing Pin',
                               profile['firing_pin_impression'] ??
                                   'Not recorded',
                               icon: Icons.radio_button_checked),
-                          _buildDetailField('Ejector Marks',
+                          _buildDetailField(
+                              'Rifling',
+                              profile['rifling_characteristics'] ??
+                                  'Not recorded',
+                              icon: Icons.track_changes),
+                          _buildDetailField('Chamber / Feed',
+                              profile['chamber_marks'] ?? 'Not recorded',
+                              icon: Icons.precision_manufacturing),
+                          _buildDetailField('Breech Face — Ejector Marks',
                               profile['ejector_marks'] ?? 'Not recorded',
                               icon: Icons.arrow_forward),
-                          _buildDetailField('Extractor Marks',
+                          _buildDetailField('Breech Face — Extractor Marks',
                               profile['extractor_marks'] ?? 'Not recorded',
                               icon: Icons.arrow_back),
-                          _buildDetailField('Chamber Marks',
-                              profile['chamber_marks'] ?? 'Not recorded',
-                              icon: Icons.circle),
                         ]),
                         const SizedBox(height: 20),
                         _buildDetailSection('Test Information', Icons.science, [

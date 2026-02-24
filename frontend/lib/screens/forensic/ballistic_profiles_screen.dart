@@ -588,37 +588,117 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
   }
 
   Widget _buildBallisticCharTab(Map<String, dynamic> profile) {
+    // Combine ejector + extractor marks into Breech Face (same as forensic search)
+    final breechFace = _combineBreechFace(
+      profile['ejector_marks']?.toString(),
+      profile['extractor_marks']?.toString(),
+    );
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      child: Wrap(
-        spacing: 16,
-        runSpacing: 16,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCharCard('Barrel Rifling Pattern',
-              profile['rifling_characteristics'], Icons.sync),
-          _buildCharCard('Firing Pin Impression',
-              profile['firing_pin_impression'], Icons.circle),
-          _buildCharCard('Breech Face Marking', profile['breech_face_marking'],
-              Icons.grid_3x3),
-          _buildCharCard('Ejector Mark Pattern',
-              profile['ejector_mark_pattern'], Icons.arrow_forward),
-          _buildCharCard('Extractor Mark Pattern',
-              profile['extractor_mark_pattern'], Icons.arrow_back),
-          _buildCharCard('Cartridge Case Profile',
-              profile['cartridge_case_profile'], Icons.filter_1),
-          _buildCharCard(
-              'Land & Groove Count',
-              profile['land_groove_count']?.toString(),
-              Icons.format_list_numbered),
-          _buildCharCard('Twist Direction', profile['twist_direction'],
-              Icons.rotate_right),
-          _buildCharCard('Twist Rate', profile['twist_rate'], Icons.speed),
+          // Section header matching forensic search
+          Row(
+            children: [
+              const Text(
+                'BALLISTIC FILTERS',
+                style: TextStyle(
+                  color: Color(0xFFCFD8DC),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(height: 1, color: const Color(0xFF2E3546)),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Same fields as Investigation Search',
+                style: TextStyle(
+                  color: Color(0xFF78909C),
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Row 1: Firing Pin, Caliber (from firearm)
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              _buildCharCard('Firing Pin', profile['firing_pin_impression'],
+                  Icons.radio_button_checked,
+                  color: const Color(0xFFFFC857)),
+              _buildCharCard('Caliber', profile['caliber'], Icons.straighten,
+                  color: const Color(0xFF42A5F5)),
+              _buildCharCard('Rifling', profile['rifling_characteristics'],
+                  Icons.rotate_right,
+                  color: const Color(0xFF3CCB7F)),
+              _buildCharCard('Chamber / Feed', profile['chamber_marks'],
+                  Icons.precision_manufacturing,
+                  color: const Color(0xFFCE93D8)),
+              _buildCharCard('Breech Face', breechFace, Icons.blur_circular,
+                  color: const Color(0xFFE85C5C)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          // Raw details section
+          Row(
+            children: [
+              const Text(
+                'RAW DETAIL FIELDS',
+                style: TextStyle(
+                  color: Color(0xFFCFD8DC),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(height: 1, color: const Color(0xFF2E3546)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              _buildCharCard('Ejector Marks', profile['ejector_marks'],
+                  Icons.arrow_forward),
+              _buildCharCard('Extractor Marks', profile['extractor_marks'],
+                  Icons.arrow_back),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCharCard(String label, dynamic value, IconData icon) {
+  String? _combineBreechFace(String? ejectorMarks, String? extractorMarks) {
+    final parts = <String>[];
+    if (ejectorMarks != null &&
+        ejectorMarks.isNotEmpty &&
+        ejectorMarks != 'null') {
+      parts.add(ejectorMarks);
+    }
+    if (extractorMarks != null &&
+        extractorMarks.isNotEmpty &&
+        extractorMarks != 'null') {
+      parts.add(extractorMarks);
+    }
+    return parts.isNotEmpty ? parts.join(' / ') : null;
+  }
+
+  Widget _buildCharCard(String label, dynamic value, IconData icon,
+      {Color color = const Color(0xFF42A5F5)}) {
     return Container(
       width: 280,
       padding: const EdgeInsets.all(16),
@@ -635,10 +715,10 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+                  color: color.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: const Color(0xFF42A5F5), size: 20),
+                child: Icon(icon, color: color, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(

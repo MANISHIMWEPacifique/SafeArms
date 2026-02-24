@@ -45,10 +45,14 @@ async function runSeedData() {
       'firearms',
       'ballistic_profiles',
       'custody_records',
+      'firearm_unit_movements',
+      'ballistic_access_logs',
       'loss_reports',
       'destruction_requests',
       'procurement_requests',
-      'anomalies'
+      'anomalies',
+      'anomaly_investigations',
+      'audit_logs'
     ];
 
     for (const table of tables) {
@@ -64,6 +68,7 @@ async function runSeedData() {
     console.log('   Kimironko:       station_kimironko / Admin@123');
     console.log('   Remera:          station_remera / Admin@123');
     console.log('   Kicukiro:        station_kicukiro / Admin@123');
+    console.log('   PTS Gishari:     station_pts / Admin@123');
     console.log('   Investigator:    investigator / Admin@123');
 
   } catch (error) {

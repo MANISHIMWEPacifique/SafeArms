@@ -1,4 +1,7 @@
 const { query } = require('../config/database');
+const { parseDecimalFields } = require('../utils/helpers');
+
+const ANOMALY_DECIMAL_FIELDS = ['anomaly_score', 'confidence_level', 'avg_score'];
 
 /**
  * Anomaly Model - EVENT-BASED Anomaly Records
@@ -32,7 +35,7 @@ const Anomaly = {
       JOIN units u ON a.unit_id = u.unit_id
       WHERE a.anomaly_id = $1
     `, [anomalyId]);
-        return result.rows[0];
+        return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
     },
 
     async findAll(filters = {}) {
@@ -96,7 +99,7 @@ const Anomaly = {
         a.detected_at DESC
       LIMIT $${pCount - 1} OFFSET $${pCount}
     `, params);
-        return result.rows;
+        return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
     },
 
     async update(anomalyId, updates) {
@@ -122,7 +125,7 @@ const Anomaly = {
        WHERE anomaly_id = $${pCount} RETURNING *`,
             values
         );
-        return result.rows[0];
+        return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
     },
 
     async getStatsByUnit(unitId) {
@@ -157,7 +160,7 @@ const Anomaly = {
       ORDER BY a.detected_at DESC
       LIMIT $2 OFFSET $3
     `, [anomalyType, limit, offset]);
-        return result.rows;
+        return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
     },
 
     /**
@@ -194,7 +197,7 @@ const Anomaly = {
       ORDER BY a.detected_at DESC
       LIMIT $${pCount - 1} OFFSET $${pCount}
     `, params);
-        return result.rows;
+        return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
     },
 
     /**
@@ -233,7 +236,7 @@ const Anomaly = {
       ORDER BY (a.ballistic_access_context->>'timing_score')::numeric DESC, a.detected_at DESC
       LIMIT $${pCount - 1} OFFSET $${pCount}
     `, params);
-        return result.rows;
+        return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
     },
 
     /**
@@ -263,7 +266,7 @@ const Anomaly = {
       GROUP BY a.anomaly_type
       ORDER BY count DESC
     `, params);
-        return result.rows;
+        return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
     }
 };
 

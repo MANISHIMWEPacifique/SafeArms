@@ -457,9 +457,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          req['destruction_id']
-                                                  ?.toString()
-                                                  .substring(0, 8) ??
+                                          req['destruction_id']?.toString() ??
                                               'DEST-XXXX',
                                           style: const TextStyle(
                                             color: Colors.white,
@@ -562,9 +560,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          req['procurement_id']
-                                                  ?.toString()
-                                                  .substring(0, 8) ??
+                                          req['procurement_id']?.toString() ??
                                               'PROC-XXXX',
                                           style: const TextStyle(
                                             color: Colors.white,
@@ -693,8 +689,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      report['loss_id']?.toString().substring(0, 8) ??
-                          'LOSS-XXXX',
+                      report['loss_id']?.toString() ?? 'LOSS-XXXX',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -800,7 +795,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                request['loss_id']?.toString().substring(0, 8) ?? 'LOSS-XXXX',
+                request['loss_id']?.toString() ?? 'LOSS-XXXX',
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,

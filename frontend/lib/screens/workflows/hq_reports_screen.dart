@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import '../../config/api_config.dart';
 import '../../services/auth_service.dart';
 
-/// HQ Firearm Commander – National Reports Screen
-/// Report types: Firearm History, Custody Timeline, Ballistic Reference Summary, Anomaly Summary
+/// HQ Firearm Commander – National Firearm Oversight Reports
+/// Report types: Firearm Registration & History, Custody Chain, Ballistic Traceability, Anomaly Oversight
 class HqReportsScreen extends StatefulWidget {
   const HqReportsScreen({super.key});
 
@@ -20,7 +20,7 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
   // Filter state
   DateTime? _dateFrom;
   DateTime? _dateTo;
-  String? _selectedUnitId;
+  final TextEditingController _unitNameController = TextEditingController();
   String _selectedReportType = 'firearm_history';
 
   // Data state
@@ -31,19 +31,22 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
   List<Map<String, dynamic>> _units = [];
 
   final List<Map<String, String>> _reportTypes = [
-    {'value': 'firearm_history', 'label': 'Firearm History Report'},
-    {'value': 'custody_timeline', 'label': 'Custody Timeline Report'},
-    {
-      'value': 'ballistic_summary',
-      'label': 'Ballistic Reference Summary Report'
-    },
-    {'value': 'anomaly_summary', 'label': 'Anomaly Summary Report'},
+    {'value': 'firearm_history', 'label': 'Firearm Registration & History'},
+    {'value': 'custody_timeline', 'label': 'Custody Chain Report'},
+    {'value': 'ballistic_summary', 'label': 'Ballistic Traceability Report'},
+    {'value': 'anomaly_summary', 'label': 'Anomaly Oversight Report'},
   ];
 
   @override
   void initState() {
     super.initState();
     _loadUnits();
+  }
+
+  @override
+  void dispose() {
+    _unitNameController.dispose();
+    super.dispose();
   }
 
   Future<Map<String, String>> _getHeaders() async {
@@ -87,8 +90,17 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
       if (_dateTo != null) {
         queryParams['end_date'] = _dateTo!.toIso8601String();
       }
-      if (_selectedUnitId != null && _selectedUnitId!.isNotEmpty) {
-        queryParams['unit_id'] = _selectedUnitId!;
+      if (_unitNameController.text.trim().isNotEmpty) {
+        // Find unit by name
+        final matchedUnit = _units.firstWhere(
+          (u) => (u['unit_name']?.toString() ?? '').toLowerCase().contains(
+                _unitNameController.text.trim().toLowerCase(),
+              ),
+          orElse: () => {},
+        );
+        if (matchedUnit.isNotEmpty) {
+          queryParams['unit_id'] = matchedUnit['unit_id'].toString();
+        }
       }
 
       final uri = Uri.parse('${ApiConfig.reportsUrl}/generate')
@@ -126,7 +138,7 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
         children: [
           // Title
           const Text(
-            'National Reports – HQ Oversight',
+            'National Firearm Oversight Reports',
             style: TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -135,7 +147,7 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Generate structured reports for national firearms oversight',
+            'Generate firearm registration, custody chain, ballistic traceability, and anomaly reports across all units',
             style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
           ),
           const SizedBox(height: 24),
@@ -186,106 +198,222 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
 
   Widget _buildFilterSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF37404F)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Date From
-          Expanded(
-            child: _buildDatePicker('From', _dateFrom, (date) {
-              setState(() => _dateFrom = date);
-            }),
-          ),
-          const SizedBox(width: 12),
-          // Date To
-          Expanded(
-            child: _buildDatePicker('To', _dateTo, (date) {
-              setState(() => _dateTo = date);
-            }),
-          ),
-          const SizedBox(width: 12),
-          // Unit Filter
-          Expanded(
-            child: _buildDropdown(
-              label: 'Unit',
-              value: _selectedUnitId,
-              items: [
-                const DropdownMenuItem(value: '', child: Text('All Units')),
-                ..._units.map((u) => DropdownMenuItem(
-                      value: u['unit_id']?.toString() ?? '',
-                      child: Text(u['unit_name']?.toString() ?? ''),
-                    )),
-              ],
-              onChanged: (v) => setState(() => _selectedUnitId = v),
+          const Text(
+            'Report Parameters',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(width: 12),
-          // Report Type
-          Expanded(
-            child: _buildDropdown(
-              label: 'Report Type',
-              value: _selectedReportType,
-              items: _reportTypes
-                  .map((rt) => DropdownMenuItem(
-                        value: rt['value'],
-                        child:
-                            Text(rt['label']!, overflow: TextOverflow.ellipsis),
-                      ))
-                  .toList(),
-              onChanged: (v) =>
-                  setState(() => _selectedReportType = v ?? 'firearm_history'),
-            ),
+          const SizedBox(height: 6),
+          const Text(
+            'Select report type, fill in the fields and submit',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
           ),
-          const SizedBox(width: 16),
-          // Generate
-          ElevatedButton.icon(
-            onPressed: _isLoading ? null : _generateReport,
-            icon: const Icon(Icons.play_arrow, size: 18),
-            label: const Text('Generate Report'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
+          const SizedBox(height: 20),
+
+          // Report Type Selection
+          const Text('Select Report Type',
+              style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: _reportTypes.map((rt) {
+              final isSelected = _selectedReportType == rt['value'];
+              return InkWell(
+                onTap: () => setState(() => _selectedReportType = rt['value']!),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFF1E88E5).withValues(alpha: 0.15)
+                        : const Color(0xFF1A1F2E),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF1E88E5)
+                          : const Color(0xFF37404F),
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isSelected
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
+                        color: isSelected
+                            ? const Color(0xFF1E88E5)
+                            : const Color(0xFF78909C),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        rt['label']!,
+                        style: TextStyle(
+                          color: isSelected
+                              ? const Color(0xFF1E88E5)
+                              : const Color(0xFFB0BEC5),
+                          fontSize: 14,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
           ),
-          const SizedBox(width: 8),
-          // Export PDF
-          OutlinedButton.icon(
-            onPressed: _reportGenerated ? () {} : null,
-            icon: const Icon(Icons.picture_as_pdf, size: 18),
-            label: const Text('Export PDF'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _reportGenerated
-                  ? const Color(0xFFB0BEC5)
-                  : const Color(0xFF546E7A),
-              side: BorderSide(
-                  color: _reportGenerated
-                      ? const Color(0xFF37404F)
-                      : const Color(0xFF37404F).withValues(alpha: 0.5)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
+          const SizedBox(height: 20),
+
+          // Date Range + Unit Name Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildFormDateField('Start Date', _dateFrom, (date) {
+                  setState(() => _dateFrom = date);
+                }),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildFormDateField('End Date', _dateTo, (date) {
+                  setState(() => _dateTo = date);
+                }),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildFormTextField(
+                  'Unit Name (optional)',
+                  _unitNameController,
+                  'Type unit name to filter',
+                  Icons.business,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Action Buttons
+          Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _generateReport,
+                icon: const Icon(Icons.play_arrow, size: 18),
+                label: const Text('Generate Report'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E88E5),
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: _reportGenerated ? () {} : null,
+                icon: const Icon(Icons.picture_as_pdf, size: 18),
+                label: const Text('Export PDF'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _reportGenerated
+                      ? const Color(0xFFB0BEC5)
+                      : const Color(0xFF546E7A),
+                  side: BorderSide(
+                      color: _reportGenerated
+                          ? const Color(0xFF37404F)
+                          : const Color(0xFF37404F).withValues(alpha: 0.5)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const Spacer(),
+              if (_unitNameController.text.isNotEmpty ||
+                  _dateFrom != null ||
+                  _dateTo != null)
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _unitNameController.clear();
+                      _dateFrom = null;
+                      _dateTo = null;
+                    });
+                  },
+                  icon: const Icon(Icons.clear, size: 16),
+                  label: const Text('Clear All'),
+                  style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF78909C)),
+                ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDatePicker(
-      String label, DateTime? value, ValueChanged<DateTime?> onChanged) {
+  Widget _buildFormTextField(
+    String label,
+    TextEditingController controller,
+    String hint,
+    IconData icon,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
-        const SizedBox(height: 6),
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1F2E),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF37404F)),
+          ),
+          child: TextField(
+            controller: controller,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle:
+                  const TextStyle(color: Color(0xFF78909C), fontSize: 13),
+              prefixIcon: Icon(icon, color: const Color(0xFF78909C), size: 18),
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormDateField(
+    String label,
+    DateTime? value,
+    ValueChanged<DateTime?> onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        const SizedBox(height: 8),
         InkWell(
           onTap: () async {
             final date = await showDatePicker(
@@ -303,8 +431,10 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
             );
             if (date != null) onChanged(date);
           },
+          borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFF1A1F2E),
               borderRadius: BorderRadius.circular(8),
@@ -312,58 +442,25 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
             ),
             child: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    value != null
-                        ? DateFormat('MMM d, yyyy').format(value)
-                        : 'Select date',
-                    style: TextStyle(
-                      color: value != null
-                          ? Colors.white
-                          : const Color(0xFF78909C),
-                      fontSize: 13,
-                    ),
+                Icon(
+                  Icons.calendar_today,
+                  color: value != null
+                      ? const Color(0xFF1E88E5)
+                      : const Color(0xFF78909C),
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  value != null
+                      ? DateFormat('MMM d, yyyy').format(value)
+                      : 'Select date',
+                  style: TextStyle(
+                    color:
+                        value != null ? Colors.white : const Color(0xFF78909C),
+                    fontSize: 14,
                   ),
                 ),
-                const Icon(Icons.calendar_today,
-                    color: Color(0xFF78909C), size: 16),
               ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String? value,
-    required List<DropdownMenuItem<String>> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1F2E),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF37404F)),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              items: items,
-              onChanged: onChanged,
-              isExpanded: true,
-              dropdownColor: const Color(0xFF252A3A),
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              icon: const Icon(Icons.expand_more,
-                  color: Color(0xFF78909C), size: 18),
             ),
           ),
         ),
@@ -376,11 +473,8 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
         .firstWhere((r) => r['value'] == _selectedReportType)['label']!;
     final generatedAt =
         DateFormat('MMM d, yyyy – h:mm a').format(DateTime.now());
-    final unitName = _selectedUnitId != null && _selectedUnitId!.isNotEmpty
-        ? _units
-            .firstWhere((u) => u['unit_id']?.toString() == _selectedUnitId,
-                orElse: () => {'unit_name': 'Unknown'})['unit_name']
-            ?.toString()
+    final unitName = _unitNameController.text.trim().isNotEmpty
+        ? _unitNameController.text.trim()
         : 'All Units';
 
     return Container(
@@ -394,7 +488,7 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Report Header
-          _buildReportHeader(reportLabel, generatedAt, unitName ?? 'All Units'),
+          _buildReportHeader(reportLabel, generatedAt, unitName),
           const Divider(color: Color(0xFF37404F), height: 32),
 
           // Report body by type

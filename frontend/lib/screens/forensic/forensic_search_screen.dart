@@ -336,8 +336,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     const Text(
                       'BALLISTIC FILTERS',
                       style: TextStyle(
-                        color: Color(0xFF546E7A),
-                        fontSize: 10,
+                        color: Color(0xFFCFD8DC),
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.2,
                       ),
@@ -436,8 +436,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     const Text(
                       'INVESTIGATION CONTEXT',
                       style: TextStyle(
-                        color: Color(0xFF90A4AE),
-                        fontSize: 12,
+                        color: Color(0xFFCFD8DC),
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.2,
                       ),
@@ -499,8 +499,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFFB0BEC5),
-            fontSize: 13,
+            color: Color(0xFFCFD8DC),
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.3,
           ),
@@ -514,18 +514,18 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle:
-                  const TextStyle(color: Color(0xFF78909C), fontSize: 13),
+                  const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
               filled: true,
               fillColor: const Color(0xFF1A1F2E),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: Color(0xFF2E3546)),
+                borderSide: const BorderSide(color: Color(0xFF546E7A)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: Color(0xFF2E3546)),
+                borderSide: const BorderSide(color: Color(0xFF546E7A)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
@@ -550,8 +550,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFFB0BEC5),
-            fontSize: 13,
+            color: Color(0xFFCFD8DC),
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.3,
           ),

@@ -262,7 +262,13 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () => setState(() => _selectedIndex = index),
+                          onTap: () {
+                            setState(() => _selectedIndex = index);
+                            // Reload dashboard data when switching back to Dashboard tab
+                            if (index == 0) {
+                              _loadDashboardData();
+                            }
+                          },
                           borderRadius: BorderRadius.circular(6),
                           child: Container(
                             padding: const EdgeInsets.symmetric(

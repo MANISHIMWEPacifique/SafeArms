@@ -137,7 +137,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             .length;
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Row(
             children: [
               Expanded(
@@ -194,7 +194,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   Widget _buildStatCard(
       String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
         borderRadius: BorderRadius.circular(10),
@@ -202,14 +202,14 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 10),
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               label,
               style: const TextStyle(
                 color: Color(0xFFB0BEC5),
-                fontSize: 12,
+                fontSize: 14,
               ),
             ),
           ),
@@ -217,7 +217,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             value,
             style: TextStyle(
               color: color,
-              fontSize: 20,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -235,7 +235,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
           border: Border.all(color: const Color(0xFF37404F)),
           borderRadius: BorderRadius.circular(10),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Row(
           children: [
             Expanded(
@@ -280,10 +280,10 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Auto Refresh',
-                      style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 12)),
-                  const SizedBox(height: 4),
+                      style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
+                  const SizedBox(height: 2),
                   Container(
-                    height: 36,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: const Color(0xFF2A3040),
                       border: Border.all(color: const Color(0xFF37404F)),
@@ -371,8 +371,8 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12)),
-        const SizedBox(height: 4),
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
+        const SizedBox(height: 2),
         Container(
           decoration: BoxDecoration(
             color: const Color(0xFF2A3040),
@@ -386,8 +386,8 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
               icon: const Icon(Icons.keyboard_arrow_down,
                   color: Color(0xFF78909C)),
               dropdownColor: const Color(0xFF2A3040),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               items: items
                   .map((item) => DropdownMenuItem<String>(
                         value: item['value'],

@@ -16,10 +16,9 @@ class ForensicSearchScreen extends StatefulWidget {
 }
 
 class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
-  // Search controllers
+  // Search controllers — based on evidence characteristics found at crime scene
   final TextEditingController _generalSearchController =
       TextEditingController();
-  final TextEditingController _serialNumberController = TextEditingController();
   final TextEditingController _firingPinController = TextEditingController();
   final TextEditingController _caliberController = TextEditingController();
   final TextEditingController _riflingController = TextEditingController();
@@ -33,6 +32,12 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
   bool _isSearching = false;
   List<Map<String, dynamic>> _searchResults = [];
   String? _errorMessage;
+
+  // Pagination state
+  int _currentPage = 1;
+  int _totalResults = 0;
+  int _totalPages = 0;
+  static const int _resultsPerPage = 20;
 
   // Custody timeline state
   String? _selectedFirearmId;
@@ -48,7 +53,6 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
   @override
   void dispose() {
     _generalSearchController.dispose();
-    _serialNumberController.dispose();
     _firingPinController.dispose();
     _caliberController.dispose();
     _riflingController.dispose();
@@ -61,18 +65,17 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
 
   bool get _hasAnyFilter {
     return _generalSearchController.text.isNotEmpty ||
-        _serialNumberController.text.isNotEmpty ||
         _firingPinController.text.isNotEmpty ||
         _caliberController.text.isNotEmpty ||
         _riflingController.text.isNotEmpty ||
         _chamberFeedController.text.isNotEmpty ||
-        _breechFaceController.text.isNotEmpty;
+        _breechFaceController.text.isNotEmpty ||
+        _incidentDateController.text.isNotEmpty;
   }
 
   void _clearAllFilters() {
     setState(() {
       _generalSearchController.clear();
-      _serialNumberController.clear();
       _firingPinController.clear();
       _caliberController.clear();
       _riflingController.clear();
@@ -85,10 +88,15 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       _custodyTimeline = [];
       _custodySummary = null;
       _timelineError = null;
+      _currentPage = 1;
+      _totalResults = 0;
+      _totalPages = 0;
+      _incidentDateController.clear();
+      _caseNumberController.clear();
     });
   }
 
-  Future<void> _performSearch() async {
+  Future<void> _performSearch({int page = 1}) async {
     if (!_hasAnyFilter) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -114,7 +122,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         listen: false,
       );
 
-      final results = await provider.forensicSearch(
+      final response = await provider.forensicSearch(
         firingPin: _firingPinController.text.trim().isNotEmpty
             ? _firingPinController.text.trim()
             : null,
@@ -130,16 +138,22 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         breechFace: _breechFaceController.text.trim().isNotEmpty
             ? _breechFaceController.text.trim()
             : null,
-        serialNumber: _serialNumberController.text.trim().isNotEmpty
-            ? _serialNumberController.text.trim()
-            : null,
         generalSearch: _generalSearchController.text.trim().isNotEmpty
             ? _generalSearchController.text.trim()
             : null,
+        incidentDate: _incidentDateController.text.trim().isNotEmpty
+            ? _incidentDateController.text.trim()
+            : null,
+        page: page,
+        limit: _resultsPerPage,
       );
 
       setState(() {
-        _searchResults = results;
+        _searchResults =
+            List<Map<String, dynamic>>.from(response['data'] ?? []);
+        _totalResults = response['total'] ?? 0;
+        _currentPage = response['page'] ?? 1;
+        _totalPages = response['totalPages'] ?? 0;
         _isSearching = false;
       });
     } catch (e) {
@@ -229,7 +243,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
               ),
               SizedBox(height: 4),
               Text(
-                'Search ballistic profiles and trace custody chain for firearm investigations',
+                'Narrow down firearms by evidence characteristics found at crime scene and trace custody chain',
                 style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 15),
               ),
             ],
@@ -264,7 +278,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
                       hintText:
-                          'Search serial number, manufacturer, model, caliber...',
+                          'Search by manufacturer, model, caliber, or any characteristic...',
                       hintStyle: const TextStyle(
                           color: Color(0xFF78909C), fontSize: 14),
                       prefixIcon: const Icon(Icons.search,
@@ -334,7 +348,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                 Row(
                   children: [
                     const Text(
-                      'BALLISTIC FILTERS',
+                      'CRIME SCENE EVIDENCE FILTERS',
                       style: TextStyle(
                         color: Color(0xFFCFD8DC),
                         fontSize: 14,
@@ -368,64 +382,64 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     ],
                   ],
                 ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Enter ballistic characteristics observed from recovered evidence (bullets, casings, cartridges). '
+                  'Even 1-2 filters will narrow down potential matching firearms.',
+                  style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                ),
                 const SizedBox(height: 16),
 
-                // Row 1: Serial Number, Caliber, Firing Pin
+                // Row 1: Caliber, Firing Pin, Rifling
                 Row(
                   children: [
                     Expanded(
                       child: _buildField(
-                        controller: _serialNumberController,
-                        label: 'Serial Number',
-                        hint: 'e.g. FA-001, SN12345',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildField(
                         controller: _caliberController,
-                        label: 'Caliber',
-                        hint: 'e.g. 9x19mm, 7.62x39',
+                        label: 'Caliber / Ammunition',
+                        hint: 'e.g. 9x19mm, 5.56x45mm, 12 gauge',
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildField(
                         controller: _firingPinController,
-                        label: 'Firing Pin',
-                        hint: 'e.g. round, rectangular',
+                        label: 'Firing Pin Impression',
+                        hint: 'e.g. circular, oval, rectangular',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildField(
+                        controller: _riflingController,
+                        label: 'Rifling Characteristics',
+                        hint: 'e.g. 6 grooves, right-hand, 1:10',
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                // Row 2: Rifling, Chamber/Feed, Breech Face
+                // Row 2: Chamber/Feed, Breech Face (Ejector/Extractor)
                 Row(
                   children: [
                     Expanded(
                       child: _buildField(
-                        controller: _riflingController,
-                        label: 'Rifling',
-                        hint: 'e.g. 6 grooves right-hand',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildField(
                         controller: _chamberFeedController,
-                        label: 'Chamber / Feed',
-                        hint: 'e.g. detachable magazine',
+                        label: 'Chamber / Feed Marks',
+                        hint: 'e.g. detachable magazine, open-slide',
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildField(
                         controller: _breechFaceController,
-                        label: 'Breech Face',
-                        hint: 'e.g. smooth, parallel lines',
+                        label: 'Breech Face (Ejector / Extractor)',
+                        hint: 'e.g. rectangular, triangular, crescent',
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    const Expanded(child: SizedBox()),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -449,7 +463,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'Optional',
+                      'Search by date to find all firearms in custody',
                       style: TextStyle(
                         color: Color(0xFF78909C),
                         fontSize: 12,
@@ -741,7 +755,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                 color: const Color(0xFF546E7A).withValues(alpha: 0.5)),
             const SizedBox(height: 14),
             const Text(
-              'Enter search criteria to find matching firearms',
+              'Enter evidence characteristics from crime scene to narrow down matching firearms',
               style: TextStyle(
                 color: Color(0xFF78909C),
                 fontSize: 14,
@@ -749,7 +763,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Results will include custody chain for tracing holder at time of incident',
+              'Even 1-2 filters will return results — click any result to trace its custody chain',
               style: TextStyle(color: Color(0xFF455A64), fontSize: 12),
             ),
           ],
@@ -817,7 +831,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  '${_searchResults.length} result${_searchResults.length != 1 ? 's' : ''} found',
+                  '$_totalResults result${_totalResults != 1 ? 's' : ''} found${_totalPages > 1 ? '  \u2022  Page $_currentPage of $_totalPages' : ''}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -1027,7 +1041,185 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
               }).toList(),
             ),
           ),
+
+          // Pagination controls
+          if (_totalPages > 1) ...[
+            const Divider(color: Color(0xFF2E3546), height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Showing ${((_currentPage - 1) * _resultsPerPage) + 1}\u2013${_currentPage * _resultsPerPage > _totalResults ? _totalResults : _currentPage * _resultsPerPage} of $_totalResults',
+                    style: const TextStyle(
+                      color: Color(0xFF78909C),
+                      fontSize: 13,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      // First page
+                      _buildPageButton(
+                        icon: Icons.first_page,
+                        onPressed: _currentPage > 1
+                            ? () => _performSearch(page: 1)
+                            : null,
+                        tooltip: 'First page',
+                      ),
+                      const SizedBox(width: 4),
+                      // Previous page
+                      _buildPageButton(
+                        icon: Icons.chevron_left,
+                        onPressed: _currentPage > 1
+                            ? () => _performSearch(page: _currentPage - 1)
+                            : null,
+                        tooltip: 'Previous page',
+                      ),
+                      const SizedBox(width: 12),
+                      // Page numbers
+                      ..._buildPageNumbers(),
+                      const SizedBox(width: 12),
+                      // Next page
+                      _buildPageButton(
+                        icon: Icons.chevron_right,
+                        onPressed: _currentPage < _totalPages
+                            ? () => _performSearch(page: _currentPage + 1)
+                            : null,
+                        tooltip: 'Next page',
+                      ),
+                      const SizedBox(width: 4),
+                      // Last page
+                      _buildPageButton(
+                        icon: Icons.last_page,
+                        onPressed: _currentPage < _totalPages
+                            ? () => _performSearch(page: _totalPages)
+                            : null,
+                        tooltip: 'Last page',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildPageButton({
+    required IconData icon,
+    VoidCallback? onPressed,
+    required String tooltip,
+  }) {
+    final isEnabled = onPressed != null;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: isEnabled
+                ? const Color(0xFF1A1F2E)
+                : const Color(0xFF1A1F2E).withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isEnabled
+                  ? const Color(0xFF2E3546)
+                  : const Color(0xFF2E3546).withValues(alpha: 0.4),
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: isEnabled
+                ? const Color(0xFFB0BEC5)
+                : const Color(0xFF546E7A).withValues(alpha: 0.4),
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildPageNumbers() {
+    final List<Widget> pages = [];
+    final int startPage;
+    final int endPage;
+
+    if (_totalPages <= 5) {
+      startPage = 1;
+      endPage = _totalPages;
+    } else if (_currentPage <= 3) {
+      startPage = 1;
+      endPage = 5;
+    } else if (_currentPage >= _totalPages - 2) {
+      startPage = _totalPages - 4;
+      endPage = _totalPages;
+    } else {
+      startPage = _currentPage - 2;
+      endPage = _currentPage + 2;
+    }
+
+    if (startPage > 1) {
+      pages.add(_buildPageNumberButton(1));
+      if (startPage > 2) {
+        pages.add(const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Text('\u2026', style: TextStyle(color: Color(0xFF546E7A))),
+        ));
+      }
+    }
+
+    for (int i = startPage; i <= endPage; i++) {
+      pages.add(_buildPageNumberButton(i));
+    }
+
+    if (endPage < _totalPages) {
+      if (endPage < _totalPages - 1) {
+        pages.add(const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Text('\u2026', style: TextStyle(color: Color(0xFF546E7A))),
+        ));
+      }
+      pages.add(_buildPageNumberButton(_totalPages));
+    }
+
+    return pages;
+  }
+
+  Widget _buildPageNumberButton(int page) {
+    final isCurrent = page == _currentPage;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: InkWell(
+        onTap: isCurrent ? null : () => _performSearch(page: page),
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color:
+                isCurrent ? const Color(0xFF1E88E5) : const Color(0xFF1A1F2E),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color:
+                  isCurrent ? const Color(0xFF1E88E5) : const Color(0xFF2E3546),
+            ),
+          ),
+          child: Text(
+            '$page',
+            style: TextStyle(
+              color: isCurrent ? Colors.white : const Color(0xFFB0BEC5),
+              fontSize: 13,
+              fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
       ),
     );
   }

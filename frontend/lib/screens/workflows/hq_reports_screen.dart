@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../config/api_config.dart';
 import '../../services/auth_service.dart';
+import '../../utils/pdf_report_generator.dart';
 
 /// HQ Firearm Commander – National Firearm Oversight Reports
 /// Report types: Firearm Registration & History, Custody Chain, Ballistic Traceability, Anomaly Oversight
@@ -126,6 +127,36 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
       });
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _exportPdf() async {
+    try {
+      final reportLabel = _reportTypes
+          .firstWhere((r) => r['value'] == _selectedReportType)['label']!;
+      final metadata = <String, String>{};
+      if (_unitNameController.text.isNotEmpty) {
+        metadata['Unit'] = _unitNameController.text;
+      }
+      if (_dateFrom != null && _dateTo != null) {
+        metadata['Date Range'] =
+            '${DateFormat('MMM d, yyyy').format(_dateFrom!)} \u2013 ${DateFormat('MMM d, yyyy').format(_dateTo!)}';
+      }
+      await PdfReportGenerator.generate(
+        reportTitle: reportLabel,
+        reportType: _selectedReportType,
+        reportData: _reportData,
+        metadata: metadata,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export PDF: $e'),
+            backgroundColor: const Color(0xFFEF5350),
+          ),
+        );
+      }
     }
   }
 
@@ -326,7 +357,7 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
               ),
               const SizedBox(width: 12),
               OutlinedButton.icon(
-                onPressed: _reportGenerated ? () {} : null,
+                onPressed: _reportGenerated ? _exportPdf : null,
                 icon: const Icon(Icons.picture_as_pdf, size: 18),
                 label: const Text('Export PDF'),
                 style: OutlinedButton.styleFrom(
@@ -580,7 +611,8 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
                     f['serial_number']?.toString() ?? '',
                     f['firearm_type']?.toString() ?? '',
                     f['caliber']?.toString() ?? '',
-                    _fmtDate(f['registration_date']?.toString()),
+                    _fmtDate(f['acquisition_date']?.toString() ??
+                        f['created_at']?.toString()),
                     f['unit_name']?.toString() ?? 'Unassigned',
                   ])
               .toList(),
@@ -716,16 +748,16 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
           columns: const [
             'Serial Number',
             'Caliber',
-            'Barrel Length',
             'Rifling',
+            'Firing Pin',
             'Recorded'
           ],
           rows: profiles
               .map((p) => [
                     p['serial_number']?.toString() ?? '',
                     p['caliber']?.toString() ?? '',
-                    p['barrel_length']?.toString() ?? '',
-                    p['rifling_type']?.toString() ?? '',
+                    p['rifling_characteristics']?.toString() ?? '',
+                    p['firing_pin_impression']?.toString() ?? '',
                     _fmtDate(p['created_at']?.toString()),
                   ])
               .toList(),

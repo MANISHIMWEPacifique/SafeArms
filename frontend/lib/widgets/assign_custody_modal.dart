@@ -10,6 +10,7 @@ import '../services/firearm_service.dart';
 import '../services/officer_service.dart';
 import '../models/firearm_model.dart';
 import '../models/officer_model.dart';
+import 'searchable_dropdown.dart';
 
 class AssignCustodyModal extends StatefulWidget {
   final VoidCallback onClose;
@@ -317,36 +318,22 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
             ),
           )
         else
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A3040),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF37404F)),
-            ),
-            child: DropdownButtonFormField<String>(
-              initialValue: _selectedFirearmId,
-              decoration: const InputDecoration(
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: InputBorder.none,
-                hintText: 'Select a firearm...',
-                hintStyle: TextStyle(color: Color(0xFF78909C)),
-              ),
-              dropdownColor: const Color(0xFF2A3040),
-              style: const TextStyle(color: Colors.white),
-              items: _availableFirearms.map((firearm) {
-                return DropdownMenuItem<String>(
-                  value: firearm.firearmId,
-                  child: Text(
+          SearchableDropdown<String>(
+            items: _availableFirearms.map((firearm) {
+              return SearchableDropdownItem<String>(
+                value: firearm.firearmId,
+                label:
                     '${firearm.serialNumber} - ${firearm.manufacturer} ${firearm.model}',
-                    style: const TextStyle(color: Colors.white),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedFirearmId = value),
-              validator: (v) => v == null ? 'Please select a firearm' : null,
-            ),
+                subtitle:
+                    '${firearm.firearmType} • ${firearm.caliber ?? 'N/A'}',
+                icon: Icons.gps_fixed,
+              );
+            }).toList(),
+            value: _selectedFirearmId,
+            hintText: 'Search by serial number, manufacturer, model...',
+            prefixIcon: Icons.gps_fixed,
+            onChanged: (value) => setState(() => _selectedFirearmId = value),
+            validator: (v) => v == null ? 'Please select a firearm' : null,
           ),
       ],
     );
@@ -387,36 +374,20 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
             ),
           )
         else
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A3040),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF37404F)),
-            ),
-            child: DropdownButtonFormField<String>(
-              initialValue: _selectedOfficerId,
-              decoration: const InputDecoration(
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: InputBorder.none,
-                hintText: 'Select an officer...',
-                hintStyle: TextStyle(color: Color(0xFF78909C)),
-              ),
-              dropdownColor: const Color(0xFF2A3040),
-              style: const TextStyle(color: Colors.white),
-              items: _officers.map((officer) {
-                return DropdownMenuItem<String>(
-                  value: officer.officerId,
-                  child: Text(
-                    '${officer.fullName} (${officer.rank})',
-                    style: const TextStyle(color: Colors.white),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedOfficerId = value),
-              validator: (v) => v == null ? 'Please select an officer' : null,
-            ),
+          SearchableDropdown<String>(
+            items: _officers.map((officer) {
+              return SearchableDropdownItem<String>(
+                value: officer.officerId,
+                label: '${officer.fullName} (${officer.rank})',
+                subtitle: officer.officerNumber,
+                icon: Icons.person,
+              );
+            }).toList(),
+            value: _selectedOfficerId,
+            hintText: 'Search by name, rank, or officer number...',
+            prefixIcon: Icons.person_search,
+            onChanged: (value) => setState(() => _selectedOfficerId = value),
+            validator: (v) => v == null ? 'Please select an officer' : null,
           ),
       ],
     );

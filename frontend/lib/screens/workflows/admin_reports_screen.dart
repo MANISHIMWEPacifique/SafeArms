@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../config/api_config.dart';
 import '../../services/auth_service.dart';
+import '../../utils/pdf_report_generator.dart';
 
 /// System Admin – Audit, Compliance & System Oversight Reports
 /// Report types: User Activity Audit, System Audit Log, Anomaly Detection Summary
@@ -137,6 +138,39 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       });
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _exportPdf() async {
+    try {
+      final reportLabel = _reportTypes
+          .firstWhere((r) => r['value'] == _selectedReportType)['label']!;
+      final metadata = <String, String>{};
+      if (_usernameController.text.isNotEmpty) {
+        metadata['Username'] = _usernameController.text;
+      }
+      if (_selectedRole.isNotEmpty) {
+        metadata['Role'] = _selectedRole;
+      }
+      if (_dateFrom != null && _dateTo != null) {
+        metadata['Date Range'] =
+            '${DateFormat('MMM d, yyyy').format(_dateFrom!)} \u2013 ${DateFormat('MMM d, yyyy').format(_dateTo!)}';
+      }
+      await PdfReportGenerator.generate(
+        reportTitle: reportLabel,
+        reportType: _selectedReportType,
+        reportData: _reportData,
+        metadata: metadata,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export PDF: $e'),
+            backgroundColor: const Color(0xFFEF5350),
+          ),
+        );
+      }
     }
   }
 
@@ -395,7 +429,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               ),
               const SizedBox(width: 12),
               OutlinedButton.icon(
-                onPressed: _reportGenerated ? () {} : null,
+                onPressed: _reportGenerated ? _exportPdf : null,
                 icon: const Icon(Icons.picture_as_pdf, size: 18),
                 label: const Text('Export PDF'),
                 style: OutlinedButton.styleFrom(

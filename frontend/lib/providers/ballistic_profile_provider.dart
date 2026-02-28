@@ -171,14 +171,17 @@ class BallisticProfileProvider with ChangeNotifier {
   // This ensures forensic integrity for investigative search and matching
 
   // Forensic search by ballistic characteristics
-  Future<List<Map<String, dynamic>>> forensicSearch({
+  // Used by investigators to narrow down firearms based on crime scene evidence
+  Future<Map<String, dynamic>> forensicSearch({
     String? firingPin,
     String? caliber,
     String? rifling,
     String? chamberFeed,
     String? breechFace,
-    String? serialNumber,
     String? generalSearch,
+    String? incidentDate,
+    int page = 1,
+    int limit = 20,
   }) async {
     try {
       return await _ballisticProfileService.forensicSearch(
@@ -187,13 +190,21 @@ class BallisticProfileProvider with ChangeNotifier {
         rifling: rifling,
         chamberFeed: chamberFeed,
         breechFace: breechFace,
-        serialNumber: serialNumber,
         generalSearch: generalSearch,
+        incidentDate: incidentDate,
+        page: page,
+        limit: limit,
       );
     } catch (e) {
       _errorMessage = e.toString();
       notifyListeners();
-      return [];
+      return {
+        'data': [],
+        'total': 0,
+        'page': 1,
+        'pageSize': limit,
+        'totalPages': 0
+      };
     }
   }
 

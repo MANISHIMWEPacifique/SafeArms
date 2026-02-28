@@ -645,58 +645,223 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   void _showUserDetails(UserModel user) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A3040),
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: const Color(0xFF1E88E5),
-              child: Text(
-                user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : '?',
-                style: const TextStyle(color: Colors.white),
-              ),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (dialogContext) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 500,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(dialogContext).size.height * 0.85,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                user.fullName,
-                style: const TextStyle(color: Colors.white),
-              ),
+            decoration: BoxDecoration(
+              color: const Color(0xFF252A3A),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailRow('Username', user.username),
-              _buildDetailRow('Email', user.email),
-              _buildDetailRow('Phone', user.phoneNumber ?? 'Not provided'),
-              _buildDetailRow('Role', _formatFilterLabel(user.role)),
-              _buildDetailRow('Unit', user.unitId ?? 'Not assigned'),
-              _buildDetailRow('Status', user.isActive ? 'Active' : 'Inactive'),
-              _buildDetailRow(
-                  'Unit Confirmed',
-                  user.role == 'station_commander'
-                      ? (user.unitConfirmed ? 'Yes' : 'Pending')
-                      : 'N/A'),
-              _buildDetailRow('Must Change Password',
-                  user.mustChangePassword ? 'Yes' : 'No'),
-              _buildDetailRow(
-                  'Last Login', user.lastLogin?.toString() ?? 'Never'),
-              _buildDetailRow(
-                  'Created', user.createdAt?.toString() ?? 'Unknown'),
-            ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1F2E),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+                        ),
+                        child: const Icon(Icons.person,
+                            color: Color(0xFF1E88E5), size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'User Details',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              'View user information',
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(Icons.close, color: Colors.white54),
+                        hoverColor: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ],
+                  ),
+                ),
+                // Body
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // User Avatar & Name
+                        Center(
+                          child: Column(
+                            children: [
+                              CircleAvatar(
+                                radius: 48,
+                                backgroundColor: const Color(0xFF1E88E5)
+                                    .withValues(alpha: 0.2),
+                                child: Text(
+                                  user.fullName.isNotEmpty
+                                      ? user.fullName[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                    color: Color(0xFF1E88E5),
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                user.fullName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: user.isActive
+                                      ? const Color(0xFF3CCB7F)
+                                          .withValues(alpha: 0.15)
+                                      : const Color(0xFFE85C5C)
+                                          .withValues(alpha: 0.15),
+                                ),
+                                child: Text(
+                                  user.isActive ? 'Active' : 'Inactive',
+                                  style: TextStyle(
+                                    color: user.isActive
+                                        ? const Color(0xFF3CCB7F)
+                                        : const Color(0xFFE85C5C),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildDetailSection('Account Information', [
+                          _buildDetailRow('Username', user.username),
+                          _buildDetailRow(
+                              'Role', _formatFilterLabel(user.role)),
+                          _buildDetailRow(
+                              'Unit', user.unitId ?? 'Not assigned'),
+                        ]),
+                        const SizedBox(height: 24),
+                        _buildDetailSection('Contact Information', [
+                          _buildDetailRow('Email', user.email),
+                          _buildDetailRow(
+                              'Phone', user.phoneNumber ?? 'Not provided'),
+                        ]),
+                        const SizedBox(height: 24),
+                        _buildDetailSection('Security & Status', [
+                          _buildDetailRow(
+                              'Unit Confirmed',
+                              user.role == 'station_commander'
+                                  ? (user.unitConfirmed ? 'Yes' : 'Pending')
+                                  : 'N/A'),
+                          _buildDetailRow('Must Change Password',
+                              user.mustChangePassword ? 'Yes' : 'No'),
+                          _buildDetailRow('Last Login',
+                              user.lastLogin?.toString() ?? 'Never'),
+                          _buildDetailRow('Created',
+                              user.createdAt?.toString() ?? 'Unknown'),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ),
+                // Footer
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1F2E),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF37404F),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        ),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
+    );
+  }
+
+  Widget _buildDetailSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1F2E),
+            border: Border.all(color: const Color(0xFF37404F)),
+          ),
+          child: Column(children: children),
+        ),
+      ],
     );
   }
 
@@ -709,14 +874,21 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           SizedBox(
             width: 120,
             child: Text(
-              '$label:',
-              style: const TextStyle(color: Color(0xFF78909C)),
+              label,
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 13,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -733,85 +905,407 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     String phoneNumber = '';
     String role = 'station_commander';
     String? unitId;
+    bool isActive = true;
+    bool obscurePassword = true;
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF2A3040),
-        title:
-            const Text('Add New User', style: TextStyle(color: Colors.white)),
-        content: SizedBox(
-          width: 400,
-          child: Form(
-            key: formKey,
-            child: SingleChildScrollView(
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 600,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(dialogContext).size.height * 0.9,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF252A3A),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildTextField('Username', (v) => username = v,
-                      required: true),
-                  const SizedBox(height: 12),
-                  _buildTextField('Password', (v) => password = v,
-                      required: true, obscure: true),
-                  const SizedBox(height: 12),
-                  _buildTextField('Full Name', (v) => fullName = v,
-                      required: true),
-                  const SizedBox(height: 12),
-                  _buildTextField('Email', (v) => email = v,
-                      required: true, type: TextInputType.emailAddress),
-                  const SizedBox(height: 12),
-                  _buildTextField('Phone Number', (v) => phoneNumber = v,
-                      required: true, type: TextInputType.phone),
-                  const SizedBox(height: 12),
-                  _buildRoleDropdown(role, (v) => role = v!),
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1A1F2E),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF3CCB7F).withValues(alpha: 0.2),
+                          ),
+                          child: const Icon(Icons.person_add,
+                              color: Color(0xFF3CCB7F), size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Create New User',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                'Add a new user to the SafeArms platform',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          icon: const Icon(Icons.close, color: Colors.white54),
+                          hoverColor: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Body
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Form(
+                        key: formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Account Credentials Section
+                            const Text(
+                              'Account Credentials',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                      'Username', (v) => username = v,
+                                      required: true),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: TextFormField(
+                                    decoration: InputDecoration(
+                                      labelText: 'Password',
+                                      labelStyle: const TextStyle(
+                                          color: Colors.white54),
+                                      prefixIcon: const Icon(Icons.lock,
+                                          color: Colors.white54, size: 20),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          obscurePassword
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                          color: Colors.white54,
+                                          size: 20,
+                                        ),
+                                        onPressed: () => setDialogState(() =>
+                                            obscurePassword = !obscurePassword),
+                                      ),
+                                      filled: true,
+                                      fillColor: const Color(0xFF1A1F2E),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                            color: Color(0xFF37404F)),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                            color: Color(0xFF37404F)),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                            color: Color(0xFF1E88E5)),
+                                      ),
+                                      errorBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                            color: Color(0xFFE85C5C)),
+                                      ),
+                                      focusedErrorBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                            color: Color(0xFFE85C5C)),
+                                      ),
+                                    ),
+                                    style: const TextStyle(color: Colors.white),
+                                    obscureText: obscurePassword,
+                                    validator: (v) {
+                                      if (v == null || v.isEmpty)
+                                        return 'Required';
+                                      if (v.length < 8)
+                                        return 'Min 8 characters';
+                                      if (!RegExp(r'[A-Z]').hasMatch(v))
+                                        return 'Need uppercase letter';
+                                      if (!RegExp(r'[a-z]').hasMatch(v))
+                                        return 'Need lowercase letter';
+                                      if (!RegExp(r'[0-9]').hasMatch(v))
+                                        return 'Need a number';
+                                      if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]')
+                                          .hasMatch(v))
+                                        return 'Need special char';
+                                      return null;
+                                    },
+                                    onSaved: (v) => password = v!,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E88E5)
+                                    .withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      color: Color(0xFF42A5F5), size: 14),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Password: min 8 chars, uppercase, lowercase, number & special character',
+                                      style: TextStyle(
+                                          color: Color(0xFF90CAF9),
+                                          fontSize: 11),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Personal Information Section
+                            const Text(
+                              'Personal Information',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField('Full Name', (v) => fullName = v,
+                                required: true),
+                            const SizedBox(height: 24),
+
+                            // Contact Information Section
+                            const Text(
+                              'Contact Information',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                      'Email', (v) => email = v,
+                                      required: true,
+                                      type: TextInputType.emailAddress),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                      'Phone Number', (v) => phoneNumber = v,
+                                      required: true,
+                                      type: TextInputType.phone),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Role & Assignment Section
+                            const Text(
+                              'Role & Assignment',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildRoleDropdown(role, (v) {
+                              setDialogState(() => role = v!);
+                            }),
+                            const SizedBox(height: 16),
+
+                            // Unit assignment info for station commanders
+                            if (role == 'station_commander') ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E88E5)
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: const Color(0xFF1E88E5)
+                                          .withValues(alpha: 0.3)),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.info_outline,
+                                        color: Color(0xFF1E88E5), size: 16),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Station Commander will need to confirm their unit assignment on first login.',
+                                        style: TextStyle(
+                                            color: Color(0xFFB0BEC5),
+                                            fontSize: 12),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+
+                            // Active Status Toggle
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A1F2E),
+                                borderRadius: BorderRadius.circular(8),
+                                border:
+                                    Border.all(color: const Color(0xFF37404F)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        isActive
+                                            ? Icons.check_circle
+                                            : Icons.cancel,
+                                        color: isActive
+                                            ? const Color(0xFF3CCB7F)
+                                            : const Color(0xFFE85C5C),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Active Status',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                  Switch(
+                                    value: isActive,
+                                    onChanged: (v) =>
+                                        setDialogState(() => isActive = v),
+                                    activeThumbColor: const Color(0xFF3CCB7F),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+
+                            // Submit Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  final formState = formKey.currentState;
+                                  if (formState == null) return;
+                                  if (!formState.validate()) return;
+                                  formState.save();
+                                  final scaffoldMessenger =
+                                      ScaffoldMessenger.of(dialogContext);
+                                  final success = await provider.createUser(
+                                    username: username,
+                                    password: password,
+                                    fullName: fullName,
+                                    email: email,
+                                    phoneNumber: phoneNumber,
+                                    role: role,
+                                    unitId: unitId,
+                                    isActive: isActive,
+                                  );
+                                  if (success) {
+                                    Navigator.pop(dialogContext);
+                                    scaffoldMessenger.showSnackBar(
+                                      const SnackBar(
+                                        content:
+                                            Text('User created successfully'),
+                                        backgroundColor: Color(0xFF3CCB7F),
+                                      ),
+                                    );
+                                  } else {
+                                    scaffoldMessenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(provider.errorMessage ??
+                                            'Failed to create user'),
+                                        backgroundColor:
+                                            const Color(0xFFEF5350),
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1E88E5),
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Create User',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                formKey.currentState!.save();
-                final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
-                final success = await provider.createUser(
-                  username: username,
-                  password: password,
-                  fullName: fullName,
-                  email: email,
-                  phoneNumber: phoneNumber,
-                  role: role,
-                  unitId: unitId,
-                );
-                if (success) {
-                  Navigator.pop(dialogContext);
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('User created successfully'),
-                      backgroundColor: Color(0xFF3CCB7F),
-                    ),
-                  );
-                } else {
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          provider.errorMessage ?? 'Failed to create user'),
-                      backgroundColor: const Color(0xFFEF5350),
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E88E5)),
-            child: const Text('Create User'),
-          ),
-        ],
       ),
     );
   }
@@ -843,8 +1337,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       style: const TextStyle(color: Colors.white),
       obscureText: obscure,
       keyboardType: type,
-      validator: required ? (v) => v!.isEmpty ? 'Required' : null : null,
-      onSaved: (v) => onSaved(v!),
+      validator:
+          required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
+      onSaved: (v) => onSaved(v ?? ''),
     );
   }
 
@@ -884,154 +1379,536 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     String role = user.role;
     String? unitId = user.unitId;
     bool isActive = user.isActive;
+    bool showResetPassword = false;
+    bool obscureNewPassword = true;
+    final resetPasswordController = TextEditingController();
 
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF2A3040),
-          title: const Text('Edit User', style: TextStyle(color: Colors.white)),
-          content: SizedBox(
-            width: 400,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Username (readonly)
-                    TextFormField(
-                      initialValue: user.username,
-                      enabled: false,
-                      decoration: InputDecoration(
-                        labelText: 'Username (cannot be changed)',
-                        labelStyle: const TextStyle(color: Color(0xFF78909C)),
-                        filled: true,
-                        fillColor:
-                            const Color(0xFF1A1F2E).withValues(alpha: 0.5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      style: const TextStyle(color: Color(0xFF78909C)),
+        builder: (dialogContext, setDialogState) => Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 600,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(dialogContext).size.height * 0.9,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF252A3A),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1A1F2E),
                     ),
-                    const SizedBox(height: 12),
-                    _buildTextField('Full Name', (v) => fullName = v,
-                        required: true, initialValue: fullName),
-                    const SizedBox(height: 12),
-                    _buildTextField('Email', (v) => email = v,
-                        required: true,
-                        type: TextInputType.emailAddress,
-                        initialValue: email),
-                    const SizedBox(height: 12),
-                    _buildTextField('Phone Number', (v) => phoneNumber = v,
-                        required: true,
-                        type: TextInputType.phone,
-                        initialValue: phoneNumber),
-                    const SizedBox(height: 12),
-                    _buildRoleDropdown(role, (v) {
-                      setDialogState(() => role = v!);
-                    }),
-                    const SizedBox(height: 12),
-                    // Unit selection for station commanders
-                    if (role == 'station_commander') ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: const Color(0xFF1E88E5)
-                                  .withValues(alpha: 0.3)),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFFFFC857).withValues(alpha: 0.2),
+                          ),
+                          child: const Icon(Icons.edit,
+                              color: Color(0xFFFFC857), size: 24),
                         ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.info_outline,
-                                color: Color(0xFF1E88E5), size: 16),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Station Commander requires unit assignment. User will need to confirm unit on first login.',
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Edit User',
                                 style: TextStyle(
-                                    color: Color(0xFFB0BEC5), fontSize: 12),
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                user.username,
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          icon: const Icon(Icons.close, color: Colors.white54),
+                          hoverColor: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Body
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Form(
+                        key: formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Account Information Section
+                            const Text(
+                              'Account Information',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            // Username (readonly)
+                            TextFormField(
+                              initialValue: user.username,
+                              enabled: false,
+                              decoration: InputDecoration(
+                                labelText: 'Username (cannot be changed)',
+                                labelStyle:
+                                    const TextStyle(color: Colors.white54),
+                                prefixIcon: const Icon(Icons.account_circle,
+                                    color: Colors.white54, size: 20),
+                                filled: true,
+                                fillColor: const Color(0xFF1A1F2E)
+                                    .withValues(alpha: 0.5),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFF37404F)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFF37404F)),
+                                ),
+                                disabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFF37404F)),
+                                ),
+                              ),
+                              style: const TextStyle(color: Color(0xFF78909C)),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                      'Full Name', (v) => fullName = v,
+                                      required: true, initialValue: fullName),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildRoleDropdown(role, (v) {
+                                    setDialogState(() => role = v!);
+                                  }),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Contact Information Section
+                            const Text(
+                              'Contact Information',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                      'Email', (v) => email = v,
+                                      required: true,
+                                      type: TextInputType.emailAddress,
+                                      initialValue: email),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                      'Phone Number', (v) => phoneNumber = v,
+                                      required: true,
+                                      type: TextInputType.phone,
+                                      initialValue: phoneNumber),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Unit assignment info for station commanders
+                            if (role == 'station_commander') ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E88E5)
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: const Color(0xFF1E88E5)
+                                          .withValues(alpha: 0.3)),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.info_outline,
+                                        color: Color(0xFF1E88E5), size: 16),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Station Commander requires unit assignment. User will need to confirm unit on first login.',
+                                        style: TextStyle(
+                                            color: Color(0xFFB0BEC5),
+                                            fontSize: 12),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+
+                            // Active Status Toggle
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A1F2E),
+                                borderRadius: BorderRadius.circular(8),
+                                border:
+                                    Border.all(color: const Color(0xFF37404F)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        isActive
+                                            ? Icons.check_circle
+                                            : Icons.cancel,
+                                        color: isActive
+                                            ? const Color(0xFF3CCB7F)
+                                            : const Color(0xFFE85C5C),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Active Status',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                  Switch(
+                                    value: isActive,
+                                    onChanged: (v) =>
+                                        setDialogState(() => isActive = v),
+                                    activeThumbColor: const Color(0xFF3CCB7F),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Reset Password Section
+                            InkWell(
+                              onTap: () => setDialogState(
+                                  () => showResetPassword = !showResetPassword),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1A1F2E),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: showResetPassword
+                                        ? const Color(0xFFFF9800)
+                                            .withValues(alpha: 0.5)
+                                        : const Color(0xFF37404F),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.lock_reset,
+                                          color: showResetPassword
+                                              ? const Color(0xFFFF9800)
+                                              : const Color(0xFF78909C),
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Reset Password',
+                                          style: TextStyle(
+                                            color: showResetPassword
+                                                ? const Color(0xFFFF9800)
+                                                : Colors.white,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Icon(
+                                      showResetPassword
+                                          ? Icons.expand_less
+                                          : Icons.expand_more,
+                                      color: const Color(0xFF78909C),
+                                      size: 20,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (showResetPassword) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1A1F2E),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: const Color(0xFFFF9800)
+                                          .withValues(alpha: 0.3)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFF9800)
+                                            .withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(Icons.warning_amber,
+                                              color: Color(0xFFFFB74D),
+                                              size: 14),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'User will be required to change this password on next login.',
+                                              style: TextStyle(
+                                                  color: Color(0xFFFFE0B2),
+                                                  fontSize: 11),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextFormField(
+                                      controller: resetPasswordController,
+                                      decoration: InputDecoration(
+                                        labelText: 'New Password',
+                                        labelStyle: const TextStyle(
+                                            color: Colors.white54),
+                                        prefixIcon: const Icon(Icons.lock,
+                                            color: Colors.white54, size: 20),
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            obscureNewPassword
+                                                ? Icons.visibility_off
+                                                : Icons.visibility,
+                                            color: Colors.white54,
+                                            size: 20,
+                                          ),
+                                          onPressed: () => setDialogState(() =>
+                                              obscureNewPassword =
+                                                  !obscureNewPassword),
+                                        ),
+                                        filled: true,
+                                        fillColor: const Color(0xFF252A3A),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                              color: Color(0xFF37404F)),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                              color: Color(0xFF37404F)),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                              color: Color(0xFFFF9800)),
+                                        ),
+                                        errorBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                              color: Color(0xFFE85C5C)),
+                                        ),
+                                        focusedErrorBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                              color: Color(0xFFE85C5C)),
+                                        ),
+                                      ),
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                      obscureText: obscureNewPassword,
+                                      validator: showResetPassword &&
+                                              resetPasswordController
+                                                  .text.isNotEmpty
+                                          ? (v) {
+                                              if (v == null || v.isEmpty)
+                                                return 'Required';
+                                              if (v.length < 8)
+                                                return 'Min 8 characters';
+                                              if (!RegExp(r'[A-Z]').hasMatch(v))
+                                                return 'Need uppercase letter';
+                                              if (!RegExp(r'[a-z]').hasMatch(v))
+                                                return 'Need lowercase letter';
+                                              if (!RegExp(r'[0-9]').hasMatch(v))
+                                                return 'Need a number';
+                                              if (!RegExp(
+                                                      r'[!@#$%^&*(),.?":{}|<>]')
+                                                  .hasMatch(v))
+                                                return 'Need special char';
+                                              return null;
+                                            }
+                                          : null,
+                                      onSaved: (v) => resetPasswordController
+                                          .text = v ?? '',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Min 8 chars, uppercase, lowercase, number & special character',
+                                      style: TextStyle(
+                                          color: Color(0xFF78909C),
+                                          fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 32),
+
+                            // Submit Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  final formState = formKey.currentState;
+                                  if (formState == null) return;
+                                  if (!formState.validate()) return;
+                                  formState.save();
+                                  final scaffoldMessenger =
+                                      ScaffoldMessenger.of(dialogContext);
+
+                                  // Handle password reset if provided
+                                  if (showResetPassword &&
+                                      resetPasswordController.text.isNotEmpty) {
+                                    final resetSuccess =
+                                        await provider.resetUserPassword(
+                                      user.userId,
+                                      resetPasswordController.text,
+                                    );
+                                    if (!resetSuccess) {
+                                      scaffoldMessenger.showSnackBar(
+                                        SnackBar(
+                                          content: Text(provider.errorMessage ??
+                                              'Failed to reset password'),
+                                          backgroundColor:
+                                              const Color(0xFFEF5350),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                  }
+
+                                  final success = await provider.updateUser(
+                                    userId: user.userId,
+                                    fullName: fullName,
+                                    email: email,
+                                    phoneNumber: phoneNumber,
+                                    role: role,
+                                    unitId: unitId,
+                                    isActive: isActive,
+                                  );
+                                  if (success) {
+                                    Navigator.pop(dialogContext);
+                                    scaffoldMessenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(showResetPassword &&
+                                                resetPasswordController
+                                                    .text.isNotEmpty
+                                            ? 'User updated & password reset successfully'
+                                            : 'User updated successfully'),
+                                        backgroundColor:
+                                            const Color(0xFF3CCB7F),
+                                      ),
+                                    );
+                                  } else {
+                                    scaffoldMessenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(provider.errorMessage ??
+                                            'Failed to update user'),
+                                        backgroundColor:
+                                            const Color(0xFFEF5350),
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1E88E5),
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Save Changes',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                    ],
-                    // Active status toggle
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A1F2E),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF37404F)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Active Status',
-                              style: TextStyle(color: Color(0xFF78909C))),
-                          Switch(
-                            value: isActive,
-                            onChanged: (v) =>
-                                setDialogState(() => isActive = v),
-                            activeThumbColor: const Color(0xFF3CCB7F),
-                          ),
-                        ],
-                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  formKey.currentState!.save();
-                  final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
-                  final success = await provider.updateUser(
-                    userId: user.userId,
-                    fullName: fullName,
-                    email: email,
-                    phoneNumber: phoneNumber,
-                    role: role,
-                    unitId: unitId,
-                    isActive: isActive,
-                  );
-                  if (success) {
-                    Navigator.pop(dialogContext);
-                    scaffoldMessenger.showSnackBar(
-                      const SnackBar(
-                        content: Text('User updated successfully'),
-                        backgroundColor: Color(0xFF3CCB7F),
-                      ),
-                    );
-                  } else {
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            provider.errorMessage ?? 'Failed to update user'),
-                        backgroundColor: const Color(0xFFEF5350),
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88E5)),
-              child: const Text('Save Changes'),
-            ),
-          ],
         ),
       ),
     );

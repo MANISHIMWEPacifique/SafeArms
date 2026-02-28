@@ -2,6 +2,7 @@
 // SafeArms Frontend
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/firearm_model.dart';
 import '../services/custody_service.dart';
@@ -522,7 +523,17 @@ This is an official forensic document.
             IconButton(
               icon: const Icon(Icons.copy, size: 16, color: Color(0xFF78909C)),
               onPressed: () {
-                // Copy to clipboard
+                Clipboard.setData(
+                    ClipboardData(text: widget.firearm.serialNumber));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        'Serial number copied: ${widget.firearm.serialNumber}'),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: const Color(0xFF3CCB7F),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               },
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),

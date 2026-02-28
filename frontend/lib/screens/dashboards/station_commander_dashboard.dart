@@ -633,17 +633,48 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
   }
 
   Widget _buildRecentActivity(DashboardProvider provider) {
-    // Station commander sees only custody events from their unit
+    // Station commander sees custody events and general activities from their unit
     final custodyEvents = provider.recentCustodyActivity;
+    final auditActivities = provider.recentActivities;
 
-    // Build display list from custody events only
-    final List<Map<String, dynamic>> displayList = custodyEvents
-        .take(8)
-        .map<Map<String, dynamic>>((event) => {
-              'type': 'custody',
-              'data': event,
-            })
-        .toList();
+    // Maximum number of activities to display in the dashboard
+    const int maxDisplayItems = 10;
+
+    // Build display list combining custody events and audit log activities
+    final List<Map<String, dynamic>> displayList = [];
+
+    // Add custody events
+    for (var event in custodyEvents) {
+      displayList.add({
+        'type': 'custody',
+        'data': event is Map<String, dynamic>
+            ? event
+            : Map<String, dynamic>.from(event as Map),
+        'timestamp': event['issued_at'] ?? event['checked_out_at'] ?? '',
+      });
+    }
+
+    // Add audit log activities
+    for (var activity in auditActivities) {
+      final actMap = activity is Map<String, dynamic>
+          ? activity
+          : Map<String, dynamic>.from(activity as Map);
+      displayList.add({
+        'type': 'audit',
+        'data': actMap,
+        'timestamp': actMap['created_at'] ?? '',
+      });
+    }
+
+    // Sort by timestamp descending (most recent first)
+    displayList.sort((a, b) {
+      final aTime = a['timestamp']?.toString() ?? '';
+      final bTime = b['timestamp']?.toString() ?? '';
+      return bTime.compareTo(aTime);
+    });
+
+    // Apply the display limit
+    final limitedList = displayList.take(maxDisplayItems).toList();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -669,7 +700,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
             style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
           ),
           const SizedBox(height: 16),
-          if (displayList.isEmpty)
+          if (limitedList.isEmpty)
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(24),
@@ -683,17 +714,95 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: displayList.length,
+              itemCount: limitedList.length,
               separatorBuilder: (context, index) => const Divider(
                 color: Color(0xFF37404F),
                 height: 1,
               ),
               itemBuilder: (context, index) {
-                final item = displayList[index];
+                final item = limitedList[index];
+                if (item['type'] == 'audit') {
+                  return _buildAuditItem(item['data']);
+                }
                 return _buildCustodyItem(item['data']);
               },
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAuditItem(Map<String, dynamic> activity) {
+    final actionType = activity['action_type']?.toString() ?? 'action';
+    final tableName = activity['table_name']?.toString() ?? '';
+    final actorName = activity['actor_name']?.toString() ?? 'System';
+    final subject = activity['subject_description']?.toString() ?? tableName;
+
+    // Map action types to icons and colors
+    IconData icon;
+    Color color;
+    String actionLabel;
+    switch (actionType.toLowerCase()) {
+      case 'create':
+      case 'insert':
+        icon = Icons.add_circle_outline;
+        color = const Color(0xFF3CCB7F);
+        actionLabel = 'Created';
+        break;
+      case 'update':
+        icon = Icons.edit_outlined;
+        color = const Color(0xFFFFC857);
+        actionLabel = 'Updated';
+        break;
+      case 'delete':
+        icon = Icons.delete_outline;
+        color = const Color(0xFFE85C5C);
+        actionLabel = 'Deleted';
+        break;
+      case 'login':
+        icon = Icons.login;
+        color = const Color(0xFF5B8DEF);
+        actionLabel = 'Logged in';
+        break;
+      case 'checkout':
+      case 'checkin':
+        icon = Icons.swap_horiz;
+        color = const Color(0xFF5B8DEF);
+        actionLabel = actionType == 'checkout' ? 'Checked out' : 'Checked in';
+        break;
+      default:
+        icon = Icons.info_outline;
+        color = const Color(0xFF78909C);
+        actionLabel = actionType;
+    }
+
+    // Format the table name for display
+    final displayTable = tableName.replaceAll('_', ' ');
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+      title: Text(
+        '$actionLabel $displayTable',
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        'by $actorName${subject.isNotEmpty && subject != tableName ? ' - $subject' : ''}',
+        style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: Text(
+        _formatTimeAgo(activity['created_at']),
+        style: const TextStyle(color: Color(0xFF78909C), fontSize: 11),
       ),
     );
   }

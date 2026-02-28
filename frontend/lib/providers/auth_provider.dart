@@ -27,6 +27,9 @@ class AuthProvider with ChangeNotifier {
       _currentUser?['role'] == 'station_commander' &&
       _currentUser?['unit_confirmed'] == false;
 
+  bool get requiresPasswordChange =>
+      _currentUser?['must_change_password'] == true;
+
   AuthProvider() {
     _checkAuthStatus();
   }
@@ -157,6 +160,31 @@ class AuthProvider with ChangeNotifier {
 
       if (result['success']) {
         _currentUser?['unit_confirmed'] = true;
+        _errorMessage = null;
+        return true;
+      } else {
+        _errorMessage = result['message'];
+        return false;
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Change password (for first login or password update)
+  Future<bool> changePassword(String oldPassword, String newPassword) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result =
+          await _authService.changePassword(oldPassword, newPassword);
+
+      if (result['success']) {
+        // Update local user data
+        _currentUser?['must_change_password'] = false;
         _errorMessage = null;
         return true;
       } else {

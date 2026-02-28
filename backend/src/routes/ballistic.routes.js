@@ -100,24 +100,24 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
 
 // Search ballistic profiles - RBAC enforced, access logged
 router.get('/', authenticate, requireBallisticAccess, auditBallisticAccess, logBallisticAccess, asyncHandler(async (req, res) => {
-    const profiles = await BallisticProfile.search(
+    const result = await BallisticProfile.search(
         req.query, 
         req.user.user_id,
         { ip: req.ip, userAgent: req.get('user-agent') }
     );
     
-    res.json({ success: true, data: profiles });
+    res.json({ success: true, data: result.data, total: result.total, page: result.page, pageSize: result.pageSize, totalPages: result.totalPages });
 }));
 
 // Forensic search endpoint (alias for GET / with forensic access logging)
 router.get('/forensic-search', authenticate, requireBallisticAccess, auditBallisticAccess, logBallisticAccess, asyncHandler(async (req, res) => {
-    const profiles = await BallisticProfile.search(
+    const result = await BallisticProfile.search(
         req.query,
         req.user.user_id,
         { ip: req.ip, userAgent: req.get('user-agent') }
     );
     
-    res.json({ success: true, data: profiles });
+    res.json({ success: true, data: result.data, total: result.total, page: result.page, pageSize: result.pageSize, totalPages: result.totalPages });
 }));
 
 // Get single profile with access logging

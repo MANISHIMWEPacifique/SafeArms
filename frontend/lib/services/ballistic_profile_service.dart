@@ -164,16 +164,18 @@ class BallisticProfileService {
     }
   }
 
-  // Search ballistic profiles by the 5 ballistic characteristics
-  // Read-only search for investigative support
-  Future<List<Map<String, dynamic>>> forensicSearch({
+  // Search ballistic profiles by crime scene evidence characteristics
+  // Read-only search for investigative support — no serial number needed
+  Future<Map<String, dynamic>> forensicSearch({
     String? firingPin,
     String? caliber,
     String? rifling,
     String? chamberFeed,
     String? breechFace,
-    String? serialNumber,
     String? generalSearch,
+    String? incidentDate,
+    int page = 1,
+    int limit = 20,
   }) async {
     try {
       final headers = await _getHeaders();
@@ -195,12 +197,14 @@ class BallisticProfileService {
       if (breechFace != null && breechFace.isNotEmpty) {
         queryParams.add('breech_face=${Uri.encodeComponent(breechFace)}');
       }
-      if (serialNumber != null && serialNumber.isNotEmpty) {
-        queryParams.add('firearm_serial=${Uri.encodeComponent(serialNumber)}');
-      }
       if (generalSearch != null && generalSearch.isNotEmpty) {
         queryParams.add('search=${Uri.encodeComponent(generalSearch)}');
       }
+      if (incidentDate != null && incidentDate.isNotEmpty) {
+        queryParams.add('incident_date=${Uri.encodeComponent(incidentDate)}');
+      }
+      queryParams.add('page=$page');
+      queryParams.add('limit=$limit');
 
       if (queryParams.isNotEmpty) {
         url += '?${queryParams.join('&')}';
@@ -215,7 +219,13 @@ class BallisticProfileService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'] ?? []);
+        return {
+          'data': List<Map<String, dynamic>>.from(data['data'] ?? []),
+          'total': data['total'] ?? 0,
+          'page': data['page'] ?? 1,
+          'pageSize': data['pageSize'] ?? limit,
+          'totalPages': data['totalPages'] ?? 1,
+        };
       } else {
         throw Exception('Search failed: ${response.statusCode}');
       }

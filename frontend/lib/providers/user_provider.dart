@@ -245,6 +245,28 @@ class UserProvider with ChangeNotifier {
     }
   }
 
+  // Admin reset user password
+  Future<bool> resetUserPassword(String userId, String newPassword) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _userService.resetUserPassword(
+        userId: userId,
+        newPassword: newPassword,
+      );
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Select user for editing
   void selectUser(UserModel user) {
     _selectedUser = user;

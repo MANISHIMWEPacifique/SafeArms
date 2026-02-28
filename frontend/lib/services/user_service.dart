@@ -179,6 +179,32 @@ class UserService {
     }
   }
 
+  // Admin reset user password (sets must_change_password = true)
+  Future<bool> resetUserPassword({
+    required String userId,
+    required String newPassword,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.users}/$userId/reset-password'),
+            headers: headers,
+            body: json.encode({'new_password': newPassword}),
+          )
+          .timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Failed to reset password');
+      }
+    } catch (e) {
+      throw Exception('Error resetting password: $e');
+    }
+  }
+
   // Delete user (Admin only)
   Future<void> deleteUser(String userId) async {
     try {

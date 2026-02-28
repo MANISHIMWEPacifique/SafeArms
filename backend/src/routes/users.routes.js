@@ -78,6 +78,31 @@ router.put('/:id', authenticate, requireAdminOrHQ, logUpdate, asyncHandler(async
     res.json({ success: true, data: user });
 }));
 
+// Admin reset user password - sets new password and forces password change on next login
+router.post('/:id/reset-password', authenticate, requireAdmin, logUpdate, asyncHandler(async (req, res) => {
+    const { new_password } = req.body;
+
+    if (!new_password) {
+        return res.status(400).json({ success: false, message: 'New password is required' });
+    }
+
+    if (!isValidPassword(new_password)) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character' 
+        });
+    }
+
+    const password_hash = await bcrypt.hash(new_password, BCRYPT_ROUNDS);
+    const user = await User.update(req.params.id, { 
+        password_hash, 
+        must_change_password: true 
+    });
+    
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.json({ success: true, message: 'Password reset successfully. User will be required to change password on next login.' });
+}));
+
 router.delete('/:id', authenticate, requireAdmin, logDelete, asyncHandler(async (req, res) => {
     const user = await User.delete(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });

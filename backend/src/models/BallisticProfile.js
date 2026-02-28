@@ -150,9 +150,18 @@ const BallisticProfile = {
             firing_pin, caliber, rifling, chamber_feed, breech_face,
             // General search
             search,
-            limit = 50 
+            // Date-based custody search
+            incident_date,
+            // Pagination
+            page = 1,
+            limit = 20 
         } = searchParams;
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const pageSize = Math.min(100, Math.max(1, parseInt(limit) || 20));
+        const offset = (pageNum - 1) * pageSize;
+
         let where = 'WHERE 1=1';
+        let joins = '';
         let params = [];
         let pCount = 0;
 
@@ -226,18 +235,42 @@ const BallisticProfile = {
             params.push(`%${search}%`);
         }
 
+        // Date-based custody search: find firearms that had custody on a specific date
+        if (incident_date) {
+            pCount++;
+            joins += ` JOIN custody_records cr ON cr.firearm_id = f.firearm_id`;
+            where += ` AND cr.issued_at::date <= $${pCount}::date AND (cr.returned_at IS NULL OR cr.returned_at::date >= $${pCount}::date)`;
+            params.push(incident_date);
+        }
+
+        // Count total results first
+        const countParams = [...params];
+        const countResult = await query(`
+            SELECT COUNT(DISTINCT bp.ballistic_id) as total
+            FROM ballistic_profiles bp
+            JOIN firearms f ON bp.firearm_id = f.firearm_id
+            LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
+            ${joins}
+            ${where}
+        `, countParams);
+        const total = parseInt(countResult.rows[0].total) || 0;
+
+        // Fetch paginated results
         pCount++;
-        params.push(limit);
+        params.push(pageSize);
+        pCount++;
+        params.push(offset);
 
         const result = await query(`
-            SELECT bp.*, f.serial_number, f.manufacturer, f.model, f.caliber, f.firearm_type,
+            SELECT DISTINCT bp.*, f.serial_number, f.manufacturer, f.model, f.caliber, f.firearm_type,
                    f.current_status, f.assigned_unit_id, u.unit_name as assigned_unit_name
             FROM ballistic_profiles bp
             JOIN firearms f ON bp.firearm_id = f.firearm_id
             LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
+            ${joins}
             ${where}
             ORDER BY bp.test_date DESC
-            LIMIT $${pCount}
+            LIMIT $${pCount - 1} OFFSET $${pCount}
         `, params);
 
         // Log search query (not individual results) for audit purposes
@@ -248,13 +281,19 @@ const BallisticProfile = {
                 VALUES ($1, 'SEARCH', 'ballistic_profiles', $2, $3, $4)
             `, [
                 requestingUserId,
-                JSON.stringify({ search_params: searchParams, result_count: result.rows.length }),
+                JSON.stringify({ search_params: searchParams, result_count: total }),
                 reqInfo.ip,
                 reqInfo.userAgent
             ]);
         }
 
-        return result.rows;
+        return {
+            data: result.rows,
+            total,
+            page: pageNum,
+            pageSize,
+            totalPages: Math.ceil(total / pageSize)
+        };
     },
 
     /**

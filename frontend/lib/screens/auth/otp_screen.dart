@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import 'change_password_screen.dart';
 import 'unit_confirmation_screen.dart';
 import '../dashboards/admin_dashboard.dart';
 import '../dashboards/hq_commander_dashboard.dart';
@@ -117,7 +118,10 @@ class _OtpScreenState extends State<OtpScreen> {
   void _navigateToAppropriateScreen(AuthProvider authProvider) {
     Widget screen;
 
-    if (authProvider.requiresUnitConfirmation) {
+    // Check if user must change their password first
+    if (authProvider.requiresPasswordChange) {
+      screen = const ChangePasswordScreen();
+    } else if (authProvider.requiresUnitConfirmation) {
       screen = const UnitConfirmationScreen();
     } else {
       // Navigate to role-specific dashboard

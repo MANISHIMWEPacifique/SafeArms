@@ -96,7 +96,8 @@ const verifyOTP = async (username, otp) => {
         // Get user with OTP info
         const result = await query(
             `SELECT user_id, username, full_name, email, role, unit_id,
-              otp_code, otp_expires_at, otp_verified, unit_confirmed
+              otp_code, otp_expires_at, otp_verified, unit_confirmed,
+              must_change_password
        FROM users 
        WHERE username = $1`,
             [username]
@@ -152,6 +153,7 @@ const verifyOTP = async (username, otp) => {
                 role: user.role,
                 unit_id: user.unit_id,
                 unit_confirmed: user.unit_confirmed,
+                must_change_password: user.must_change_password,
                 requires_unit_confirmation: user.role === 'station_commander' && !user.unit_confirmed
             }
         };

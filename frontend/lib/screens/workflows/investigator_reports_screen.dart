@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../config/api_config.dart';
 import '../../services/auth_service.dart';
+import '../../utils/pdf_report_generator.dart';
 
 /// Investigator – Investigation & Traceability Reports
 /// Report types: Firearm History & Custody, Custody Timeline, Ballistic Reference Traceability
@@ -100,6 +101,39 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
       });
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _exportPdf() async {
+    try {
+      final reportLabel = _reportTypes
+          .firstWhere((r) => r['value'] == _selectedReportType)['label']!;
+      final metadata = <String, String>{};
+      if (_serialController.text.isNotEmpty) {
+        metadata['Serial Number'] = _serialController.text;
+      }
+      if (_caseRefController.text.isNotEmpty) {
+        metadata['Case Reference'] = _caseRefController.text;
+      }
+      if (_dateFrom != null && _dateTo != null) {
+        metadata['Date Range'] =
+            '${DateFormat('MMM d, yyyy').format(_dateFrom!)} – ${DateFormat('MMM d, yyyy').format(_dateTo!)}';
+      }
+      await PdfReportGenerator.generate(
+        reportTitle: reportLabel,
+        reportType: _selectedReportType,
+        reportData: _reportData,
+        metadata: metadata,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export PDF: $e'),
+            backgroundColor: const Color(0xFFEF5350),
+          ),
+        );
+      }
     }
   }
 
@@ -315,7 +349,7 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
               ),
               const SizedBox(width: 12),
               OutlinedButton.icon(
-                onPressed: _reportGenerated ? () {} : null,
+                onPressed: _reportGenerated ? _exportPdf : null,
                 icon: const Icon(Icons.picture_as_pdf, size: 18),
                 label: const Text('Export PDF'),
                 style: OutlinedButton.styleFrom(
@@ -587,7 +621,8 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                     f['firearm_type']?.toString() ?? '',
                     f['caliber']?.toString() ?? '',
                     f['unit_name']?.toString() ?? 'Unassigned',
-                    _fmtDate(f['registration_date']?.toString()),
+                    _fmtDate(f['acquisition_date']?.toString() ??
+                        f['created_at']?.toString()),
                   ])
               .toList(),
         ),
@@ -741,11 +776,11 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
 
   Widget _buildMetadataGrid(Map<String, dynamic> profile) {
     final fields = [
-      {'label': 'Caliber', 'key': 'caliber'},
-      {'label': 'Chamber Type', 'key': 'chamber_type'},
-      {'label': 'Rifling Characteristics', 'key': 'rifling_type'},
-      {'label': 'Breech-face Description', 'key': 'breech_face_marks'},
-      {'label': 'Firing Pin Description', 'key': 'firing_pin_shape'},
+      {'label': 'Rifling Characteristics', 'key': 'rifling_characteristics'},
+      {'label': 'Firing Pin Impression', 'key': 'firing_pin_impression'},
+      {'label': 'Ejector Marks', 'key': 'ejector_marks'},
+      {'label': 'Extractor Marks', 'key': 'extractor_marks'},
+      {'label': 'Chamber Marks', 'key': 'chamber_marks'},
       {'label': 'Date Recorded', 'key': 'created_at'},
     ];
     return Wrap(

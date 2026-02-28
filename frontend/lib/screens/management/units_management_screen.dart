@@ -674,133 +674,228 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
 
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF2A3040),
-          title: const Row(
-            children: [
-              Icon(Icons.add_business, color: Color(0xFF1E88E5)),
-              SizedBox(width: 12),
-              Text('Add New Unit', style: TextStyle(color: Colors.white)),
-            ],
-          ),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
+        builder: (context, setDialogState) => Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 600,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(dialogContext).size.height * 0.9,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF252A3A),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildDialogTextField(
-                      nameController, 'Unit Name', Icons.business),
-                  const SizedBox(height: 16),
-                  _buildDialogDropdown(
-                    value: selectedType,
-                    label: 'Unit Type',
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'station', child: Text('Police Station')),
-                      DropdownMenuItem(
-                          value: 'headquarters', child: Text('Headquarters')),
-                      DropdownMenuItem(
-                          value: 'training_school',
-                          child: Text('Training School')),
-                      DropdownMenuItem(
-                          value: 'special_unit', child: Text('Special Unit')),
-                      DropdownMenuItem(
-                          value: 'specialized', child: Text('Specialized')),
-                    ],
-                    onChanged: (value) =>
-                        setDialogState(() => selectedType = value!),
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1A1F2E),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF3CCB7F).withValues(alpha: 0.2),
+                          ),
+                          child: const Icon(Icons.add_business,
+                              color: Color(0xFF3CCB7F), size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Add New Unit',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                'Create a new police unit or station',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          icon: const Icon(Icons.close, color: Colors.white54),
+                          hoverColor: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField(
-                      locationController, 'Location', Icons.location_on),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _buildDialogTextField(
-                              provinceController, 'Province', Icons.map)),
-                      const SizedBox(width: 16),
-                      Expanded(
-                          child: _buildDialogTextField(
-                              districtController, 'District', Icons.place)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField(
-                      phoneController, 'Contact Phone', Icons.phone),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField(
-                      emailController, 'Contact Email', Icons.email),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Text('Status:',
-                          style: TextStyle(color: Color(0xFF78909C))),
-                      const SizedBox(width: 12),
-                      Switch(
-                        value: isActive,
-                        onChanged: (value) =>
-                            setDialogState(() => isActive = value),
-                        activeThumbColor: const Color(0xFF3CCB7F),
+                  // Body
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Unit Information Section
+                          _buildFormSectionHeader('Unit Information'),
+                          const SizedBox(height: 16),
+                          _buildDialogTextField(
+                              nameController, 'Unit Name', Icons.business),
+                          const SizedBox(height: 16),
+                          _buildDialogDropdown(
+                            value: selectedType,
+                            label: 'Unit Type',
+                            items: const [
+                              DropdownMenuItem(
+                                  value: 'station',
+                                  child: Text('Police Station')),
+                              DropdownMenuItem(
+                                  value: 'headquarters',
+                                  child: Text('Headquarters')),
+                              DropdownMenuItem(
+                                  value: 'training_school',
+                                  child: Text('Training School')),
+                              DropdownMenuItem(
+                                  value: 'special_unit',
+                                  child: Text('Special Unit')),
+                              DropdownMenuItem(
+                                  value: 'specialized',
+                                  child: Text('Specialized')),
+                            ],
+                            onChanged: (value) =>
+                                setDialogState(() => selectedType = value!),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Location Section
+                          _buildFormSectionHeader('Location'),
+                          const SizedBox(height: 16),
+                          _buildDialogTextField(locationController, 'Location',
+                              Icons.location_on),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                  child: _buildDialogTextField(
+                                      provinceController,
+                                      'Province',
+                                      Icons.map)),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                  child: _buildDialogTextField(
+                                      districtController,
+                                      'District',
+                                      Icons.place)),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Contact Section
+                          _buildFormSectionHeader('Contact Information'),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildDialogTextField(phoneController,
+                                    'Contact Phone', Icons.phone),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildDialogTextField(emailController,
+                                    'Contact Email', Icons.email),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Active Status Toggle
+                          _buildStatusToggle(isActive, (value) {
+                            setDialogState(() => isActive = value);
+                          }),
+                          const SizedBox(height: 32),
+
+                          // Submit Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                if (nameController.text.isEmpty) {
+                                  ScaffoldMessenger.of(dialogContext)
+                                      .showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Unit name is required'),
+                                        backgroundColor: Color(0xFFE85C5C)),
+                                  );
+                                  return;
+                                }
+                                final scaffoldMessenger =
+                                    ScaffoldMessenger.of(dialogContext);
+                                final unitProvider =
+                                    context.read<UnitProvider>();
+                                Navigator.pop(dialogContext);
+                                final success = await unitProvider.createUnit({
+                                  'unit_name': nameController.text,
+                                  'unit_type': selectedType,
+                                  'location': locationController.text,
+                                  'province': provinceController.text,
+                                  'district': districtController.text,
+                                  'contact_phone': phoneController.text,
+                                  'contact_email': emailController.text,
+                                  'is_active': isActive,
+                                });
+                                scaffoldMessenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(success
+                                        ? 'Unit created successfully'
+                                        : 'Failed to create unit'),
+                                    backgroundColor: success
+                                        ? const Color(0xFF3CCB7F)
+                                        : const Color(0xFFE85C5C),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E88E5),
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.zero,
+                                ),
+                              ),
+                              child: const Text(
+                                'Create Unit',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(isActive ? 'Active' : 'Inactive',
-                          style: TextStyle(
-                              color: isActive
-                                  ? const Color(0xFF3CCB7F)
-                                  : const Color(0xFF78909C))),
-                    ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Color(0xFF78909C))),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isEmpty) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(
-                        content: Text('Unit name is required'),
-                        backgroundColor: Color(0xFFE85C5C)),
-                  );
-                  return;
-                }
-                final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
-                final unitProvider = context.read<UnitProvider>();
-                Navigator.pop(dialogContext);
-                final success = await unitProvider.createUnit({
-                  'unit_name': nameController.text,
-                  'unit_type': selectedType,
-                  'location': locationController.text,
-                  'province': provinceController.text,
-                  'district': districtController.text,
-                  'contact_phone': phoneController.text,
-                  'contact_email': emailController.text,
-                  'is_active': isActive,
-                });
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text(success
-                        ? 'Unit created successfully'
-                        : 'Failed to create unit'),
-                    backgroundColor: success
-                        ? const Color(0xFF3CCB7F)
-                        : const Color(0xFFE85C5C),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88E5)),
-              child: const Text('Create Unit'),
-            ),
-          ],
         ),
       ),
     );
@@ -823,140 +918,281 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
 
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF2A3040),
-          title: Row(
-            children: [
-              const Icon(Icons.edit, color: Color(0xFF1E88E5)),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: Text('Edit ${unit['unit_name']}',
-                      style: const TextStyle(color: Colors.white),
-                      overflow: TextOverflow.ellipsis)),
-            ],
-          ),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
+        builder: (context, setDialogState) => Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 600,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(dialogContext).size.height * 0.9,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF252A3A),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildDialogTextField(
-                      nameController, 'Unit Name', Icons.business),
-                  const SizedBox(height: 16),
-                  _buildDialogDropdown(
-                    value: selectedType,
-                    label: 'Unit Type',
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'station', child: Text('Police Station')),
-                      DropdownMenuItem(
-                          value: 'headquarters', child: Text('Headquarters')),
-                      DropdownMenuItem(
-                          value: 'training_school',
-                          child: Text('Training School')),
-                      DropdownMenuItem(
-                          value: 'special_unit', child: Text('Special Unit')),
-                      DropdownMenuItem(
-                          value: 'specialized', child: Text('Specialized')),
-                    ],
-                    onChanged: (value) =>
-                        setDialogState(() => selectedType = value!),
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1A1F2E),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFFFFC857).withValues(alpha: 0.2),
+                          ),
+                          child: const Icon(Icons.edit,
+                              color: Color(0xFFFFC857), size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Edit Unit',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                unit['unit_name'] ?? '',
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 13,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          icon: const Icon(Icons.close, color: Colors.white54),
+                          hoverColor: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField(
-                      locationController, 'Location', Icons.location_on),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _buildDialogTextField(
-                              provinceController, 'Province', Icons.map)),
-                      const SizedBox(width: 16),
-                      Expanded(
-                          child: _buildDialogTextField(
-                              districtController, 'District', Icons.place)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField(
-                      phoneController, 'Contact Phone', Icons.phone),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField(
-                      emailController, 'Contact Email', Icons.email),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Text('Status:',
-                          style: TextStyle(color: Color(0xFF78909C))),
-                      const SizedBox(width: 12),
-                      Switch(
-                        value: isActive,
-                        onChanged: (value) =>
-                            setDialogState(() => isActive = value),
-                        activeThumbColor: const Color(0xFF3CCB7F),
+                  // Body
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Unit Information Section
+                          _buildFormSectionHeader('Unit Information'),
+                          const SizedBox(height: 16),
+                          _buildDialogTextField(
+                              nameController, 'Unit Name', Icons.business),
+                          const SizedBox(height: 16),
+                          _buildDialogDropdown(
+                            value: selectedType,
+                            label: 'Unit Type',
+                            items: const [
+                              DropdownMenuItem(
+                                  value: 'station',
+                                  child: Text('Police Station')),
+                              DropdownMenuItem(
+                                  value: 'headquarters',
+                                  child: Text('Headquarters')),
+                              DropdownMenuItem(
+                                  value: 'training_school',
+                                  child: Text('Training School')),
+                              DropdownMenuItem(
+                                  value: 'special_unit',
+                                  child: Text('Special Unit')),
+                              DropdownMenuItem(
+                                  value: 'specialized',
+                                  child: Text('Specialized')),
+                            ],
+                            onChanged: (value) =>
+                                setDialogState(() => selectedType = value!),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Location Section
+                          _buildFormSectionHeader('Location'),
+                          const SizedBox(height: 16),
+                          _buildDialogTextField(locationController, 'Location',
+                              Icons.location_on),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                  child: _buildDialogTextField(
+                                      provinceController,
+                                      'Province',
+                                      Icons.map)),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                  child: _buildDialogTextField(
+                                      districtController,
+                                      'District',
+                                      Icons.place)),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Contact Section
+                          _buildFormSectionHeader('Contact Information'),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildDialogTextField(phoneController,
+                                    'Contact Phone', Icons.phone),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildDialogTextField(emailController,
+                                    'Contact Email', Icons.email),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Active Status Toggle
+                          _buildStatusToggle(isActive, (value) {
+                            setDialogState(() => isActive = value);
+                          }),
+                          const SizedBox(height: 32),
+
+                          // Submit Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                if (nameController.text.isEmpty) {
+                                  ScaffoldMessenger.of(dialogContext)
+                                      .showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Unit name is required'),
+                                        backgroundColor: Color(0xFFE85C5C)),
+                                  );
+                                  return;
+                                }
+                                final scaffoldMessenger =
+                                    ScaffoldMessenger.of(dialogContext);
+                                final unitProvider =
+                                    context.read<UnitProvider>();
+                                Navigator.pop(dialogContext);
+                                final success = await unitProvider.updateUnit(
+                                  unit['unit_id'].toString(),
+                                  {
+                                    'unit_name': nameController.text,
+                                    'unit_type': selectedType,
+                                    'location': locationController.text,
+                                    'province': provinceController.text,
+                                    'district': districtController.text,
+                                    'contact_phone': phoneController.text,
+                                    'contact_email': emailController.text,
+                                    'is_active': isActive,
+                                  },
+                                );
+                                scaffoldMessenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(success
+                                        ? 'Unit updated successfully'
+                                        : 'Failed to update unit'),
+                                    backgroundColor: success
+                                        ? const Color(0xFF3CCB7F)
+                                        : const Color(0xFFE85C5C),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E88E5),
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.zero,
+                                ),
+                              ),
+                              child: const Text(
+                                'Save Changes',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(isActive ? 'Active' : 'Inactive',
-                          style: TextStyle(
-                              color: isActive
-                                  ? const Color(0xFF3CCB7F)
-                                  : const Color(0xFF78909C))),
-                    ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Color(0xFF78909C))),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isEmpty) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(
-                        content: Text('Unit name is required'),
-                        backgroundColor: Color(0xFFE85C5C)),
-                  );
-                  return;
-                }
-                final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
-                final unitProvider = context.read<UnitProvider>();
-                Navigator.pop(dialogContext);
-                final success = await unitProvider.updateUnit(
-                  unit['unit_id'].toString(),
-                  {
-                    'unit_name': nameController.text,
-                    'unit_type': selectedType,
-                    'location': locationController.text,
-                    'province': provinceController.text,
-                    'district': districtController.text,
-                    'contact_phone': phoneController.text,
-                    'contact_email': emailController.text,
-                    'is_active': isActive,
-                  },
-                );
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text(success
-                        ? 'Unit updated successfully'
-                        : 'Failed to update unit'),
-                    backgroundColor: success
-                        ? const Color(0xFF3CCB7F)
-                        : const Color(0xFFE85C5C),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88E5)),
-              child: const Text('Save Changes'),
-            ),
-          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFormSectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  Widget _buildStatusToggle(bool isActive, ValueChanged<bool> onChanged) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1F2E),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF37404F)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isActive ? Icons.check_circle : Icons.cancel,
+                color: isActive
+                    ? const Color(0xFF3CCB7F)
+                    : const Color(0xFFE85C5C),
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Active Status',
+                style: TextStyle(color: Colors.white, fontSize: 14),
+              ),
+            ],
+          ),
+          Switch(
+            value: isActive,
+            onChanged: onChanged,
+            activeThumbColor: const Color(0xFF3CCB7F),
+          ),
+        ],
       ),
     );
   }
@@ -968,8 +1204,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF78909C)),
-        prefixIcon: Icon(icon, color: const Color(0xFF78909C)),
+        labelStyle: const TextStyle(color: Colors.white54),
+        prefixIcon: Icon(icon, color: Colors.white54, size: 20),
         filled: true,
         fillColor: const Color(0xFF1A1F2E),
         border: OutlineInputBorder(
@@ -981,6 +1217,12 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Color(0xFF1E88E5))),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE85C5C))),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE85C5C))),
       ),
     );
   }
@@ -999,8 +1241,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF78909C)),
-        prefixIcon: const Icon(Icons.category, color: Color(0xFF78909C)),
+        labelStyle: const TextStyle(color: Colors.white54),
+        prefixIcon: const Icon(Icons.category, color: Colors.white54, size: 20),
         filled: true,
         fillColor: const Color(0xFF1A1F2E),
         border: OutlineInputBorder(
@@ -1012,64 +1254,268 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Color(0xFF1E88E5))),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE85C5C))),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE85C5C))),
       ),
     );
   }
 
   void _showUnitDetails(dynamic unit) {
+    final firearmCount = unit['firearm_count'] ?? unit['firearms_count'] ?? 0;
+    final officerCount = unit['officer_count'] ?? unit['officers_count'] ?? 0;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A3040),
-        title: Text(
-          unit['unit_name'] ?? 'Unit Details',
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('Type', _formatUnitType(unit['unit_type'])),
-            _buildDetailRow('Location', unit['location'] ?? 'N/A'),
-            _buildDetailRow('Province', unit['province'] ?? 'N/A'),
-            _buildDetailRow('District', unit['district'] ?? 'N/A'),
-            _buildDetailRow(
-                'Commander', unit['commander_name'] ?? 'Not assigned'),
-            _buildDetailRow('Phone', unit['contact_phone'] ?? 'N/A'),
-            _buildDetailRow('Email', unit['contact_email'] ?? 'N/A'),
-            _buildDetailRow(
-              'Status',
-              unit['is_active'] == true ? 'Active' : 'Inactive',
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (dialogContext) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 500,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(dialogContext).size.height * 0.85,
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            decoration: BoxDecoration(
+              color: const Color(0xFF252A3A),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1F2E),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+                        ),
+                        child: Icon(
+                          _getUnitIcon(unit['unit_type']),
+                          color: const Color(0xFF1E88E5),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Unit Details',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              'View unit information',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(Icons.close, color: Colors.white54),
+                        hoverColor: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ],
+                  ),
+                ),
+                // Body
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Unit Icon & Name
+                        Center(
+                          child: Column(
+                            children: [
+                              CircleAvatar(
+                                radius: 48,
+                                backgroundColor:
+                                    _getTypeColor(unit['unit_type'])
+                                        .withValues(alpha: 0.2),
+                                child: Icon(
+                                  _getUnitIcon(unit['unit_type']),
+                                  color: _getTypeColor(unit['unit_type']),
+                                  size: 36,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                unit['unit_name'] ?? 'Unknown',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: unit['is_active'] == true
+                                      ? const Color(0xFF3CCB7F)
+                                          .withValues(alpha: 0.15)
+                                      : const Color(0xFFE85C5C)
+                                          .withValues(alpha: 0.15),
+                                ),
+                                child: Text(
+                                  unit['is_active'] == true
+                                      ? 'Active'
+                                      : 'Inactive',
+                                  style: TextStyle(
+                                    color: unit['is_active'] == true
+                                        ? const Color(0xFF3CCB7F)
+                                        : const Color(0xFFE85C5C),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildDetailSection('Basic Information', [
+                          _buildDetailRow(
+                              'Unit Name', unit['unit_name'] ?? 'N/A'),
+                          _buildDetailRow(
+                              'Type', _formatUnitType(unit['unit_type'])),
+                          _buildDetailRow('Commander',
+                              unit['commander_name'] ?? 'Not assigned'),
+                        ]),
+                        const SizedBox(height: 24),
+                        _buildDetailSection('Location', [
+                          _buildDetailRow('Address', unit['location'] ?? 'N/A'),
+                          _buildDetailRow(
+                              'Province', unit['province'] ?? 'N/A'),
+                          _buildDetailRow(
+                              'District', unit['district'] ?? 'N/A'),
+                        ]),
+                        const SizedBox(height: 24),
+                        _buildDetailSection('Contact Information', [
+                          _buildDetailRow(
+                              'Phone', unit['contact_phone'] ?? 'N/A'),
+                          _buildDetailRow(
+                              'Email', unit['contact_email'] ?? 'N/A'),
+                        ]),
+                        const SizedBox(height: 24),
+                        _buildDetailSection('Statistics', [
+                          _buildDetailRow('Firearms', '$firearmCount'),
+                          _buildDetailRow('Officers', '$officerCount'),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ),
+                // Footer
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1F2E),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF37404F),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        ),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildDetailSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1F2E),
+            border: Border.all(color: const Color(0xFF37404F)),
+          ),
+          child: Column(children: children),
+        ),
+      ],
     );
   }
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(
-              '$label:',
-              style: const TextStyle(color: Color(0xFF78909C)),
+              label,
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 13,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

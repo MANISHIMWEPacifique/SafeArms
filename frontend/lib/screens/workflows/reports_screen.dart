@@ -9,6 +9,7 @@ import '../../providers/approval_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../services/report_service.dart';
 import '../../services/firearm_service.dart';
+import '../../widgets/searchable_dropdown.dart';
 
 class ReportsScreen extends StatefulWidget {
   final String? roleType; // 'station', 'hq', 'investigator', 'admin'
@@ -1089,35 +1090,20 @@ class _ReportsScreenState extends State<ReportsScreen>
   }
 
   Widget _buildFirearmDropdown(String? value, Function(String?) onChanged) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      hint: const Text('Select Firearm',
-          style: TextStyle(color: Color(0xFF78909C))),
-      dropdownColor: const Color(0xFF2A3040),
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: 'Firearm',
-        labelStyle: const TextStyle(color: Color(0xFF78909C)),
-        prefixIcon: const Icon(Icons.gps_fixed, color: Color(0xFF78909C)),
-        filled: true,
-        fillColor: const Color(0xFF1A1F2E),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF37404F))),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF37404F))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF1E88E5))),
-      ),
-      items: _unitFirearms
-          .map((f) => DropdownMenuItem(
-                value: f['firearm_id']?.toString(),
-                child: Text(
-                    '${f['serial_number']} - ${f['manufacturer']} ${f['model']}'),
-              ))
-          .toList(),
+    return SearchableDropdown<String>(
+      items: _unitFirearms.map((f) {
+        return SearchableDropdownItem<String>(
+          value: f['firearm_id']?.toString() ?? '',
+          label: '${f['serial_number']} - ${f['manufacturer']} ${f['model']}',
+          subtitle:
+              '${f['firearm_type'] ?? ''} \u2022 ${f['caliber'] ?? 'N/A'}',
+          icon: Icons.gps_fixed,
+        );
+      }).toList(),
+      value: value,
+      hintText: 'Search by serial number, manufacturer, model...',
+      labelText: 'Firearm',
+      prefixIcon: Icons.gps_fixed,
       onChanged: onChanged,
     );
   }

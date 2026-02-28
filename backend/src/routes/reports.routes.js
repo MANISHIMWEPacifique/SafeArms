@@ -70,12 +70,12 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
 
             const firearms = await query(`
                 SELECT f.firearm_id, f.serial_number, f.firearm_type, f.caliber,
-                       f.registration_date, f.current_status,
+                       f.manufacturer, f.model, f.acquisition_date, f.current_status,
                        u.unit_name
                 FROM firearms f
                 LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
-                ${firearmFilter.replace('created_at', 'f.registration_date')}
-                ORDER BY f.registration_date DESC
+                ${(firearmFilter + dateFilter).replace(/created_at/g, 'f.created_at')}
+                ORDER BY f.created_at DESC
                 LIMIT 100
             `, fParams);
 
@@ -88,7 +88,8 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
             if (firearmIds.length > 0) {
                 const custodyResult = await query(`
                     SELECT cr.custody_id, cr.firearm_id, cr.issued_at, cr.returned_at,
-                           cr.custody_status, cr.custody_type,
+                           cr.custody_type,
+                           CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as custody_status,
                            o.full_name as officer_name, o.officer_id,
                            u.unit_name,
                            CASE WHEN cr.returned_at IS NOT NULL 
@@ -115,8 +116,10 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 // Get ballistic profile for first firearm (for investigator detail view)
                 if (firearmIds.length === 1 || serial_number) {
                     const bpResult = await query(`
-                        SELECT bp.caliber, bp.barrel_length, bp.rifling_type,
-                               bp.chamber_type, bp.breech_face_marks, bp.firing_pin_shape,
+                        SELECT bp.ballistic_id, bp.rifling_characteristics, bp.firing_pin_impression,
+                               bp.ejector_marks, bp.extractor_marks, bp.chamber_marks,
+                               bp.test_date, bp.test_location, bp.forensic_lab,
+                               bp.is_locked, bp.registration_hash,
                                bp.created_at
                         FROM ballistic_profiles bp
                         WHERE bp.firearm_id = $1
@@ -156,7 +159,8 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
 
             const custody = await query(`
                 SELECT cr.custody_id, cr.issued_at, cr.returned_at,
-                       cr.custody_status, cr.custody_type,
+                       cr.custody_type,
+                       CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as custody_status,
                        f.serial_number, f.firearm_type,
                        o.full_name as officer_name,
                        u.unit_name
@@ -164,7 +168,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 LEFT JOIN firearms f ON cr.firearm_id = f.firearm_id
                 LEFT JOIN officers o ON cr.officer_id = o.officer_id
                 LEFT JOIN units u ON cr.unit_id = u.unit_id
-                ${custodyFilter.replace('created_at', 'cr.issued_at')}
+                ${(custodyFilter + dateFilter).replace(/created_at/g, 'cr.issued_at')}
                 ORDER BY cr.issued_at DESC
                 LIMIT 100
             `, cParams);
@@ -191,14 +195,15 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
             }
 
             const profiles = await query(`
-                SELECT bp.profile_id, bp.caliber, bp.barrel_length,
-                       bp.rifling_type, bp.chamber_type,
-                       bp.breech_face_marks, bp.firing_pin_shape,
+                SELECT bp.ballistic_id, bp.rifling_characteristics, bp.firing_pin_impression,
+                       bp.ejector_marks, bp.extractor_marks, bp.chamber_marks,
+                       bp.test_date, bp.test_location, bp.forensic_lab,
+                       bp.is_locked, bp.registration_hash,
                        bp.created_at,
-                       f.serial_number, f.firearm_type
+                       f.serial_number, f.firearm_type, f.caliber
                 FROM ballistic_profiles bp
                 LEFT JOIN firearms f ON bp.firearm_id = f.firearm_id
-                ${bpFilter.replace('created_at', 'bp.created_at')}
+                ${(bpFilter + dateFilter).replace(/created_at/g, 'bp.created_at')}
                 ORDER BY bp.created_at DESC
                 LIMIT 100
             `, bParams);
@@ -227,7 +232,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 FROM anomalies a
                 LEFT JOIN firearms f ON a.firearm_id = f.firearm_id
                 LEFT JOIN units u ON a.unit_id = u.unit_id
-                ${aFilter.replace('created_at', 'a.detected_at')}
+                ${(aFilter + dateFilter).replace(/created_at/g, 'a.detected_at')}
                 ORDER BY a.detected_at DESC
                 LIMIT 100
             `, aParams);
@@ -274,7 +279,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                        u.username, u.role, u.full_name
                 FROM audit_logs al
                 LEFT JOIN users u ON al.user_id = u.user_id
-                ${uaFilter.replace(/created_at/g, 'al.created_at')}
+                ${(uaFilter + dateFilter).replace(/created_at/g, 'al.created_at')}
                 ORDER BY al.created_at DESC
                 LIMIT 200
             `, uaParams);
@@ -311,7 +316,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                        u.username, u.full_name as actor_name, u.role
                 FROM audit_logs al
                 LEFT JOIN users u ON al.user_id = u.user_id
-                ${alFilter.replace(/created_at/g, 'al.created_at')}
+                ${(alFilter + dateFilter).replace(/created_at/g, 'al.created_at')}
                 ORDER BY al.created_at DESC
                 LIMIT 200
             `, alParams);

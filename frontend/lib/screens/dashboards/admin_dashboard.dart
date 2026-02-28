@@ -303,15 +303,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
       child: Row(
         children: [
-          const Flexible(
-            child: Text(
-              'Dashboard',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-              overflow: TextOverflow.ellipsis,
+          const Text(
+            'Dashboard',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const Spacer(),
@@ -319,68 +316,63 @@ class _AdminDashboardState extends State<AdminDashboard> {
             builder: (context) {
               final authProvider = Provider.of<AuthProvider>(context);
               final userName = authProvider.userName ?? 'Admin';
-              return Flexible(
-                child: TextButton.icon(
-                  onPressed: () {
-                    showMenu(
-                      context: context,
-                      position: const RelativeRect.fromLTRB(1000, 64, 0, 0),
-                      color: const Color(0xFF2A3040),
-                      items: <PopupMenuEntry<dynamic>>[
-                        PopupMenuItem(
-                          enabled: false,
-                          child: Text(userName,
-                              style: const TextStyle(
-                                  color: Color(0xFF78909C), fontSize: 13)),
-                        ),
-                        const PopupMenuDivider(),
-                        PopupMenuItem(
-                          onTap: () {
-                            authProvider.logout();
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                  builder: (_) => const LoginScreen()),
-                              (route) => false,
-                            );
-                          },
-                          child: const Row(
-                            children: [
-                              Icon(Icons.logout,
-                                  color: Color(0xFFE85C5C), size: 18),
-                              SizedBox(width: 8),
-                              Text('Logout',
-                                  style: TextStyle(color: Color(0xFFE85C5C))),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                  icon: const CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Color(0xFF1E88E5),
-                    child: Icon(Icons.person, color: Colors.white, size: 18),
-                  ),
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          userName,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+              return TextButton.icon(
+                onPressed: () {
+                  showMenu(
+                    context: context,
+                    position: const RelativeRect.fromLTRB(1000, 64, 0, 0),
+                    color: const Color(0xFF2A3040),
+                    items: <PopupMenuEntry<dynamic>>[
+                      PopupMenuItem(
+                        enabled: false,
+                        child: Text(userName,
+                            style: const TextStyle(
+                                color: Color(0xFF78909C), fontSize: 13)),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Color(0xFF78909C),
-                        size: 20,
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        onTap: () {
+                          authProvider.logout();
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                                builder: (_) => const LoginScreen()),
+                            (route) => false,
+                          );
+                        },
+                        child: const Row(
+                          children: [
+                            Icon(Icons.logout,
+                                color: Color(0xFFE85C5C), size: 18),
+                            SizedBox(width: 8),
+                            Text('Logout',
+                                style: TextStyle(color: Color(0xFFE85C5C))),
+                          ],
+                        ),
                       ),
                     ],
-                  ),
+                  );
+                },
+                icon: const CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Color(0xFF1E88E5),
+                  child: Icon(Icons.person, color: Colors.white, size: 18),
+                ),
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(width: 8),
+                    Text(
+                      userName,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Color(0xFF78909C),
+                      size: 20,
+                    ),
+                  ],
                 ),
               );
             },

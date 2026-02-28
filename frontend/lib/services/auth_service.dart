@@ -175,6 +175,50 @@ class AuthService {
     }
   }
 
+  /// Change user password (used for first-time password change and password updates)
+  Future<Map<String, dynamic>> changePassword(
+      String oldPassword, String newPassword) async {
+    final token = await getToken();
+    if (token == null) {
+      return {'success': false, 'message': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.changePasswordUrl),
+            headers: ApiConfig.authHeaders(token),
+            body: json.encode({
+              'old_password': oldPassword,
+              'new_password': newPassword,
+            }),
+          )
+          .timeout(ApiConfig.connectionTimeout);
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        // Update stored user data to clear must_change_password flag
+        final userData = await getUserData();
+        if (userData != null) {
+          userData['must_change_password'] = false;
+          await _storage.write(key: _userKey, value: json.encode(userData));
+        }
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Password changed successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Failed to change password',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: ${e.toString()}'};
+    }
+  }
+
   /// Logout and clear stored data
   Future<void> logout() async {
     try {

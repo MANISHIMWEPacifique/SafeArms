@@ -1,16 +1,14 @@
-# 🎉 SafeArms Frontend - STRUCTURE COMPLETE
+# SafeArms Frontend — Structure & Implementation Summary
 
-## ✅ Status: 54 Frontend Files Created (100%)
-
-**All Flutter files created as empty placeholders with comment headers.**  
-**Ready for your custom UI design implementation!**
+**Last Updated:** February 28, 2026  
+**Status:** 60+ Flutter files fully implemented
 
 ---
 
-## 📊 Complete File Breakdown
+## Complete File Breakdown
 
 ### **Configuration (4 files)**
-✅ `pubspec.yaml` - Dependencies configured  
+✅ `pubspec.yaml` - Dependencies configured (includes pdf, printing, intl)  
 ✅ `lib/config/api_config.dart` - API configuration  
 ✅ `lib/config/theme_config.dart` - Theme configuration  
 ✅ `lib/config/constants.dart` - App constants  
@@ -27,27 +25,27 @@
 ✅ `lib/models/destruction_request_model.dart`  
 ✅ `lib/models/procurement_request_model.dart`  
 
-### **Services (11 files)**
+### **Services (11+ files)**
 ✅ `lib/services/api_client.dart`  
 ✅ `lib/services/auth_service.dart`  
 ✅ `lib/services/user_service.dart`  
 ✅ `lib/services/unit_service.dart`  
 ✅ `lib/services/officer_service.dart`  
 ✅ `lib/services/firearm_service.dart`  
-✅ `lib/services/ballistic_service.dart`  
+✅ `lib/services/ballistic_service.dart` / `ballistic_profile_service.dart`  
 ✅ `lib/services/custody_service.dart`  
 ✅ `lib/services/anomaly_service.dart`  
 ✅ `lib/services/workflow_service.dart`  
 ✅ `lib/services/report_service.dart`  
 
-### **Providers (5 files)**
+### **Providers (5+ files)**
 ✅ `lib/providers/auth_provider.dart`  
 ✅ `lib/providers/user_provider.dart`  
 ✅ `lib/providers/firearm_provider.dart`  
 ✅ `lib/providers/custody_provider.dart`  
 ✅ `lib/providers/anomaly_provider.dart`  
 
-### **Screens (17 files)**
+### **Screens (20+ files)**
 
 **Authentication (3 screens)**
 ✅ `lib/screens/auth/login_screen.dart`  
@@ -55,28 +53,35 @@
 ✅ `lib/screens/auth/unit_confirmation_screen.dart`  
 
 **Dashboards (4 screens)**
-✅ `lib/screens/dashboards/admin_dashboard.dart`  
+✅ `lib/screens/dashboards/admin_dashboard.dart` - Profile position fixed  
 ✅ `lib/screens/dashboards/hq_commander_dashboard.dart`  
 ✅ `lib/screens/dashboards/station_commander_dashboard.dart`  
 ✅ `lib/screens/dashboards/investigator_dashboard.dart`  
 
 **Management (7 screens)**
-✅ `lib/screens/management/units_management_screen.dart`  
-✅ `lib/screens/management/user_management_screen.dart`  
-✅ `lib/screens/management/firearms_registry_screen.dart`  
+✅ `lib/screens/management/units_management_screen.dart` - Modal restyled  
+✅ `lib/screens/management/user_management_screen.dart` - Edit dialog + password reset  
+✅ `lib/screens/management/firearms_registry_screen.dart` - Copy serial to clipboard  
 ✅ `lib/screens/management/custody_management_screen.dart`  
-✅ `lib/screens/management/officer_registry_screen.dart`  
+✅ `lib/screens/management/officer_registry_screen.dart` - Modal restyled  
 ✅ `lib/screens/management/ballistic_profiles_screen.dart`  
 ✅ `lib/screens/management/system_settings_screen.dart`  
 
-**Workflows (2 screens)**
+**Workflows (5 screens)**
 ✅ `lib/screens/workflows/operations_portal_screen.dart`  
 ✅ `lib/screens/workflows/approvals_portal_screen.dart`  
+✅ `lib/screens/workflows/investigator_reports_screen.dart` - **PDF export, corrected columns**  
+✅ `lib/screens/workflows/hq_reports_screen.dart` - **PDF export, corrected columns**  
+✅ `lib/screens/workflows/admin_reports_screen.dart` - **PDF export**  
 
-**Anomaly (1 screen)**
+**Anomaly (2 screens)**
+✅ `lib/screens/anomaly/anomaly_detection_screen.dart` - **Stats/filter sizing adjusted**  
 ✅ `lib/screens/anomaly/anomaly_dashboard_screen.dart`  
 
-### **Widgets (11 files)**
+**Forensic (1 screen)**
+✅ `lib/screens/forensic/forensic_search_screen.dart` - **Single-field search, incident date, pagination**  
+
+### **Widgets (11+ files)**
 ✅ `lib/widgets/app_bar_widget.dart`  
 ✅ `lib/widgets/side_menu_widget.dart`  
 ✅ `lib/widgets/data_table_widget.dart`  
@@ -89,127 +94,77 @@
 ✅ `lib/widgets/custody_dialog.dart`  
 ✅ `lib/widgets/confirmation_dialog.dart`  
 
-### **Utilities (3 files)**
+### **Utilities (4 files)**
 ✅ `lib/utils/validators.dart`  
 ✅ `lib/utils/date_formatter.dart`  
 ✅ `lib/utils/helpers.dart`  
+✅ `lib/utils/pdf_report_generator.dart` - **NEW: Shared PDF report builder (6 report types)**  
 
-### **Assets & Web (4 files)**
-✅ `assets/images/.gitkeep`  
-✅ `assets/icons/.gitkeep`  
+### **Assets & Web**
+✅ `assets/images/`, `assets/icons/`  
 ✅ `web/index.html`  
-✅ `README.md`  
 
-### **Entry Point (1 file)**
-✅ `lib/main.dart`  
+### **Entry Point**
+✅ `lib/main.dart` - MultiProvider with all providers  
 
 ---
 
-## 📦 Dependencies Included
-
-The `pubspec.yaml` includes:
+## Dependencies
 
 **State Management**
 - `provider` - State management
 
 **HTTP & API**
 - `http` - HTTP client
-- `dio` - Advanced HTTP client
 
 **Storage**
 - `shared_preferences` - Local storage
 - `flutter_secure_storage` - Secure storage for tokens
 
 **UI**
-- `google_fonts` - Custom fonts
-- `flutter_svg` - SVG support
 - `fl_chart` - Charts and graphs
 
+**PDF Export**
+- `pdf` - PDF document generation
+- `printing` - PDF preview, share, and download
+
 **Utilities**
-- `intl` - Internationalization
+- `intl` - Internationalization & date formatting
 
 ---
 
-## 🎯 What You Need to Do
+## Key Feature Implementations
 
-Each file currently contains only a comment header. You can now:
+### PDF Report Export
+- Shared `PdfReportGenerator` class in `lib/utils/pdf_report_generator.dart`
+- Supports 6 report types: firearm_history, custody_timeline, ballistic_summary, anomaly_summary, user_activity, audit_log
+- Uses built-in Helvetica fonts (no network download)
+- `Printing.sharePdf` for cross-platform file download
+- Wired into all 3 role-based report screens with try-catch error handling
 
-1. **Design your UI** in each screen file
-2. **Implement data models** matching the backend API
-3. **Create API services** to communicate with backend
-4. **Build state management** with providers
-5. **Design reusable widgets** for consistency
-6. **Add validation logic** in utilities
+### Forensic Investigation Search
+- Single-field search (serial number, case reference, officer name, etc.)
+- Incident date-based custody search
+- Paginated results with page navigation UI
+
+### Password Reset/Change
+- OTP-verified password change flow
+- Admin can reset user passwords from Edit User dialog
+
+### Anomaly Monitoring
+- Real-time anomaly detection with auto-refresh (2-minute interval)
+- Stats cards: Total Anomalies, Critical, High Priority, Medium, Open Cases
+- Filter by severity and status
+- Enlarged stats row, compact filter row
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-# Navigate to frontend
 cd frontend
-
-# Install dependencies
 flutter pub get
-
-# Run on Chrome
 flutter run -d chrome
-
-# Or run on Windows
-flutter run -d windows
 ```
 
----
-
-## 🔗 Backend Connection
-
-The backend API is at: `http://localhost:3000`
-
-Configure this in `lib/config/api_config.dart`
-
----
-
-## 📋 Recommended Implementation Order
-
-1. **Authentication Flow** (3 files)
-   - Login screen → OTP screen → Unit confirmation
-
-2. **API Integration** (4 files)
-   - API client → Auth service → Models → Providers
-
-3. **Dashboards** (4 files)
-   - One dashboard per role
-
-4. **Core Management** (7 files)
-   - CRUD screens for each entity
-
-5. **Workflows & Anomalies** (3 files)
-   - Operations portal → Approvals → Anomaly dashboard
-
-6. **Reusable Widgets** (11 files)
-   - Side menu → App bar → Cards → Dialogs
-
----
-
-## ✨ Frontend Structure Benefits
-
-✅ **Clean separation** - Models, Services, Providers, Screens, Widgets  
-✅ **Scalable architecture** - Easy to add new features  
-✅ **Reusable components** - Consistent UI across the app  
-✅ **State management ready** - Provider pattern configured  
-✅ **API integration ready** - Service layer prepared  
-
----
-
-## 🎨 Design Freedom
-
-All files are empty placeholders - **you have complete design freedom!**
-
-Implement your own:
-- Color schemes
-- Typography
-- Layout designs
-- Animations
-- User interactions
-
-The structure is ready, the design is yours! 🚀
+Backend API: `http://localhost:3000` (configure in `lib/config/api_config.dart`)

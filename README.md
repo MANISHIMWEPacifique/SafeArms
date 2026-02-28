@@ -12,12 +12,17 @@ SafeArms is a centralized digital platform for the Rwanda National Police to man
 ## Features
 - ✅ Dual-level firearm registration (HQ → Station)
 - ✅ Email-based two-factor authentication (OTP)
+- ✅ Password reset & change flow with OTP verification
 - ✅ Custody management (permanent, temporary, personal long-term)
-- ✅ ML-powered anomaly detection
+- ✅ ML-powered anomaly detection with auto-refresh monitoring
 - ✅ Ballistic profile storage for investigation support
 - ✅ Approval workflows (loss, destruction, procurement)
 - ✅ Role-based access control (4 roles)
 - ✅ Comprehensive audit logging
+- ✅ PDF report export (firearm history, custody timeline, ballistic summary, anomaly, user activity, audit log)
+- ✅ Forensic investigation search (single-field search, incident date, paginated results)
+- ✅ Report generation for all 3 role-based dashboards (Investigator, HQ Commander, Admin)
+- ✅ Copy serial number to clipboard from firearm registry
 
 ## System Architecture
 
@@ -27,11 +32,15 @@ SafeArms Platform
 │   ├── REST API
 │   ├── JWT Authentication + Email OTP
 │   ├── ML.js Anomaly Detection
+│   ├── Report Generation Engine (6 report types)
 │   └── PostgreSQL Database
 ├── Frontend (Flutter Web/Desktop)
-│   ├── Role-based Dashboards
+│   ├── Role-based Dashboards (Admin, HQ, Station, Investigator)
 │   ├── Management Screens
-│   └── Anomaly Investigation
+│   ├── Anomaly Investigation & Monitoring
+│   ├── PDF Report Export (pdf + printing packages)
+│   ├── Forensic Search with Pagination
+│   └── Password Reset/Change Flow
 └── Database (PostgreSQL)
     ├── Core Tables (firearms, custody, officers)
     ├── ML Tables (features, models, anomalies)
@@ -112,6 +121,7 @@ flutter run -d chrome
 - `/api/anomalies` - Anomaly management
 - `/api/approvals` - Workflow approvals
 - `/api/reports` - Reports and analytics
+- `/api/reports/generate` - Report generation (firearm_history, custody_timeline, ballistic_summary, anomaly_summary, user_activity, audit_log)
 - `/api/dashboard` - Dashboard data
 
 ## ML Anomaly Detection
@@ -146,26 +156,27 @@ safearms/
 │   │   ├── config/      # Database, auth, server config
 │   │   ├── middleware/  # Auth, RBAC, error handling
 │   │   ├── models/      # Database models
-│   │   ├── controllers/ # Route handlers
-│   │   ├── routes/      # API routes
+│   │   ├── routes/      # API routes & handlers
 │   │   ├── services/    # Business logic
 │   │   ├── ml/          # ML.js anomaly detection
 │   │   ├── jobs/        # Cron jobs
+│   │   ├── scripts/     # DB setup, seeding, migration
 │   │   └── utils/       # Utilities
 │   └── logs/           # Application logs
 ├── frontend/            # Flutter application
 │   ├── lib/
-│   │   ├── config/     # API config, theme
+│   │   ├── config/     # API config, theme, constants
 │   │   ├── models/     # Data models
 │   │   ├── services/   # API clients
-│   │   ├── providers/  # State management
-│   │   ├── screens/    # 17 screens
+│   │   ├── providers/  # State management (Provider)
+│   │   ├── screens/    # 20+ screens (auth, dashboards, management, workflows, anomaly, forensic)
 │   │   ├── widgets/    # Reusable widgets
-│   │   └── utils/      # Utilities
+│   │   └── utils/      # Utilities (validators, helpers, PDF generator)
 │   └── assets/         # Images, icons
 └── database/            # SQL scripts
     ├── schema.sql      # Database schema
-    └── seed_data.sql   # Initial data
+    ├── seed_data_new.sql # Seed data
+    └── migrations/     # Schema migrations
 ```
 
 ## Environment Variables

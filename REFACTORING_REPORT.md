@@ -1,6 +1,6 @@
 # SafeArms — Refactoring Report & Future Improvement Guide
 
-**Date:** February 17, 2026  
+**Date:** February 17, 2026 (initial) | **Updated:** February 28, 2026  
 **Scope:** Backend (Node.js/Express), Frontend (Flutter/Dart), Database  
 **Purpose:** Improve code quality, fix security vulnerabilities, optimize performance, and document remaining improvements
 
@@ -375,3 +375,54 @@ Add to `package.json`:
 | **Total** | **39** | **21** | **18** |
 
 All critical security vulnerabilities and bugs have been resolved. Remaining items are performance optimizations, code quality improvements, and architectural enhancements that can be addressed incrementally without affecting current functionality.
+
+---
+
+## 7. Changes Applied — February 28, 2026 Session
+
+### 7.1 Bug Fixes
+
+| # | File | Issue | Fix |
+|---|------|-------|-----|
+| 1 | `backend/src/routes/reports.routes.js` | **6 incorrect column names** — `f.registration_date`, `cr.custody_status`, `bp.caliber`, `bp.barrel_length`, `bp.rifling_type`, `bp.chamber_type`, `bp.breech_face_marks`, `bp.firing_pin_shape` do not exist in schema | Mapped to correct columns: `f.created_at`/`f.acquisition_date`, CASE WHEN for custody status, `bp.rifling_characteristics`, `bp.firing_pin_impression`, `bp.ejector_marks`, `bp.extractor_marks`, `bp.chamber_marks` |
+| 2 | `backend/src/routes/reports.routes.js` | **`dateFilter` never concatenated** — date params added to array but `$1`/`$2` placeholders never in SQL, causing "could not determine data type of parameter $1" | Appended `dateFilter` string to each of the 6 case filter strings before `.replace()` |
+| 3 | `frontend/lib/screens/management/firearms_registry_screen.dart` | **Copy serial number button empty** — `onPressed: () { // Copy serial number }` was a no-op | Added `Clipboard.setData(ClipboardData(text: firearm.serialNumber))` with SnackBar feedback |
+| 4 | `frontend/lib/screens/workflows/investigator_reports_screen.dart` | **Export PDF button no-op** — `onPressed: _reportGenerated ? () {} : null` | Created `_exportPdf()` method calling `PdfReportGenerator.generate()` with try-catch |
+| 5 | `frontend/lib/screens/workflows/hq_reports_screen.dart` | **Same empty Export PDF** | Added `_exportPdf()` with metadata (Unit, Date Range) and error handling |
+| 6 | `frontend/lib/screens/workflows/admin_reports_screen.dart` | **Same empty Export PDF** | Added `_exportPdf()` with metadata (Username, Role, Date Range) and error handling |
+| 7 | `frontend/lib/screens/workflows/investigator_reports_screen.dart` | **Stale column names in on-screen display** — `_buildMetadataGrid` referenced `caliber`, `chamber_type`, `rifling_type`, `breech_face_marks`, `firing_pin_shape` | Updated to `rifling_characteristics`, `firing_pin_impression`, `ejector_marks`, `extractor_marks`, `chamber_marks` |
+| 8 | `frontend/lib/screens/workflows/hq_reports_screen.dart` | **Stale ballistic table columns** — `barrel_length`, `rifling_type` | Updated to `rifling_characteristics`, `firing_pin_impression` |
+| 9 | `frontend/lib/utils/pdf_report_generator.dart` | **`PdfGoogleFonts` network download fails silently on web** | Replaced with built-in `pw.Font.helvetica()` family (no network needed) |
+| 10 | `frontend/lib/utils/pdf_report_generator.dart` | **`Printing.layoutPdf` popup blocked by browsers** | Switched to `Printing.sharePdf` (triggers direct file download) |
+| 11 | `frontend/lib/screens/management/user_management_screen.dart` | **`deprecated_member_use`** — `value` parameter deprecated on `DropdownButtonFormField` | Changed to `initialValue` |
+| 12 | `frontend/lib/screens/management/user_management_screen.dart` | **`unused_local_variable`** — `newPassword` declared but never read | Removed variable; `onSaved` now writes to `resetPasswordController.text` directly |
+| 13 | `frontend/lib/utils/pdf_report_generator.dart` | **4 unused color fields** — `_headerBg`, `_borderColor`, `_textColor`, `_titleColor` | Removed unused fields, kept only `_primaryColor` |
+
+### 7.2 New Features
+
+| # | File(s) | Feature |
+|---|---------|---------|
+| 1 | `frontend/lib/utils/pdf_report_generator.dart` | **NEW FILE** — Shared PDF report generator covering all 6 report types with tables, key-value grids, stat boxes, page headers/footers, CONFIDENTIAL banner |
+| 2 | `frontend/pubspec.yaml` | Added `pdf` and `printing` packages for PDF generation |
+| 3 | `frontend/lib/screens/forensic/forensic_search_screen.dart` | Enhanced with single-field search, incident date-based custody search, paginated results with page navigation |
+| 4 | `backend/src/models/BallisticProfile.js` | Enhanced with `incident_date` custody JOIN, pagination support (`page`, `limit`, `offset`), structured response `{data, total, page, pageSize, totalPages}` |
+
+### 7.3 UI Improvements
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `frontend/lib/screens/anomaly/anomaly_detection_screen.dart` | **Stats row enlarged** — padding 8→12, card padding 14×10→18×18, icon 18→22, label font 12→14, value font 20→24 |
+| 2 | `frontend/lib/screens/anomaly/anomaly_detection_screen.dart` | **Filter row compacted** — container padding 10→6, label font 12→11, label gap 4→2, dropdown text 14→13, dropdown padding 8→4, auto-refresh height 36→32 |
+| 3 | Multiple management screens | Unit/user/officer details modals restyled for visual consistency |
+| 4 | `frontend/lib/screens/dashboards/admin_dashboard.dart` | Profile widget position fixed |
+
+### Updated Impact Summary
+
+| Category | Feb 17 Fixed | Feb 28 Fixed | Total Fixed | Remaining |
+|----------|-------------|-------------|-------------|-----------|
+| **Critical Security** | 6 | 0 | 6 | 0 |
+| **Bug Fixes** | 7 | 13 | 20 | 0 |
+| **New Features** | 0 | 4 | 4 | 0 |
+| **UI Improvements** | 0 | 4 | 4 | 0 |
+| **Performance** | 1 | 0 | 1 | 5 |
+| **Code Quality** | 7 | 0 | 7 | 8 |

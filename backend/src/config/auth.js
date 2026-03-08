@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-require('dotenv').config();
 
 // JWT Configuration - require explicit secret in production
 const JWT_SECRET = process.env.JWT_SECRET || (

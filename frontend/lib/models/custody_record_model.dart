@@ -7,6 +7,7 @@ class CustodyRecordModel {
   final String officerId;
   final String unitId;
   final String custodyType;
+  final String? durationType;
   final DateTime issuedAt;
   final String issuedBy;
   final DateTime? expectedReturnDate;
@@ -28,6 +29,7 @@ class CustodyRecordModel {
     required this.officerId,
     required this.unitId,
     required this.custodyType,
+    this.durationType,
     required this.issuedAt,
     required this.issuedBy,
     this.expectedReturnDate,
@@ -51,6 +53,7 @@ class CustodyRecordModel {
       officerId: json['officer_id'] ?? '',
       unitId: json['unit_id'] ?? '',
       custodyType: json['custody_type'] ?? '',
+      durationType: json['duration_type'],
       issuedAt: json['issued_at'] != null
           ? DateTime.parse(json['issued_at'])
           : DateTime.now(),
@@ -83,6 +86,7 @@ class CustodyRecordModel {
       'officer_id': officerId,
       'unit_id': unitId,
       'custody_type': custodyType,
+      'duration_type': durationType,
       'issued_at': issuedAt.toIso8601String(),
       'issued_by': issuedBy,
       'expected_return_date': expectedReturnDate?.toIso8601String(),

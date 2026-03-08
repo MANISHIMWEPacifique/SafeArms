@@ -148,7 +148,7 @@ class _ReturnCustodyModalState extends State<ReturnCustodyModal> {
                   'Return Firearm',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -175,9 +175,15 @@ class _ReturnCustodyModalState extends State<ReturnCustodyModal> {
   Widget _buildCustodyInfo() {
     final custody = widget.custodyRecord;
     final assignedDate = DateTime.tryParse(custody['assigned_date'] ?? '');
+    final expectedReturn = custody['expected_return_date'] != null
+        ? DateTime.tryParse(custody['expected_return_date'])
+        : null;
+    final durationType = custody['duration_type'];
     final duration = assignedDate != null
         ? DateTime.now().difference(assignedDate)
         : Duration.zero;
+    final isOverdue =
+        expectedReturn != null && DateTime.now().isAfter(expectedReturn);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -205,12 +211,24 @@ class _ReturnCustodyModalState extends State<ReturnCustodyModal> {
             label: 'Custody Type',
             value: _formatCustodyType(custody['custody_type'] ?? 'permanent'),
           ),
+          if (durationType != null) ...[
+            const Divider(color: Color(0xFF37404F), height: 24),
+            _buildInfoRow(
+              icon: Icons.schedule,
+              label: 'Duration Type',
+              value: _formatDurationType(durationType),
+            ),
+          ],
           const Divider(color: Color(0xFF37404F), height: 24),
           _buildInfoRow(
             icon: Icons.access_time,
-            label: 'Duration',
+            label: 'Elapsed',
             value: _formatDuration(duration),
           ),
+          if (expectedReturn != null) ...[
+            const Divider(color: Color(0xFF37404F), height: 24),
+            _buildExpectedReturnRow(expectedReturn, isOverdue),
+          ],
         ],
       ),
     );
@@ -535,6 +553,109 @@ class _ReturnCustodyModalState extends State<ReturnCustodyModal> {
       default:
         return type;
     }
+  }
+
+  String _formatDurationType(String type) {
+    const labels = {
+      '6_hours': '6 Hours',
+      '8_hours': '8 Hours',
+      '12_hours': '12 Hours',
+      '1_day': '1 Day (24h)',
+    };
+    return labels[type] ?? type;
+  }
+
+  Widget _buildExpectedReturnRow(DateTime expectedReturn, bool isOverdue) {
+    final now = DateTime.now();
+    String statusText;
+    Color statusColor;
+
+    if (isOverdue) {
+      final overdue = now.difference(expectedReturn);
+      statusText = 'OVERDUE by ${_formatDuration(overdue)}';
+      statusColor = const Color(0xFFE85C5C);
+    } else {
+      final remaining = expectedReturn.difference(now);
+      statusText = '${_formatDuration(remaining)} remaining';
+      statusColor = const Color(0xFF3CCB7F);
+    }
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(
+              isOverdue ? Icons.warning_amber : Icons.event,
+              color: const Color(0xFF78909C),
+              size: 18,
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Expected Return:',
+              style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+            ),
+            const Spacer(),
+            Text(
+              _formatDateTime(expectedReturn),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isOverdue ? Icons.warning : Icons.check_circle,
+                color: statusColor,
+                size: 14,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                statusText,
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final amPm = dt.hour >= 12 ? 'PM' : 'AM';
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '${months[dt.month - 1]} ${dt.day} at $hour:$minute $amPm';
   }
 
   String _formatDuration(Duration duration) {

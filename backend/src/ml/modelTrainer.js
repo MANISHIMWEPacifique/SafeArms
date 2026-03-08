@@ -14,7 +14,7 @@ const logger = require('../utils/logger');
  */
 const trainModel = async (options = {}) => {
     try {
-        const { k = 6, minSamples = 100 } = options;
+        const { k = 6, minSamples = 50 } = options;
 
         logger.info('Starting model training...');
 
@@ -72,11 +72,11 @@ const checkRetrainingNeeded = async () => {
             (new Date() - new Date(model.training_date)) / (1000 * 60 * 60 * 24)
         );
 
-        // Check model age (retrain if > 30 days old)
-        if (modelAgeDays > 30) {
+        // Check model age (retrain if > 21 days / 3 weeks old)
+        if (modelAgeDays > 21) {
             return {
                 needed: true,
-                reason: `Model is ${modelAgeDays} days old (threshold: 30 days)`
+                reason: `Model is ${modelAgeDays} days old (threshold: 21 days)`
             };
         }
 

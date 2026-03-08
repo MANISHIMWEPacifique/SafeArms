@@ -638,7 +638,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     final auditActivities = provider.recentActivities;
 
     // Maximum number of activities to display in the dashboard
-    const int maxDisplayItems = 10;
+    const int maxDisplayItems = 6;
 
     // Build display list combining custody events and audit log activities
     final List<Map<String, dynamic>> displayList = [];

@@ -15,6 +15,7 @@ const {
 const { logCreate, logUpdate } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query, withTransaction } = require('../config/database');
+const logger = require('../utils/logger');
 
 /**
  * Firearms Routes - Chain of Custody and Registry Management
@@ -73,7 +74,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         queryParams.assigned_unit_id = userUnitId;
         // Log attempted bypass for security audit
         if (req.query.assigned_unit_id && req.query.assigned_unit_id !== userUnitId) {
-            console.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query unit ${req.query.assigned_unit_id} (assigned: ${userUnitId})`);
+            logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query unit ${req.query.assigned_unit_id} (assigned: ${userUnitId})`);
         }
     }
     
@@ -92,7 +93,7 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
     if (role === 'station_commander') {
         queryUnitId = userUnitId; // Force their unit - ignore any passed unit_id
         if (unit_id && unit_id !== userUnitId) {
-            console.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query stats for unit ${unit_id} (assigned: ${userUnitId})`);
+            logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query stats for unit ${unit_id} (assigned: ${userUnitId})`);
         }
     }
     

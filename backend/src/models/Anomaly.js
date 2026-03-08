@@ -103,12 +103,17 @@ const Anomaly = {
     },
 
     async update(anomalyId, updates) {
+        const ALLOWED_FIELDS = [
+            'status', 'investigated_by', 'investigation_notes',
+            'resolution_date'
+        ];
+
         const fields = [];
         const values = [];
         let pCount = 0;
 
         Object.entries(updates).forEach(([key, value]) => {
-            if (value !== undefined) {
+            if (value !== undefined && ALLOWED_FIELDS.includes(key)) {
                 pCount++;
                 fields.push(`${key} = $${pCount}`);
                 values.push(value);
@@ -121,10 +126,111 @@ const Anomaly = {
         values.push(anomalyId);
 
         const result = await query(
-            `UPDATE anomalies SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP 
+            `UPDATE anomalies SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
        WHERE anomaly_id = $${pCount} RETURNING *`,
             values
         );
+        return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
+    },
+
+    async investigate(anomalyId, userId, notes) {
+        const anomalyResult = await query(`
+            UPDATE anomalies
+            SET status = 'investigating',
+                investigated_by = COALESCE(investigated_by, $2),
+                investigation_notes = CASE
+                    WHEN investigation_notes IS NOT NULL AND investigation_notes != ''
+                    THEN investigation_notes || E'\n' || $3
+                    ELSE $3
+                END,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE anomaly_id = $1
+            RETURNING *
+        `, [anomalyId, userId, notes || 'Investigation started']);
+
+        if (anomalyResult.rows.length === 0) return null;
+
+        // Create investigation record
+        const idResult = await query(`
+            SELECT COALESCE(MAX(CAST(SUBSTRING(investigation_id FROM 5) AS INTEGER)), 0) as max_num
+            FROM anomaly_investigations WHERE investigation_id ~ '^INV-[0-9]+$'
+        `);
+        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+        const investigationId = `INV-${String(nextNum).padStart(3, '0')}`;
+
+        await query(`
+            INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_id, findings, action_taken, outcome)
+            VALUES ($1, $2, $3, $4, 'Investigation initiated', 'needs_further_review')
+        `, [investigationId, anomalyId, userId, notes || 'Investigation started']);
+
+        return parseDecimalFields(anomalyResult.rows[0], ANOMALY_DECIMAL_FIELDS);
+    },
+
+    async resolve(anomalyId, userId, notes) {
+        const result = await query(`
+            UPDATE anomalies
+            SET status = 'resolved',
+                investigated_by = COALESCE(investigated_by, $2),
+                investigation_notes = CASE
+                    WHEN investigation_notes IS NOT NULL AND investigation_notes != ''
+                    THEN investigation_notes || E'\n' || $3
+                    ELSE $3
+                END,
+                resolution_date = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE anomaly_id = $1
+            RETURNING *
+        `, [anomalyId, userId, notes || 'Resolved']);
+
+        if (result.rows.length === 0) return null;
+
+        // Create investigation record for resolution
+        const idResult = await query(`
+            SELECT COALESCE(MAX(CAST(SUBSTRING(investigation_id FROM 5) AS INTEGER)), 0) as max_num
+            FROM anomaly_investigations WHERE investigation_id ~ '^INV-[0-9]+$'
+        `);
+        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+        const investigationId = `INV-${String(nextNum).padStart(3, '0')}`;
+
+        await query(`
+            INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_id, findings, action_taken, outcome)
+            VALUES ($1, $2, $3, $4, 'Anomaly resolved', 'confirmed')
+        `, [investigationId, anomalyId, userId, notes || 'Resolved']);
+
+        return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
+    },
+
+    async markFalsePositive(anomalyId, userId, notes) {
+        const result = await query(`
+            UPDATE anomalies
+            SET status = 'false_positive',
+                investigated_by = COALESCE(investigated_by, $2),
+                investigation_notes = CASE
+                    WHEN investigation_notes IS NOT NULL AND investigation_notes != ''
+                    THEN investigation_notes || E'\n' || $3
+                    ELSE $3
+                END,
+                resolution_date = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE anomaly_id = $1
+            RETURNING *
+        `, [anomalyId, userId, notes || 'Marked as false positive']);
+
+        if (result.rows.length === 0) return null;
+
+        // Create investigation record for false positive
+        const idResult = await query(`
+            SELECT COALESCE(MAX(CAST(SUBSTRING(investigation_id FROM 5) AS INTEGER)), 0) as max_num
+            FROM anomaly_investigations WHERE investigation_id ~ '^INV-[0-9]+$'
+        `);
+        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+        const investigationId = `INV-${String(nextNum).padStart(3, '0')}`;
+
+        await query(`
+            INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_id, findings, action_taken, outcome)
+            VALUES ($1, $2, $3, $4, 'Marked as false positive', 'false_positive')
+        `, [investigationId, anomalyId, userId, notes || 'Marked as false positive']);
+
         return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
     },
 
@@ -266,6 +372,112 @@ const Anomaly = {
       GROUP BY a.anomaly_type
       ORDER BY count DESC
     `, params);
+        return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
+    },
+
+    /**
+     * Submit explanation for critical anomaly (station commander explains to HQ)
+     */
+    async submitExplanation(anomalyId, userId, message) {
+        const result = await query(`
+            UPDATE anomalies
+            SET explanation_message = $3,
+                explanation_by = $2,
+                explanation_date = CURRENT_TIMESTAMP,
+                status = CASE
+                    WHEN status = 'open' THEN 'investigating'
+                    ELSE status
+                END,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE anomaly_id = $1
+            RETURNING *
+        `, [anomalyId, userId, message]);
+
+        if (result.rows.length === 0) return null;
+
+        // Create investigation record for the explanation
+        const idResult = await query(`
+            SELECT COALESCE(MAX(CAST(SUBSTRING(investigation_id FROM 5) AS INTEGER)), 0) as max_num
+            FROM anomaly_investigations WHERE investigation_id ~ '^INV-[0-9]+$'
+        `);
+        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+        const investigationId = `INV-${String(nextNum).padStart(3, '0')}`;
+
+        await query(`
+            INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_id, findings, action_taken, outcome)
+            VALUES ($1, $2, $3, $4, 'Explanation submitted for critical anomaly', 'needs_further_review')
+        `, [investigationId, anomalyId, userId, message]);
+
+        return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
+    },
+
+    /**
+     * Search anomalies for investigation - filter by unit and time interval
+     */
+    async searchForInvestigation(filters = {}) {
+        const { unit_id, start_date, end_date, severity, status, limit = 100, offset = 0 } = filters;
+        let where = 'WHERE 1=1';
+        let params = [];
+        let pCount = 0;
+
+        if (unit_id) {
+            pCount++;
+            where += ` AND a.unit_id = $${pCount}`;
+            params.push(unit_id);
+        }
+
+        if (start_date) {
+            pCount++;
+            where += ` AND a.detected_at >= $${pCount}`;
+            params.push(start_date);
+        }
+
+        if (end_date) {
+            pCount++;
+            where += ` AND a.detected_at <= $${pCount}`;
+            params.push(end_date);
+        }
+
+        if (severity) {
+            pCount++;
+            where += ` AND a.severity = $${pCount}`;
+            params.push(severity);
+        }
+
+        if (status) {
+            pCount++;
+            where += ` AND a.status = $${pCount}`;
+            params.push(status);
+        }
+
+        pCount++;
+        params.push(limit);
+        pCount++;
+        params.push(offset);
+
+        const result = await query(`
+            SELECT a.*,
+                   f.serial_number, f.manufacturer, f.model,
+                   o.full_name as officer_name, o.rank,
+                   u.unit_name,
+                   cr.issue_date, cr.return_date, cr.custody_type,
+                   cr.shift_type
+            FROM anomalies a
+            JOIN firearms f ON a.firearm_id = f.firearm_id
+            JOIN officers o ON a.officer_id = o.officer_id
+            JOIN units u ON a.unit_id = u.unit_id
+            LEFT JOIN custody_records cr ON a.custody_record_id = cr.custody_id
+            ${where}
+            ORDER BY 
+                CASE a.severity 
+                    WHEN 'critical' THEN 1 
+                    WHEN 'high' THEN 2 
+                    WHEN 'medium' THEN 3 
+                    ELSE 4 
+                END,
+                a.detected_at DESC
+            LIMIT $${pCount - 1} OFFSET $${pCount}
+        `, params);
         return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
     }
 };

@@ -1,20 +1,18 @@
 // Approvals Service - API calls for HQ Commander review and approval
 // SafeArms Frontend
 
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
-import './auth_service.dart';
+import 'api_client.dart';
 
 class ApprovalsService {
-  final AuthService _authService = AuthService();
-
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _authService.getToken();
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+  /// Build query string from optional filters
+  String _buildQuery(Map<String, String?> params) {
+    final filtered = params.entries
+        .where(
+            (e) => e.value != null && e.value!.isNotEmpty && e.value != 'all')
+        .map((e) => '${e.key}=${e.value}')
+        .toList();
+    return filtered.isEmpty ? '' : '?${filtered.join('&')}';
   }
 
   // ===== LOSS REPORT APPROVALS =====
@@ -24,26 +22,10 @@ class ApprovalsService {
     String? unit,
   }) async {
     try {
-      final headers = await _getHeaders();
-      var url = '${ApiConfig.baseUrl}/api/approvals/loss-reports';
-
-      List<String> queryParams = [];
-      if (priority != null && priority != 'all')
-        queryParams.add('priority=$priority');
-      if (unit != null && unit != 'all') queryParams.add('unit=$unit');
-
-      if (queryParams.isNotEmpty) url += '?${queryParams.join('&')}';
-
-      final response = await http
-          .get(Uri.parse(url), headers: headers)
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'] ?? []);
-      } else {
-        throw Exception('Failed to load pending loss reports');
-      }
+      final query = _buildQuery({'priority': priority, 'unit': unit});
+      final data =
+          await ApiClient.get('${ApiConfig.approvalsUrl}/loss-reports$query');
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
       throw Exception('Error fetching pending loss reports: $e');
     }
@@ -55,22 +37,14 @@ class ApprovalsService {
     List<String>? followUpActions,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({
-        'approval_notes': approvalNotes,
-        'follow_up_actions': followUpActions,
-      });
-
-      final response = await http
-          .put(
-            Uri.parse(
-                '${ApiConfig.baseUrl}/api/approvals/loss-reports/$reportId/approve'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      return response.statusCode == 200;
+      await ApiClient.put(
+        '${ApiConfig.approvalsUrl}/loss-reports/$reportId/approve',
+        body: {
+          'approval_notes': approvalNotes,
+          'follow_up_actions': followUpActions,
+        },
+      );
+      return true;
     } catch (e) {
       throw Exception('Error approving loss report: $e');
     }
@@ -84,24 +58,16 @@ class ApprovalsService {
     String? resubmissionPriority,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({
-        'rejection_reason': rejectionReason,
-        'detailed_feedback': feedback,
-        'required_actions': requiredActions,
-        'resubmission_priority': resubmissionPriority,
-      });
-
-      final response = await http
-          .put(
-            Uri.parse(
-                '${ApiConfig.baseUrl}/api/approvals/loss-reports/$reportId/reject'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(const Duration(seconds: 30));
-
-      return response.statusCode == 200;
+      await ApiClient.put(
+        '${ApiConfig.approvalsUrl}/loss-reports/$reportId/reject',
+        body: {
+          'rejection_reason': rejectionReason,
+          'detailed_feedback': feedback,
+          'required_actions': requiredActions,
+          'resubmission_priority': resubmissionPriority,
+        },
+      );
+      return true;
     } catch (e) {
       throw Exception('Error rejecting loss report: $e');
     }
@@ -114,26 +80,10 @@ class ApprovalsService {
     String? unit,
   }) async {
     try {
-      final headers = await _getHeaders();
-      var url = '${ApiConfig.baseUrl}/api/approvals/destruction-requests';
-
-      List<String> queryParams = [];
-      if (priority != null && priority != 'all')
-        queryParams.add('priority=$priority');
-      if (unit != null && unit != 'all') queryParams.add('unit=$unit');
-
-      if (queryParams.isNotEmpty) url += '?${queryParams.join('&')}';
-
-      final response = await http
-          .get(Uri.parse(url), headers: headers)
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'] ?? []);
-      } else {
-        throw Exception('Failed to load pending destruction requests');
-      }
+      final query = _buildQuery({'priority': priority, 'unit': unit});
+      final data = await ApiClient.get(
+          '${ApiConfig.approvalsUrl}/destruction-requests$query');
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
       throw Exception('Error fetching pending destruction requests: $e');
     }
@@ -145,22 +95,14 @@ class ApprovalsService {
     DateTime? scheduledDate,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({
-        'approval_notes': approvalNotes,
-        'scheduled_destruction_date': scheduledDate?.toIso8601String(),
-      });
-
-      final response = await http
-          .put(
-            Uri.parse(
-                '${ApiConfig.baseUrl}/api/approvals/destruction-requests/$requestId/approve'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      return response.statusCode == 200;
+      await ApiClient.put(
+        '${ApiConfig.approvalsUrl}/destruction-requests/$requestId/approve',
+        body: {
+          'approval_notes': approvalNotes,
+          'scheduled_destruction_date': scheduledDate?.toIso8601String(),
+        },
+      );
+      return true;
     } catch (e) {
       throw Exception('Error approving destruction request: $e');
     }
@@ -173,26 +115,10 @@ class ApprovalsService {
     String? unit,
   }) async {
     try {
-      final headers = await _getHeaders();
-      var url = '${ApiConfig.baseUrl}/api/approvals/procurement-requests';
-
-      List<String> queryParams = [];
-      if (priority != null && priority != 'all')
-        queryParams.add('priority=$priority');
-      if (unit != null && unit != 'all') queryParams.add('unit=$unit');
-
-      if (queryParams.isNotEmpty) url += '?${queryParams.join('&')}';
-
-      final response = await http
-          .get(Uri.parse(url), headers: headers)
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'] ?? []);
-      } else {
-        throw Exception('Failed to load pending procurement requests');
-      }
+      final query = _buildQuery({'priority': priority, 'unit': unit});
+      final data = await ApiClient.get(
+          '${ApiConfig.approvalsUrl}/procurement-requests$query');
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
       throw Exception('Error fetching pending procurement requests: $e');
     }
@@ -204,22 +130,14 @@ class ApprovalsService {
     double? approvedAmount,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({
-        'approval_notes': approvalNotes,
-        'approved_amount': approvedAmount,
-      });
-
-      final response = await http
-          .put(
-            Uri.parse(
-                '${ApiConfig.baseUrl}/api/approvals/procurement-requests/$requestId/approve'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      return response.statusCode == 200;
+      await ApiClient.put(
+        '${ApiConfig.approvalsUrl}/procurement-requests/$requestId/approve',
+        body: {
+          'approval_notes': approvalNotes,
+          'approved_amount': approvedAmount,
+        },
+      );
+      return true;
     } catch (e) {
       throw Exception('Error approving procurement request: $e');
     }
@@ -229,20 +147,8 @@ class ApprovalsService {
 
   Future<Map<String, dynamic>> getApprovalStats() async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse('${ApiConfig.baseUrl}/api/approvals/stats'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'] ?? {};
-      } else {
-        throw Exception('Failed to load approval stats');
-      }
+      final data = await ApiClient.get('${ApiConfig.approvalsUrl}/stats');
+      return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error fetching approval stats: $e');
     }

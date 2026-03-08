@@ -1,65 +1,36 @@
-// Report Service
+﻿// Report Service
 // API calls for report generation
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+
 import '../config/api_config.dart';
-import './auth_service.dart';
+import 'api_client.dart';
 
 class ReportService {
-  final AuthService _authService = AuthService();
-
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _authService.getToken();
-    if (token == null || token.isEmpty) {
-      throw Exception('Not authenticated. Please log in again.');
-    }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+  /// Build query string from optional filters
+  String _buildQuery(Map<String, String?> params) {
+    final filtered = params.entries
+        .where((e) => e.value != null && e.value!.isNotEmpty && e.value != 'all')
+        .map((e) => '${e.key}=${e.value}')
+        .toList();
+    return filtered.isEmpty ? '' : '?${filtered.join('&')}';
   }
 
   // ============================================
   // LOSS REPORTS
   // ============================================
 
-  /// Get all loss reports
   Future<List<Map<String, dynamic>>> getLossReports({
     String? status,
     String? unitId,
   }) async {
     try {
-      final headers = await _getHeaders();
-      var url = '${ApiConfig.reportsUrl}/loss';
-
-      List<String> queryParams = [];
-      if (status != null && status.isNotEmpty && status != 'all') {
-        queryParams.add('status=$status');
-      }
-      if (unitId != null && unitId.isNotEmpty) {
-        queryParams.add('unit_id=$unitId');
-      }
-
-      if (queryParams.isNotEmpty) {
-        url += '?${queryParams.join('&')}';
-      }
-
-      final response = await http
-          .get(Uri.parse(url), headers: headers)
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'] ?? []);
-      } else {
-        throw Exception('Failed to load loss reports: ${response.statusCode}');
-      }
+      final query = _buildQuery({'status': status, 'unit_id': unitId});
+      final data = await ApiClient.get('${ApiConfig.reportsUrl}/loss$query');
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
       throw Exception('Error fetching loss reports: $e');
     }
   }
 
-  /// Create a loss report
   Future<Map<String, dynamic>> createLossReport({
     required String firearmId,
     required String lossType,
@@ -69,31 +40,18 @@ class ReportService {
     String? policeCaseNumber,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({
-        'firearm_id': firearmId,
-        'loss_type': lossType,
-        'circumstances': circumstances,
-        'loss_date': (lossDate ?? DateTime.now()).toIso8601String(),
-        'loss_location': lossLocation,
-        'police_case_number': policeCaseNumber,
-      });
-
-      final response = await http
-          .post(
-            Uri.parse('${ApiConfig.reportsUrl}/loss'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        return data['data'];
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Failed to create loss report');
-      }
+      final data = await ApiClient.post(
+        '${ApiConfig.reportsUrl}/loss',
+        body: {
+          'firearm_id': firearmId,
+          'loss_type': lossType,
+          'circumstances': circumstances,
+          'loss_date': (lossDate ?? DateTime.now()).toIso8601String(),
+          'loss_location': lossLocation,
+          'police_case_number': policeCaseNumber,
+        },
+      );
+      return data['data'];
     } catch (e) {
       throw Exception('Error creating loss report: $e');
     }
@@ -103,64 +61,36 @@ class ReportService {
   // DESTRUCTION REQUESTS
   // ============================================
 
-  /// Get all destruction requests
   Future<List<Map<String, dynamic>>> getDestructionRequests({
     String? status,
   }) async {
     try {
-      final headers = await _getHeaders();
       var url = '${ApiConfig.reportsUrl}/destruction';
-
       if (status != null && status.isNotEmpty && status != 'all') {
         url += '?status=$status';
       }
-
-      final response = await http
-          .get(Uri.parse(url), headers: headers)
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'] ?? []);
-      } else {
-        throw Exception(
-            'Failed to load destruction requests: ${response.statusCode}');
-      }
+      final data = await ApiClient.get(url);
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
       throw Exception('Error fetching destruction requests: $e');
     }
   }
 
-  /// Create a destruction request
   Future<Map<String, dynamic>> createDestructionRequest({
     required String firearmId,
     required String reason,
     String? notes,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({
-        'firearm_id': firearmId,
-        'destruction_reason': reason,
-        'condition_description': notes,
-      });
-
-      final response = await http
-          .post(
-            Uri.parse('${ApiConfig.reportsUrl}/destruction'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        return data['data'];
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(
-            error['message'] ?? 'Failed to create destruction request');
-      }
+      final data = await ApiClient.post(
+        '${ApiConfig.reportsUrl}/destruction',
+        body: {
+          'firearm_id': firearmId,
+          'destruction_reason': reason,
+          'condition_description': notes,
+        },
+      );
+      return data['data'];
     } catch (e) {
       throw Exception('Error creating destruction request: $e');
     }
@@ -170,35 +100,21 @@ class ReportService {
   // PROCUREMENT REQUESTS
   // ============================================
 
-  /// Get all procurement requests
   Future<List<Map<String, dynamic>>> getProcurementRequests({
     String? status,
   }) async {
     try {
-      final headers = await _getHeaders();
       var url = '${ApiConfig.reportsUrl}/procurement';
-
       if (status != null && status.isNotEmpty && status != 'all') {
         url += '?status=$status';
       }
-
-      final response = await http
-          .get(Uri.parse(url), headers: headers)
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'] ?? []);
-      } else {
-        throw Exception(
-            'Failed to load procurement requests: ${response.statusCode}');
-      }
+      final data = await ApiClient.get(url);
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
       throw Exception('Error fetching procurement requests: $e');
     }
   }
 
-  /// Create a procurement request
   Future<Map<String, dynamic>> createProcurementRequest({
     required String firearmType,
     required int quantity,
@@ -206,30 +122,16 @@ class ReportService {
     String? notes,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({
-        'firearm_type': firearmType,
-        'quantity': quantity,
-        'justification': justification,
-        'notes': notes,
-      });
-
-      final response = await http
-          .post(
-            Uri.parse('${ApiConfig.reportsUrl}/procurement'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        return data['data'];
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(
-            error['message'] ?? 'Failed to create procurement request');
-      }
+      final data = await ApiClient.post(
+        '${ApiConfig.reportsUrl}/procurement',
+        body: {
+          'firearm_type': firearmType,
+          'quantity': quantity,
+          'justification': justification,
+          'notes': notes,
+        },
+      );
+      return data['data'];
     } catch (e) {
       throw Exception('Error creating procurement request: $e');
     }
@@ -239,7 +141,6 @@ class ReportService {
   // CHAIN OF CUSTODY REPORTS
   // ============================================
 
-  /// Get chain of custody report for a firearm
   Future<Map<String, dynamic>> getChainOfCustodyReport({
     required String firearmId,
     DateTime? startDate,
@@ -247,9 +148,6 @@ class ReportService {
     String? reason,
   }) async {
     try {
-      final headers = await _getHeaders();
-      var url = '${ApiConfig.reportsUrl}/chain-of-custody/$firearmId';
-
       List<String> queryParams = [];
       if (startDate != null) {
         queryParams.add('start_date=${startDate.toIso8601String()}');
@@ -261,49 +159,23 @@ class ReportService {
         queryParams.add('reason=${Uri.encodeComponent(reason)}');
       }
 
-      if (queryParams.isNotEmpty) {
-        url += '?${queryParams.join('&')}';
-      }
+      var url = '${ApiConfig.reportsUrl}/chain-of-custody/$firearmId';
+      if (queryParams.isNotEmpty) url += '?${queryParams.join('&')}';
 
-      final response = await http
-          .get(Uri.parse(url), headers: headers)
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'] ?? {};
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(
-            error['message'] ?? 'Failed to load chain of custody report');
-      }
+      final data = await ApiClient.get(url);
+      return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error fetching chain of custody report: $e');
     }
   }
 
-  /// Verify chain of custody integrity
   Future<Map<String, dynamic>> verifyChainOfCustody({
     required String firearmId,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse(
-                '${ApiConfig.reportsUrl}/chain-of-custody/$firearmId/verify'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'] ?? {};
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(
-            error['message'] ?? 'Failed to verify chain of custody');
-      }
+      final data = await ApiClient.get(
+          '${ApiConfig.reportsUrl}/chain-of-custody/$firearmId/verify');
+      return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error verifying chain of custody: $e');
     }
@@ -313,85 +185,40 @@ class ReportService {
   // STATUS UPDATES
   // ============================================
 
-  /// Update loss report status
   Future<Map<String, dynamic>> updateLossReportStatus(
       String reportId, String status) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({'status': status});
-
-      final response = await http
-          .patch(
-            Uri.parse('${ApiConfig.reportsUrl}/loss/$reportId/status'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'] ?? {};
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(
-            error['message'] ?? 'Failed to update loss report status');
-      }
+      final data = await ApiClient.patch(
+        '${ApiConfig.reportsUrl}/loss/$reportId/status',
+        body: {'status': status},
+      );
+      return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error updating loss report: $e');
     }
   }
 
-  /// Update destruction request status
   Future<Map<String, dynamic>> updateDestructionRequestStatus(
       String requestId, String status) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({'status': status});
-
-      final response = await http
-          .patch(
-            Uri.parse('${ApiConfig.reportsUrl}/destruction/$requestId/status'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'] ?? {};
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(
-            error['message'] ?? 'Failed to update destruction request status');
-      }
+      final data = await ApiClient.patch(
+        '${ApiConfig.reportsUrl}/destruction/$requestId/status',
+        body: {'status': status},
+      );
+      return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error updating destruction request: $e');
     }
   }
 
-  /// Update procurement request status
   Future<Map<String, dynamic>> updateProcurementRequestStatus(
       String requestId, String status) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({'status': status});
-
-      final response = await http
-          .patch(
-            Uri.parse('${ApiConfig.reportsUrl}/procurement/$requestId/status'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'] ?? {};
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(
-            error['message'] ?? 'Failed to update procurement request status');
-      }
+      final data = await ApiClient.patch(
+        '${ApiConfig.reportsUrl}/procurement/$requestId/status',
+        body: {'status': status},
+      );
+      return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error updating procurement request: $e');
     }
@@ -401,7 +228,6 @@ class ReportService {
   // AUDIT TRAIL REPORTS
   // ============================================
 
-  /// Get audit trail for a specific entity
   Future<List<Map<String, dynamic>>> getAuditTrail({
     required String entityType,
     required String entityId,
@@ -409,43 +235,19 @@ class ReportService {
     int offset = 0,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse(
-                '${ApiConfig.reportsUrl}/audit-trail/$entityType/$entityId?limit=$limit&offset=$offset'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'] ?? []);
-      } else {
-        throw Exception('Failed to load audit trail: ${response.statusCode}');
-      }
+      final data = await ApiClient.get(
+          '${ApiConfig.reportsUrl}/audit-trail/$entityType/$entityId?limit=$limit&offset=$offset');
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
       throw Exception('Error fetching audit trail: $e');
     }
   }
 
-  /// Get audit summary (admin only)
   Future<Map<String, dynamic>> getAuditSummary({int days = 30}) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse('${ApiConfig.reportsUrl}/audit-summary?days=$days'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'] ?? {};
-      } else {
-        throw Exception('Failed to load audit summary: ${response.statusCode}');
-      }
+      final data = await ApiClient.get(
+          '${ApiConfig.reportsUrl}/audit-summary?days=$days');
+      return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error fetching audit summary: $e');
     }

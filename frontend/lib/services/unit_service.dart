@@ -1,41 +1,15 @@
 // Unit Service
 // API calls for unit management
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+
 import '../config/api_config.dart';
-import './auth_service.dart';
+import 'api_client.dart';
 
 class UnitService {
-  final AuthService _authService = AuthService();
-
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _authService.getToken();
-    if (token == null || token.isEmpty) {
-      throw Exception('Not authenticated. Please log in again.');
-    }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   // Get all units
   Future<List<dynamic>> getAllUnits() async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse(ApiConfig.units),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'] ?? [];
-      } else {
-        throw Exception('Failed to load units: ${response.statusCode}');
-      }
+      final data = await ApiClient.get(ApiConfig.units);
+      return data['data'] ?? [];
     } catch (e) {
       throw Exception('Error fetching units: $e');
     }
@@ -44,20 +18,8 @@ class UnitService {
   // Get unit by ID
   Future<dynamic> getUnitById(String unitId) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse('${ApiConfig.units}/$unitId'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'];
-      } else {
-        throw Exception('Failed to load unit: ${response.statusCode}');
-      }
+      final data = await ApiClient.get('${ApiConfig.units}/$unitId');
+      return data['data'];
     } catch (e) {
       throw Exception('Error fetching unit: $e');
     }
@@ -66,22 +28,8 @@ class UnitService {
   // Create unit
   Future<dynamic> createUnit(Map<String, dynamic> unitData) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .post(
-            Uri.parse(ApiConfig.units),
-            headers: headers,
-            body: json.encode(unitData),
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        return data['data'];
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Failed to create unit');
-      }
+      final data = await ApiClient.post(ApiConfig.units, body: unitData);
+      return data['data'];
     } catch (e) {
       throw Exception('Error creating unit: $e');
     }
@@ -91,44 +39,19 @@ class UnitService {
   Future<dynamic> updateUnit(
       String unitId, Map<String, dynamic> updates) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .put(
-            Uri.parse('${ApiConfig.units}/$unitId'),
-            headers: headers,
-            body: json.encode(updates),
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'];
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Failed to update unit');
-      }
+      final data =
+          await ApiClient.put('${ApiConfig.units}/$unitId', body: updates);
+      return data['data'];
     } catch (e) {
       throw Exception('Error updating unit: $e');
     }
   }
 
-  // Delete unit (permanent delete)
+  // Delete unit
   Future<bool> deleteUnit(String unitId) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .delete(
-            Uri.parse('${ApiConfig.units}/$unitId'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Failed to delete unit');
-      }
+      await ApiClient.delete('${ApiConfig.units}/$unitId');
+      return true;
     } catch (e) {
       throw Exception('Error deleting unit: $e');
     }

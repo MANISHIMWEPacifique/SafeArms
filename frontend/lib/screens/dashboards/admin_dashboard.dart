@@ -652,7 +652,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ),
             )
           else
-            ...recentActivities.take(8).map((activity) {
+            ...recentActivities.take(6).map((activity) {
               final actionType = activity['action_type']?.toString() ?? '';
               final tableName = activity['table_name']?.toString() ?? '';
               final actorName = activity['actor_name']?.toString() ?? 'System';

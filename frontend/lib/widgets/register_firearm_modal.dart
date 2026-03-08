@@ -285,7 +285,7 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
               ),
               const SizedBox(height: 4),
               const Text(
-                'Firearm must be assigned to a unit during HQ registration',
+                'Register and assign firearm details',
                 style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
               ),
             ],
@@ -490,10 +490,6 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
               label: 'Notes',
               hint: 'Additional information...',
               maxLines: 4,
-            ),
-            const SizedBox(height: 24),
-            _buildInfoBox(
-              'HQ Registration: Firearms must be assigned to a unit at registration time. Ballistic profile data can be captured in the next tab.',
             ),
           ],
         ),
@@ -939,28 +935,6 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildInfoBox(String text) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E3A5F),
-        borderRadius: BorderRadius.circular(8),
-        border:
-            const Border(left: BorderSide(color: Color(0xFF42A5F5), width: 4)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info, color: Color(0xFF42A5F5), size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(text,
-                style: const TextStyle(color: Color(0xFFE3F2FD), fontSize: 13)),
-          ),
-        ],
-      ),
     );
   }
 }

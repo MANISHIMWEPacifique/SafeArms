@@ -72,7 +72,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                     Expanded(
                       child: SingleChildScrollView(
                         child: Padding(
-                          padding: const EdgeInsets.all(32.0),
+                          padding: const EdgeInsets.all(24.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -191,7 +191,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
           ),
           const Spacer(),
           Container(
-            width: 320,
+            width: 300,
             height: 40,
             decoration: BoxDecoration(
               color: const Color(0xFF2A3040),
@@ -629,7 +629,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFF252A3A),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
@@ -673,7 +673,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                       side: const BorderSide(color: Color(0xFF1E88E5)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6)),
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     child: const Text('View Details',
                         style: TextStyle(fontSize: 13)),

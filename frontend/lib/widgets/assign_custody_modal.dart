@@ -41,6 +41,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
   String? _selectedFirearmId;
   String? _selectedOfficerId;
   String _custodyType = 'permanent';
+  String? _selectedDurationType;
   final TextEditingController _reasonController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   DateTime? _expectedReturnDate;
@@ -117,6 +118,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       custodyType: _custodyType,
       assignmentReason: _reasonController.text.trim(),
       expectedReturnDate: _expectedReturnDate,
+      durationType: _custodyType == 'temporary' ? _selectedDurationType : null,
       notes: _notesController.text.trim(),
     );
 
@@ -181,8 +183,6 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildUnitInfoBanner(unitName),
-                              const SizedBox(height: 24),
                               _buildFirearmSelection(),
                               const SizedBox(height: 24),
                               _buildOfficerSelection(),
@@ -231,7 +231,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
                   'Assign Custody',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -249,34 +249,6 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
           IconButton(
             icon: const Icon(Icons.close, color: Color(0xFF78909C)),
             onPressed: widget.onClose,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUnitInfoBanner(String unitName) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E3A5F),
-        borderRadius: BorderRadius.circular(12),
-        border: const Border(
-          left: BorderSide(color: Color(0xFF42A5F5), width: 4),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, color: Color(0xFF42A5F5), size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'Only firearms and officers from $unitName are shown. Custody assignments are restricted to your unit.',
-              style: const TextStyle(
-                color: Color(0xFFB0BEC5),
-                fontSize: 13,
-              ),
-            ),
           ),
         ],
       ),
@@ -438,11 +410,11 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
         ),
         if (_custodyType == 'temporary') ...[
           const SizedBox(height: 16),
-          _buildDateField(
-            label: 'Expected Return Date',
-            value: _expectedReturnDate,
-            onChanged: (date) => setState(() => _expectedReturnDate = date),
-          ),
+          _buildDurationTypeSelection(),
+          if (_selectedDurationType != null) ...[
+            const SizedBox(height: 12),
+            _buildExpectedReturnInfo(),
+          ],
         ],
       ],
     );
@@ -489,6 +461,191 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
         ),
       ),
     );
+  }
+
+  // Duration type helpers
+  static const Map<String, int> _durationHours = {
+    '6_hours': 6,
+    '8_hours': 8,
+    '12_hours': 12,
+    '1_day': 24,
+  };
+
+  static const Map<String, String> _durationLabels = {
+    '6_hours': '6 Hours',
+    '8_hours': '8 Hours',
+    '12_hours': '12 Hours',
+    '1_day': '1 Day (24h)',
+  };
+
+  static const Map<String, IconData> _durationIcons = {
+    '6_hours': Icons.looks_6,
+    '8_hours': Icons.looks,
+    '12_hours': Icons.timelapse,
+    '1_day': Icons.today,
+  };
+
+  DateTime? _computeExpectedReturn() {
+    if (_selectedDurationType == null) return null;
+    final hours = _durationHours[_selectedDurationType!];
+    if (hours == null) return null;
+    return DateTime.now().add(Duration(hours: hours));
+  }
+
+  Widget _buildDurationTypeSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Text(
+              'Custody Duration',
+              style: TextStyle(
+                color: Color(0xFFB0BEC5),
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(width: 4),
+            Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Select the shift-based duration for this temporary custody',
+          style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: _durationHours.keys.map((type) {
+            final isSelected = _selectedDurationType == type;
+            final label = _durationLabels[type]!;
+            final icon = _durationIcons[type]!;
+            final color = const Color(0xFFFFC857);
+
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  right: type != '1_day' ? 8.0 : 0.0,
+                ),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedDurationType = type;
+                      _expectedReturnDate = _computeExpectedReturn();
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? color.withValues(alpha: 0.2)
+                          : const Color(0xFF2A3040),
+                      border: Border.all(
+                        color: isSelected ? color : const Color(0xFF37404F),
+                        width: isSelected ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          icon,
+                          color: isSelected ? color : const Color(0xFF78909C),
+                          size: 22,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          label,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isSelected ? color : const Color(0xFFB0BEC5),
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpectedReturnInfo() {
+    final expectedReturn = _computeExpectedReturn();
+    if (expectedReturn == null) return const SizedBox.shrink();
+
+    final hours = _durationHours[_selectedDurationType!] ?? 0;
+    final label = _durationLabels[_selectedDurationType!] ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E3A5F),
+        borderRadius: BorderRadius.circular(8),
+        border: const Border(
+          left: BorderSide(color: Color(0xFFFFC857), width: 3),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.schedule, color: Color(0xFFFFC857), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Duration: $label ($hours hours)',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Expected return: ${_formatDateTime(expectedReturn)}',
+                  style: const TextStyle(
+                    color: Color(0xFFB0BEC5),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final amPm = dt.hour >= 12 ? 'PM' : 'AM';
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year} at $hour:$minute $amPm';
   }
 
   Widget _buildAssignmentDetails() {
@@ -632,108 +789,6 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
             ),
           ),
           validator: validator,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDateField({
-    required String label,
-    required DateTime? value,
-    required Function(DateTime) onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: value ?? DateTime.now().add(const Duration(days: 7)),
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
-              builder: (context, child) {
-                return Theme(
-                  data: ThemeData.dark().copyWith(
-                    colorScheme: const ColorScheme.dark(
-                      primary: Color(0xFF1E88E5),
-                      onPrimary: Colors.white,
-                      surface: Color(0xFF252A3A),
-                      onSurface: Colors.white,
-                    ),
-                    dialogTheme: const DialogThemeData(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.zero,
-                      ),
-                    ),
-                    datePickerTheme: DatePickerThemeData(
-                      backgroundColor: const Color(0xFF252A3A),
-                      headerBackgroundColor: const Color(0xFF1A1F2E),
-                      headerForegroundColor: Colors.white,
-                      surfaceTintColor: Colors.transparent,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.zero,
-                      ),
-                      dayStyle: const TextStyle(color: Colors.white),
-                      yearStyle: const TextStyle(color: Colors.white),
-                      dayForegroundColor:
-                          WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected))
-                          return Colors.white;
-                        if (states.contains(WidgetState.disabled))
-                          return const Color(0xFF546E7A);
-                        return Colors.white;
-                      }),
-                      dayBackgroundColor:
-                          WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected))
-                          return const Color(0xFF1E88E5);
-                        return Colors.transparent;
-                      }),
-                      todayForegroundColor:
-                          WidgetStateProperty.all(const Color(0xFF42A5F5)),
-                      todayBackgroundColor:
-                          WidgetStateProperty.all(Colors.transparent),
-                      todayBorder: const BorderSide(color: Color(0xFF42A5F5)),
-                    ),
-                  ),
-                  child: child!,
-                );
-              },
-            );
-            if (picked != null) onChanged(picked);
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A3040),
-              border: Border.all(color: const Color(0xFF37404F)),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.calendar_today,
-                  color: Color(0xFF78909C),
-                  size: 16,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  value != null
-                      ? '${value.day}/${value.month}/${value.year}'
-                      : 'Select date...',
-                  style: TextStyle(
-                    color:
-                        value != null ? Colors.white : const Color(0xFF78909C),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ],
     );

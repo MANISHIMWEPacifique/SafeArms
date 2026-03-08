@@ -13,12 +13,18 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Verify transporter configuration (non-blocking)
-transporter.verify().then(() => {
-    logger.info('[OK] Email service ready');
-}).catch((error) => {
-    logger.warn('[WARN] Email service not available (SMTP unreachable):', error.message);
-});
+// Verify SMTP lazily on first use instead of at module-load time.
+let smtpVerified = false;
+const verifySmtp = async () => {
+    if (smtpVerified) return;
+    try {
+        await transporter.verify();
+        logger.info('[OK] Email service ready');
+        smtpVerified = true;
+    } catch (error) {
+        logger.warn('[WARN] Email service not available (SMTP unreachable):', error.message);
+    }
+};
 
 /**
  * Send OTP code via email
@@ -28,6 +34,7 @@ transporter.verify().then(() => {
  * @returns {Promise<Object>}
  */
 const sendOTPEmail = async (email, fullName, otp) => {
+    await verifySmtp(); // Lazy SMTP check on first use
     try {
         const mailOptions = {
             from: `${process.env.SMTP_FROM_NAME || 'SafeArms System'} <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,

@@ -534,15 +534,15 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF546E7A)),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF546E7A)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF1E88E5)),
               ),
             ),
@@ -588,15 +588,15 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
               suffixIcon: const Icon(Icons.calendar_today,
                   color: Color(0xFF546E7A), size: 16),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3546)),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3546)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF1E88E5)),
               ),
             ),
@@ -1118,7 +1118,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       message: tooltip,
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
           width: 32,
           height: 32,
@@ -1126,7 +1126,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
             color: isEnabled
                 ? const Color(0xFF1A1F2E)
                 : const Color(0xFF1A1F2E).withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isEnabled
                   ? const Color(0xFF2E3546)
@@ -1197,7 +1197,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: InkWell(
         onTap: isCurrent ? null : () => _performSearch(page: page),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
           width: 32,
           height: 32,
@@ -1205,7 +1205,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
           decoration: BoxDecoration(
             color:
                 isCurrent ? const Color(0xFF1E88E5) : const Color(0xFF1A1F2E),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color:
                   isCurrent ? const Color(0xFF1E88E5) : const Color(0xFF2E3546),
@@ -1291,7 +1291,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.timeline,
                       color: Color(0xFF64B5F6), size: 16),
@@ -1387,7 +1387,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: const Color(0xFF1A1F2E),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFF2E3546)),
       ),
       child: Row(

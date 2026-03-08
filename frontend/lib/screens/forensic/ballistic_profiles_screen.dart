@@ -92,7 +92,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
           const Text(
             'Ballistic Profiles',
             style: TextStyle(
-                color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           const Text(
@@ -105,7 +105,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: const Color(0xFF1565C0).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFF1565C0)),
             ),
             child: const Row(

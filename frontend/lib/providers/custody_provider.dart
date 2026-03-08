@@ -119,6 +119,7 @@ class CustodyProvider with ChangeNotifier {
     required String custodyType,
     required String assignmentReason,
     DateTime? expectedReturnDate,
+    String? durationType,
     String? notes,
   }) async {
     _isLoading = true;
@@ -132,16 +133,15 @@ class CustodyProvider with ChangeNotifier {
         custodyType: custodyType,
         assignmentReason: assignmentReason,
         expectedReturnDate: expectedReturnDate,
+        durationType: durationType,
         notes: notes,
       );
 
       _isLoading = false;
       notifyListeners();
 
-      // Reload data
-      await loadCustody();
-      await loadStats();
-      await loadAnomalyStatus();
+      // Reload all data in parallel for faster refresh
+      await Future.wait([loadCustody(), loadStats(), loadAnomalyStatus()]);
 
       return true;
     } catch (e) {
@@ -174,9 +174,8 @@ class CustodyProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      // Reload data
-      await loadCustody();
-      await loadStats();
+      // Reload all data in parallel for faster refresh
+      await Future.wait([loadCustody(), loadStats()]);
 
       return true;
     } catch (e) {

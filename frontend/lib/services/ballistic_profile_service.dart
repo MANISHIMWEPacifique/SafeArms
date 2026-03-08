@@ -1,22 +1,10 @@
 // Ballistic Profile Service - API calls for forensic ballistic profiles
 // SafeArms Frontend
 
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
-import './auth_service.dart';
+import 'api_client.dart';
 
 class BallisticProfileService {
-  final AuthService _authService = AuthService();
-
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _authService.getToken();
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   // Get all ballistic profiles with filters
   Future<List<Map<String, dynamic>>> getAllProfiles({
     String? firearmType,
@@ -24,9 +12,6 @@ class BallisticProfileService {
     String? searchQuery,
   }) async {
     try {
-      final headers = await _getHeaders();
-      var url = '${ApiConfig.baseUrl}/api/ballistic-profiles';
-
       List<String> queryParams = [];
       if (firearmType != null &&
           firearmType.isNotEmpty &&
@@ -40,24 +25,11 @@ class BallisticProfileService {
         queryParams.add('search=$searchQuery');
       }
 
-      if (queryParams.isNotEmpty) {
-        url += '?${queryParams.join('&')}';
-      }
+      var url = ApiConfig.ballisticUrl;
+      if (queryParams.isNotEmpty) url += '?${queryParams.join('&')}';
 
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'] ?? []);
-      } else {
-        throw Exception(
-            'Failed to load ballistic profiles: ${response.statusCode}');
-      }
+      final data = await ApiClient.get(url);
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
       throw Exception('Error fetching ballistic profiles: $e');
     }
@@ -66,27 +38,14 @@ class BallisticProfileService {
   // Get profile by ID
   Future<Map<String, dynamic>> getProfileById(String profileId) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse('${ApiConfig.baseUrl}/api/ballistic-profiles/$profileId'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'];
-      } else {
-        throw Exception('Failed to load profile: ${response.statusCode}');
-      }
+      final data = await ApiClient.get('${ApiConfig.ballisticUrl}/$profileId');
+      return data['data'];
     } catch (e) {
       throw Exception('Error fetching profile: $e');
     }
   }
 
-  // Create new ballistic profile - HQ Commander only during firearm registration
-  // Profiles are immutable after creation for forensic integrity
+  // Create new ballistic profile
   Future<Map<String, dynamic>> createProfile({
     required String firearmId,
     required DateTime testDate,
@@ -102,70 +61,40 @@ class BallisticProfileService {
     String? notes,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({
-        'firearm_id': firearmId,
-        'test_date': testDate.toIso8601String(),
-        'test_location': testLocation,
-        'rifling_characteristics': riflingCharacteristics,
-        'firing_pin_impression': firingPinImpression,
-        'ejector_marks': ejectorMarks,
-        'extractor_marks': extractorMarks,
-        'chamber_marks': chamberMarks,
-        'test_conducted_by': testConductedBy,
-        'forensic_lab': forensicLab,
-        'test_ammunition': testAmmunition,
-        'notes': notes,
-      });
-
-      final response = await http
-          .post(
-            Uri.parse('${ApiConfig.baseUrl}/api/ballistic-profiles'),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        return data['data'];
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Failed to create profile');
-      }
+      final data = await ApiClient.post(
+        ApiConfig.ballisticUrl,
+        body: {
+          'firearm_id': firearmId,
+          'test_date': testDate.toIso8601String(),
+          'test_location': testLocation,
+          'rifling_characteristics': riflingCharacteristics,
+          'firing_pin_impression': firingPinImpression,
+          'ejector_marks': ejectorMarks,
+          'extractor_marks': extractorMarks,
+          'chamber_marks': chamberMarks,
+          'test_conducted_by': testConductedBy,
+          'forensic_lab': forensicLab,
+          'test_ammunition': testAmmunition,
+          'notes': notes,
+        },
+      );
+      return data['data'];
     } catch (e) {
       throw Exception('Error creating profile: $e');
     }
   }
 
-  // UPDATE REMOVED - Ballistic profiles are immutable after HQ registration
-  // Profiles can only be created during firearm registration at HQ
-  // This ensures forensic integrity for investigative search and matching
-
   // Get profile statistics
   Future<Map<String, dynamic>> getProfileStats() async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse('${ApiConfig.baseUrl}/api/ballistic-profiles/stats'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'] ?? {};
-      } else {
-        throw Exception('Failed to load stats');
-      }
+      final data = await ApiClient.get('${ApiConfig.ballisticUrl}/stats');
+      return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error fetching stats: $e');
     }
   }
 
-  // Search ballistic profiles by crime scene evidence characteristics
-  // Read-only search for investigative support — no serial number needed
+  // Search ballistic profiles by crime scene evidence
   Future<Map<String, dynamic>> forensicSearch({
     String? firingPin,
     String? caliber,
@@ -178,9 +107,6 @@ class BallisticProfileService {
     int limit = 20,
   }) async {
     try {
-      final headers = await _getHeaders();
-      var url = '${ApiConfig.baseUrl}/api/ballistic-profiles/forensic-search';
-
       List<String> queryParams = [];
       if (firingPin != null && firingPin.isNotEmpty) {
         queryParams.add('firing_pin=${Uri.encodeComponent(firingPin)}');
@@ -206,29 +132,17 @@ class BallisticProfileService {
       queryParams.add('page=$page');
       queryParams.add('limit=$limit');
 
-      if (queryParams.isNotEmpty) {
-        url += '?${queryParams.join('&')}';
-      }
+      final url =
+          '${ApiConfig.ballisticUrl}/forensic-search?${queryParams.join('&')}';
+      final data = await ApiClient.get(url);
 
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {
-          'data': List<Map<String, dynamic>>.from(data['data'] ?? []),
-          'total': data['total'] ?? 0,
-          'page': data['page'] ?? 1,
-          'pageSize': data['pageSize'] ?? limit,
-          'totalPages': data['totalPages'] ?? 1,
-        };
-      } else {
-        throw Exception('Search failed: ${response.statusCode}');
-      }
+      return {
+        'data': List<Map<String, dynamic>>.from(data['data'] ?? []),
+        'total': data['total'] ?? 0,
+        'page': data['page'] ?? 1,
+        'pageSize': data['pageSize'] ?? limit,
+        'totalPages': data['totalPages'] ?? 1,
+      };
     } catch (e) {
       throw Exception('Error in forensic search: $e');
     }
@@ -238,20 +152,9 @@ class BallisticProfileService {
   Future<List<Map<String, dynamic>>> getFirearmCustodyHistory(
       String firearmId) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse('${ApiConfig.custody}?firearm_id=$firearmId'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data'] ?? []);
-      } else {
-        throw Exception('Failed to load custody history');
-      }
+      final data =
+          await ApiClient.get('${ApiConfig.custody}?firearm_id=$firearmId');
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
       throw Exception('Error fetching custody history: $e');
     }

@@ -14,6 +14,7 @@ const {
 const { logCustodyAssignment, logCustodyReturn } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
+const logger = require('../utils/logger');
 
 /**
  * Custody Routes
@@ -108,6 +109,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     
     const result = await query(`
         SELECT cr.*, 
+               cr.duration_type,
                f.serial_number as firearm_serial, f.manufacturer, f.model,
                o.full_name as officer_name, o.rank,
                u.unit_name,
@@ -188,7 +190,7 @@ router.post('/assign', authenticate, requireCommander, logCustodyAssignment, asy
     if (role === 'station_commander') {
         // Force their unit_id - ignore any manually passed value
         if (req.body.unit_id && req.body.unit_id !== userUnitId) {
-            console.warn(`[SECURITY] Station commander ${req.user.user_id} attempted custody assign in unit ${req.body.unit_id} (assigned: ${userUnitId})`);
+            logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted custody assign in unit ${req.body.unit_id} (assigned: ${userUnitId})`);
         }
         req.body.unit_id = userUnitId;
     }
@@ -236,7 +238,7 @@ router.get('/active', authenticate, asyncHandler(async (req, res) => {
     // They cannot override this by passing a different unit_id
     if (role === 'station_commander') {
         if (req.query.unit_id && req.query.unit_id !== userUnitId) {
-            console.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query active custody for unit ${req.query.unit_id} (assigned: ${userUnitId})`);
+            logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query active custody for unit ${req.query.unit_id} (assigned: ${userUnitId})`);
         }
         req.query.unit_id = userUnitId; // Force their unit
     }

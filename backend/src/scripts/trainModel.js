@@ -27,9 +27,9 @@ const trainMLModel = async () => {
         
         console.log(`\nTraining samples available: ${sampleCount}`);
         
-        if (sampleCount < 100) {
+        if (sampleCount < 50) {
             console.log('\n[ERROR] Insufficient training data!');
-            console.log(`   Need at least 100 samples, you have ${sampleCount}.`);
+            console.log(`   Need at least 50 samples, you have ${sampleCount}.`);
             console.log('\nOptions:');
             console.log('  1. Create more custody records in the app');
             console.log('  2. Run: node src/scripts/populateTrainingFeatures.js');
@@ -48,7 +48,7 @@ const trainMLModel = async () => {
         console.log('Starting K-Means model training...');
         console.log('-'.repeat(60));
 
-        const result = await trainModel({ k: 6, minSamples: 100 });
+        const result = await trainModel({ k: 6, minSamples: 50 });
 
         console.log('\n' + '='.repeat(60));
         console.log('[OK] MODEL TRAINING COMPLETE');

@@ -74,8 +74,6 @@ class _StationCustodyManagementScreenState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildUnitBanner(unitName),
-                        const SizedBox(height: 24),
                         _buildStatsRow(custodyProvider),
                         const SizedBox(height: 24),
                         _buildFilterBar(custodyProvider),
@@ -224,48 +222,6 @@ class _StationCustodyManagementScreenState
               color:
                   count > 0 ? const Color(0xFFE85C5C) : const Color(0xFF3CCB7F),
               fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUnitBanner(String unitName) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E3A5F),
-        borderRadius: BorderRadius.circular(12),
-        border: const Border(
-          left: BorderSide(color: Color(0xFF1E88E5), width: 4),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.security, color: Color(0xFF42A5F5), size: 28),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Unit-Restricted View',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Showing custody records for $unitName only. You can only manage custody for firearms and officers within your unit.',
-                  style: const TextStyle(
-                    color: Color(0xFFB0BEC5),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
             ),
           ),
         ],
@@ -652,7 +608,7 @@ class _StationCustodyManagementScreenState
                     side: const BorderSide(color: Color(0xFF42A5F5)),
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6)),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   child: const Text('Return', style: TextStyle(fontSize: 12)),
                 ),

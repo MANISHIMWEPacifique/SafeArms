@@ -71,8 +71,6 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildUnitBanner(unitName),
-                        const SizedBox(height: 24),
                         _buildStatsRow(officerProvider),
                         const SizedBox(height: 24),
                         _buildFilterBar(officerProvider),
@@ -207,64 +205,6 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUnitBanner(String unitName) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF1E88E5).withValues(alpha: 0.2),
-            const Color(0xFF252A3A),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.people, color: Color(0xFF1E88E5), size: 24),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                unitName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                'Officers Registry - Personnel Management',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          IconButton(
-            onPressed: _loadUnitOfficers,
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            tooltip: 'Refresh',
           ),
         ],
       ),

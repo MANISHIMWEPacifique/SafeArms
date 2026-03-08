@@ -51,7 +51,7 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                     Expanded(
                       child: SingleChildScrollView(
                         child: Padding(
-                          padding: const EdgeInsets.all(32.0),
+                          padding: const EdgeInsets.all(24.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -108,7 +108,7 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                 'Officer Registry',
                 style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 4),

@@ -30,19 +30,22 @@ class SafeArmsApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Auth is the only provider needed at login — created eagerly.
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => FirearmProvider()),
-        ChangeNotifierProvider(create: (_) => CustodyProvider()),
-        ChangeNotifierProvider(create: (_) => AnomalyProvider()),
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
-        ChangeNotifierProvider(create: (_) => ApprovalProvider()),
-        ChangeNotifierProvider(create: (_) => UnitProvider()),
-        ChangeNotifierProvider(create: (_) => OfficerProvider()),
-        ChangeNotifierProvider(create: (_) => ApprovalsProvider()),
-        ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
-        ChangeNotifierProvider(create: (_) => BallisticProfileProvider()),
-        ChangeNotifierProvider(create: (_) => OperationsProvider()),
+        // All other providers are lazy: created only when first accessed
+        // after the user logs in and navigates to a screen that reads them.
+        ChangeNotifierProvider.value(value: FirearmProvider()),
+        ChangeNotifierProvider.value(value: CustodyProvider()),
+        ChangeNotifierProvider.value(value: AnomalyProvider()),
+        ChangeNotifierProvider.value(value: DashboardProvider()),
+        ChangeNotifierProvider.value(value: ApprovalProvider()),
+        ChangeNotifierProvider.value(value: UnitProvider()),
+        ChangeNotifierProvider.value(value: OfficerProvider()),
+        ChangeNotifierProvider.value(value: ApprovalsProvider()),
+        ChangeNotifierProvider.value(value: UserProvider()),
+        ChangeNotifierProvider.value(value: SettingsProvider()),
+        ChangeNotifierProvider.value(value: BallisticProfileProvider()),
+        ChangeNotifierProvider.value(value: OperationsProvider()),
       ],
       child: MaterialApp(
         title: 'SafeArms',

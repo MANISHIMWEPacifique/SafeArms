@@ -1,24 +1,19 @@
 // Firearm Service - API calls for firearms management
 // SafeArms Frontend
 
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/firearm_model.dart';
-import './auth_service.dart';
+import 'api_client.dart';
 
 class FirearmService {
-  final AuthService _authService = AuthService();
-
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _authService.getToken();
-    if (token == null || token.isEmpty) {
-      throw Exception('Not authenticated. Please log in again.');
-    }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+  /// Build query string from optional filters
+  String _buildQuery(Map<String, String?> params) {
+    final filtered = params.entries
+        .where(
+            (e) => e.value != null && e.value!.isNotEmpty && e.value != 'all')
+        .map((e) => '${e.key}=${e.value}')
+        .toList();
+    return filtered.isEmpty ? '' : '?${filtered.join('&')}';
   }
 
   // Get all firearms with filters
@@ -29,43 +24,15 @@ class FirearmService {
     String? manufacturer,
   }) async {
     try {
-      final headers = await _getHeaders();
-      var url = ApiConfig.firearms;
-
-      List<String> queryParams = [];
-      if (status != null && status.isNotEmpty && status != 'all') {
-        queryParams.add('status=$status');
-      }
-      if (type != null && type.isNotEmpty && type != 'all') {
-        queryParams.add('type=$type');
-      }
-      if (unitId != null && unitId.isNotEmpty && unitId != 'all') {
-        queryParams.add('unit_id=$unitId');
-      }
-      if (manufacturer != null &&
-          manufacturer.isNotEmpty &&
-          manufacturer != 'all') {
-        queryParams.add('manufacturer=$manufacturer');
-      }
-
-      if (queryParams.isNotEmpty) {
-        url += '?${queryParams.join('&')}';
-      }
-
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> firearmsJson = data['data'] ?? [];
-        return firearmsJson.map((json) => FirearmModel.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load firearms: ${response.statusCode}');
-      }
+      final query = _buildQuery({
+        'status': status,
+        'type': type,
+        'unit_id': unitId,
+        'manufacturer': manufacturer,
+      });
+      final data = await ApiClient.get('${ApiConfig.firearms}$query');
+      final List<dynamic> items = data['data'] ?? [];
+      return items.map((json) => FirearmModel.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Error fetching firearms: $e');
     }
@@ -86,37 +53,24 @@ class FirearmService {
     Map<String, dynamic>? ballisticProfile,
   }) async {
     try {
-      final headers = await _getHeaders();
-      final body = json.encode({
-        'serial_number': serialNumber,
-        'manufacturer': manufacturer,
-        'model': model,
-        'firearm_type': firearmType,
-        'caliber': caliber,
-        'manufacture_year': manufactureYear,
-        'acquisition_date': acquisitionDate.toIso8601String(),
-        'acquisition_source': acquisitionSource,
-        'assigned_unit_id': assignedUnitId,
-        'notes': notes,
-        'registration_level': 'hq',
-        if (ballisticProfile != null) 'ballistic_profile': ballisticProfile,
-      });
-
-      final response = await http
-          .post(
-            Uri.parse(ApiConfig.firearms),
-            headers: headers,
-            body: body,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        return FirearmModel.fromJson(data['data']);
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Failed to register firearm');
-      }
+      final data = await ApiClient.post(
+        ApiConfig.firearms,
+        body: {
+          'serial_number': serialNumber,
+          'manufacturer': manufacturer,
+          'model': model,
+          'firearm_type': firearmType,
+          'caliber': caliber,
+          'manufacture_year': manufactureYear,
+          'acquisition_date': acquisitionDate.toIso8601String(),
+          'acquisition_source': acquisitionSource,
+          'assigned_unit_id': assignedUnitId,
+          'notes': notes,
+          'registration_level': 'hq',
+          if (ballisticProfile != null) 'ballistic_profile': ballisticProfile,
+        },
+      );
+      return FirearmModel.fromJson(data['data']);
     } catch (e) {
       throw Exception('Error registering firearm: $e');
     }
@@ -125,25 +79,12 @@ class FirearmService {
   // Get firearm statistics
   Future<Map<String, dynamic>> getFirearmStats({String? unitId}) async {
     try {
-      final headers = await _getHeaders();
       var url = '${ApiConfig.firearms}/stats';
       if (unitId != null && unitId.isNotEmpty) {
         url += '?unit_id=$unitId';
       }
-
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'] ?? {};
-      } else {
-        throw Exception('Failed to load firearm stats');
-      }
+      final data = await ApiClient.get(url);
+      return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error fetching firearm stats: $e');
     }
@@ -152,21 +93,9 @@ class FirearmService {
   // Search firearms
   Future<List<FirearmModel>> searchFirearms(String query) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse('${ApiConfig.firearms}/search?q=$query'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> firearmsJson = data['data'] ?? [];
-        return firearmsJson.map((json) => FirearmModel.fromJson(json)).toList();
-      } else {
-        throw Exception('Search failed: ${response.statusCode}');
-      }
+      final data = await ApiClient.get('${ApiConfig.firearms}/search?q=$query');
+      final List<dynamic> items = data['data'] ?? [];
+      return items.map((json) => FirearmModel.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Error searching firearms: $e');
     }
@@ -180,28 +109,17 @@ class FirearmService {
     Map<String, dynamic>? updates,
   }) async {
     try {
-      final headers = await _getHeaders();
       final Map<String, dynamic> updateData = updates ?? {};
-
       if (status != null) updateData['current_status'] = status;
-      if (assignedUnitId != null)
+      if (assignedUnitId != null) {
         updateData['assigned_unit_id'] = assignedUnitId;
-
-      final response = await http
-          .put(
-            Uri.parse('${ApiConfig.firearms}/$firearmId'),
-            headers: headers,
-            body: json.encode(updateData),
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return FirearmModel.fromJson(data['data']);
-      } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Failed to update firearm');
       }
+
+      final data = await ApiClient.put(
+        '${ApiConfig.firearms}/$firearmId',
+        body: updateData,
+      );
+      return FirearmModel.fromJson(data['data']);
     } catch (e) {
       throw Exception('Error updating firearm: $e');
     }
@@ -210,64 +128,31 @@ class FirearmService {
   // Get firearm by ID
   Future<FirearmModel> getFirearmById(String firearmId) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(
-            Uri.parse('${ApiConfig.firearms}/$firearmId'),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return FirearmModel.fromJson(data['data']);
-      } else {
-        throw Exception('Failed to load firearm: ${response.statusCode}');
-      }
+      final data = await ApiClient.get('${ApiConfig.firearms}/$firearmId');
+      return FirearmModel.fromJson(data['data']);
     } catch (e) {
       throw Exception('Error fetching firearm: $e');
     }
   }
 
-  // Get firearms for a specific unit (with unit-based access control)
+  // Get firearms for a specific unit
   Future<List<FirearmModel>> getUnitFirearms({
     required String unitId,
     String? status,
     String? type,
   }) async {
     try {
-      final headers = await _getHeaders();
-      var url = '${ApiConfig.firearms}/unit/$unitId';
-
-      List<String> queryParams = [];
-      if (status != null && status.isNotEmpty && status != 'all') {
-        queryParams.add('status=$status');
-      }
-      if (type != null && type.isNotEmpty && type != 'all') {
-        queryParams.add('type=$type');
-      }
-
-      if (queryParams.isNotEmpty) {
-        url += '?${queryParams.join('&')}';
-      }
-
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: headers,
-          )
-          .timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> firearmsJson = data['data'] ?? [];
-        return firearmsJson.map((json) => FirearmModel.fromJson(json)).toList();
-      } else if (response.statusCode == 403) {
+      final query = _buildQuery({'status': status, 'type': type});
+      final data =
+          await ApiClient.get('${ApiConfig.firearms}/unit/$unitId$query');
+      final List<dynamic> items = data['data'] ?? [];
+      return items.map((json) => FirearmModel.fromJson(json)).toList();
+    } on ApiException catch (e) {
+      if (e.statusCode == 403) {
         throw Exception(
             'Access denied: You can only view firearms from your unit');
-      } else {
-        throw Exception('Failed to load unit firearms: ${response.statusCode}');
       }
+      throw Exception('Error fetching unit firearms: ${e.message}');
     } catch (e) {
       throw Exception('Error fetching unit firearms: $e');
     }

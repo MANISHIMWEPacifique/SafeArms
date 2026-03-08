@@ -7,6 +7,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/api_config.dart';
 
 class AuthService {
+  // Singleton — avoids creating 13+ FlutterSecureStorage instances.
+  static final AuthService instance = AuthService._();
+  AuthService._();
+
+  /// @deprecated Use AuthService.instance instead.
+  factory AuthService() => instance;
+
   final _storage = const FlutterSecureStorage();
 
   // Storage keys

@@ -1,14 +1,15 @@
 // Authentication Provider
 // State management for authentication
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import '../services/auth_service.dart';
 
 class AuthProvider with ChangeNotifier {
-  final AuthService _authService = AuthService();
+  final AuthService _authService = AuthService.instance;
 
   bool _isLoading = false;
   bool _isAuthenticated = false;
+  bool _isInitialized = false;
   String? _errorMessage;
   Map<String, dynamic>? _currentUser;
   String? _token;
@@ -17,6 +18,7 @@ class AuthProvider with ChangeNotifier {
   // Getters
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _isAuthenticated;
+  bool get isInitialized => _isInitialized;
   String? get errorMessage => _errorMessage;
   Map<String, dynamic>? get currentUser => _currentUser;
   String? get token => _token;
@@ -31,7 +33,8 @@ class AuthProvider with ChangeNotifier {
       _currentUser?['must_change_password'] == true;
 
   AuthProvider() {
-    _checkAuthStatus();
+    // Defer auth check until after the first frame to avoid double-build.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAuthStatus());
   }
 
   /// Check if user is already authenticated on app start
@@ -41,6 +44,7 @@ class AuthProvider with ChangeNotifier {
       _token = await _authService.getToken();
       _currentUser = await _authService.getUserData();
     }
+    _isInitialized = true;
     notifyListeners();
   }
 

@@ -66,7 +66,7 @@ const trainKMeansModel = async (k = 6) => {
 
         // Fetch training data (last 6 months of custody records with features)
         const result = await query(`
-      SELECT 
+      SELECT
         officer_issue_frequency_30d,
         officer_avg_custody_duration_30d,
         firearm_exchange_rate_7d,
@@ -79,12 +79,16 @@ const trainKMeansModel = async (k = 6) => {
         issue_frequency_zscore
       FROM ml_training_features
       WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
-      AND custody_duration_seconds > 0
     `);
 
-        if (result.rows.length < k * 2) {
-            throw new Error(`Insufficient training data. Need at least ${k * 2} records, got ${result.rows.length}`);
+        // Adapt k to available data (need at least k*3 samples for stable clusters)
+        let effectiveK = Math.max(2, Math.min(k, Math.floor(result.rows.length / 3)));
+
+        if (result.rows.length < effectiveK * 2) {
+            throw new Error(`Insufficient training data. Need at least ${effectiveK * 2} records, got ${result.rows.length}`);
         }
+
+        logger.info(`Training with ${result.rows.length} samples, K=${effectiveK}`);
 
         // Convert to feature matrix
         const data = result.rows.map(row => [
@@ -103,8 +107,18 @@ const trainKMeansModel = async (k = 6) => {
         // Normalize features
         const { data: normalizedData, params: normParams } = normalizeFeatures(data);
 
+        // Ensure enough unique rows for kmeans++ initialization
+        const uniqueRows = new Set(normalizedData.map(r => r.join(','))).size;
+        if (uniqueRows < effectiveK) {
+            if (uniqueRows < 2) {
+                throw new Error(`Training data has only ${uniqueRows} unique pattern(s) after normalization. Need at least 2 distinct patterns.`);
+            }
+            logger.warn(`Only ${uniqueRows} unique patterns after normalization, reducing K from ${effectiveK} to ${uniqueRows}`);
+            effectiveK = uniqueRows;
+        }
+
         // Train K-Means
-        const kmeansResult = ml.kmeans(normalizedData, k, {
+        const kmeansResult = ml.kmeans(normalizedData, effectiveK, {
             initialization: 'kmeans++',
             maxIterations: 100
         });
@@ -118,18 +132,25 @@ const trainKMeansModel = async (k = 6) => {
 
         // Store model in database
         const modelVersion = '1.0.' + Date.now();
+
+        // Generate model_id
+        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(model_id FROM 5) AS INTEGER)), 0) as max_num FROM ml_model_metadata WHERE model_id ~ '^MDL-[0-9]+$'`);
+        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+        const modelId = `MDL-${String(nextNum).padStart(3, '0')}`;
+
         const modelResult = await query(`
       INSERT INTO ml_model_metadata (
-        model_type, model_version, training_date, training_samples_count,
+        model_id, model_type, model_version, training_date, training_samples_count,
         num_clusters, cluster_centers, silhouette_score,
         outlier_threshold, normalization_params, is_active
-      ) VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4, $5, $6, $7, $8, true)
+      ) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5, $6, $7, $8, $9, true)
       RETURNING model_id
     `, [
+            modelId,
             'kmeans',
             modelVersion,
             result.rows.length,
-            k,
+            effectiveK,
             JSON.stringify(kmeansResult.centroids),
             silhouetteScore,
             outlierThreshold,
@@ -149,7 +170,7 @@ const trainKMeansModel = async (k = 6) => {
         return {
             model_id: modelResult.rows[0].model_id,
             model_version: modelVersion,
-            num_clusters: k,
+            num_clusters: effectiveK,
             training_samples: result.rows.length,
             silhouette_score: silhouetteScore,
             outlier_threshold: outlierThreshold
@@ -168,8 +189,8 @@ const trainKMeansModel = async (k = 6) => {
  */
 const predictKMeans = (features, model) => {
     try {
-        const centroids = JSON.parse(model.cluster_centers);
-        const normParams = JSON.parse(model.normalization_params);
+        const centroids = typeof model.cluster_centers === 'string' ? JSON.parse(model.cluster_centers) : model.cluster_centers;
+        const normParams = typeof model.normalization_params === 'string' ? JSON.parse(model.normalization_params) : model.normalization_params;
 
         // Normalize input features
         const { mins, maxs } = normParams;
@@ -191,13 +212,14 @@ const predictKMeans = (features, model) => {
         });
 
         // Calculate anomaly score (normalized distance)
-        const anomalyScore = Math.min(minDistance / (model.outlier_threshold || 3.0), 1.0);
+        const outlierThreshold = parseFloat(model.outlier_threshold) || 3.0;
+        const anomalyScore = Math.min(minDistance / outlierThreshold, 1.0);
 
         return {
             cluster: nearestCluster,
             distance: minDistance,
             anomaly_score: anomalyScore,
-            is_anomaly: minDistance > model.outlier_threshold
+            is_anomaly: minDistance > outlierThreshold
         };
     } catch (error) {
         logger.error('K-Means prediction error:', error);

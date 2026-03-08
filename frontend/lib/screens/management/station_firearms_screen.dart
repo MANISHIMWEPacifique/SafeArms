@@ -66,8 +66,6 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildUnitBanner(unitName),
-                        const SizedBox(height: 24),
                         _buildStatsRow(firearmProvider),
                         const SizedBox(height: 24),
                         _buildFilterBar(firearmProvider),
@@ -157,30 +155,6 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF37404F),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF4A5568)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.info_outline, color: Color(0xFF78909C), size: 16),
-                SizedBox(width: 8),
-                Text(
-                  'Registration at HQ only',
-                  style: TextStyle(
-                    color: Color(0xFF78909C),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(width: 12),
           IconButton(
             icon: Icon(
@@ -188,48 +162,6 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
               color: const Color(0xFFB0BEC5),
             ),
             onPressed: () => provider.toggleViewMode(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUnitBanner(String unitName) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E3A5F),
-        borderRadius: BorderRadius.circular(12),
-        border: const Border(
-          left: BorderSide(color: Color(0xFF1E88E5), width: 4),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.security, color: Color(0xFF42A5F5), size: 28),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Unit-Restricted View',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Showing firearms assigned to $unitName only. New firearms must be registered at HQ and then assigned to your unit.',
-                  style: const TextStyle(
-                    color: Color(0xFFB0BEC5),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),

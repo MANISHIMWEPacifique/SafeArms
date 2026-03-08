@@ -63,6 +63,18 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  /// Generic PATCH request.
+  static Future<Map<String, dynamic>> patch(
+    String url, {
+    Map<String, dynamic>? body,
+  }) async {
+    final headers = await authHeaders();
+    final response = await http
+        .patch(Uri.parse(url), headers: headers, body: jsonEncode(body))
+        .timeout(ApiConfig.timeout);
+    return _handleResponse(response);
+  }
+
   static Map<String, dynamic> _handleResponse(http.Response response) {
     final body = jsonDecode(response.body);
     if (response.statusCode >= 200 && response.statusCode < 300) {

@@ -5,6 +5,7 @@ const { requireAdmin } = require('../middleware/authorization');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
 const { triggerManualTraining } = require('../jobs/modelTraining.job');
+const { triggerManualOverdueScan } = require('../jobs/overdueDetection.job');
 const logger = require('../utils/logger');
 
 // Get audit logs - mounted at /api/audit-logs
@@ -143,51 +144,7 @@ router.get('/health', authenticate, asyncHandler(async (req, res) => {
     });
 }));
 
-// Get ML configuration
-router.get('/ml-config', authenticate, requireAdmin, asyncHandler(async (req, res) => {
-    res.json({
-        success: true,
-        data: {
-            anomaly_detection: {
-                enabled: true,
-                threshold: 0.85,
-                model_type: 'random_forest',
-                training_frequency: 'weekly',
-                last_trained: null
-            },
-            features: {
-                temporal_patterns: true,
-                geographic_clustering: true,
-                behavioral_analysis: true,
-                network_analysis: true
-            },
-            alerts: {
-                email_notifications: true,
-                dashboard_alerts: true,
-                severity_threshold: 'medium'
-            }
-        }
-    });
-}));
-
-// Update ML configuration
-router.put('/ml-config', authenticate, requireAdmin, asyncHandler(async (req, res) => {
-    const config = req.body;
-    
-    // Log the ML config update
-    await query(`
-        INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
-        VALUES ($1, 'UPDATE', 'ml_configuration', $2, $3)
-    `, [req.user.user_id, JSON.stringify(config), req.ip]);
-    
-    res.json({
-        success: true,
-        message: 'ML configuration updated successfully',
-        data: config
-    });
-}));
-
-// ML config endpoint for /api/ml/config
+// Get ML configuration — serves both /api/settings/config and /api/ml/config
 router.get('/config', authenticate, requireAdmin, asyncHandler(async (req, res) => {
     res.json({
         success: true,
@@ -315,6 +272,24 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
                 ? (parseInt(anomalyStats.false_positives) / parseInt(anomalyStats.total) * 100).toFixed(1) + '%'
                 : '0%'
         }
+    });
+}));
+
+// Trigger overdue custody scan manually
+router.post('/scan-overdue', authenticate, requireAdmin, asyncHandler(async (req, res) => {
+    logger.info(`Overdue custody scan triggered by user: ${req.user.user_id}`);
+
+    await query(`
+        INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
+        VALUES ($1, 'SCAN', 'custody_records', '{"type": "overdue_scan"}', $2)
+    `, [req.user.user_id, req.ip]);
+
+    const result = await triggerManualOverdueScan();
+
+    res.json({
+        success: true,
+        message: 'Overdue custody scan completed',
+        data: result
     });
 }));
 

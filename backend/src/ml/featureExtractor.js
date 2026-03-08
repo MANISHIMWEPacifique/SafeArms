@@ -22,11 +22,17 @@ const logger = require('../utils/logger');
 const extractTemporalFeatures = (custodyRecord) => {
     const issuedAt = new Date(custodyRecord.issued_at);
 
+    // Compute from issued_at if not already set on the record
+    const issueHour = custodyRecord.issue_hour != null ? custodyRecord.issue_hour : issuedAt.getHours();
+    const issueDayOfWeek = custodyRecord.issue_day_of_week != null ? custodyRecord.issue_day_of_week : issuedAt.getDay();
+    const isNightIssue = custodyRecord.is_night_issue != null ? custodyRecord.is_night_issue : (issueHour >= 22 || issueHour < 6);
+    const isWeekendIssue = custodyRecord.is_weekend_issue != null ? custodyRecord.is_weekend_issue : (issueDayOfWeek === 0 || issueDayOfWeek === 6);
+
     return {
-        issue_hour: custodyRecord.issue_hour,
-        issue_day_of_week: custodyRecord.issue_day_of_week,
-        is_night_issue: custodyRecord.is_night_issue,
-        is_weekend_issue: custodyRecord.is_weekend_issue,
+        issue_hour: issueHour,
+        issue_day_of_week: issueDayOfWeek,
+        is_night_issue: isNightIssue,
+        is_weekend_issue: isWeekendIssue,
         timestamp: issuedAt.getTime()
     };
 };
@@ -211,7 +217,7 @@ const extractPatternFlags = async (custodyRecord) => {
         if (lastReturn.rows.length > 0) {
             const lastReturnTime = new Date(lastReturn.rows[0].returned_at);
             const now = new Date();
-            timeSinceLastReturn = (now - lastReturnTime) / 1000; // seconds
+            timeSinceLastReturn = Math.round((now - lastReturnTime) / 1000); // seconds
         }
 
         return {
@@ -499,10 +505,8 @@ const extractAllFeatures = async (custodyRecord) => {
  */
 const storeFeatures = async (custodyRecord, features) => {
     try {
-        // Generate feature_id
-        const idResult = await query('SELECT COUNT(*) as count FROM ml_training_features');
-        const count = parseInt(idResult.rows[0].count) + 1;
-        const featureId = `FEAT-${String(count).padStart(5, '0')}`;
+        // Generate feature_id using a unique suffix to avoid collisions
+        const featureId = `FEAT-${custodyRecord.custody_id.replace('CUS-', '')}`;
 
         await query(
             `INSERT INTO ml_training_features (
@@ -524,7 +528,7 @@ const storeFeatures = async (custodyRecord, features) => {
                 custodyRecord.firearm_id,
                 custodyRecord.unit_id,
                 custodyRecord.custody_id,
-                custodyRecord.custody_duration_seconds || 0,
+                Math.round(custodyRecord.custody_duration_seconds || 0),
                 features.issue_hour,
                 features.issue_day_of_week,
                 features.is_night_issue,
@@ -533,14 +537,14 @@ const storeFeatures = async (custodyRecord, features) => {
                 features.officer_avg_custody_duration_30d,
                 features.firearm_exchange_rate_7d,
                 1.0, // unit_consistency_score (placeholder)
-                features.time_since_last_return_seconds,
-                features.consecutive_same_firearm_count,
+                features.time_since_last_return_seconds != null ? Math.round(features.time_since_last_return_seconds) : null,
+                parseInt(features.consecutive_same_firearm_count || 0),
                 features.cross_unit_movement_flag,
                 features.rapid_exchange_flag,
                 features.custody_duration_zscore,
                 features.issue_frequency_zscore,
                 features.has_ballistic_profile,
-                features.ballistic_accesses_7d
+                parseInt(features.ballistic_accesses_7d || 0)
             ]
         );
     } catch (error) {

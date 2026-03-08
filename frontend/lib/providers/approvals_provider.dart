@@ -13,7 +13,7 @@ class ApprovalsProvider with ChangeNotifier {
   List<Map<String, dynamic>> _pendingProcurementRequests = [];
   Map<String, dynamic>? _selectedRequest;
   Map<String, dynamic> _stats = {};
-  
+
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
@@ -26,11 +26,13 @@ class ApprovalsProvider with ChangeNotifier {
 
   // Getters
   List<Map<String, dynamic>> get pendingLossReports => _pendingLossReports;
-  List<Map<String, dynamic>> get pendingDestructionRequests => _pendingDestructionRequests;
-  List<Map<String, dynamic>> get pendingProcurementRequests => _pendingProcurementRequests;
+  List<Map<String, dynamic>> get pendingDestructionRequests =>
+      _pendingDestructionRequests;
+  List<Map<String, dynamic>> get pendingProcurementRequests =>
+      _pendingProcurementRequests;
   Map<String, dynamic>? get selectedRequest => _selectedRequest;
   Map<String, dynamic> get stats => _stats;
-  
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
@@ -130,7 +132,8 @@ class ApprovalsProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _pendingDestructionRequests = await _approvalsService.getPendingDestructionRequests(
+      _pendingDestructionRequests =
+          await _approvalsService.getPendingDestructionRequests(
         priority: _destructionPriority != 'all' ? _destructionPriority : null,
         unit: _unitFilter != 'all' ? _unitFilter : null,
       );
@@ -182,7 +185,8 @@ class ApprovalsProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _pendingProcurementRequests = await _approvalsService.getPendingProcurementRequests(
+      _pendingProcurementRequests =
+          await _approvalsService.getPendingProcurementRequests(
         priority: _procurementPriority != 'all' ? _procurementPriority : null,
         unit: _unitFilter != 'all' ? _unitFilter : null,
       );
@@ -270,11 +274,58 @@ class ApprovalsProvider with ChangeNotifier {
 
   void setUnitFilter(String unit) {
     _unitFilter = unit;
+    // Single notify + reload all tabs in parallel (each will notify on completion)
+    _reloadAll();
+  }
+
+  /// Reload all tabs concurrently — notifies once at start, once at end.
+  Future<void> _reloadAll() async {
+    _isLoading = true;
     notifyListeners();
-    // Reload all tabs
-    loadPendingLossReports();
-    loadPendingDestructionRequests();
-    loadPendingProcurementRequests();
+    try {
+      await Future.wait([
+        _loadLossReportsSilent(),
+        _loadDestructionSilent(),
+        _loadProcurementSilent(),
+      ]);
+    } catch (_) {}
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> _loadLossReportsSilent() async {
+    try {
+      _pendingLossReports = await _approvalsService.getPendingLossReports(
+        priority: _lossReportPriority != 'all' ? _lossReportPriority : null,
+        unit: _unitFilter != 'all' ? _unitFilter : null,
+      );
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+  }
+
+  Future<void> _loadDestructionSilent() async {
+    try {
+      _pendingDestructionRequests =
+          await _approvalsService.getPendingDestructionRequests(
+        priority: _destructionPriority != 'all' ? _destructionPriority : null,
+        unit: _unitFilter != 'all' ? _unitFilter : null,
+      );
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+  }
+
+  Future<void> _loadProcurementSilent() async {
+    try {
+      _pendingProcurementRequests =
+          await _approvalsService.getPendingProcurementRequests(
+        priority: _procurementPriority != 'all' ? _procurementPriority : null,
+        unit: _unitFilter != 'all' ? _unitFilter : null,
+      );
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
   }
 
   // Clear messages

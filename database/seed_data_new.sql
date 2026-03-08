@@ -545,24 +545,20 @@ INSERT INTO ballistic_access_logs (access_id, ballistic_id, firearm_id, accessed
 -- 15. ML MODEL METADATA (baseline trained model)
 -- ============================================
 INSERT INTO ml_model_metadata (model_id, model_type, model_version, training_date, training_samples_count, num_clusters, cluster_centers, silhouette_score, outlier_threshold, normalization_params, is_active) VALUES
-  ('MDL-001', 'kmeans_anomaly', 'v1.0.0', '2025-08-01 10:00:00', 134, 4,
-    '[
-      {"cluster": 0, "center": [0.35, 0.12, 0.08, 0.0, 0.0, 3.2, 38400, 0.92, 120000, 3, false, false]},
-      {"cluster": 1, "center": [0.42, 0.18, 0.15, 1.0, 0.0, 2.8, 43200, 0.88, 86400, 2, false, true]},
-      {"cluster": 2, "center": [0.28, 0.08, 0.05, 0.0, 1.0, 1.5, 32400, 0.95, 172800, 1, false, false]},
-      {"cluster": 3, "center": [0.55, 0.25, 0.22, 1.0, 1.0, 4.1, 25200, 0.78, 64800, 4, true, true]}
-    ]'::jsonb,
+  ('MDL-001', 'kmeans', 'v1.0.0', '2025-08-01 10:00:00', 134, 4,
+    '[[0.35, 0.12, 0.08, 0.29, 0.0, 0.0, 0.0, 0.0, 0.12, -0.28],
+      [0.42, 0.18, 0.15, 0.42, 1.0, 0.0, 0.0, 1.0, 0.08, -0.11],
+      [0.28, 0.08, 0.05, 0.29, 0.0, 1.0, 0.0, 0.0, 0.05, 0.06],
+      [0.55, 0.25, 0.22, 0.33, 1.0, 1.0, 1.0, 1.0, -0.10, 0.45]]'::jsonb,
     0.6823, 2.5000,
-    '{"duration_mean": 37542, "duration_std": 8940, "hour_mean": 7.2, "hour_std": 2.1, "frequency_mean": 3.5, "frequency_std": 1.8}'::jsonb,
+    '{"mins": [0, 0, 0, 0, 0, 0, 0, 0, -2.5, -2.5], "maxs": [1.0, 100000, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.5, 2.5]}'::jsonb,
     true),
-  ('MDL-002', 'kmeans_anomaly', 'v0.9.0', '2025-07-15 14:00:00', 88, 3,
-    '[
-      {"cluster": 0, "center": [0.30, 0.10, 0.06, 0.0, 0.0, 2.8, 38000, 0.90, 115000, 3, false, false]},
-      {"cluster": 1, "center": [0.40, 0.16, 0.12, 1.0, 0.0, 2.5, 42000, 0.85, 80000, 2, false, true]},
-      {"cluster": 2, "center": [0.50, 0.22, 0.20, 1.0, 1.0, 3.8, 28000, 0.75, 60000, 4, true, true]}
-    ]'::jsonb,
+  ('MDL-002', 'kmeans', 'v0.9.0', '2025-07-15 14:00:00', 88, 3,
+    '[[0.30, 0.10, 0.06, 0.29, 0.0, 0.0, 0.0, 0.0, 0.10, -0.20],
+      [0.40, 0.16, 0.12, 0.42, 1.0, 0.0, 0.0, 1.0, 0.06, -0.08],
+      [0.50, 0.22, 0.20, 0.33, 1.0, 1.0, 1.0, 1.0, -0.08, 0.35]]'::jsonb,
     0.5912, 2.8000,
-    '{"duration_mean": 36800, "duration_std": 9200, "hour_mean": 7.1, "hour_std": 2.3, "frequency_mean": 3.2, "frequency_std": 1.6}'::jsonb,
+    '{"mins": [0, 0, 0, 0, 0, 0, 0, 0, -2.5, -2.5], "maxs": [1.0, 100000, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.5, 2.5]}'::jsonb,
     false);
 
 -- ============================================

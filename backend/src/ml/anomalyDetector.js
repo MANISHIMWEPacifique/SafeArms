@@ -3,6 +3,7 @@ const { extractAllFeatures } = require('./featureExtractor');
 const { predictKMeans } = require('./kmeans');
 const { detectStatisticalOutliers } = require('./statistical');
 const { calculateEnsembleScore } = require('./scorer');
+const { evaluateRules } = require('./rulesEngine');
 const { sendAnomalyAlert } = require('../services/email.service');
 const logger = require('../utils/logger');
 const { parseDecimalFields } = require('../utils/helpers');
@@ -16,7 +17,7 @@ const ANOMALY_DECIMAL_FIELDS = ['anomaly_score', 'confidence_level'];
  * 1. This system evaluates EVENTS, not people
  * 2. Anomalies represent patterns requiring human review
  * 3. Severity indicates REVIEW URGENCY, not wrongdoing
- * 4. Cross-unit transfers ALWAYS trigger mandatory review
+ * 4. Cross-unit transfers contribute to anomaly score but are not mandatory
  * 5. Ballistic access timing relative to custody is a key feature
  * 6. The system is unsupervised - no labeled training data required
  * 
@@ -36,10 +37,13 @@ const detectAnomaly = async (custodyRecord) => {
     try {
         logger.info(`Running EVENT-BASED anomaly detection for custody: ${custodyRecord.custody_id}`);
 
-        // Step 1: Extract features (now includes event context, ballistic timing, cross-unit)
+        // Step 1: Extract features (feeds both rules context and K-Means)
         const features = await extractAllFeatures(custodyRecord);
 
-        // Step 2: Get active ML model
+        // Step 2: Run rules engine (ALWAYS active — no model required)
+        const rulesResult = await evaluateRules(custodyRecord, features);
+
+        // Step 3: Get active ML model (optional — only contributes when trained)
         const modelResult = await query(`
       SELECT * FROM ml_model_metadata
       WHERE model_type = 'kmeans' AND is_active = true
@@ -47,42 +51,38 @@ const detectAnomaly = async (custodyRecord) => {
       LIMIT 1
     `);
 
-        if (modelResult.rows.length === 0) {
-            logger.warn('No active ML model found. Continuing with statistical + rule-based detection.');
+        const model = modelResult.rows[0] || null;
+        const hasModel = model !== null;
+
+        if (!hasModel) {
+            logger.info('No active ML model. Using rules + statistical detection only.');
         }
 
-        const model = modelResult.rows[0];
-
-        // Step 3: Prepare feature vector for ML (extended with new features)
-        const featureVector = [
-            features.officer_issue_frequency_30d || 0,
-            features.officer_avg_custody_duration_30d || 0,
-            features.firearm_exchange_rate_7d || 0,
-            (features.issue_hour || 0) / 24.0,
-            features.is_night_issue ? 1.0 : 0.0,
-            features.is_weekend_issue ? 1.0 : 0.0,
-            features.rapid_exchange_flag ? 1.0 : 0.0,
-            features.cross_unit_movement_flag ? 1.0 : 0.0,
-            features.custody_duration_zscore || 0,
-            features.issue_frequency_zscore || 0,
-            // NEW: Chain-of-custody and ballistic features
-            features.is_cross_unit_transfer ? 1.0 : 0.0,
-            features.ballistic_access_timing_score || 0,
-            features.ballistic_accesses_24h / 10.0 || 0, // Normalized
-            (features.cross_unit_transfer_count_30d || 0) / 5.0 // Normalized
-        ];
-
-        // Step 4: Run K-Means prediction
+        // Step 4: Prepare feature vector and run K-Means (only when model exists)
         let kmeansResult = null;
-        if (model) {
+        if (hasModel) {
+            const featureVector = [
+                features.officer_issue_frequency_30d || 0,
+                features.officer_avg_custody_duration_30d || 0,
+                features.firearm_exchange_rate_7d || 0,
+                (features.issue_hour || 0) / 24.0,
+                features.is_night_issue ? 1.0 : 0.0,
+                features.is_weekend_issue ? 1.0 : 0.0,
+                features.rapid_exchange_flag ? 1.0 : 0.0,
+                features.cross_unit_movement_flag ? 1.0 : 0.0,
+                features.custody_duration_zscore || 0,
+                features.issue_frequency_zscore || 0
+            ];
             kmeansResult = predictKMeans(featureVector, model);
         }
 
         // Step 5: Run statistical outlier detection
         const statisticalResult = await detectStatisticalOutliers(features);
 
-        // Step 6: Calculate ensemble score
-        const ensembleResult = calculateEnsembleScore(kmeansResult, statisticalResult, features);
+        // Step 6: Calculate ensemble score (adaptive weights based on model availability)
+        const ensembleResult = calculateEnsembleScore(
+            kmeansResult, statisticalResult, features, rulesResult, hasModel
+        );
 
         // Step 7: If anomaly detected, create anomaly record
         if (ensembleResult.is_anomaly) {
@@ -96,7 +96,7 @@ const detectAnomaly = async (custodyRecord) => {
 
         logger.info(`EVENT anomaly detection complete for custody: ${custodyRecord.custody_id}. ` +
             `Anomaly: ${ensembleResult.is_anomaly}, Score: ${ensembleResult.anomaly_score.toFixed(3)}, ` +
-            `CrossUnit: ${features.is_cross_unit_transfer}, Severity: ${ensembleResult.severity}`);
+            `Mode: ${ensembleResult.weighting_mode}, Rules: ${rulesResult.rule_count}, Severity: ${ensembleResult.severity}`);
 
         return ensembleResult;
     } catch (error) {
@@ -125,6 +125,14 @@ const recordAnomaly = async (custodyRecord, features, detectionResult, modelId) 
         const nextNum = parseInt(idResult.rows[0].max_num) + 1;
         const anomaly_id = `ANOM-${String(nextNum).padStart(3, '0')}`;
 
+        // Build dynamic detection_method from which detectors contributed
+        const methods = [];
+        if (detectionResult.rules_triggered?.length > 0) methods.push('rules');
+        if (detectionResult.detection_methods?.kmeans?.is_anomaly) methods.push('kmeans');
+        if (detectionResult.detection_methods?.statistical?.is_anomaly) methods.push('statistical');
+        if ((detectionResult.detection_methods?.ballistic_timing?.score || 0) > 0.5) methods.push('ballistic');
+        const detectionMethod = methods.length > 0 ? methods.join('+') : 'ensemble';
+
         const result = await query(`
       INSERT INTO anomalies (
         anomaly_id, custody_record_id, firearm_id, officer_id, unit_id,
@@ -141,7 +149,7 @@ const recordAnomaly = async (custodyRecord, features, detectionResult, modelId) 
             custodyRecord.unit_id,
             detectionResult.anomaly_score,
             detectionResult.anomaly_type,
-            'ensemble',
+            detectionMethod,
             modelId,
             detectionResult.severity,
             detectionResult.confidence,
@@ -411,9 +419,112 @@ const getAllAnomalies = async (filters = {}) => {
     }
 };
 
+/**
+ * Record an overdue custody anomaly
+ * Called by the overdue detection cron job when a custody record is past its expected return date
+ *
+ * @param {Object} overdueRecord - Overdue custody record with joined details
+ * @param {number} hoursOverdue - How many hours past the expected return
+ * @param {string} severity - Calculated severity (low/medium/high/critical)
+ * @returns {Promise<Object>} Created anomaly record
+ */
+const recordOverdueAnomaly = async (overdueRecord, hoursOverdue, severity) => {
+    try {
+        const { calculateOverdueScore } = require('../jobs/overdueDetection.job');
+        const anomalyScore = calculateOverdueScore(hoursOverdue);
+        const daysOverdue = Math.floor(hoursOverdue / 24);
+        const remainingHours = Math.floor(hoursOverdue % 24);
+
+        // Generate anomaly_id
+        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(anomaly_id FROM 6) AS INTEGER)), 0) as max_num FROM anomalies WHERE anomaly_id ~ '^ANOM-[0-9]+$'`);
+        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+        const anomaly_id = `ANOM-${String(nextNum).padStart(3, '0')}`;
+
+        // Build contributing factors
+        const contributingFactors = {
+            overdue_duration: `Firearm not returned for ${daysOverdue} day(s) and ${remainingHours} hour(s) past expected return`,
+            expected_return: `Expected return: ${new Date(overdueRecord.expected_return_date).toISOString()}`,
+            issued_at: `Originally issued: ${new Date(overdueRecord.issued_at).toISOString()}`
+        };
+
+        if (overdueRecord.duration_type) {
+            contributingFactors.shift_type = `Assigned shift type: ${overdueRecord.duration_type.replace('_', ' ')}`;
+        }
+
+        if (daysOverdue >= 7) {
+            contributingFactors.critical_warning = 'Firearm has been overdue for more than 7 days - immediate action required';
+        }
+
+        // Build feature importance
+        const featureImportance = {
+            overdue_hours: Math.min(hoursOverdue / 336, 1.0), // Normalize to 14 days max
+            custody_duration: 0.9,
+            expected_return_breach: 1.0
+        };
+
+        // Build event context
+        const eventContext = {
+            event_type: 'overdue_return',
+            event_id: overdueRecord.custody_id,
+            firearm_id: overdueRecord.firearm_id,
+            officer_id: overdueRecord.officer_id,
+            unit_id: overdueRecord.unit_id,
+            hours_overdue: hoursOverdue,
+            days_overdue: daysOverdue,
+            expected_return_date: overdueRecord.expected_return_date,
+            issued_at: overdueRecord.issued_at,
+            custody_type: overdueRecord.custody_type,
+            duration_type: overdueRecord.duration_type
+        };
+
+        // Determine specific anomaly type
+        let anomalyType = 'overdue_return';
+        if (hoursOverdue >= 168) {
+            anomalyType = 'overdue_return_critical';
+        } else if (hoursOverdue >= 72) {
+            anomalyType = 'overdue_return_extended';
+        }
+
+        const result = await query(`
+            INSERT INTO anomalies (
+                anomaly_id, custody_record_id, firearm_id, officer_id, unit_id,
+                anomaly_score, anomaly_type, detection_method, model_id,
+                severity, confidence_level, contributing_factors, feature_importance,
+                is_mandatory_review, event_context, ballistic_access_context
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            RETURNING anomaly_id
+        `, [
+            anomaly_id,
+            overdueRecord.custody_id,
+            overdueRecord.firearm_id,
+            overdueRecord.officer_id,
+            overdueRecord.unit_id,
+            anomalyScore,
+            anomalyType,
+            'overdue_scanner',
+            null, // No ML model used - this is rule-based
+            severity,
+            0.95, // High confidence since this is deterministic (date comparison)
+            JSON.stringify(contributingFactors),
+            JSON.stringify(featureImportance),
+            severity === 'high' || severity === 'critical', // Mandatory review for high/critical
+            JSON.stringify(eventContext),
+            JSON.stringify(null) // No ballistic context for overdue
+        ]);
+
+        logger.info(`OVERDUE anomaly recorded: ${anomaly_id} (custody: ${overdueRecord.custody_id}, ${daysOverdue}d ${remainingHours}h overdue, severity: ${severity})`);
+
+        return { anomaly_id: result.rows[0].anomaly_id };
+    } catch (error) {
+        logger.error('Record overdue anomaly error:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     detectAnomaly,
     recordAnomaly,
+    recordOverdueAnomaly,
     getUnitAnomalies,
     getAllAnomalies
 };

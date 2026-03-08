@@ -1,14 +1,10 @@
 // Anomaly Service
 // API calls for anomaly management
 
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
-import 'auth_service.dart';
+import 'api_client.dart';
 
 class AnomalyService {
-  final AuthService _authService = AuthService();
-
   // Get all anomalies with optional filters
   Future<List<Map<String, dynamic>>> getAnomalies({
     int? limit,
@@ -16,42 +12,20 @@ class AnomalyService {
     String? severity,
     String? status,
   }) async {
-    final token = await _authService.getToken();
-
-    if (token == null) {
-      throw Exception('No authentication token found');
-    }
-
-    // Build query parameters
-    Map<String, String> queryParams = {};
-    if (limit != null) queryParams['limit'] = limit.toString();
-    if (offset != null) queryParams['offset'] = offset.toString();
-    if (severity != null) queryParams['severity'] = severity;
-    if (status != null) queryParams['status'] = status;
-
-    final uri = Uri.parse(
-      ApiConfig.anomaliesUrl,
-    ).replace(queryParameters: queryParams);
-
     try {
-      final response = await http
-          .get(uri, headers: ApiConfig.authHeaders(token))
-          .timeout(ApiConfig.connectionTimeout);
+      Map<String, String> queryParams = {};
+      if (limit != null) queryParams['limit'] = limit.toString();
+      if (offset != null) queryParams['offset'] = offset.toString();
+      if (severity != null) queryParams['severity'] = severity;
+      if (status != null) queryParams['status'] = status;
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success']) {
-          return List<Map<String, dynamic>>.from(data['data']);
-        } else {
-          throw Exception(data['message'] ?? 'Failed to fetch anomalies');
-        }
-      } else if (response.statusCode == 401) {
-        throw Exception('Session expired. Please login again.');
-      } else {
-        throw Exception('Failed to fetch anomalies: ${response.statusCode}');
-      }
+      final uri = Uri.parse(ApiConfig.anomaliesUrl).replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final data = await ApiClient.get(uri.toString());
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
-      throw Exception('Network error: ${e.toString()}');
+      throw Exception('Error fetching anomalies: $e');
     }
   }
 
@@ -61,39 +35,18 @@ class AnomalyService {
     int? limit,
     int? offset,
   }) async {
-    final token = await _authService.getToken();
-
-    if (token == null) {
-      throw Exception('No authentication token found');
-    }
-
-    Map<String, String> queryParams = {};
-    if (limit != null) queryParams['limit'] = limit.toString();
-    if (offset != null) queryParams['offset'] = offset.toString();
-
-    final uri = Uri.parse(
-      '${ApiConfig.anomaliesUrl}/unit/$unitId',
-    ).replace(queryParameters: queryParams);
-
     try {
-      final response = await http
-          .get(uri, headers: ApiConfig.authHeaders(token))
-          .timeout(ApiConfig.connectionTimeout);
+      Map<String, String> queryParams = {};
+      if (limit != null) queryParams['limit'] = limit.toString();
+      if (offset != null) queryParams['offset'] = offset.toString();
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success']) {
-          return List<Map<String, dynamic>>.from(data['data']);
-        } else {
-          throw Exception(data['message'] ?? 'Failed to fetch unit anomalies');
-        }
-      } else {
-        throw Exception(
-          'Failed to fetch unit anomalies: ${response.statusCode}',
-        );
-      }
+      final uri = Uri.parse('${ApiConfig.anomaliesUrl}/unit/$unitId').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final data = await ApiClient.get(uri.toString());
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
-      throw Exception('Network error: ${e.toString()}');
+      throw Exception('Error fetching unit anomalies: $e');
     }
   }
 
@@ -102,35 +55,109 @@ class AnomalyService {
     String id,
     Map<String, dynamic> updates,
   ) async {
-    final token = await _authService.getToken();
-
-    if (token == null) {
-      throw Exception('No authentication token found');
-    }
-
     try {
-      final response = await http
-          .put(
-            Uri.parse('${ApiConfig.anomaliesUrl}/$id'),
-            headers: ApiConfig.authHeaders(token),
-            body: json.encode(updates),
-          )
-          .timeout(ApiConfig.connectionTimeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success']) {
-          return data['data'];
-        } else {
-          throw Exception(data['message'] ?? 'Failed to update anomaly');
-        }
-      } else if (response.statusCode == 404) {
-        throw Exception('Anomaly not found');
-      } else {
-        throw Exception('Failed to update anomaly: ${response.statusCode}');
-      }
+      final data = await ApiClient.put(
+        '${ApiConfig.anomaliesUrl}/$id',
+        body: updates,
+      );
+      return data['data'];
     } catch (e) {
-      throw Exception('Network error: ${e.toString()}');
+      throw Exception('Error updating anomaly: $e');
+    }
+  }
+
+  // Start investigation on an anomaly
+  Future<Map<String, dynamic>> investigateAnomaly(
+    String id, {
+    String? notes,
+  }) async {
+    try {
+      final data = await ApiClient.post(
+        '${ApiConfig.anomaliesUrl}/$id/investigate',
+        body: {'notes': notes ?? ''},
+      );
+      return data['data'];
+    } catch (e) {
+      throw Exception('Error starting investigation: $e');
+    }
+  }
+
+  // Resolve an anomaly
+  Future<Map<String, dynamic>> resolveAnomaly(
+    String id, {
+    String? notes,
+  }) async {
+    try {
+      final data = await ApiClient.post(
+        '${ApiConfig.anomaliesUrl}/$id/resolve',
+        body: {'notes': notes ?? ''},
+      );
+      return data['data'];
+    } catch (e) {
+      throw Exception('Error resolving anomaly: $e');
+    }
+  }
+
+  // Mark anomaly as false positive (data feeds ML model training)
+  Future<Map<String, dynamic>> markFalsePositive(
+    String id, {
+    String? notes,
+  }) async {
+    try {
+      final data = await ApiClient.post(
+        '${ApiConfig.anomaliesUrl}/$id/false-positive',
+        body: {'notes': notes ?? ''},
+      );
+      return data['data'];
+    } catch (e) {
+      throw Exception('Error marking false positive: $e');
+    }
+  }
+
+  // Submit explanation for critical anomaly
+  Future<Map<String, dynamic>> submitExplanation(
+    String id, {
+    required String message,
+  }) async {
+    try {
+      final data = await ApiClient.post(
+        '${ApiConfig.anomaliesUrl}/$id/explanation',
+        body: {'message': message},
+      );
+      return data['data'];
+    } catch (e) {
+      throw Exception('Error submitting explanation: $e');
+    }
+  }
+
+  // Search anomalies for investigation (by unit and time interval)
+  Future<List<Map<String, dynamic>>> searchForInvestigation({
+    String? unitId,
+    String? startDate,
+    String? endDate,
+    String? severity,
+    String? status,
+    int? limit,
+    int? offset,
+  }) async {
+    try {
+      Map<String, String> queryParams = {};
+      if (unitId != null) queryParams['unit_id'] = unitId;
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+      if (severity != null) queryParams['severity'] = severity;
+      if (status != null) queryParams['status'] = status;
+      if (limit != null) queryParams['limit'] = limit.toString();
+      if (offset != null) queryParams['offset'] = offset.toString();
+
+      final uri = Uri.parse('${ApiConfig.anomaliesUrl}/investigation/search')
+          .replace(
+              queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final data = await ApiClient.get(uri.toString());
+      return List<Map<String, dynamic>>.from(data['data'] ?? []);
+    } catch (e) {
+      throw Exception('Error searching anomalies: $e');
     }
   }
 }

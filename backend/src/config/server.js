@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 // Server configuration
 const SERVER_CONFIG = {
     port: parseInt(process.env.PORT) || 3000,

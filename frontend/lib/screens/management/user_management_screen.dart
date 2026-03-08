@@ -1084,7 +1084,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFF1E88E5)
                                     .withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Row(
                                 children: [
@@ -1703,7 +1703,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFFF9800)
                                             .withValues(alpha: 0.08),
-                                        borderRadius: BorderRadius.circular(6),
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: const Row(
                                         children: [

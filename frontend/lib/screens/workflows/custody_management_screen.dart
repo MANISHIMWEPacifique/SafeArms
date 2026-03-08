@@ -25,9 +25,13 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CustodyProvider>().loadCustody();
-      context.read<CustodyProvider>().loadStats();
-      context.read<CustodyProvider>().loadAnomalyStatus();
+      final provider = context.read<CustodyProvider>();
+      // Load all data in parallel for faster initial load
+      Future.wait([
+        provider.loadCustody(),
+        provider.loadStats(),
+        provider.loadAnomalyStatus(),
+      ]);
     });
   }
 
@@ -54,7 +58,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
                     Expanded(
                       child: SingleChildScrollView(
                         child: Padding(
-                          padding: const EdgeInsets.all(32.0),
+                          padding: const EdgeInsets.all(24.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -126,7 +130,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
           const Text(
             'Custody Management',
             style: TextStyle(
-                color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
           Flexible(
@@ -389,10 +393,16 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
   Widget _buildCustodyCard(Map<String, dynamic> custody) {
     final hasAnomaly = custody['has_anomaly'] == true;
     final custodyType = custody['custody_type'] ?? 'permanent';
+    final durationType = custody['duration_type'];
     final assignedDate = DateTime.tryParse(custody['assigned_date'] ?? '');
+    final expectedReturn = custody['expected_return_date'] != null
+        ? DateTime.tryParse(custody['expected_return_date'])
+        : null;
     final duration = assignedDate != null
         ? DateTime.now().difference(assignedDate)
         : Duration.zero;
+    final isOverdue =
+        expectedReturn != null && DateTime.now().isAfter(expectedReturn);
 
     return Container(
       decoration: BoxDecoration(
@@ -468,6 +478,10 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
 
           // Custody type badge
           _buildCustodyTypeBadge(custodyType),
+          if (durationType != null) ...[
+            const SizedBox(height: 6),
+            _buildDurationTypeBadge(durationType),
+          ],
           const SizedBox(height: 12),
 
           // Assignment date
@@ -495,6 +509,11 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
               ),
             ],
           ),
+          // Expected return / remaining time for temporary custody
+          if (expectedReturn != null) ...[
+            const SizedBox(height: 6),
+            _buildRemainingTime(expectedReturn, isOverdue),
+          ],
           const SizedBox(height: 16),
 
           // Status indicator
@@ -534,7 +553,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
                     side: const BorderSide(color: Color(0xFF1E88E5)),
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6)),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   child: const Text('View Details',
                       style: TextStyle(fontSize: 13)),
@@ -595,6 +614,85 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+
+  Widget _buildDurationTypeBadge(String durationType) {
+    const Map<String, String> labels = {
+      '6_hours': '6H',
+      '8_hours': '8H',
+      '12_hours': '12H',
+      '1_day': '24H',
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFC857).withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFFFFC857).withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.schedule, color: Color(0xFFFFC857), size: 12),
+          const SizedBox(width: 4),
+          Text(
+            labels[durationType] ?? durationType,
+            style: const TextStyle(
+              color: Color(0xFFFFC857),
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRemainingTime(DateTime expectedReturn, bool isOverdue) {
+    final now = DateTime.now();
+    final remaining = expectedReturn.difference(now);
+
+    String text;
+    Color color;
+    IconData icon;
+
+    if (isOverdue) {
+      final overdue = now.difference(expectedReturn);
+      text = 'Overdue by ${_formatDuration(overdue)}';
+      color = const Color(0xFFE85C5C);
+      icon = Icons.warning_amber;
+    } else {
+      text = '${_formatDuration(remaining)} remaining';
+      // Warn when less than 1 hour remaining
+      if (remaining.inMinutes < 60) {
+        color = const Color(0xFFFFA726);
+        icon = Icons.timer;
+      } else {
+        color = const Color(0xFF3CCB7F);
+        icon = Icons.timer;
+      }
+    }
+
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 14),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 

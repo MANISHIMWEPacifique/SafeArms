@@ -56,13 +56,17 @@ const getStatusCodeFromMessage = (message) => {
 
     // 400 Bad Request
     if (msg.includes('is required') ||
-        msg.includes('invalid') ||
-        msg.includes('cannot') ||
-        msg.includes('missing') ||
-        msg.includes('is currently') ||
+        msg.includes('missing required') ||
         msg.includes('otp expired') ||
         msg.includes('otp has expired')) {
         return 400;
+    }
+
+    // 409 Conflict — resource state conflicts
+    if (msg.includes('is currently') ||
+        msg.includes('cannot return') ||
+        msg.includes('cannot assign')) {
+        return 409;
     }
 
     return null; // No match — will default to 500

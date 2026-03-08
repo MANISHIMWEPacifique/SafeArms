@@ -55,7 +55,7 @@ class _DeleteUserConfirmationModalState
                 'Delete User Account?',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,

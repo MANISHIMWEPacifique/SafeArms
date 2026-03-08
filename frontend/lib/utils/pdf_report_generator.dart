@@ -16,13 +16,19 @@ class PdfReportGenerator {
     required Map<String, dynamic> reportData,
     Map<String, String> metadata = const {},
   }) async {
-    // Use built-in Helvetica fonts (no network download required).
+    // Load Roboto from Google Fonts (cached after first download).
+    // Roboto has full Unicode support — fixes en-dash / special-char warnings.
+    final baseFont = await PdfGoogleFonts.robotoRegular();
+    final boldFont = await PdfGoogleFonts.robotoBold();
+    final italicFont = await PdfGoogleFonts.robotoItalic();
+    final boldItalicFont = await PdfGoogleFonts.robotoBoldItalic();
+
     final pdf = pw.Document(
       theme: pw.ThemeData.withFont(
-        base: pw.Font.helvetica(),
-        bold: pw.Font.helveticaBold(),
-        italic: pw.Font.helveticaOblique(),
-        boldItalic: pw.Font.helveticaBoldOblique(),
+        base: baseFont,
+        bold: boldFont,
+        italic: italicFont,
+        boldItalic: boldItalicFont,
       ),
     );
 

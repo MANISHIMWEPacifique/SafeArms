@@ -4,7 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 require('dotenv').config();
 
-const { pool } = require('./config/database');
+const { pool, setShuttingDown } = require('./config/database');
 const { SERVER_CONFIG } = require('./config/server');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
@@ -12,6 +12,7 @@ const logger = require('./utils/logger');
 // Import background jobs
 const { scheduleModelTraining } = require('./jobs/modelTraining.job');
 const { scheduleViewRefresh } = require('./jobs/viewRefresh.job');
+const { scheduleOverdueDetection } = require('./jobs/overdueDetection.job');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -46,8 +47,8 @@ if (SERVER_CONFIG.nodeEnv === 'development') {
 }
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -105,65 +106,99 @@ app.use(notFoundHandler);
 // Global error handler
 app.use(errorHandler);
 
-// Start server
+// Start server — verify DB *before* accepting traffic
 const PORT = SERVER_CONFIG.port;
 
-const server = app.listen(PORT, async () => {
+(async () => {
     console.log('\n========================================');
     console.log('[SafeArms] Backend Server');
     console.log('========================================');
-    console.log(`[OK] Server running on port ${PORT}`);
-    console.log(`[OK] Environment: ${SERVER_CONFIG.nodeEnv}`);
-    console.log(`[OK] API Base URL: ${SERVER_CONFIG.apiBaseUrl}`);
+    console.log(`[..] Environment: ${SERVER_CONFIG.nodeEnv}`);
 
-    // Test database connection
+    // 1. Test database connection before binding port
     try {
         await pool.query('SELECT NOW()');
         console.log('[OK] Database connected successfully');
     } catch (error) {
         console.error('[ERROR] Database connection failed:', error.message);
+        console.error('[ERROR] Server will not start without a database connection.');
+        process.exit(1);
     }
 
-    // Schedule background jobs
-    try {
-        scheduleModelTraining();
-        scheduleViewRefresh();
-        console.log('[OK] Background jobs scheduled');
-    } catch (error) {
-        console.error('[WARN] Failed to schedule background jobs:', error.message);
-    }
+    // 2. Bind port only after DB is confirmed
+    let bootstrapTimer = null;
+    const server = app.listen(PORT, () => {
+        console.log(`[OK] Server running on port ${PORT}`);
+        console.log(`[OK] API Base URL: ${SERVER_CONFIG.apiBaseUrl}`);
 
-    console.log('========================================\n');
-    logger.info(`SafeArms backend server started on port ${PORT}`);
-});
+        // 3. Schedule background jobs (non-critical)
+        try {
+            scheduleModelTraining();
+            scheduleViewRefresh();
+            scheduleOverdueDetection();
+            console.log('[OK] Background jobs scheduled');
+        } catch (error) {
+            console.error('[WARN] Failed to schedule background jobs:', error.message);
+        }
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    logger.info('SIGTERM received, shutting down gracefully...');
-    server.close(() => {
-        logger.info('Server closed');
-        pool.end(() => {
-            logger.info('Database pool closed');
-            process.exit(0);
+        // 4. Bootstrap feature extraction + rules-based detection (delayed, non-blocking)
+        //    NOTE: This does NOT train the ML model. Model training is admin-initiated
+        //    (via Settings > Train Model) or scheduled every 3 weeks.
+        bootstrapTimer = setTimeout(async () => {
+            try {
+                const { bootstrapIfNeeded } = require('./jobs/modelTraining.job');
+                await bootstrapIfNeeded();
+            } catch (e) {
+                logger.error('ML bootstrap check failed:', e);
+            }
+        }, 10000);
+
+        console.log('========================================\n');
+        logger.info(`SafeArms backend server started on port ${PORT}`);
+    });
+
+    // Expose server for graceful shutdown handlers
+    setupShutdown(server, bootstrapTimer);
+})();
+
+function setupShutdown(server, bootstrapTimer) {
+
+    const shutdown = (signal) => {
+        logger.info(`${signal} received, shutting down gracefully...`);
+
+        // Prevent new queries from being dispatched
+        setShuttingDown();
+
+        // Cancel pending bootstrap if it hasn't fired yet
+        if (bootstrapTimer) clearTimeout(bootstrapTimer);
+
+        // Force exit after 10s if graceful shutdown stalls
+        const forceTimer = setTimeout(() => {
+            logger.error('Graceful shutdown timed out, forcing exit');
+            process.exit(1);
+        }, 10000);
+        forceTimer.unref();
+
+        server.close(() => {
+            logger.info('Server closed');
+            pool.end(() => {
+                logger.info('Database pool closed');
+                process.exit(0);
+            });
         });
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+
+    process.on('unhandledRejection', (reason, promise) => {
+        logger.error('Unhandled Rejection at:', { promise, reason: reason?.toString() });
     });
-});
 
-process.on('SIGINT', () => {
-    logger.info('SIGINT received, shutting down gracefully...');
-    server.close(() => {
-        pool.end(() => process.exit(0));
+    process.on('uncaughtException', (error) => {
+        logger.error('Uncaught Exception:', { message: error.message, stack: error.stack });
+        process.exit(1);
     });
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled Rejection at:', { promise, reason: reason?.toString() });
-});
-
-process.on('uncaughtException', (error) => {
-    logger.error('Uncaught Exception:', { message: error.message, stack: error.stack });
-    // Give time for logging, then exit
-    setTimeout(() => process.exit(1), 1000);
-});
+}
 
 module.exports = app;

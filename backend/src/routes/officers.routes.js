@@ -6,6 +6,7 @@ const { requireCommander, requireUnitAccess } = require('../middleware/authoriza
 const { logCreate, logUpdate } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
+const logger = require('../utils/logger');
 
 router.get('/', authenticate, asyncHandler(async (req, res) => {
     const { unit_id } = req.query;
@@ -17,7 +18,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     if (role === 'station_commander') {
         queryUnitId = userUnitId; // Force their unit - ignore any passed unit_id
         if (unit_id && unit_id !== userUnitId) {
-            console.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query officers for unit ${unit_id} (assigned: ${userUnitId})`);
+            logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query officers for unit ${unit_id} (assigned: ${userUnitId})`);
         }
     }
     
@@ -41,7 +42,7 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
     if (role === 'station_commander') {
         options.unit_id = userUnitId;
         if (req.query.unit_id && req.query.unit_id !== userUnitId) {
-            console.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query officer stats for unit ${req.query.unit_id} (assigned: ${userUnitId})`);
+            logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query officer stats for unit ${req.query.unit_id} (assigned: ${userUnitId})`);
         }
     }
     

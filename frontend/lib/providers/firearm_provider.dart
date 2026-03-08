@@ -8,6 +8,12 @@ import '../services/firearm_service.dart';
 class FirearmProvider with ChangeNotifier {
   final FirearmService _firearmService = FirearmService();
 
+  @override
+  void notifyListeners() {
+    _filteredCache = null; // Invalidate cache on any state change
+    super.notifyListeners();
+  }
+
   // State
   List<FirearmModel> _firearms = [];
   FirearmModel? _selectedFirearm;
@@ -49,42 +55,40 @@ class FirearmProvider with ChangeNotifier {
   int get totalItems => _totalItems;
   int get totalPages => (_totalItems / _itemsPerPage).ceil();
 
+  // Cached filtered list — invalidated by notifyListeners().
+  List<FirearmModel>? _filteredCache;
+
   // Computed getters
   List<FirearmModel> get filteredFirearms {
-    var filtered = List<FirearmModel>.from(_firearms);
+    if (_filteredCache != null) return _filteredCache!;
 
-    // Apply search
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((firearm) {
-        final query = _searchQuery.toLowerCase();
-        return firearm.serialNumber.toLowerCase().contains(query) ||
-            firearm.manufacturer.toLowerCase().contains(query) ||
-            firearm.model.toLowerCase().contains(query) ||
-            (firearm.assignedUnitId?.toLowerCase().contains(query) ?? false);
-      }).toList();
-    }
-
-    // Apply filters
-    if (_statusFilter != 'all') {
-      filtered =
-          filtered.where((f) => f.currentStatus == _statusFilter).toList();
-    }
-
-    if (_typeFilter != 'all') {
-      filtered = filtered.where((f) => f.firearmType == _typeFilter).toList();
-    }
-
-    if (_unitFilter != 'all') {
-      filtered =
-          filtered.where((f) => f.assignedUnitId == _unitFilter).toList();
-    }
-
-    if (_manufacturerFilter != 'all') {
-      filtered =
-          filtered.where((f) => f.manufacturer == _manufacturerFilter).toList();
-    }
+    var filtered = _firearms.where((firearm) {
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        final match = firearm.serialNumber.toLowerCase().contains(q) ||
+            firearm.manufacturer.toLowerCase().contains(q) ||
+            firearm.model.toLowerCase().contains(q) ||
+            (firearm.assignedUnitId?.toLowerCase().contains(q) ?? false);
+        if (!match) return false;
+      }
+      if (_statusFilter != 'all' && firearm.currentStatus != _statusFilter) {
+        return false;
+      }
+      if (_typeFilter != 'all' && firearm.firearmType != _typeFilter) {
+        return false;
+      }
+      if (_unitFilter != 'all' && firearm.assignedUnitId != _unitFilter) {
+        return false;
+      }
+      if (_manufacturerFilter != 'all' &&
+          firearm.manufacturer != _manufacturerFilter) {
+        return false;
+      }
+      return true;
+    }).toList();
 
     _totalItems = filtered.length;
+    _filteredCache = filtered;
     return filtered;
   }
 

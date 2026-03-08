@@ -1,6 +1,6 @@
 const { query, withTransaction } = require('../config/database');
 const logger = require('../utils/logger');
-const { detectAnomaly } = require('../ml/anomalyDetector');
+const { detectAnomaly, recordOverdueAnomaly } = require('../ml/anomalyDetector');
 const CustodyRecord = require('../models/CustodyRecord');
 
 /**
@@ -18,6 +18,14 @@ const CustodyRecord = require('../models/CustodyRecord');
  * @param {Object} custodyData
  * @returns {Promise<Object>}
  */
+// Maps duration_type to hours for computing expected return
+const DURATION_TYPE_HOURS = {
+    '6_hours': 6,
+    '8_hours': 8,
+    '12_hours': 12,
+    '1_day': 24
+};
+
 const assignCustody = async (custodyData) => {
     const {
         firearm_id,
@@ -26,6 +34,7 @@ const assignCustody = async (custodyData) => {
         custody_type,
         assignment_reason,
         expected_return_date,
+        duration_type,
         notes,
         issued_by
     } = custodyData;
@@ -74,12 +83,23 @@ const assignCustody = async (custodyData) => {
             const idResult = await client.query(`SELECT 'CUS-' || LPAD(CAST(COALESCE(MAX(CAST(SUBSTRING(custody_id FROM 5) AS INTEGER)), 0) + 1 AS TEXT), 3, '0') as next_id FROM custody_records WHERE custody_id ~ '^CUS-[0-9]+$'`);
             const custodyId = idResult.rows[0].next_id;
 
+            // Compute expected_return_date from duration_type for temporary custody
+            let computedExpectedReturn = expected_return_date || null;
+            const validDurationType = (custody_type === 'temporary' && duration_type && DURATION_TYPE_HOURS[duration_type]) ? duration_type : null;
+
+            if (custody_type === 'temporary' && validDurationType && !computedExpectedReturn) {
+                const hours = DURATION_TYPE_HOURS[validDurationType];
+                const returnDate = new Date();
+                returnDate.setHours(returnDate.getHours() + hours);
+                computedExpectedReturn = returnDate.toISOString();
+            }
+
             // Create custody record
             const result = await client.query(
                 `INSERT INTO custody_records (
                     custody_id, firearm_id, officer_id, unit_id, custody_type,
-                    assignment_reason, expected_return_date, notes, issued_by
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    assignment_reason, expected_return_date, duration_type, notes, issued_by
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 RETURNING *`,
                 [
                     custodyId,
@@ -88,7 +108,8 @@ const assignCustody = async (custodyData) => {
                     unit_id,
                     custody_type,
                     assignment_reason,
-                    expected_return_date || null,
+                    computedExpectedReturn,
+                    validDurationType,
                     notes || null,
                     issued_by
                 ]
@@ -214,6 +235,27 @@ const returnCustody = async (custodyId, returnData) => {
 
             logger.info(`Custody returned: ${custodyId}`);
 
+            // Check if this was an overdue return and generate anomaly
+            if (custody.expected_return_date) {
+                const expectedReturn = new Date(custody.expected_return_date);
+                const now = new Date();
+                if (now > expectedReturn) {
+                    const hoursOverdue = (now - expectedReturn) / (1000 * 60 * 60);
+                    const { classifyOverdueSeverity } = require('../jobs/overdueDetection.job');
+                    const severity = classifyOverdueSeverity(hoursOverdue);
+
+                    setImmediate(() => {
+                        recordOverdueAnomaly(
+                            { ...custody, ...updatedRecord },
+                            hoursOverdue,
+                            severity
+                        ).catch(err => {
+                            logger.error('Overdue return anomaly detection error:', err);
+                        });
+                    });
+                }
+            }
+
             return updatedRecord;
         });
     } catch (error) {
@@ -332,6 +374,8 @@ const getActiveCustody = async (filters = {}) => {
             `SELECT 
         cr.*,
         cr.issued_at as assigned_date,
+        cr.duration_type,
+        cr.expected_return_date,
         f.serial_number as firearm_serial,
         f.manufacturer,
         f.model,
@@ -425,7 +469,9 @@ const getUnitCustody = async (unitId, options = {}) => {
         cr.firearm_id,
         cr.officer_id,
         cr.custody_type,
+        cr.duration_type,
         cr.issued_at as assigned_date,
+        cr.expected_return_date,
         cr.returned_at,
         cr.return_condition,
         cr.notes,

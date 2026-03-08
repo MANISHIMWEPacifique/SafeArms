@@ -335,7 +335,7 @@ class _ReportsScreenState extends State<ReportsScreen>
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFF37404F)),
       ),
       child: DropdownButtonHideUnderline(

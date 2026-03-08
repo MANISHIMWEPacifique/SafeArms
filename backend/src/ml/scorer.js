@@ -6,7 +6,7 @@ const logger = require('../utils/logger');
  * IMPORTANT PRINCIPLES:
  * 1. This system evaluates EVENTS, not people
  * 2. Severity indicates REVIEW URGENCY, not wrongdoing
- * 3. Cross-unit transfers ALWAYS trigger anomalies (organizational policy)
+ * 3. Cross-unit transfers contribute to anomaly score but are not mandatory
  * 4. Ballistic access timing relative to custody is a key feature
  * 5. The system remains unsupervised - it identifies patterns for human review
  * 
@@ -19,68 +19,71 @@ const logger = require('../utils/logger');
 
 /**
  * Calculate ensemble anomaly score
- * @param {Object} kmeansResult - K-Means detection result
+ *
+ * Adaptive weighting:
+ *   Without K-Means model → rules(0.45) + statistical(0.30) + ballistic(0.25)
+ *   With K-Means model    → kmeans(0.40) + rules(0.25) + statistical(0.20) + ballistic(0.15)
+ *
+ * @param {Object|null} kmeansResult - K-Means detection result (null if no model)
  * @param {Object} statisticalResult - Statistical detection result
  * @param {Object} features - Original features including event context
+ * @param {Object|null} rulesResult - Results from rulesEngine.evaluateRules() (null = use legacy flag scoring)
+ * @param {boolean} hasModel - Whether a trained K-Means model is active
  * @returns {Object} Final anomaly verdict
  */
-const calculateEnsembleScore = (kmeansResult, statisticalResult, features) => {
+const calculateEnsembleScore = (kmeansResult, statisticalResult, features, rulesResult = null, hasModel = false) => {
     try {
-        // MANDATORY ANOMALY: Cross-unit transfers always trigger review
         const isCrossUnitTransfer = features.is_cross_unit_transfer === true;
-        
-        // Weight configuration
-        const weights = {
-            kmeans: 0.35,
-            statistical: 0.25,
-            ruleBased: 0.25,
-            ballisticTiming: 0.15
-        };
 
-        // Rule-based score from pattern flags
-        const ruleScore = calculateRuleBasedScore(features);
-        
-        // Ballistic timing score (new feature)
+        // ── Adaptive weighting based on model availability ──
+        const weights = hasModel
+            ? { kmeans: 0.40, rules: 0.25, statistical: 0.20, ballisticTiming: 0.15 }
+            : { kmeans: 0.00, rules: 0.45, statistical: 0.30, ballisticTiming: 0.25 };
+
+        // Use rules engine result when available, fall back to legacy flag-based scoring
+        const ruleScore = rulesResult
+            ? rulesResult.aggregate_score
+            : calculateRuleBasedScore(features);
+
         const ballisticTimingScore = features.ballistic_access_timing_score || 0;
 
         // Calculate weighted ensemble score
         let ensembleScore = (
             weights.kmeans * (kmeansResult?.anomaly_score || 0) +
             weights.statistical * (statisticalResult?.anomaly_score || 0) +
-            weights.ruleBased * ruleScore +
+            weights.rules * ruleScore +
             weights.ballisticTiming * ballisticTimingScore
         );
 
-        // POLICY: Cross-unit transfers always have minimum score of 0.4
+        // Cross-unit transfers contribute to score but don't force anomaly status
         if (isCrossUnitTransfer) {
-            ensembleScore = Math.max(ensembleScore, 0.4);
+            ensembleScore = Math.max(ensembleScore, 0.2);
         }
 
         // Calculate confidence based on detector agreement
         const detectorAgreement = [
             kmeansResult?.is_anomaly || false,
             statisticalResult?.is_anomaly || false,
-            ruleScore > 0.5,
-            ballisticTimingScore > 0.5,
-            isCrossUnitTransfer
+            ruleScore > 0.3,
+            ballisticTimingScore > 0.5
         ].filter(Boolean).length;
 
-        const confidence = detectorAgreement / 5.0;
+        const confidence = detectorAgreement / 4.0;
 
         // Classify severity (review urgency, NOT wrongdoing indication)
         const severity = classifySeverity(ensembleScore, confidence, features);
 
         // Determine anomaly type
-        const anomalyType = determineAnomalyType(features, kmeansResult, statisticalResult);
+        const anomalyType = determineAnomalyType(features, kmeansResult, statisticalResult, rulesResult);
 
         // Calculate feature importance
         const featureImportance = calculateFeatureImportance(features, kmeansResult, statisticalResult);
 
         // Build contributing factors
-        const contributingFactors = buildContributingFactors(features, kmeansResult, statisticalResult);
+        const contributingFactors = buildContributingFactors(features, kmeansResult, statisticalResult, rulesResult);
 
-        // DECISION: Anomaly if score > 0.35 OR if cross-unit transfer
-        const isAnomaly = ensembleScore > 0.35 || isCrossUnitTransfer;
+        // DECISION: Anomaly if ensemble score exceeds threshold
+        const isAnomaly = ensembleScore > 0.35;
 
         return {
             is_anomaly: isAnomaly,
@@ -88,9 +91,10 @@ const calculateEnsembleScore = (kmeansResult, statisticalResult, features) => {
             confidence,
             severity,
             anomaly_type: anomalyType,
-            is_mandatory_review: isCrossUnitTransfer, // Policy-mandated review
+            is_mandatory_review: confidence >= 0.6 && severity !== 'low',
             feature_importance: featureImportance,
             contributing_factors: contributingFactors,
+            rules_triggered: rulesResult?.rules_triggered || [],
             event_context: features.event_context || null,
             ballistic_access_context: {
                 has_profile: features.has_ballistic_profile,
@@ -100,10 +104,11 @@ const calculateEnsembleScore = (kmeansResult, statisticalResult, features) => {
                 access_before_hours: features.ballistic_access_before_custody_hours,
                 access_after_hours: features.ballistic_access_after_custody_hours
             },
+            weighting_mode: hasModel ? 'with_model' : 'rules_only',
             detection_methods: {
                 kmeans: kmeansResult,
                 statistical: statisticalResult,
-                rule_based: { score: ruleScore },
+                rule_based: { score: ruleScore, rules: rulesResult?.rules_triggered || [] },
                 ballistic_timing: { score: ballisticTimingScore }
             }
         };
@@ -134,9 +139,9 @@ const calculateRuleBasedScore = (features) => {
     let score = 0;
     let flagCount = 0;
 
-    // POLICY: Cross-unit transfer (HIGH weight - always requires review)
+    // Cross-unit transfer (low weight - rare in normal operations)
     if (features.is_cross_unit_transfer) {
-        score += 1.0;
+        score += 0.4;
         flagCount++;
     }
 
@@ -213,15 +218,12 @@ const calculateRuleBasedScore = (features) => {
  * @returns {string}
  */
 const classifySeverity = (score, confidence, features = {}) => {
-    // Cross-unit transfers are always at least 'medium' urgency
-    const isCrossUnit = features.is_cross_unit_transfer === true;
-    
     // Ballistic access timing issues elevate urgency
     const hasBallisticTimingConcern = (features.ballistic_access_timing_score || 0) > 0.6;
 
     if (score >= 0.85 && confidence >= 0.6) return 'critical';
-    if (score >= 0.70 || (isCrossUnit && hasBallisticTimingConcern)) return 'high';
-    if (score >= 0.50 || isCrossUnit) return 'medium';
+    if (score >= 0.70 || hasBallisticTimingConcern) return 'high';
+    if (score >= 0.50) return 'medium';
     return 'low';
 };
 
@@ -230,10 +232,20 @@ const classifySeverity = (score, confidence, features = {}) => {
  * @param {Object} features
  * @param {Object} kmeansResult
  * @param {Object} statisticalResult
+ * @param {Object|null} rulesResult - Results from rules engine
  * @returns {string}
  */
-const determineAnomalyType = (features, kmeansResult, statisticalResult) => {
-    // Priority-based classification
+const determineAnomalyType = (features, kmeansResult, statisticalResult, rulesResult = null) => {
+    // Rules engine result: use the highest-severity rule's anomaly type
+    if (rulesResult?.rules_triggered?.length > 0) {
+        const severityOrder = { low: 1, medium: 2, high: 3, critical: 4 };
+        const topRule = rulesResult.rules_triggered.reduce((best, r) =>
+            (severityOrder[r.severity] || 0) > (severityOrder[best.severity] || 0) ? r : best
+        );
+        return topRule.anomaly_type;
+    }
+
+    // Priority-based classification (existing logic)
     
     // HIGHEST PRIORITY: Cross-unit transfer (organizational policy)
     if (features.is_cross_unit_transfer) {
@@ -365,10 +377,18 @@ const calculateFeatureImportance = (features, kmeansResult, statisticalResult) =
  * @param {Object} features
  * @param {Object} kmeansResult
  * @param {Object} statisticalResult
+ * @param {Object|null} rulesResult - Results from rules engine
  * @returns {Object}
  */
-const buildContributingFactors = (features, kmeansResult, statisticalResult) => {
+const buildContributingFactors = (features, kmeansResult, statisticalResult, rulesResult = null) => {
     const factors = {};
+
+    // Rules engine findings (listed first — these are the primary defined violations)
+    if (rulesResult?.rules_triggered) {
+        rulesResult.rules_triggered.forEach(rule => {
+            factors[`rule_${rule.rule_id}`] = rule.description;
+        });
+    }
 
     // Cross-unit transfer (policy-mandated review)
     if (features.is_cross_unit_transfer) {

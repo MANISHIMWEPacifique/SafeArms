@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Unit = require('../models/Unit');
 const { authenticate } = require('../middleware/authentication');
-const { requireAdmin, requireAdminOrHQ } = require('../middleware/authorization');
+const { requireAdminOrHQ } = require('../middleware/authorization');
 const { logCreate, logUpdate, logDelete } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 
@@ -17,7 +17,7 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
     res.json({ success: true, data: unit });
 }));
 
-router.post('/', authenticate, requireAdmin, logCreate, asyncHandler(async (req, res) => {
+router.post('/', authenticate, requireAdminOrHQ, logCreate, asyncHandler(async (req, res) => {
     const unit = await Unit.create(req.body);
     res.status(201).json({ success: true, data: unit });
 }));

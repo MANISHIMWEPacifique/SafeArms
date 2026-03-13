@@ -6,6 +6,8 @@ import '../../providers/auth_provider.dart';
 import '../../models/firearm_model.dart';
 import '../../widgets/register_firearm_modal.dart';
 import '../../widgets/firearm_detail_modal.dart';
+import '../../widgets/filter_dropdown_widget.dart';
+import '../../widgets/empty_state_widget.dart';
 
 class FirearmsRegistryScreen extends StatefulWidget {
   const FirearmsRegistryScreen({Key? key}) : super(key: key);
@@ -348,38 +350,11 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     required List<Map<String, String>> items,
     required Function(String?) onChanged,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A3040),
-            border: Border.all(color: const Color(0xFF37404F)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down,
-                  color: Color(0xFF78909C)),
-              dropdownColor: const Color(0xFF2A3040),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              items: items
-                  .map((item) => DropdownMenuItem<String>(
-                        value: item['value'],
-                        child: Text(item['label']!),
-                      ))
-                  .toList(),
-              onChanged: onChanged,
-            ),
-          ),
-        ),
-      ],
+    return FilterDropdownWidget(
+      label: label,
+      value: value,
+      items: items,
+      onChanged: onChanged,
     );
   }
 
@@ -1021,25 +996,10 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.inventory_2_outlined,
-              size: 64, color: const Color(0xFF78909C)),
-          const SizedBox(height: 16),
-          const Text(
-            'No firearms found',
-            style: TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Try adjusting your filters or register a new firearm',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-          ),
-        ],
-      ),
+    return const EmptyStateWidget(
+      icon: Icons.inventory_2_outlined,
+      title: 'No firearms found',
+      subtitle: 'Try adjusting your filters or register a new firearm',
     );
   }
 

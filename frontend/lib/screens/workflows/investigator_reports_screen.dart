@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../config/api_config.dart';
 import '../../services/auth_service.dart';
 import '../../utils/pdf_report_generator.dart';
+import '../../widgets/empty_state_widget.dart';
 
 /// Investigator – Investigation & Traceability Reports
 /// Report types: Firearm History & Custody, Custody Timeline, Ballistic Reference Traceability
@@ -471,16 +472,19 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                     yearStyle: const TextStyle(color: Colors.white),
                     dayForegroundColor:
                         WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected))
+                      if (states.contains(WidgetState.selected)) {
                         return Colors.white;
-                      if (states.contains(WidgetState.disabled))
+                      }
+                      if (states.contains(WidgetState.disabled)) {
                         return const Color(0xFF546E7A);
+                      }
                       return Colors.white;
                     }),
                     dayBackgroundColor:
                         WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected))
+                      if (states.contains(WidgetState.selected)) {
                         return const Color(0xFF1E88E5);
+                      }
                       return Colors.transparent;
                     }),
                     todayForegroundColor:
@@ -917,22 +921,10 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
   }
 
   Widget _buildEmptyState(String message) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(48),
-        child: Column(
-          children: [
-            const Icon(Icons.inbox_outlined,
-                color: Color(0xFF78909C), size: 48),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              style: const TextStyle(color: Color(0xFF78909C), fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return EmptyStateWidget(
+      icon: Icons.inbox_outlined,
+      subtitle: message,
+      iconSize: 48,
     );
   }
 

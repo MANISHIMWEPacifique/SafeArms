@@ -3,9 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/unit_provider.dart';
+import '../../widgets/delete_confirmation_dialog.dart';
 
 class UnitsManagementScreen extends StatefulWidget {
-  const UnitsManagementScreen({Key? key}) : super(key: key);
+  const UnitsManagementScreen({super.key});
 
   @override
   State<UnitsManagementScreen> createState() => _UnitsManagementScreenState();
@@ -254,9 +255,9 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                           bottom: BorderSide(color: Color(0xFF37404F)),
                         ),
                       ),
-                      child: Row(
+                      child: const Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             flex: 3,
                             child: Text(
                               'Unit Name',
@@ -267,7 +268,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                               ),
                             ),
                           ),
-                          const Expanded(
+                          Expanded(
                             flex: 2,
                             child: Text(
                               'Type',
@@ -278,7 +279,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                               ),
                             ),
                           ),
-                          const Expanded(
+                          Expanded(
                             flex: 2,
                             child: Text(
                               'Location',
@@ -289,7 +290,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                               ),
                             ),
                           ),
-                          const Expanded(
+                          Expanded(
                             flex: 1,
                             child: Text(
                               'Firearms',
@@ -300,7 +301,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                               ),
                             ),
                           ),
-                          const Expanded(
+                          Expanded(
                             flex: 1,
                             child: Text(
                               'Officers',
@@ -311,7 +312,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                               ),
                             ),
                           ),
-                          const Expanded(
+                          Expanded(
                             flex: 1,
                             child: Text(
                               'Status',
@@ -322,7 +323,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 80),
+                          SizedBox(width: 80),
                         ],
                       ),
                     ),
@@ -549,55 +550,32 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     );
   }
 
-  void _confirmDeleteUnit(dynamic unit) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF2A3040),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber, color: Color(0xFFE85C5C)),
-            SizedBox(width: 12),
-            Text('Delete Unit', style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to permanently delete "${unit['unit_name']}"? '
-          'This action cannot be undone.',
-          style: const TextStyle(color: Color(0xFFB0BEC5)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF78909C))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final unitProvider = context.read<UnitProvider>();
-              Navigator.pop(dialogContext);
-              final success =
-                  await unitProvider.deleteUnit(unit['unit_id'].toString());
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(success
-                        ? '${unit['unit_name']} deleted successfully'
-                        : 'Failed to delete unit'),
-                    backgroundColor: success
-                        ? const Color(0xFF3CCB7F)
-                        : const Color(0xFFE85C5C),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE85C5C)),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+  void _confirmDeleteUnit(dynamic unit) async {
+    final confirmed = await DeleteConfirmationDialog.show(
+      context,
+      title: 'Delete Unit?',
+      message: 'You are about to permanently delete',
+      itemName: unit['unit_name']?.toString(),
+      detail:
+          'All officers, firearms, and records associated with this unit will be removed. This cannot be undone.',
+      confirmText: 'Delete Unit',
     );
+
+    if (confirmed == true && mounted) {
+      final unitProvider = context.read<UnitProvider>();
+      final success = await unitProvider.deleteUnit(unit['unit_id'].toString());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? '${unit['unit_name']} deleted successfully'
+                : 'Failed to delete unit'),
+            backgroundColor:
+                success ? const Color(0xFF3CCB7F) : const Color(0xFFE85C5C),
+          ),
+        );
+      }
+    }
   }
 
   IconData _getUnitIcon(String? type) {
@@ -1312,11 +1290,11 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Unit Details',
                               style: TextStyle(
                                 color: Colors.white,
@@ -1326,7 +1304,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                             ),
                             Text(
                               'View unit information',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white54,
                                 fontSize: 13,
                               ),

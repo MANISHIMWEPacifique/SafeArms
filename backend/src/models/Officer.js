@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+const { query, withTransaction } = require('../config/database');
 
 /**
  * Officer Model
@@ -131,6 +131,27 @@ const Officer = {
             ${whereClause}
         `, params);
         return result.rows[0];
+    },
+
+    async delete(officerId) {
+        return await withTransaction(async (client) => {
+            // Delete from tables that reference this officer with NOT NULL constraints
+            await client.query('DELETE FROM ml_training_features WHERE officer_id = $1', [officerId]);
+            await client.query('DELETE FROM anomalies WHERE officer_id = $1', [officerId]);
+            await client.query('DELETE FROM custody_records WHERE officer_id = $1', [officerId]);
+
+            // Nullify nullable officer references
+            await client.query('UPDATE ballistic_access_logs SET current_custody_officer_id = NULL WHERE current_custody_officer_id = $1', [officerId]);
+            await client.query('UPDATE loss_reports SET officer_id = NULL WHERE officer_id = $1', [officerId]);
+
+            // Delete the officer
+            const result = await client.query(
+                'DELETE FROM officers WHERE officer_id = $1 RETURNING *',
+                [officerId]
+            );
+
+            return result.rows[0];
+        });
     }
 };
 

@@ -1,9 +1,9 @@
 // Delete User Confirmation Modal
-// SafeArms Frontend
+// SafeArms Frontend — Dialog A (Minimal Sharp) style
 
 import 'package:flutter/material.dart';
 
-class DeleteUserConfirmationModal extends StatefulWidget {
+class DeleteUserConfirmationModal extends StatelessWidget {
   final String userId;
   final String fullName;
   final String username;
@@ -20,150 +20,149 @@ class DeleteUserConfirmationModal extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<DeleteUserConfirmationModal> createState() =>
-      _DeleteUserConfirmationModalState();
-}
-
-class _DeleteUserConfirmationModalState
-    extends State<DeleteUserConfirmationModal> {
-  bool _confirmChecked = false;
-
-  @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.black.withValues(alpha: 0.5),
+      color: const Color(0xE0020812),
       child: Center(
         child: Container(
-          width: 480,
-          padding: const EdgeInsets.all(32),
+          width: 420,
           decoration: BoxDecoration(
-            color: const Color(0xFF252A3A),
+            color: const Color(0xFF1A1F2E),
+            border: Border.all(color: const Color(0xFF37404F)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.6),
-                blurRadius: 40,
-                offset: const Offset(0, 8),
+                color: Colors.black.withValues(alpha: 0.8),
+                blurRadius: 80,
+                offset: const Offset(0, 32),
               ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning, color: Color(0xFFE85C5C), size: 64),
-              const SizedBox(height: 24),
-              const Text(
-                'Delete User Account?',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A3040),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF37404F)),
-                ),
+              // Content area
+              Padding(
+                padding: const EdgeInsets.fromLTRB(32, 32, 32, 28),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.fullName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    // Icon
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE85C5C).withValues(alpha: 0.1),
+                        border: Border.all(
+                          color:
+                              const Color(0xFFE85C5C).withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.person_remove_outlined,
+                          color: Color(0xFFE85C5C),
+                          size: 22,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '@${widget.username}',
-                      style: const TextStyle(
-                          color: Color(0xFFB0BEC5), fontSize: 14),
+                    const SizedBox(height: 20),
+                    // Title
+                    const Text(
+                      'Delete User?',
+                      style: TextStyle(
+                        color: Color(0xFFD0E4F8),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // Description
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          color: Color(0xFF78909C),
+                          fontSize: 13.5,
+                          height: 1.65,
+                        ),
+                        children: [
+                          const TextSpan(
+                              text: 'You are about to permanently delete '),
+                          TextSpan(
+                            text: '"$fullName"',
+                            style: const TextStyle(
+                              color: Color(0xFF1E88E5),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          TextSpan(
+                            text: ' (@$username). ',
+                          ),
+                          const TextSpan(
+                            text:
+                                'All user data and access will be permanently removed. This cannot be undone.',
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'This action cannot be undone. All user data and access will be permanently removed.',
-                style: TextStyle(color: Color(0xFFE85C5C), fontSize: 14),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              InkWell(
-                onTap: () => setState(() => _confirmChecked = !_confirmChecked),
+              // Action buttons (full-width split)
+              Container(
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Color(0xFF37404F)),
+                  ),
+                ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: _confirmChecked
-                            ? const Color(0xFFE85C5C)
-                            : Colors.transparent,
-                        border: Border.all(
-                          color: _confirmChecked
-                              ? const Color(0xFFE85C5C)
-                              : const Color(0xFF37404F),
-                          width: 2,
+                    Expanded(
+                      child: Material(
+                        color: const Color(0xFF252A3A),
+                        child: InkWell(
+                          onTap: onClose,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Color(0xFF37404F)),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFF78909C),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(4),
                       ),
-                      child: _confirmChecked
-                          ? const Icon(Icons.check,
-                              color: Colors.white, size: 14)
-                          : null,
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'I understand this action is permanent',
-                      style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
+                    Expanded(
+                      child: Material(
+                        color: const Color(0xFF8B1A1A),
+                        child: InkWell(
+                          onTap: onConfirm,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: const Text(
+                              'Delete User',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFFFFAAAA),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(
-                    onPressed: widget.onClose,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF78909C),
-                      side: const BorderSide(color: Color(0xFF37404F)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero),
-                    ),
-                    child: const Text('Cancel', style: TextStyle(fontSize: 15)),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: _confirmChecked ? widget.onConfirm : null,
-                    icon: const Icon(Icons.delete_forever, size: 18),
-                    label: const Text(
-                      'Delete User',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE85C5C),
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                          const Color(0xFF78909C).withValues(alpha: 0.3),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../config/api_config.dart';
 import '../../services/auth_service.dart';
 import '../../utils/pdf_report_generator.dart';
+import '../../widgets/empty_state_widget.dart';
 
 /// System Admin – Audit, Compliance & System Oversight Reports
 /// Report types: User Activity Audit, System Audit Log, Anomaly Detection Summary
@@ -912,22 +913,10 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   }
 
   Widget _buildEmptyState(String message) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(48),
-        child: Column(
-          children: [
-            const Icon(Icons.inbox_outlined,
-                color: Color(0xFF78909C), size: 48),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              style: const TextStyle(color: Color(0xFF78909C), fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return EmptyStateWidget(
+      icon: Icons.inbox_outlined,
+      subtitle: message,
+      iconSize: 48,
     );
   }
 

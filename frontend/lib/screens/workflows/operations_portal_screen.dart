@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/operations_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/delete_confirmation_dialog.dart';
+import '../../widgets/empty_state_widget.dart';
 
 class OperationsPortalScreen extends StatefulWidget {
-  const OperationsPortalScreen({Key? key}) : super(key: key);
+  const OperationsPortalScreen({super.key});
 
   @override
   State<OperationsPortalScreen> createState() => _OperationsPortalScreenState();
@@ -100,9 +102,9 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
                   color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(Icons.location_on, color: Color(0xFF1E88E5), size: 16),
                     SizedBox(width: 6),
                     Text(
@@ -229,11 +231,11 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
         indicatorWeight: 4,
         labelColor: const Color(0xFF1E88E5),
         unselectedLabelColor: const Color(0xFF78909C),
-        tabs: [
+        tabs: const [
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Icon(Icons.warning, size: 20),
                 SizedBox(width: 8),
                 Text('Loss Reports', style: TextStyle(fontSize: 15)),
@@ -243,7 +245,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Icon(Icons.delete, size: 20),
                 SizedBox(width: 8),
                 Text('Destruction Requests', style: TextStyle(fontSize: 15)),
@@ -253,7 +255,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Icon(Icons.shopping_cart, size: 20),
                 SizedBox(width: 8),
                 Text('Procurement Requests', style: TextStyle(fontSize: 15)),
@@ -585,40 +587,21 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
                 if (status == 'pending') ...[
                   const SizedBox(width: 8),
                   OutlinedButton(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          backgroundColor: const Color(0xFF252A3A),
-                          title: const Text('Withdraw Report?',
-                              style: TextStyle(color: Colors.white)),
-                          content: const Text(
-                            'This will withdraw the pending loss report. This action cannot be undone.',
-                            style: TextStyle(color: Color(0xFFB0BEC5)),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: const Text('Cancel',
-                                  style: TextStyle(color: Color(0xFF78909C))),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                final provider =
-                                    context.read<OperationsProvider>();
-                                provider.withdrawLossReport(
-                                    report['loss_id']?.toString() ?? '');
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE85C5C),
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Withdraw'),
-                            ),
-                          ],
-                        ),
+                    onPressed: () async {
+                      final confirmed = await DeleteConfirmationDialog.show(
+                        context,
+                        title: 'Withdraw Report?',
+                        message:
+                            'You are about to withdraw the pending loss report.',
+                        detail: 'This action cannot be undone.',
+                        confirmText: 'Withdraw',
                       );
+                      if (confirmed == true && mounted) {
+                        final provider =
+                            this.context.read<OperationsProvider>();
+                        provider.withdrawLossReport(
+                            report['loss_id']?.toString() ?? '');
+                      }
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFE85C5C),
@@ -680,24 +663,10 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
   }
 
   Widget _buildEmptyState(String title, String subtitle) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.folder_open, size: 64, color: Color(0xFF78909C)),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: const TextStyle(color: Color(0xFF78909C), fontSize: 14),
-          ),
-        ],
-      ),
+    return EmptyStateWidget(
+      icon: Icons.folder_open,
+      title: title,
+      subtitle: subtitle,
     );
   }
 

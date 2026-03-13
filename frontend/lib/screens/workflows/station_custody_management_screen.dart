@@ -8,6 +8,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../widgets/assign_custody_modal.dart';
 import '../../widgets/return_custody_modal.dart';
+import '../../widgets/filter_dropdown_widget.dart';
+import '../../widgets/empty_state_widget.dart';
 
 class StationCustodyManagementScreen extends StatefulWidget {
   const StationCustodyManagementScreen({Key? key}) : super(key: key);
@@ -399,38 +401,11 @@ class _StationCustodyManagementScreenState
     required List<Map<String, String>> items,
     required Function(String?) onChanged,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A3040),
-            border: Border.all(color: const Color(0xFF37404F)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down,
-                  color: Color(0xFF78909C)),
-              dropdownColor: const Color(0xFF2A3040),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              items: items
-                  .map((item) => DropdownMenuItem<String>(
-                        value: item['value'],
-                        child: Text(item['label']!),
-                      ))
-                  .toList(),
-              onChanged: onChanged,
-            ),
-          ),
-        ),
-      ],
+    return FilterDropdownWidget(
+      label: label,
+      value: value,
+      items: items,
+      onChanged: onChanged,
     );
   }
 
@@ -660,40 +635,19 @@ class _StationCustodyManagementScreenState
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(64.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.assignment_outlined,
-                size: 64, color: Color(0xFF78909C)),
-            const SizedBox(height: 16),
-            const Text(
-              'No custody records found',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Assign a firearm to an officer in your unit to get started',
-              style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => setState(() => _showAssignModal = true),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Assign Custody'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3CCB7F),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-            ),
-          ],
+    return EmptyStateWidget(
+      icon: Icons.assignment_outlined,
+      title: 'No custody records found',
+      subtitle: 'Assign a firearm to an officer in your unit to get started',
+      padding: const EdgeInsets.all(64),
+      actionButton: ElevatedButton.icon(
+        onPressed: () => setState(() => _showAssignModal = true),
+        icon: const Icon(Icons.add, size: 18),
+        label: const Text('Assign Custody'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF3CCB7F),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
       ),
     );

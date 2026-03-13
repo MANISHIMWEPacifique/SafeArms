@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../widgets/delete_confirmation_dialog.dart';
 
 class SystemSettingsScreen extends StatefulWidget {
   const SystemSettingsScreen({Key? key}) : super(key: key);
@@ -512,27 +513,14 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   Widget _resetButton(SettingsProvider sp) {
     return TextButton.icon(
       onPressed: () async {
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: const Color(0xFF252A3A),
-            title: const Text('Reset Settings',
-                style: TextStyle(color: Colors.white)),
-            content: const Text('Restore all settings to their default values?',
-                style: TextStyle(color: Color(0xFFB0BEC5))),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel')),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE85C5C)),
-                child:
-                    const Text('Reset', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
+        final confirmed = await DeleteConfirmationDialog.show(
+          context,
+          title: 'Reset Settings?',
+          message:
+              'You are about to restore all settings to their default values.',
+          detail:
+              'Any custom configuration will be lost. This cannot be undone.',
+          confirmText: 'Reset',
         );
         if (confirmed == true) {
           await sp.resetToDefaults();

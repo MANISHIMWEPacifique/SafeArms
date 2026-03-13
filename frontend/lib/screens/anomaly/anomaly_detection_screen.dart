@@ -67,16 +67,17 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final role = authProvider.currentUser?['role'];
     final isInvestigator = role == 'investigator';
+    final isCompact = MediaQuery.of(context).size.width < 1100;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
       body: Column(
         children: [
-          _buildHeader(role),
+          _buildHeader(role, isCompact: isCompact),
           if (isInvestigator ||
               role == 'hq_firearm_commander' ||
               role == 'admin')
-            _buildViewTabs(),
+            _buildViewTabs(isCompact: isCompact),
           if (_activeView == 'monitoring') ...[
             _buildStatsCards(),
             _buildFilters(),
@@ -89,9 +90,12 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
     );
   }
 
-  Widget _buildHeader(String? role) {
+  Widget _buildHeader(String? role, {bool isCompact = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 12 : 20,
+        vertical: 8,
+      ),
       decoration: const BoxDecoration(
         color: Color(0xFF252A3A),
         border: Border(
@@ -100,25 +104,31 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
       ),
       child: Row(
         children: [
-          const Text(
-            'Anomaly Detection',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Anomaly Detection',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  role == 'station_commander'
+                      ? 'Unit-level monitoring'
+                      : 'ML-powered analysis',
+                  style: const TextStyle(
+                    color: Color(0xFF78909C),
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 10),
-          Text(
-            role == 'station_commander'
-                ? 'Unit-level monitoring'
-                : 'ML-powered analysis',
-            style: const TextStyle(
-              color: Color(0xFF78909C),
-              fontSize: 12,
-            ),
-          ),
-          const Spacer(),
           OutlinedButton.icon(
             onPressed: _loadAnomalies,
             icon: const Icon(Icons.refresh, size: 16),
@@ -136,21 +146,25 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
     );
   }
 
-  Widget _buildViewTabs() {
+  Widget _buildViewTabs({bool isCompact = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      padding:
+          EdgeInsets.symmetric(horizontal: isCompact ? 12 : 20, vertical: 6),
       decoration: const BoxDecoration(
         color: Color(0xFF252A3A),
         border: Border(
           bottom: BorderSide(color: Color(0xFF37404F), width: 1),
         ),
       ),
-      child: Row(
-        children: [
-          _buildTab('Monitoring', 'monitoring', Icons.monitor_heart),
-          const SizedBox(width: 8),
-          _buildTab('Investigation Search', 'investigation', Icons.search),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildTab('Monitoring', 'monitoring', Icons.monitor_heart),
+            const SizedBox(width: 8),
+            _buildTab('Investigation Search', 'investigation', Icons.search),
+          ],
+        ),
       ),
     );
   }
@@ -206,55 +220,66 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
         final medium = anomalies.where((a) => a['severity'] == 'medium').length;
         final open = anomalies.where((a) => a['status'] == 'open').length;
 
-        return Container(
+        final cards = [
+          _buildStatCard(
+            'Total Anomalies',
+            anomalies.length.toString(),
+            Icons.warning_amber,
+            const Color(0xFF1E88E5),
+          ),
+          _buildStatCard(
+            'Critical',
+            critical.toString(),
+            Icons.error,
+            const Color(0xFF1E88E5),
+          ),
+          _buildStatCard(
+            'High Priority',
+            high.toString(),
+            Icons.warning,
+            const Color(0xFF1E88E5),
+          ),
+          _buildStatCard(
+            'Medium',
+            medium.toString(),
+            Icons.info,
+            const Color(0xFF1E88E5),
+          ),
+          _buildStatCard(
+            'Open Cases',
+            open.toString(),
+            Icons.folder_open,
+            const Color(0xFF1E88E5),
+          ),
+        ];
+
+        return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'Total Anomalies',
-                  anomalies.length.toString(),
-                  Icons.warning_amber,
-                  const Color(0xFF1E88E5),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'Critical',
-                  critical.toString(),
-                  Icons.error,
-                  const Color(0xFF1E88E5),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'High Priority',
-                  high.toString(),
-                  Icons.warning,
-                  const Color(0xFF1E88E5),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'Medium',
-                  medium.toString(),
-                  Icons.info,
-                  const Color(0xFF1E88E5),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'Open Cases',
-                  open.toString(),
-                  Icons.folder_open,
-                  const Color(0xFF1E88E5),
-                ),
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= 1100) {
+                return Row(
+                  children: [
+                    for (int i = 0; i < cards.length; i++) ...[
+                      Expanded(child: cards[i]),
+                      if (i < cards.length - 1) const SizedBox(width: 12),
+                    ],
+                  ],
+                );
+              }
+
+              final cardWidth = constraints.maxWidth >= 700
+                  ? (constraints.maxWidth - 12) / 2
+                  : constraints.maxWidth;
+
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: cards
+                    .map((card) => SizedBox(width: cardWidth, child: card))
+                    .toList(),
+              );
+            },
           ),
         );
       },
@@ -305,126 +330,144 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
           border: Border.all(color: const Color(0xFF37404F)),
           borderRadius: BorderRadius.circular(10),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        child: Row(
-          children: [
-            Expanded(
-              child: _buildFilterDropdown(
-                label: 'Severity',
-                value: _selectedSeverity,
-                items: [
-                  {'value': 'all', 'label': 'All Severities'},
-                  {'value': 'critical', 'label': 'Critical'},
-                  {'value': 'high', 'label': 'High'},
-                  {'value': 'medium', 'label': 'Medium'},
-                  {'value': 'low', 'label': 'Low'},
-                ],
-                onChanged: (value) {
-                  setState(() => _selectedSeverity = value!);
-                  _loadAnomalies();
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildFilterDropdown(
-                label: 'Status',
-                value: _selectedStatus,
-                items: [
-                  {'value': 'all', 'label': 'All Statuses'},
-                  {'value': 'open', 'label': 'Open'},
-                  {'value': 'investigating', 'label': 'Investigating'},
-                  {'value': 'resolved', 'label': 'Resolved'},
-                  {'value': 'false_positive', 'label': 'False Positive'},
-                ],
-                onChanged: (value) {
-                  setState(() => _selectedStatus = value!);
-                  _loadAnomalies();
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Auto Refresh',
-                      style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
-                  const SizedBox(height: 2),
-                  Container(
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2A3040),
-                      border: Border.all(color: const Color(0xFF37404F)),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.timer_outlined,
-                            color: Color(0xFF78909C), size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          _autoRefresh ? 'Every 2min' : 'Disabled',
-                          style: TextStyle(
-                            color: _autoRefresh
-                                ? Colors.white
-                                : const Color(0xFF78909C),
-                            fontSize: 14,
-                          ),
-                        ),
-                        const Spacer(),
-                        Switch(
-                          value: _autoRefresh,
-                          onChanged: (val) {
-                            setState(() => _autoRefresh = val);
-                            if (val) _startAutoRefresh();
-                          },
-                          activeThumbColor: const Color(0xFF3CCB7F),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            Column(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 980;
+            final itemWidth = constraints.maxWidth < 700
+                ? constraints.maxWidth
+                : (constraints.maxWidth - 16) / 2;
+
+            final severityWidget = _buildFilterDropdown(
+              label: 'Severity',
+              value: _selectedSeverity,
+              items: [
+                {'value': 'all', 'label': 'All Severities'},
+                {'value': 'critical', 'label': 'Critical'},
+                {'value': 'high', 'label': 'High'},
+                {'value': 'medium', 'label': 'Medium'},
+                {'value': 'low', 'label': 'Low'},
+              ],
+              onChanged: (value) {
+                setState(() => _selectedSeverity = value!);
+                _loadAnomalies();
+              },
+            );
+
+            final statusWidget = _buildFilterDropdown(
+              label: 'Status',
+              value: _selectedStatus,
+              items: [
+                {'value': 'all', 'label': 'All Statuses'},
+                {'value': 'open', 'label': 'Open'},
+                {'value': 'investigating', 'label': 'Investigating'},
+                {'value': 'resolved', 'label': 'Resolved'},
+                {'value': 'false_positive', 'label': 'False Positive'},
+              ],
+              onChanged: (value) {
+                setState(() => _selectedStatus = value!);
+                _loadAnomalies();
+              },
+            );
+
+            final autoRefreshWidget = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('', style: TextStyle(fontSize: 12)),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (_selectedSeverity != 'all' || _selectedStatus != 'all')
-                      TextButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _selectedSeverity = 'all';
-                            _selectedStatus = 'all';
-                          });
-                          _loadAnomalies();
+                const Text('Auto Refresh',
+                    style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
+                const SizedBox(height: 2),
+                Container(
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A3040),
+                    border: Border.all(color: const Color(0xFF37404F)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.timer_outlined,
+                          color: Color(0xFF78909C), size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        _autoRefresh ? 'Every 2min' : 'Disabled',
+                        style: TextStyle(
+                          color: _autoRefresh
+                              ? Colors.white
+                              : const Color(0xFF78909C),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const Spacer(),
+                      Switch(
+                        value: _autoRefresh,
+                        onChanged: (val) {
+                          setState(() => _autoRefresh = val);
+                          if (val) {
+                            _startAutoRefresh();
+                          }
                         },
-                        icon: const Icon(Icons.clear, size: 18),
-                        label: const Text('Clear'),
-                        style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFF64B5F6)),
+                        activeThumbColor: const Color(0xFF3CCB7F),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Updated ${DateFormat('HH:mm:ss').format(DateTime.now())}',
-                      style: const TextStyle(
-                        color: Color(0xFF78909C),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
-            ),
-          ],
+            );
+
+            final updatedRow = Row(
+              children: [
+                if (_selectedSeverity != 'all' || _selectedStatus != 'all')
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _selectedSeverity = 'all';
+                        _selectedStatus = 'all';
+                      });
+                      _loadAnomalies();
+                    },
+                    icon: const Icon(Icons.clear, size: 18),
+                    label: const Text('Clear'),
+                    style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF64B5F6)),
+                  ),
+                const SizedBox(width: 8),
+                Text(
+                  'Updated ${DateFormat('HH:mm:ss').format(DateTime.now())}',
+                  style: const TextStyle(
+                    color: Color(0xFF78909C),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            );
+
+            if (!isCompact) {
+              return Row(
+                children: [
+                  Expanded(child: severityWidget),
+                  const SizedBox(width: 16),
+                  Expanded(child: statusWidget),
+                  const SizedBox(width: 16),
+                  Expanded(child: autoRefreshWidget),
+                  const SizedBox(width: 16),
+                  updatedRow,
+                ],
+              );
+            }
+
+            return Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                SizedBox(width: itemWidth, child: severityWidget),
+                SizedBox(width: itemWidth, child: statusWidget),
+                SizedBox(width: itemWidth, child: autoRefreshWidget),
+                SizedBox(width: constraints.maxWidth, child: updatedRow),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -540,47 +583,69 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             ? provider.anomalies.sublist(provider.anomalies.length - 4)
             : provider.anomalies;
 
-        return Container(
-          margin:
+        return Padding(
+          padding:
               const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF252A3A),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF37404F), width: 1),
-          ),
-          child: Column(
-            children: [
-              // Table Header
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final tableWidth =
+                  constraints.maxWidth < 1080 ? 1080.0 : constraints.maxWidth;
+
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: tableWidth,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF252A3A),
+                      borderRadius: BorderRadius.circular(10),
+                      border:
+                          Border.all(color: const Color(0xFF37404F), width: 1),
+                    ),
+                    child: Column(
+                      children: [
+                        // Table Header
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                  color: Color(0xFF37404F), width: 1),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              _buildHeaderCell('Anomaly ID', flex: 2),
+                              _buildHeaderCell('Type', flex: 2),
+                              _buildHeaderCell('Severity', flex: 1),
+                              _buildHeaderCell('Score', flex: 1),
+                              _buildHeaderCell('Firearm', flex: 2),
+                              _buildHeaderCell('Officer', flex: 2),
+                              _buildHeaderCell('Unit', flex: 2),
+                              _buildHeaderCell('Detected', flex: 2),
+                              _buildHeaderCell('Status', flex: 1),
+                              _buildHeaderCell('Actions', flex: 1),
+                            ],
+                          ),
+                        ),
+                        // Table Body - scrollable rows
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children:
+                                  displayAnomalies.asMap().entries.map((entry) {
+                                return _buildAnomalyRow(entry.value, entry.key);
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    _buildHeaderCell('Anomaly ID', flex: 2),
-                    _buildHeaderCell('Type', flex: 2),
-                    _buildHeaderCell('Severity', flex: 1),
-                    _buildHeaderCell('Score', flex: 1),
-                    _buildHeaderCell('Firearm', flex: 2),
-                    _buildHeaderCell('Officer', flex: 2),
-                    _buildHeaderCell('Unit', flex: 2),
-                    _buildHeaderCell('Detected', flex: 2),
-                    _buildHeaderCell('Status', flex: 1),
-                    _buildHeaderCell('Actions', flex: 1),
-                  ],
-                ),
-              ),
-              // Table Body - last 3 anomalies
-              ...displayAnomalies.asMap().entries.map((entry) {
-                return _buildAnomalyRow(entry.value, entry.key);
-              }),
-              // Fill remaining space
-              const Expanded(child: SizedBox()),
-            ],
+              );
+            },
           ),
         );
       },

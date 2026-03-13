@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/ballistic_profile_provider.dart';
+import '../../widgets/empty_state_widget.dart';
 
 class BallisticProfilesScreen extends StatefulWidget {
   const BallisticProfilesScreen({Key? key}) : super(key: key);
@@ -428,24 +429,12 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.biotech, size: 96, color: Color(0xFF78909C)),
-          SizedBox(height: 24),
-          Text(
-            'Select a firearm to view ballistic profile',
-            style: TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'View ballistic characteristics for search and matching',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-          ),
-        ],
-      ),
+    return const EmptyStateWidget(
+      icon: Icons.biotech,
+      title: 'Select a firearm to view ballistic profile',
+      subtitle: 'View ballistic characteristics for search and matching',
+      iconSize: 96,
+      padding: EdgeInsets.zero,
     );
   }
 

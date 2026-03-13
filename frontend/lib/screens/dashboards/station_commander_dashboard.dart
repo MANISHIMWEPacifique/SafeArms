@@ -13,6 +13,8 @@ import '../management/station_officers_screen.dart';
 import '../workflows/station_custody_management_screen.dart';
 import '../workflows/reports_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
+import '../../utils/date_formatter.dart';
+import '../../widgets/responsive_dashboard_scaffold.dart';
 
 class StationCommanderDashboard extends StatefulWidget {
   const StationCommanderDashboard({super.key});
@@ -85,21 +87,10 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A1F2E),
-      body: Row(
-        children: [
-          _buildSideNavigation(),
-          Expanded(
-            child: Column(
-              children: [
-                _buildTopNavBar(),
-                Expanded(child: _buildMainContent()),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return ResponsiveDashboardScaffold(
+      sideNavigation: _buildSideNavigation(),
+      topNavigation: _buildTopNavBar(),
+      mainContent: _buildMainContent(),
     );
   }
 
@@ -843,28 +834,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     );
   }
 
-  String _formatTimeAgo(String? timestamp) {
-    if (timestamp == null) return '';
-    try {
-      final dt = DateTime.parse(timestamp).toLocal();
-      final now = DateTime.now();
-      final difference = now.difference(dt);
-
-      if (difference.inSeconds < 60) {
-        return 'Just now';
-      } else if (difference.inMinutes < 60) {
-        return '${difference.inMinutes}m ago';
-      } else if (difference.inHours < 24) {
-        return '${difference.inHours}h ago';
-      } else if (difference.inDays < 7) {
-        return '${difference.inDays}d ago';
-      } else {
-        return '${dt.day}/${dt.month}/${dt.year}';
-      }
-    } catch (e) {
-      return timestamp;
-    }
-  }
+  String _formatTimeAgo(String? timestamp) => DateFormatter.timeAgo(timestamp);
 }
 
 class _NavItem {

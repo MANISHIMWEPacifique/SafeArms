@@ -3,10 +3,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/date_formatter.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
+import '../../widgets/responsive_dashboard_scaffold.dart';
 import '../auth/login_screen.dart';
 import '../management/user_management_screen.dart';
 import '../settings/system_settings_screen.dart';
@@ -75,23 +76,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A1F2E),
-      body: Row(
-        children: [
-          // Side Navigation
-          _buildSideNavigation(),
-          // Main Content
-          Expanded(
-            child: Column(
-              children: [
-                _buildTopNavBar(),
-                Expanded(child: _buildMainContent()),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return ResponsiveDashboardScaffold(
+      sideNavigation: _buildSideNavigation(),
+      topNavigation: _buildTopNavBar(),
+      mainContent: _buildMainContent(),
     );
   }
 
@@ -115,15 +103,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 bottom: BorderSide(color: Color(0xFF37404F), width: 1),
               ),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.shield_outlined,
                   color: Colors.white,
                   size: 28,
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
+                SizedBox(width: 12),
+                Expanded(
                   child: Text(
                     'SafeArms',
                     style: TextStyle(
@@ -442,9 +430,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
             final count = int.tryParse(item['count']?.toString() ?? '0') ?? 0;
             final severity = item['severity']?.toString().toLowerCase() ?? '';
             totalAnomalies += count;
-            if (severity == 'critical')
+            if (severity == 'critical') {
               critical = count;
-            else if (severity == 'high') high = count;
+            } else if (severity == 'high') {
+              high = count;
+            }
           }
         }
 
@@ -672,20 +662,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  String _formatTimeAgo(String? dateStr) {
-    if (dateStr == null) return '';
-    try {
-      final date = DateTime.parse(dateStr);
-      final diff = DateTime.now().difference(date);
-      if (diff.inMinutes < 1) return 'Just now';
-      if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
-      if (diff.inDays < 7) return '${diff.inDays}d ago';
-      return DateFormat('MMM d').format(date);
-    } catch (_) {
-      return '';
-    }
-  }
+  String _formatTimeAgo(String? dateStr) => DateFormatter.timeAgo(dateStr);
 
   Map<String, dynamic> _getActionInfo(String actionType, String tableName) {
     switch (actionType.toUpperCase()) {
@@ -792,10 +769,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
+                  const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'ML Anomaly Detection Summary',
                         style: TextStyle(
                           color: Colors.white,
@@ -803,8 +780,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
+                      SizedBox(height: 4),
+                      Text(
                         'Top anomalies requiring attention',
                         style:
                             TextStyle(color: Color(0xFF78909C), fontSize: 14),
@@ -838,9 +815,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         const Icon(Icons.error_outline,
                             color: Color(0xFFE85C5C), size: 48),
                         const SizedBox(height: 16),
-                        Text(
+                        const Text(
                           'Failed to load anomalies',
-                          style: const TextStyle(color: Color(0xFFE85C5C)),
+                          style: TextStyle(color: Color(0xFFE85C5C)),
                         ),
                         const SizedBox(height: 8),
                         TextButton(

@@ -1,25 +1,33 @@
-// Confirmation Dialog
-// Generic confirmation dialog component — Dialog A (Minimal Sharp) style
-
 import 'package:flutter/material.dart';
 
-class ConfirmationDialog extends StatelessWidget {
+/// Reusable delete confirmation dialog styled after Dialog A (Minimal Sharp).
+///
+/// Usage:
+/// ```dart
+/// final confirmed = await DeleteConfirmationDialog.show(
+///   context: context,
+///   title: 'Delete Officer?',
+///   message: 'You are about to permanently delete',
+///   itemName: 'John Doe',
+///   detail: 'All associated records will be removed. This cannot be undone.',
+///   confirmText: 'Delete Officer',
+/// );
+/// ```
+class DeleteConfirmationDialog extends StatelessWidget {
   final String title;
   final String message;
+  final String? itemName;
+  final String? detail;
   final String confirmText;
-  final String cancelText;
-  final Color confirmColor;
-  final IconData? icon;
   final VoidCallback? onConfirm;
 
-  const ConfirmationDialog({
+  const DeleteConfirmationDialog({
     super.key,
     required this.title,
     required this.message,
-    this.confirmText = 'Confirm',
-    this.cancelText = 'Cancel',
-    this.confirmColor = const Color(0xFF1E88E5),
-    this.icon,
+    this.itemName,
+    this.detail,
+    this.confirmText = 'Delete',
     this.onConfirm,
   });
 
@@ -27,28 +35,22 @@ class ConfirmationDialog extends StatelessWidget {
     BuildContext context, {
     required String title,
     required String message,
-    String confirmText = 'Confirm',
-    String cancelText = 'Cancel',
-    Color confirmColor = const Color(0xFF1E88E5),
-    IconData? icon,
+    String? itemName,
+    String? detail,
+    String confirmText = 'Delete',
   }) {
     return showDialog<bool>(
       context: context,
       barrierColor: const Color(0xE0020812),
-      builder: (ctx) => ConfirmationDialog(
+      builder: (ctx) => DeleteConfirmationDialog(
         title: title,
         message: message,
+        itemName: itemName,
+        detail: detail,
         confirmText: confirmText,
-        cancelText: cancelText,
-        confirmColor: confirmColor,
-        icon: icon,
       ),
     );
   }
-
-  bool get _isDestructive =>
-      confirmColor == const Color(0xFFE85C5C) ||
-      confirmColor == const Color(0xFFEF5350);
 
   @override
   Widget build(BuildContext context) {
@@ -77,22 +79,7 @@ class ConfirmationDialog extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (icon != null) ...[
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: confirmColor.withValues(alpha: 0.1),
-                        border: Border.all(
-                          color: confirmColor.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: Center(
-                        child: Icon(icon, color: confirmColor, size: 22),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+                  // Title
                   Text(
                     title,
                     style: const TextStyle(
@@ -102,12 +89,29 @@ class ConfirmationDialog extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    message,
-                    style: const TextStyle(
-                      color: Color(0xFF78909C),
-                      fontSize: 13.5,
-                      height: 1.65,
+                  // Description
+                  RichText(
+                    text: TextSpan(
+                      style: const TextStyle(
+                        color: Color(0xFF78909C),
+                        fontSize: 13.5,
+                        height: 1.65,
+                      ),
+                      children: [
+                        TextSpan(text: message),
+                        if (itemName != null) ...[
+                          const TextSpan(text: ' '),
+                          TextSpan(
+                            text: '"$itemName"',
+                            style: const TextStyle(
+                              color: Color(0xFF1E88E5),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const TextSpan(text: '. '),
+                        ],
+                        if (detail != null) TextSpan(text: detail),
+                      ],
                     ),
                   ),
                 ],
@@ -122,6 +126,7 @@ class ConfirmationDialog extends StatelessWidget {
               ),
               child: Row(
                 children: [
+                  // Cancel button
                   Expanded(
                     child: Material(
                       color: const Color(0xFF252A3A),
@@ -134,10 +139,10 @@ class ConfirmationDialog extends StatelessWidget {
                               right: BorderSide(color: Color(0xFF37404F)),
                             ),
                           ),
-                          child: Text(
-                            cancelText,
+                          child: const Text(
+                            'Cancel',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Color(0xFF78909C),
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -147,11 +152,10 @@ class ConfirmationDialog extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Delete button
                   Expanded(
                     child: Material(
-                      color: _isDestructive
-                          ? const Color(0xFF8B1A1A)
-                          : confirmColor,
+                      color: const Color(0xFF8B1A1A),
                       child: InkWell(
                         onTap: () {
                           onConfirm?.call();
@@ -162,10 +166,8 @@ class ConfirmationDialog extends StatelessWidget {
                           child: Text(
                             confirmText,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: _isDestructive
-                                  ? const Color(0xFFFFAAAA)
-                                  : Colors.white,
+                            style: const TextStyle(
+                              color: Color(0xFFFFAAAA),
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),

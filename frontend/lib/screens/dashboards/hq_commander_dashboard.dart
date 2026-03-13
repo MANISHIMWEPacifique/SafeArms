@@ -16,6 +16,7 @@ import '../management/ballistic_profiles_screen.dart';
 import '../workflows/reports_screen.dart';
 import '../workflows/hq_reports_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
+import '../../widgets/responsive_dashboard_scaffold.dart';
 
 class HqCommanderDashboard extends StatefulWidget {
   const HqCommanderDashboard({super.key});
@@ -128,21 +129,10 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A1F2E),
-      body: Row(
-        children: [
-          _buildSideNavigation(),
-          Expanded(
-            child: Column(
-              children: [
-                _buildTopNavBar(),
-                Expanded(child: _buildMainContent()),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return ResponsiveDashboardScaffold(
+      sideNavigation: _buildSideNavigation(),
+      topNavigation: _buildTopNavBar(),
+      mainContent: _buildMainContent(),
     );
   }
 

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/officer_provider.dart';
 import '../providers/auth_provider.dart';
+import 'base_modal_widget.dart';
 
 class StationAddOfficerModal extends StatefulWidget {
   final VoidCallback onClose;
@@ -163,173 +164,98 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
     final unitName =
         authProvider.currentUser?['unit_name']?.toString() ?? 'Your Unit';
 
-    return Material(
-      color: Colors.black.withValues(alpha: 0.5),
-      child: Center(
-        child: Container(
-          width: 600,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.9,
-          ),
-          decoration: BoxDecoration(
-            color: const Color(0xFF252A3A),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildHeader(),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Unit Assignment Banner
-                        _buildUnitBanner(unitName),
-                        const SizedBox(height: 24),
+    return BaseModalWidget(
+      width: 600,
+      headerTitle: 'Add New Officer',
+      headerSubtitle: 'Add a new officer to your unit',
+      headerIcon: Icons.person_add,
+      headerIconColor: const Color(0xFF3CCB7F),
+      onClose: widget.onClose,
+      body: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Unit Assignment Banner
+            _buildUnitBanner(unitName),
+            const SizedBox(height: 24),
 
-                        // Error Message
-                        if (_errorMessage != null) ...[
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE85C5C)
-                                  .withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border:
-                                  Border.all(color: const Color(0xFFE85C5C)),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error_outline,
-                                    color: Color(0xFFE85C5C), size: 20),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(
-                                        color: Color(0xFFE85C5C)),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Officer Information Section
-                        _buildSectionHeader('Officer Information'),
-                        const SizedBox(height: 16),
-
-                        // Officer Number and Full Name
-                        Row(
-                          children: [
-                            Expanded(child: _buildOfficerNumberField()),
-                            const SizedBox(width: 16),
-                            Expanded(child: _buildFullNameField()),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Rank
-                        _buildRankField(),
-                        const SizedBox(height: 24),
-
-                        // Contact Information Section
-                        _buildSectionHeader('Contact Information'),
-                        const SizedBox(height: 16),
-
-                        // Phone and Email
-                        Row(
-                          children: [
-                            Expanded(child: _buildPhoneField()),
-                            const SizedBox(width: 16),
-                            Expanded(child: _buildEmailField()),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Dates Section
-                        _buildSectionHeader('Employment Details'),
-                        const SizedBox(height: 16),
-
-                        // Date of Birth and Employment Date
-                        Row(
-                          children: [
-                            Expanded(child: _buildDateOfBirthPicker()),
-                            const SizedBox(width: 16),
-                            Expanded(child: _buildEmploymentDatePicker()),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Submit Button
-                        _buildSubmitButton(),
-                      ],
+            // Error Message
+            if (_errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE85C5C).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE85C5C)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline,
+                        color: Color(0xFFE85C5C), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Color(0xFFE85C5C)),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 16),
             ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1F2E),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
+            // Officer Information Section
+            _buildSectionHeader('Officer Information'),
+            const SizedBox(height: 16),
+
+            // Officer Number and Full Name
+            Row(
+              children: [
+                Expanded(child: _buildOfficerNumberField()),
+                const SizedBox(width: 16),
+                Expanded(child: _buildFullNameField()),
+              ],
             ),
-            child: const Icon(Icons.person_add,
-                color: Color(0xFF3CCB7F), size: 24),
-          ),
-          const SizedBox(width: 16),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Add New Officer',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                'Add a new officer to your unit',
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          IconButton(
-            onPressed: widget.onClose,
-            icon: const Icon(Icons.close, color: Colors.white54),
-            hoverColor: Colors.white.withValues(alpha: 0.1),
-          ),
-        ],
+            const SizedBox(height: 16),
+
+            // Rank
+            _buildRankField(),
+            const SizedBox(height: 24),
+
+            // Contact Information Section
+            _buildSectionHeader('Contact Information'),
+            const SizedBox(height: 16),
+
+            // Phone and Email
+            Row(
+              children: [
+                Expanded(child: _buildPhoneField()),
+                const SizedBox(width: 16),
+                Expanded(child: _buildEmailField()),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Dates Section
+            _buildSectionHeader('Employment Details'),
+            const SizedBox(height: 16),
+
+            // Date of Birth and Employment Date
+            Row(
+              children: [
+                Expanded(child: _buildDateOfBirthPicker()),
+                const SizedBox(width: 16),
+                Expanded(child: _buildEmploymentDatePicker()),
+              ],
+            ),
+            const SizedBox(height: 32),
+
+            // Submit Button
+            _buildSubmitButton(),
+          ],
+        ),
       ),
     );
   }

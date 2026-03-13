@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
+import '../../widgets/delete_confirmation_dialog.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({Key? key}) : super(key: key);
@@ -1915,32 +1916,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   void _deleteUser(UserModel user, UserProvider provider) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A3040),
-        title: const Text(
-          'Delete User?',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          'Are you sure you want to permanently delete ${user.fullName}? This action cannot be undone.',
-          style: const TextStyle(color: Color(0xFFB0BEC5)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF5350),
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirm = await DeleteConfirmationDialog.show(
+      context,
+      title: 'Delete User?',
+      message: 'You are about to permanently delete',
+      itemName: user.fullName,
+      detail:
+          'All user data and access will be permanently removed. This cannot be undone.',
+      confirmText: 'Delete User',
     );
 
     if (confirm == true) {
@@ -1956,7 +1939,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   : (provider.errorMessage ?? 'Failed to delete user'),
             ),
             backgroundColor:
-                success ? const Color(0xFF3CCB7F) : const Color(0xFFEF5350),
+                success ? const Color(0xFF3CCB7F) : const Color(0xFFE85C5C),
           ),
         );
       } catch (e) {
@@ -1964,7 +1947,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text('Error deleting user: $e'),
-            backgroundColor: const Color(0xFFEF5350),
+            backgroundColor: const Color(0xFFE85C5C),
           ),
         );
       }

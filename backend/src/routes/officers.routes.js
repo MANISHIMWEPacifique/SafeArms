@@ -3,7 +3,7 @@ const router = express.Router();
 const Officer = require('../models/Officer');
 const { authenticate } = require('../middleware/authentication');
 const { requireCommander, requireUnitAccess } = require('../middleware/authorization');
-const { logCreate, logUpdate } = require('../middleware/auditLogger');
+const { logCreate, logUpdate, logDelete } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
 const logger = require('../utils/logger');
@@ -154,8 +154,8 @@ router.put('/:id', authenticate, requireCommander, requireUnitAccess, logUpdate,
     res.json({ success: true, data: officer });
 }));
 
-// Deactivate (soft delete) an officer
-router.delete('/:id', authenticate, requireCommander, requireUnitAccess, asyncHandler(async (req, res) => {
+// Delete an officer
+router.delete('/:id', authenticate, requireCommander, requireUnitAccess, logDelete, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
     
     const existingOfficer = await Officer.findById(req.params.id);
@@ -163,17 +163,16 @@ router.delete('/:id', authenticate, requireCommander, requireUnitAccess, asyncHa
         return res.status(404).json({ success: false, message: 'Officer not found' });
     }
     
-    // Station commanders can only deactivate officers in their unit
+    // Station commanders can only delete officers in their unit
     if (role === 'station_commander' && existingOfficer.unit_id !== userUnitId) {
         return res.status(403).json({ 
             success: false, 
-            message: 'Access denied: You can only modify officers in your unit' 
+            message: 'Access denied: You can only delete officers in your unit' 
         });
     }
     
-    // Soft delete - set is_active to false
-    const officer = await Officer.update(req.params.id, { is_active: false });
-    res.json({ success: true, data: officer, message: 'Officer deactivated successfully' });
+    const officer = await Officer.delete(req.params.id);
+    res.json({ success: true, data: officer, message: 'Officer deleted successfully' });
 }));
 
 module.exports = router;

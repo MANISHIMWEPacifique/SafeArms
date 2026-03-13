@@ -13,11 +13,11 @@ class FirearmDetailModal extends StatefulWidget {
   final VoidCallback? onEdit;
 
   const FirearmDetailModal({
-    Key? key,
+    super.key,
     required this.firearm,
     required this.onClose,
     this.onEdit,
-  }) : super(key: key);
+  });
 
   @override
   State<FirearmDetailModal> createState() => _FirearmDetailModalState();
@@ -279,7 +279,7 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
           child: SingleChildScrollView(
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
               ),
               child: SelectableText(
@@ -629,8 +629,8 @@ This is an official forensic document.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: const [
+        const Row(
+          children: [
             Text(
               'Ballistic Profile',
               style: TextStyle(
@@ -651,8 +651,8 @@ This is an official forensic document.
             border: Border.all(color: const Color(0xFF37404F)),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Row(
-            children: const [
+          child: const Row(
+            children: [
               Icon(Icons.check_circle, color: Color(0xFF3CCB7F), size: 20),
               SizedBox(width: 12),
               Expanded(

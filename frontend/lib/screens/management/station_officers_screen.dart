@@ -10,6 +10,7 @@ import '../../models/officer_model.dart';
 import '../../widgets/station_add_officer_modal.dart';
 import '../../widgets/station_edit_officer_modal.dart';
 import '../../widgets/officer_detail_modal.dart';
+import '../../widgets/delete_confirmation_dialog.dart';
 
 class StationOfficersScreen extends StatefulWidget {
   const StationOfficersScreen({Key? key}) : super(key: key);
@@ -385,55 +386,32 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     );
   }
 
-  void _confirmDeleteOfficer(OfficerModel officer) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF2A3040),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber, color: Color(0xFFE85C5C)),
-            SizedBox(width: 12),
-            Text('Deactivate Officer', style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to deactivate ${officer.fullName}? '
-          'This will mark the officer as inactive.',
-          style: const TextStyle(color: Color(0xFFB0BEC5)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF78909C))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              final provider = context.read<OfficerProvider>();
-              final success = await provider.deleteOfficer(officer.officerId);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(success
-                        ? '${officer.fullName} deactivated successfully'
-                        : provider.errorMessage ??
-                            'Failed to deactivate officer'),
-                    backgroundColor: success
-                        ? const Color(0xFF3CCB7F)
-                        : const Color(0xFFE85C5C),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE85C5C)),
-            child: const Text('Deactivate'),
-          ),
-        ],
-      ),
+  void _confirmDeleteOfficer(OfficerModel officer) async {
+    final confirmed = await DeleteConfirmationDialog.show(
+      context,
+      title: 'Delete Officer?',
+      message: 'You are about to permanently delete',
+      itemName: officer.fullName,
+      detail:
+          'All custody records, anomalies, and associated data will be removed. This cannot be undone.',
+      confirmText: 'Delete Officer',
     );
+
+    if (confirmed == true) {
+      final provider = context.read<OfficerProvider>();
+      final success = await provider.deleteOfficer(officer.officerId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? '${officer.fullName} deleted successfully'
+                : provider.errorMessage ?? 'Failed to delete officer'),
+            backgroundColor:
+                success ? const Color(0xFF3CCB7F) : const Color(0xFFE85C5C),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildBulkActionsBar() {

@@ -8,6 +8,7 @@ import '../../providers/firearm_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/firearm_model.dart';
 import '../../widgets/firearm_detail_modal.dart';
+import '../../widgets/filter_dropdown_widget.dart';
 
 class StationFirearmsScreen extends StatefulWidget {
   const StationFirearmsScreen({Key? key}) : super(key: key);
@@ -329,38 +330,11 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
     required List<Map<String, String>> items,
     required Function(String?) onChanged,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A3040),
-            border: Border.all(color: const Color(0xFF37404F)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down,
-                  color: Color(0xFF78909C)),
-              dropdownColor: const Color(0xFF2A3040),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              items: items
-                  .map((item) => DropdownMenuItem<String>(
-                        value: item['value'],
-                        child: Text(item['label']!),
-                      ))
-                  .toList(),
-              onChanged: onChanged,
-            ),
-          ),
-        ),
-      ],
+    return FilterDropdownWidget(
+      label: label,
+      value: value,
+      items: items,
+      onChanged: onChanged,
     );
   }
 

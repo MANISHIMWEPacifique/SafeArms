@@ -23,7 +23,7 @@ class OfficerProvider with ChangeNotifier {
 
   // Pagination
   int _currentPage = 1;
-  int _itemsPerPage = 25;
+  final int _itemsPerPage = 25;
   int _totalItems = 0;
 
   // Getters

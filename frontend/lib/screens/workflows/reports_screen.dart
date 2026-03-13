@@ -10,6 +10,7 @@ import '../../providers/dashboard_provider.dart';
 import '../../services/report_service.dart';
 import '../../services/firearm_service.dart';
 import '../../widgets/searchable_dropdown.dart';
+import '../../widgets/empty_state_widget.dart';
 
 class ReportsScreen extends StatefulWidget {
   final String? roleType; // 'station', 'hq', 'investigator', 'admin'
@@ -710,16 +711,9 @@ class _ReportsScreenState extends State<ReportsScreen>
   }
 
   Widget _buildEmptyState(String message, IconData icon) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: const Color(0xFF78909C)),
-          const SizedBox(height: 16),
-          Text(message,
-              style: const TextStyle(color: Color(0xFF78909C), fontSize: 16)),
-        ],
-      ),
+    return EmptyStateWidget(
+      icon: icon,
+      subtitle: message,
     );
   }
 
@@ -817,7 +811,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                     lossLocation: locationController.text,
                   );
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(this.context).showSnackBar(
                       const SnackBar(
                           content: Text('Loss report submitted successfully'),
                           backgroundColor: Color(0xFF3CCB7F)),
@@ -826,7 +820,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(this.context).showSnackBar(
                       SnackBar(
                           content: Text('Error: $e'),
                           backgroundColor: const Color(0xFFE85C5C)),
@@ -931,7 +925,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                     notes: notesController.text,
                   );
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(this.context).showSnackBar(
                       const SnackBar(
                           content: Text('Destruction request submitted'),
                           backgroundColor: Color(0xFF3CCB7F)),
@@ -940,7 +934,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(this.context).showSnackBar(
                       SnackBar(
                           content: Text('Error: $e'),
                           backgroundColor: const Color(0xFFE85C5C)),
@@ -1058,7 +1052,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                     justification: justificationController.text,
                   );
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(this.context).showSnackBar(
                       const SnackBar(
                           content: Text('Procurement request submitted'),
                           backgroundColor: Color(0xFF3CCB7F)),
@@ -1067,7 +1061,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(this.context).showSnackBar(
                       SnackBar(
                           content: Text('Error: $e'),
                           backgroundColor: const Color(0xFFE85C5C)),

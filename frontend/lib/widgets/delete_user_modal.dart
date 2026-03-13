@@ -11,13 +11,13 @@ class DeleteUserConfirmationModal extends StatelessWidget {
   final VoidCallback onConfirm;
 
   const DeleteUserConfirmationModal({
-    Key? key,
+    super.key,
     required this.userId,
     required this.fullName,
     required this.username,
     required this.onClose,
     required this.onConfirm,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

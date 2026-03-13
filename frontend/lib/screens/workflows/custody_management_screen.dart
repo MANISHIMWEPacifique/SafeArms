@@ -10,7 +10,7 @@ import '../../widgets/filter_dropdown_widget.dart';
 import '../../widgets/empty_state_widget.dart';
 
 class CustodyManagementScreen extends StatefulWidget {
-  const CustodyManagementScreen({Key? key}) : super(key: key);
+  const CustodyManagementScreen({super.key});
 
   @override
   State<CustodyManagementScreen> createState() =>

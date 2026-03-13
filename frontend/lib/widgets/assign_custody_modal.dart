@@ -17,10 +17,10 @@ class AssignCustodyModal extends StatefulWidget {
   final VoidCallback onSuccess;
 
   const AssignCustodyModal({
-    Key? key,
+    super.key,
     required this.onClose,
     required this.onSuccess,
-  }) : super(key: key);
+  });
 
   @override
   State<AssignCustodyModal> createState() => _AssignCustodyModalState();
@@ -103,7 +103,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a firearm and officer'),
-          backgroundColor: const Color(0xFFE85C5C),
+          backgroundColor: Color(0xFFE85C5C),
         ),
       );
       return;
@@ -123,6 +123,8 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
     );
 
     setState(() => _isSubmitting = false);
+
+    if (!mounted) return;
 
     if (success) {
       widget.onSuccess();
@@ -521,7 +523,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
             final isSelected = _selectedDurationType == type;
             final label = _durationLabels[type]!;
             final icon = _durationIcons[type]!;
-            final color = const Color(0xFFFFC857);
+            const color = Color(0xFFFFC857);
 
             return Expanded(
               child: Padding(

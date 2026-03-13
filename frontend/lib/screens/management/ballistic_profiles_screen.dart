@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../providers/ballistic_profile_provider.dart';
 
 class BallisticProfilesScreen extends StatefulWidget {
-  const BallisticProfilesScreen({Key? key}) : super(key: key);
+  const BallisticProfilesScreen({super.key});
 
   @override
   State<BallisticProfilesScreen> createState() =>
@@ -73,9 +73,9 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: const Color(0xFF4A5568)),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
+                      children: [
                         Icon(Icons.info_outline,
                             color: Color(0xFF78909C), size: 16),
                         SizedBox(width: 8),

@@ -597,8 +597,7 @@ class _OperationsPortalScreenState extends State<OperationsPortalScreen>
                         confirmText: 'Withdraw',
                       );
                       if (confirmed == true && mounted) {
-                        final provider =
-                            this.context.read<OperationsProvider>();
+                        final provider = context.read<OperationsProvider>();
                         provider.withdrawLossReport(
                             report['loss_id']?.toString() ?? '');
                       }

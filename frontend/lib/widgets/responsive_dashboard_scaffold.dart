@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 class ResponsiveDashboardScaffold extends StatelessWidget {
@@ -8,7 +6,6 @@ class ResponsiveDashboardScaffold extends StatelessWidget {
   final Widget mainContent;
   final Color backgroundColor;
   final double desktopBreakpoint;
-  final double mobileMinContentWidth;
 
   const ResponsiveDashboardScaffold({
     super.key,
@@ -17,7 +14,6 @@ class ResponsiveDashboardScaffold extends StatelessWidget {
     required this.mainContent,
     this.backgroundColor = const Color(0xFF1A1F2E),
     this.desktopBreakpoint = 1200,
-    this.mobileMinContentWidth = 900,
   });
 
   @override
@@ -45,6 +41,8 @@ class ResponsiveDashboardScaffold extends StatelessWidget {
           );
         }
 
+        // Tablet / compact mode: use drawer for navigation,
+        // let content fill available width naturally.
         return Scaffold(
           backgroundColor: backgroundColor,
           drawer: Drawer(
@@ -58,38 +56,12 @@ class ResponsiveDashboardScaffold extends StatelessWidget {
           body: Column(
             children: [
               _CompactMenuBar(),
-              Expanded(
-                child: Column(
-                  children: [
-                    _wrapForCompact(
-                      constraints.maxWidth,
-                      topNavigation,
-                    ),
-                    Expanded(
-                      child: _wrapForCompact(
-                        constraints.maxWidth,
-                        mainContent,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              topNavigation,
+              Expanded(child: mainContent),
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _wrapForCompact(double availableWidth, Widget child) {
-    final targetWidth = math.max(mobileMinContentWidth, availableWidth);
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SizedBox(
-        width: targetWidth,
-        child: child,
-      ),
     );
   }
 }
@@ -105,11 +77,26 @@ class _CompactMenuBar extends StatelessWidget {
           bottom: BorderSide(color: Color(0xFF37404F), width: 1),
         ),
       ),
-      alignment: Alignment.centerLeft,
-      child: IconButton(
-        icon: const Icon(Icons.menu, color: Colors.white),
-        tooltip: 'Open navigation',
-        onPressed: () => Scaffold.of(context).openDrawer(),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            tooltip: 'Open navigation',
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+          const SizedBox(width: 8),
+          const Text(
+            'SafeArms',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }

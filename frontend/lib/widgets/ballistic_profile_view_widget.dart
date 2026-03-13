@@ -18,13 +18,13 @@ class BallisticProfileViewWidget extends StatelessWidget {
   final VoidCallback? onViewAccessHistory;
 
   const BallisticProfileViewWidget({
-    Key? key,
+    super.key,
     this.profile,
     this.isLoading = false,
     this.errorMessage,
     this.accessDenied = false,
     this.onViewAccessHistory,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -128,9 +128,9 @@ class BallisticProfileViewWidget extends StatelessWidget {
                 color: const Color(0xFF78909C).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
+                children: [
                   Icon(Icons.lock, color: Color(0xFF78909C), size: 14),
                   SizedBox(width: 4),
                   Text(
@@ -331,8 +331,8 @@ class BallisticProfileViewWidget extends StatelessWidget {
         border: Border.all(color: const Color(0xFF37404F)),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        children: const [
+      child: const Column(
+        children: [
           Icon(Icons.fingerprint, color: Color(0xFF546E7A), size: 48),
           SizedBox(height: 16),
           Text(
@@ -362,8 +362,8 @@ class BallisticProfileViewWidget extends StatelessWidget {
         border: Border.all(color: const Color(0xFF37404F)),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        children: const [
+      child: const Column(
+        children: [
           Icon(Icons.lock_outline, color: Color(0xFF78909C), size: 48),
           SizedBox(height: 16),
           Text(

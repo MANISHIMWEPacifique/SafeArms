@@ -10,7 +10,7 @@ class SettingsProvider with ChangeNotifier {
   final SettingsService _settingsService = SettingsService();
 
   bool _isLoading = false;
-  bool _isSaving = false;
+  final bool _isSaving = false;
   String? _errorMessage;
   String? _successMessage;
 

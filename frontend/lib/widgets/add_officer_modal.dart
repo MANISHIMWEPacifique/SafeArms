@@ -12,11 +12,11 @@ class AddOfficerModal extends StatefulWidget {
   final VoidCallback onSuccess;
 
   const AddOfficerModal({
-    Key? key,
+    super.key,
     this.officer,
     required this.onClose,
     required this.onSuccess,
-  }) : super(key: key);
+  });
 
   @override
   State<AddOfficerModal> createState() => _AddOfficerModalState();
@@ -110,6 +110,8 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
     }
 
     setState(() => _isLoading = false);
+
+    if (!mounted) return;
 
     if (success) {
       widget.onSuccess();
@@ -595,16 +597,19 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
                       yearStyle: const TextStyle(color: Colors.white),
                       dayForegroundColor:
                           WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected))
+                        if (states.contains(WidgetState.selected)) {
                           return Colors.white;
-                        if (states.contains(WidgetState.disabled))
+                        }
+                        if (states.contains(WidgetState.disabled)) {
                           return const Color(0xFF546E7A);
+                        }
                         return Colors.white;
                       }),
                       dayBackgroundColor:
                           WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected))
+                        if (states.contains(WidgetState.selected)) {
                           return const Color(0xFF1E88E5);
+                        }
                         return Colors.transparent;
                       }),
                       todayForegroundColor:

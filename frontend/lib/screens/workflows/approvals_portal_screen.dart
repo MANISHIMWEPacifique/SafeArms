@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../../providers/approvals_provider.dart';
 
 class ApprovalsPortalScreen extends StatefulWidget {
-  const ApprovalsPortalScreen({Key? key}) : super(key: key);
+  const ApprovalsPortalScreen({super.key});
 
   @override
   State<ApprovalsPortalScreen> createState() => _ApprovalsPortalScreenState();
@@ -100,9 +100,9 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                       color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
+                      children: [
                         Icon(Icons.business,
                             color: Color(0xFF1E88E5), size: 16),
                         SizedBox(width: 6),
@@ -745,10 +745,10 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
   }
 
   Widget _buildEmptyDetailState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
+        children: [
           Icon(Icons.search, size: 64, color: Color(0xFF78909C)),
           SizedBox(height: 16),
           Text(

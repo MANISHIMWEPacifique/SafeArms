@@ -33,7 +33,7 @@ class SearchableDropdown<T> extends StatefulWidget {
   final bool enabled;
 
   const SearchableDropdown({
-    Key? key,
+    super.key,
     required this.items,
     this.value,
     this.hintText = 'Search...',
@@ -42,7 +42,7 @@ class SearchableDropdown<T> extends StatefulWidget {
     required this.onChanged,
     this.validator,
     this.enabled = true,
-  }) : super(key: key);
+  });
 
   @override
   State<SearchableDropdown<T>> createState() => _SearchableDropdownState<T>();
@@ -166,7 +166,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
     return OverlayEntry(
       builder: (context) {
-        final maxHeight = 250.0;
+        const maxHeight = 250.0;
         return Positioned(
           width: size.width,
           child: CompositedTransformFollower(
@@ -178,7 +178,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
               color: const Color(0xFF2A3040),
               borderRadius: BorderRadius.circular(8),
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: maxHeight),
+                constraints: const BoxConstraints(maxHeight: maxHeight),
                 child: _filteredItems.isEmpty
                     ? const Padding(
                         padding: EdgeInsets.all(16),

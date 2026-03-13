@@ -19,11 +19,11 @@ class ForensicFirearmDetailModal extends StatefulWidget {
   final VoidCallback? onEdit;
 
   const ForensicFirearmDetailModal({
-    Key? key,
+    super.key,
     required this.firearm,
     required this.onClose,
     this.onEdit,
-  }) : super(key: key);
+  });
 
   @override
   State<ForensicFirearmDetailModal> createState() =>
@@ -426,18 +426,18 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
               color: const Color(0xFF2A3040),
               border: Border.all(color: const Color(0xFF37404F)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.info_outline,
                   color: Color(0xFF78909C),
                   size: 20,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Events listed here require human review. They indicate patterns that warrant attention, not wrongdoing.',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF78909C),
                       fontSize: 13,
                     ),
@@ -483,8 +483,8 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
         color: const Color(0xFF2A3040),
         border: Border.all(color: const Color(0xFF37404F)),
       ),
-      child: Column(
-        children: const [
+      child: const Column(
+        children: [
           Icon(Icons.check_circle_outline, color: Color(0xFF78909C), size: 48),
           SizedBox(height: 16),
           Text(

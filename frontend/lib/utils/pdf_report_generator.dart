@@ -113,7 +113,7 @@ class PdfReportGenerator {
       text: pw.TextSpan(children: [
         pw.TextSpan(
           text: '$label: ',
-          style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
         ),
         pw.TextSpan(
           text: value,
@@ -544,7 +544,7 @@ class PdfReportGenerator {
         text: pw.TextSpan(children: [
           pw.TextSpan(
             text: '$label: ',
-            style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+            style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
           ),
           pw.TextSpan(
             text: value,

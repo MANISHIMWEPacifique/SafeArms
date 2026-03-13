@@ -13,7 +13,7 @@ import '../../widgets/officer_detail_modal.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
 
 class StationOfficersScreen extends StatefulWidget {
-  const StationOfficersScreen({Key? key}) : super(key: key);
+  const StationOfficersScreen({super.key});
 
   @override
   State<StationOfficersScreen> createState() => _StationOfficersScreenState();
@@ -397,20 +397,20 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
       confirmText: 'Delete Officer',
     );
 
+    if (!mounted) return;
     if (confirmed == true) {
       final provider = context.read<OfficerProvider>();
       final success = await provider.deleteOfficer(officer.officerId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success
-                ? '${officer.fullName} deleted successfully'
-                : provider.errorMessage ?? 'Failed to delete officer'),
-            backgroundColor:
-                success ? const Color(0xFF3CCB7F) : const Color(0xFFE85C5C),
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? '${officer.fullName} deleted successfully'
+              : provider.errorMessage ?? 'Failed to delete officer'),
+          backgroundColor:
+              success ? const Color(0xFF3CCB7F) : const Color(0xFFE85C5C),
+        ),
+      );
     }
   }
 
@@ -456,7 +456,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, color: const Color(0xFFE85C5C), size: 48),
+            const Icon(Icons.error_outline, color: Color(0xFFE85C5C), size: 48),
             const SizedBox(height: 16),
             Text(
               provider.errorMessage!,

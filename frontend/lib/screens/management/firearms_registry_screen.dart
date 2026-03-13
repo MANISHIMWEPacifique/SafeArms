@@ -10,7 +10,7 @@ import '../../widgets/filter_dropdown_widget.dart';
 import '../../widgets/empty_state_widget.dart';
 
 class FirearmsRegistryScreen extends StatefulWidget {
-  const FirearmsRegistryScreen({Key? key}) : super(key: key);
+  const FirearmsRegistryScreen({super.key});
 
   @override
   State<FirearmsRegistryScreen> createState() => _FirearmsRegistryScreenState();
@@ -21,6 +21,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   bool _showRegisterModal = false;
   FirearmModel? _selectedFirearmForDetail;
   FirearmModel? _firearmToEdit;
+
+  static const double _desktopLayoutBreakpoint = 1024;
 
   bool get _isInvestigator {
     final authProvider = context.read<AuthProvider>();
@@ -137,104 +139,182 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
 
   Widget _buildTopNavBar(BuildContext context, FirearmProvider provider,
       bool isHQCommander, bool hasNationalAccess, bool isInvestigator) {
-    return Container(
-      height: 64,
-      decoration: const BoxDecoration(
-        color: Color(0xFF252A3A),
-        border: Border(
-          bottom: BorderSide(color: Color(0xFF37404F), width: 1),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Row(
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                hasNationalAccess
-                    ? 'National Firearms Registry'
-                    : 'Unit Firearms Inventory',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    hasNationalAccess ? 'Home / Firearms' : 'Unit / Firearms',
-                    style:
-                        const TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                  ),
-                  if (isInvestigator) ...[
-                    const SizedBox(width: 12),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 700;
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF252A3A),
+            border: Border(
+              bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+            ),
+          ),
+          padding: EdgeInsets.symmetric(
+            horizontal: isNarrow ? 16 : 32,
+            vertical: 8,
+          ),
+          child: isNarrow
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            hasNationalAccess
+                                ? 'National Firearms Registry'
+                                : 'Unit Firearms Inventory',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (isHQCommander)
+                          ElevatedButton.icon(
+                            onPressed: () => setState(() {
+                              _firearmToEdit = null;
+                              _showRegisterModal = true;
+                            }),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Register',
+                                style: TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E88E5),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
+                        color: const Color(0xFF2A3040),
+                        border: Border.all(color: const Color(0xFF37404F)),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        'Read-Only',
-                        style: TextStyle(
-                            color: Color(0xFF42A5F5),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) => provider.setSearchQuery(value),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: const InputDecoration(
+                          hintText: 'Search...',
+                          hintStyle:
+                              TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                          prefixIcon: Icon(Icons.search,
+                              color: Color(0xFF78909C), size: 20),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        ),
                       ),
                     ),
                   ],
-                ],
-              ),
-            ],
-          ),
-          const Spacer(),
-          Container(
-            width: 300,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A3040),
-              border: Border.all(color: const Color(0xFF37404F)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) => provider.setSearchQuery(value),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: const InputDecoration(
-                hintText: 'Search by serial number, model, unit...',
-                hintStyle: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                prefixIcon:
-                    Icon(Icons.search, color: Color(0xFF78909C), size: 20),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          if (isHQCommander)
-            ElevatedButton.icon(
-              onPressed: () => setState(() {
-                _firearmToEdit = null;
-                _showRegisterModal = true;
-              }),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Register Firearm',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E88E5),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-        ],
-      ),
+                )
+              : Row(
+                  children: [
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          hasNationalAccess
+                              ? 'National Firearms Registry'
+                              : 'Unit Firearms Inventory',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              hasNationalAccess
+                                  ? 'Home / Firearms'
+                                  : 'Unit / Firearms',
+                              style: const TextStyle(
+                                  color: Color(0xFF78909C), fontSize: 14),
+                            ),
+                            if (isInvestigator) ...[
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF42A5F5)
+                                      .withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'Read-Only',
+                                  style: TextStyle(
+                                      color: Color(0xFF42A5F5),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Container(
+                      width: 300,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A3040),
+                        border: Border.all(color: const Color(0xFF37404F)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) => provider.setSearchQuery(value),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: const InputDecoration(
+                          hintText: 'Search by serial number, model, unit...',
+                          hintStyle:
+                              TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                          prefixIcon: Icon(Icons.search,
+                              color: Color(0xFF78909C), size: 20),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    if (isHQCommander)
+                      ElevatedButton.icon(
+                        onPressed: () => setState(() {
+                          _firearmToEdit = null;
+                          _showRegisterModal = true;
+                        }),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Register Firearm',
+                            style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E88E5),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                  ],
+                ),
+        );
+      },
     );
   }
 
@@ -246,10 +326,11 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildFilterDropdown(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isTablet = constraints.maxWidth < _desktopLayoutBreakpoint;
+          final dropdowns = [
+            _buildFilterDropdown(
               label: 'Status',
               value: provider.statusFilter,
               items: const [
@@ -264,10 +345,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               ],
               onChanged: (value) => provider.setStatusFilter(value ?? 'all'),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _buildFilterDropdown(
+            _buildFilterDropdown(
               label: 'Firearm Type',
               value: provider.typeFilter,
               items: const [
@@ -280,24 +358,16 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               ],
               onChanged: (value) => provider.setTypeFilter(value ?? 'all'),
             ),
-          ),
-          if (hasNationalAccess) ...[
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildFilterDropdown(
+            if (hasNationalAccess)
+              _buildFilterDropdown(
                 label: 'Assigned Unit',
                 value: provider.unitFilter,
                 items: const [
                   {'value': 'all', 'label': 'All Units'},
-                  // Would load from units API
                 ],
                 onChanged: (value) => provider.setUnitFilter(value ?? 'all'),
               ),
-            ),
-          ],
-          const SizedBox(width: 16),
-          Expanded(
-            child: _buildFilterDropdown(
+            _buildFilterDropdown(
               label: 'Manufacturer',
               value: provider.manufacturerFilter,
               items: const [
@@ -310,36 +380,67 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               onChanged: (value) =>
                   provider.setManufacturerFilter(value ?? 'all'),
             ),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          ];
+
+          final actionButtons = Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      provider.isGridView ? Icons.grid_view : Icons.view_list,
-                      color: const Color(0xFF1E88E5),
-                    ),
-                    onPressed: () => provider.toggleViewMode(),
-                    tooltip: provider.isGridView
-                        ? 'Switch to List View'
-                        : 'Switch to Grid View',
-                  ),
-                  TextButton.icon(
-                    onPressed: () => provider.clearFilters(),
-                    icon: const Icon(Icons.clear, size: 18),
-                    label: const Text('Clear'),
-                    style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF64B5F6)),
-                  ),
-                ],
+              IconButton(
+                icon: Icon(
+                  provider.isGridView ? Icons.grid_view : Icons.view_list,
+                  color: const Color(0xFF1E88E5),
+                ),
+                onPressed: () => provider.toggleViewMode(),
+                tooltip: provider.isGridView
+                    ? 'Switch to List View'
+                    : 'Switch to Grid View',
+              ),
+              TextButton.icon(
+                onPressed: () => provider.clearFilters(),
+                icon: const Icon(Icons.clear, size: 18),
+                label: const Text('Clear'),
+                style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF64B5F6)),
               ),
             ],
-          ),
-        ],
+          );
+
+          if (isTablet) {
+            final itemWidth = constraints.maxWidth < 700
+                ? constraints.maxWidth
+                : constraints.maxWidth < 1000
+                    ? (constraints.maxWidth - 12) / 2
+                    : (constraints.maxWidth - 24) / 3;
+
+            return Column(
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: dropdowns.whereType<Widget>().map((d) {
+                    return SizedBox(
+                      width: itemWidth,
+                      child: d,
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerRight, child: actionButtons),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              for (int i = 0; i < dropdowns.length; i++) ...[
+                Expanded(child: dropdowns[i]),
+                if (i < dropdowns.length - 1) const SizedBox(width: 16),
+              ],
+              const SizedBox(width: 16),
+              actionButtons,
+            ],
+          );
+        },
       ),
     );
   }
@@ -361,59 +462,113 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   Widget _buildStatsBar(FirearmProvider provider) {
     final stats = provider.stats;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF252A3A),
-        border: Border.all(color: const Color(0xFF37404F)),
-        borderRadius: BorderRadius.circular(12),
+    final statItems = [
+      _StatCardData(
+        icon: Icons.inventory_2,
+        iconColor: const Color(0xFF1E88E5),
+        number: '${stats['total'] ?? provider.firearms.length}',
+        label: 'Total Registered',
       ),
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          _buildStatCard(
-            icon: Icons.inventory_2,
-            iconColor: const Color(0xFF1E88E5),
-            number: '${stats['total'] ?? provider.firearms.length}',
-            label: 'Total Registered',
-            percentage: null,
-          ),
-          _buildDivider(),
-          _buildStatCard(
-            icon: Icons.check_circle,
-            iconColor: const Color(0xFF3CCB7F),
-            number: '${stats['available'] ?? 0}',
-            label: 'Available',
-            percentage: '${stats['available_percentage'] ?? 0}%',
-            percentageColor: const Color(0xFF3CCB7F),
-          ),
-          _buildDivider(),
-          _buildStatCard(
-            icon: Icons.badge,
-            iconColor: const Color(0xFF42A5F5),
-            number: '${stats['in_custody'] ?? 0}',
-            label: 'In Custody',
-            percentage: '${stats['custody_percentage'] ?? 0}%',
-            percentageColor: const Color(0xFF42A5F5),
-          ),
-          _buildDivider(),
-          _buildStatCard(
-            icon: Icons.build,
-            iconColor: const Color(0xFFFFC857),
-            number: '${stats['maintenance'] ?? 0}',
-            label: 'Maintenance',
-            percentage: null,
-          ),
-          _buildDivider(),
-          _buildStatCard(
-            icon: Icons.warning,
-            iconColor: const Color(0xFFE85C5C),
-            number: '${stats['lost_stolen'] ?? 0}',
-            label: 'Lost/Stolen',
-            percentage: null,
-          ),
-        ],
+      _StatCardData(
+        icon: Icons.check_circle,
+        iconColor: const Color(0xFF3CCB7F),
+        number: '${stats['available'] ?? 0}',
+        label: 'Available',
+        percentage: '${stats['available_percentage'] ?? 0}%',
+        percentageColor: const Color(0xFF3CCB7F),
       ),
+      _StatCardData(
+        icon: Icons.badge,
+        iconColor: const Color(0xFF42A5F5),
+        number: '${stats['in_custody'] ?? 0}',
+        label: 'In Custody',
+        percentage: '${stats['custody_percentage'] ?? 0}%',
+        percentageColor: const Color(0xFF42A5F5),
+      ),
+      _StatCardData(
+        icon: Icons.build,
+        iconColor: const Color(0xFFFFC857),
+        number: '${stats['maintenance'] ?? 0}',
+        label: 'Maintenance',
+      ),
+      _StatCardData(
+        icon: Icons.warning,
+        iconColor: const Color(0xFFE85C5C),
+        number: '${stats['lost_stolen'] ?? 0}',
+        label: 'Lost/Stolen',
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= _desktopLayoutBreakpoint;
+
+        if (isDesktop) {
+          return Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF252A3A),
+              border: Border.all(color: const Color(0xFF37404F)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Row(children: _buildDesktopStatWidgets(statItems)),
+          );
+        }
+
+        final cardWidth = constraints.maxWidth < 760
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 12) / 2;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF252A3A),
+            border: Border.all(color: const Color(0xFF37404F)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: statItems
+                .map((item) => SizedBox(
+                      width: cardWidth,
+                      child: _buildTabletStatCard(
+                        icon: item.icon,
+                        iconColor: item.iconColor,
+                        number: item.number,
+                        label: item.label,
+                        percentage: item.percentage,
+                        percentageColor: item.percentageColor,
+                      ),
+                    ))
+                .toList(),
+          ),
+        );
+      },
     );
+  }
+
+  List<Widget> _buildDesktopStatWidgets(List<_StatCardData> statItems) {
+    final widgets = <Widget>[];
+
+    for (int i = 0; i < statItems.length; i++) {
+      widgets.add(
+        _buildStatCard(
+          icon: statItems[i].icon,
+          iconColor: statItems[i].iconColor,
+          number: statItems[i].number,
+          label: statItems[i].label,
+          percentage: statItems[i].percentage,
+          percentageColor: statItems[i].percentageColor,
+        ),
+      );
+
+      if (i < statItems.length - 1) {
+        widgets.add(_buildDivider());
+      }
+    }
+
+    return widgets;
   }
 
   Widget _buildStatCard({
@@ -467,6 +622,58 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     );
   }
 
+  Widget _buildTabletStatCard({
+    required IconData icon,
+    required Color iconColor,
+    required String number,
+    required String label,
+    String? percentage,
+    Color? percentageColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A3040),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF37404F), width: 0.8),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  number,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  label,
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (percentage != null)
+                  Text(
+                    percentage,
+                    style: TextStyle(
+                      color: percentageColor ?? const Color(0xFF78909C),
+                      fontSize: 11,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGridView(FirearmProvider provider) {
     if (provider.isLoading) {
       return const Center(
@@ -481,17 +688,30 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
 
     return Column(
       children: [
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.58,
-          ),
-          itemCount: firearms.length,
-          itemBuilder: (context, index) => _buildFirearmCard(firearms[index]),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            int crossAxisCount;
+            if (constraints.maxWidth >= 1000) {
+              crossAxisCount = 3;
+            } else if (constraints.maxWidth >= 600) {
+              crossAxisCount = 2;
+            } else {
+              crossAxisCount = 1;
+            }
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.58,
+              ),
+              itemCount: firearms.length,
+              itemBuilder: (context, index) =>
+                  _buildFirearmCard(firearms[index]),
+            );
+          },
         ),
         const SizedBox(height: 24),
         _buildPagination(provider),
@@ -785,80 +1005,225 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
       return _buildEmptyState();
     }
 
-    return Column(
-      children: [
-        // Table header
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          decoration: const BoxDecoration(
-            color: Color(0xFF252A3A),
-            border: Border(
-              bottom: BorderSide(color: Color(0xFF37404F), width: 1),
-            ),
-          ),
-          child: const Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= _desktopLayoutBreakpoint;
+
+        if (isDesktop) {
+          return Column(
             children: [
-              SizedBox(width: 48),
-              Expanded(
-                flex: 3,
-                child: Text('SERIAL / MODEL',
-                    style: TextStyle(
-                        color: Color(0xFF78909C),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.8)),
+              // Table header
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF252A3A),
+                  border: Border(
+                    bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+                  ),
+                ),
+                child: const Row(
+                  children: [
+                    SizedBox(width: 48),
+                    Expanded(
+                      flex: 3,
+                      child: Text('SERIAL / MODEL',
+                          style: TextStyle(
+                              color: Color(0xFF78909C),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text('TYPE / CALIBER',
+                          style: TextStyle(
+                              color: Color(0xFF78909C),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text('UNIT',
+                          style: TextStyle(
+                              color: Color(0xFF78909C),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8)),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text('LEVEL',
+                          style: TextStyle(
+                              color: Color(0xFF78909C),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8)),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text('STATUS',
+                          style: TextStyle(
+                              color: Color(0xFF78909C),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8)),
+                    ),
+                    SizedBox(width: 80),
+                  ],
+                ),
               ),
-              Expanded(
-                flex: 2,
-                child: Text('TYPE / CALIBER',
-                    style: TextStyle(
-                        color: Color(0xFF78909C),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.8)),
+              // Table rows
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: firearms.length,
+                itemBuilder: (context, index) =>
+                    _buildFirearmListRow(firearms[index], index),
               ),
-              Expanded(
-                flex: 2,
-                child: Text('UNIT',
-                    style: TextStyle(
-                        color: Color(0xFF78909C),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.8)),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text('LEVEL',
-                    style: TextStyle(
-                        color: Color(0xFF78909C),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.8)),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text('STATUS',
-                    style: TextStyle(
-                        color: Color(0xFF78909C),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.8)),
-              ),
-              SizedBox(width: 80),
+              const SizedBox(height: 24),
+              _buildPagination(provider),
             ],
-          ),
+          );
+        }
+
+        return Column(
+          children: [
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: firearms.length,
+              itemBuilder: (context, index) =>
+                  _buildTabletFirearmCard(firearms[index], index),
+            ),
+            const SizedBox(height: 24),
+            _buildPagination(provider),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTabletFirearmCard(FirearmModel firearm, int index) {
+    return InkWell(
+      onTap: () => setState(() => _selectedFirearmForDetail = firearm),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color:
+              index.isEven ? const Color(0xFF252A3A) : const Color(0xFF232838),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF37404F), width: 0.8),
         ),
-        // Table rows
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: firearms.length,
-          itemBuilder: (context, index) =>
-              _buildFirearmListRow(firearms[index], index),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF2A3040),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _getFirearmIcon(firearm.firearmType),
+                    color: const Color(0xFF42A5F5),
+                    size: 17,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        firearm.serialNumber,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${firearm.manufacturer} ${firearm.model}',
+                        style: const TextStyle(
+                            color: Color(0xFF78909C), fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                _buildStatusBadge(firearm.currentStatus),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 6,
+              children: [
+                Text(
+                  _formatFirearmType(firearm.firearmType),
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+                ),
+                Text(
+                  firearm.caliber ?? 'N/A',
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+                ),
+                Text(
+                  firearm.unitDisplayName,
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+                ),
+                _buildRegistrationLevelBadge(firearm.registrationLevel),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () =>
+                        setState(() => _selectedFirearmForDetail = firearm),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E88E5),
+                      side: const BorderSide(color: Color(0xFF1E88E5)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('View', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                if (!_isInvestigator) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.edit,
+                        size: 18, color: Color(0xFF78909C)),
+                    onPressed: () {
+                      setState(() {
+                        _firearmToEdit = firearm;
+                        _showRegisterModal = true;
+                      });
+                    },
+                    tooltip: 'Edit',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ],
+            ),
+          ],
         ),
-        const SizedBox(height: 24),
-        _buildPagination(provider),
-      ],
+      ),
     );
   }
 
@@ -1011,16 +1376,16 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Showing ${(provider.currentPage - 1) * provider.itemsPerPage + 1}-'
-            '${(provider.currentPage * provider.itemsPerPage).clamp(0, provider.totalItems)} '
-            'of ${provider.totalItems} firearms',
-            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
-          ),
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isTablet = constraints.maxWidth < 900;
+          final summaryText =
+              'Showing ${(provider.currentPage - 1) * provider.itemsPerPage + 1}-'
+              '${(provider.currentPage * provider.itemsPerPage).clamp(0, provider.totalItems)} '
+              'of ${provider.totalItems} firearms';
+
+          final controls = Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
@@ -1070,8 +1435,34 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                     : null,
               ),
             ],
-          ),
-        ],
+          );
+
+          if (isTablet) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  summaryText,
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                controls,
+              ],
+            );
+          }
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                summaryText,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
+              ),
+              controls,
+            ],
+          );
+        },
       ),
     );
   }
@@ -1113,4 +1504,22 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
+}
+
+class _StatCardData {
+  final IconData icon;
+  final Color iconColor;
+  final String number;
+  final String label;
+  final String? percentage;
+  final Color? percentageColor;
+
+  const _StatCardData({
+    required this.icon,
+    required this.iconColor,
+    required this.number,
+    required this.label,
+    this.percentage,
+    this.percentageColor,
+  });
 }

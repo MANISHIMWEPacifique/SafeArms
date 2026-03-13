@@ -11,10 +11,10 @@ class OfficerDetailModal extends StatelessWidget {
   final VoidCallback onClose;
 
   const OfficerDetailModal({
-    Key? key,
+    super.key,
     required this.officer,
     required this.onClose,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -13,11 +13,11 @@ class CreateUserModal extends StatefulWidget {
   final VoidCallback onSuccess;
 
   const CreateUserModal({
-    Key? key,
+    super.key,
     this.user,
     required this.onClose,
     required this.onSuccess,
-  }) : super(key: key);
+  });
 
   @override
   State<CreateUserModal> createState() => _CreateUserModalState();
@@ -109,6 +109,7 @@ class _CreateUserModalState extends State<CreateUserModal> {
       );
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (success) {
@@ -377,8 +378,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: const [
+        const Row(
+          children: [
             Text(
               'Assign Role',
               style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
@@ -680,8 +681,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
           left: BorderSide(color: Color(0xFF42A5F5), width: 4),
         ),
       ),
-      child: Row(
-        children: const [
+      child: const Row(
+        children: [
           Icon(Icons.info, color: Color(0xFF42A5F5), size: 20),
           SizedBox(width: 12),
           Expanded(
@@ -814,8 +815,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: const [
+        const Row(
+          children: [
             Text('Initial Password',
                 style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
             SizedBox(width: 4),

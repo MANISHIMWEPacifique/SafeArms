@@ -156,18 +156,18 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                 bottom: BorderSide(color: Color(0xFF37404F), width: 1),
               ),
             ),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.shield_outlined,
                       color: Colors.white,
                       size: 28,
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
+                    SizedBox(width: 12),
+                    Text(
                       'SafeArms',
                       style: TextStyle(
                         color: Colors.white,
@@ -177,8 +177,8 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                const Text(
+                SizedBox(height: 4),
+                Text(
                   'HQ Command',
                   style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
                 ),
@@ -254,6 +254,11 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                         child: InkWell(
                           onTap: () {
                             setState(() => _selectedIndex = index);
+                            // Close drawer if open (tablet/compact mode)
+                            final scaffoldState = Scaffold.maybeOf(context);
+                            if (scaffoldState?.isDrawerOpen ?? false) {
+                              Navigator.of(context).pop();
+                            }
                             // Reload dashboard data when switching back to Dashboard tab
                             if (index == 0) {
                               _loadDashboardData();
@@ -387,11 +392,11 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
       ),
       child: Row(
         children: [
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'Dashboard',
                 style: TextStyle(
                   color: Colors.white,
@@ -401,7 +406,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
               ),
               Text(
                 'Home / Dashboard',
-                style: TextStyle(color: const Color(0xFF78909C), fontSize: 14),
+                style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
               ),
             ],
           ),
@@ -504,35 +509,79 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   }
 
   Widget _buildDashboardOverview() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildStatsCards(),
-          const SizedBox(height: 32),
-          _buildChartsSection(),
-          const SizedBox(height: 32),
-          _buildAnomalyTable(),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isTablet = constraints.maxWidth < 900;
+        final padding = isTablet ? 16.0 : 32.0;
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStatsCards(),
+              const SizedBox(height: 32),
+              _buildChartsSection(),
+              const SizedBox(height: 32),
+              _buildAnomalyTable(),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildStatsCards() {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: _buildTotalFirearmsCard()),
-          const SizedBox(width: 16),
-          Expanded(child: _buildPendingApprovalsCard()),
-          const SizedBox(width: 16),
-          Expanded(child: _buildActiveUnitsCard()),
-          const SizedBox(width: 16),
-          Expanded(child: _buildAnomaliesCard()),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 800;
+        final cards = [
+          _buildTotalFirearmsCard(),
+          _buildPendingApprovalsCard(),
+          _buildActiveUnitsCard(),
+          _buildAnomaliesCard(),
+        ];
+        if (isNarrow) {
+          return Column(
+            children: [
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: cards[0]),
+                    const SizedBox(width: 16),
+                    Expanded(child: cards[1]),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: cards[2]),
+                    const SizedBox(width: 16),
+                    Expanded(child: cards[3]),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: cards[0]),
+              const SizedBox(width: 16),
+              Expanded(child: cards[1]),
+              const SizedBox(width: 16),
+              Expanded(child: cards[2]),
+              const SizedBox(width: 16),
+              Expanded(child: cards[3]),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -721,11 +770,13 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         final severity = item['severity']?.toString().toLowerCase() ?? '';
 
         total += count;
-        if (severity == 'critical')
+        if (severity == 'critical') {
           critical = count;
-        else if (severity == 'high')
+        } else if (severity == 'high') {
           high = count;
-        else if (severity == 'medium' || severity == 'low') medium += count;
+        } else if (severity == 'medium' || severity == 'low') {
+          medium += count;
+        }
       }
     }
 
@@ -786,13 +837,26 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   }
 
   Widget _buildChartsSection() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 65, child: _buildDistributionChart()),
-        const SizedBox(width: 16),
-        Expanded(flex: 35, child: _buildApprovalQueue()),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 800) {
+          return Column(
+            children: [
+              _buildDistributionChart(),
+              const SizedBox(height: 16),
+              _buildApprovalQueue(),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 65, child: _buildDistributionChart()),
+            const SizedBox(width: 16),
+            Expanded(flex: 35, child: _buildApprovalQueue()),
+          ],
+        );
+      },
     );
   }
 
@@ -929,8 +993,8 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                         show: true,
                         drawVerticalLine: false,
                         horizontalInterval: 1,
-                        getDrawingHorizontalLine: (value) => FlLine(
-                          color: const Color(0xFF37404F),
+                        getDrawingHorizontalLine: (value) => const FlLine(
+                          color: Color(0xFF37404F),
                           strokeWidth: 0.5,
                         ),
                       ),
@@ -1216,17 +1280,17 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: const Color(0xFF37404F)),
                     ),
-                    child: Row(
+                    child: const Row(
                       children: [
-                        const Text(
+                        Text(
                           'Last 7 Days',
                           style: TextStyle(
                             color: Color(0xFFB0BEC5),
                             fontSize: 13,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(
+                        SizedBox(width: 4),
+                        Icon(
                           Icons.keyboard_arrow_down,
                           color: Color(0xFF78909C),
                           size: 18,

@@ -253,34 +253,36 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
           ),
         ];
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth >= 1100) {
-                return Row(
-                  children: [
-                    for (int i = 0; i < cards.length; i++) ...[
-                      Expanded(child: cards[i]),
-                      if (i < cards.length - 1) const SizedBox(width: 12),
-                    ],
-                  ],
-                );
-              }
-
-              final cardWidth = constraints.maxWidth >= 700
-                  ? (constraints.maxWidth - 12) / 2
-                  : constraints.maxWidth;
-
-              return Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: cards
-                    .map((card) => SizedBox(width: cardWidth, child: card))
-                    .toList(),
-              );
-            },
-          ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: constraints.maxWidth < 900 ? 12 : 20,
+                vertical: 12,
+              ),
+              child: constraints.maxWidth >= 1100
+                  ? Row(
+                      children: [
+                        for (int i = 0; i < cards.length; i++) ...[
+                          Expanded(child: cards[i]),
+                          if (i < cards.length - 1) const SizedBox(width: 12),
+                        ],
+                      ],
+                    )
+                  : Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: cards
+                          .map((card) => SizedBox(
+                                width: constraints.maxWidth >= 700
+                                    ? (constraints.maxWidth - 12) / 2
+                                    : constraints.maxWidth,
+                                child: card,
+                              ))
+                          .toList(),
+                    ),
+            );
+          },
         );
       },
     );
@@ -589,7 +591,8 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final tableWidth =
-                  constraints.maxWidth < 1080 ? 1080.0 : constraints.maxWidth;
+                  constraints.maxWidth < 800 ? 800.0 : constraints.maxWidth;
+              final listHeight = constraints.maxHeight - 52;
 
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -630,14 +633,12 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                           ),
                         ),
                         // Table Body - scrollable rows
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              children:
-                                  displayAnomalies.asMap().entries.map((entry) {
-                                return _buildAnomalyRow(entry.value, entry.key);
-                              }).toList(),
-                            ),
+                        SizedBox(
+                          height: listHeight > 0 ? listHeight : 260,
+                          child: ListView.builder(
+                            itemCount: displayAnomalies.length,
+                            itemBuilder: (context, index) => _buildAnomalyRow(
+                                displayAnomalies[index], index),
                           ),
                         ),
                       ],
@@ -972,14 +973,18 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
               headerForegroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
               dayForegroundColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) return Colors.white;
-                if (states.contains(WidgetState.disabled))
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.white;
+                }
+                if (states.contains(WidgetState.disabled)) {
                   return const Color(0xFF546E7A);
+                }
                 return Colors.white;
               }),
               dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected))
+                if (states.contains(WidgetState.selected)) {
                   return const Color(0xFF1E88E5);
+                }
                 return Colors.transparent;
               }),
               todayForegroundColor:
@@ -1030,111 +1035,210 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: const Color(0xFF37404F)),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isTablet = constraints.maxWidth < 1100;
+              final fieldWidth = constraints.maxWidth < 680
+                  ? constraints.maxWidth
+                  : (constraints.maxWidth - 16) / 2;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
-                    ),
-                    child: const Icon(Icons.search,
-                        color: Color(0xFF1E88E5), size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text('Investigation Search',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600)),
-                      Text('Search anomaly data by unit and time interval',
-                          style:
-                              TextStyle(color: Colors.white54, fontSize: 12)),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+                        ),
+                        child: const Icon(Icons.search,
+                            color: Color(0xFF1E88E5), size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Investigation Search',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600)),
+                            Text(
+                                'Search anomaly data by unit and time interval',
+                                style: TextStyle(
+                                    color: Colors.white54, fontSize: 12),
+                                overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              // Unit and Dates
-              Row(
-                children: [
-                  Expanded(child: _buildUnitDropdown()),
-                  const SizedBox(width: 16),
-                  Expanded(
-                      child: _buildDatePicker(
-                          'Start Date', _startDate, () => _selectDate(true))),
-                  const SizedBox(width: 16),
-                  Expanded(
-                      child: _buildDatePicker(
-                          'End Date', _endDate, () => _selectDate(false))),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Severity and Status
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildDropdownField(
-                      'Severity',
-                      _searchSeverity,
-                      [
-                        {'value': 'all', 'label': 'All Severities'},
-                        {'value': 'critical', 'label': 'Critical'},
-                        {'value': 'high', 'label': 'High'},
-                        {'value': 'medium', 'label': 'Medium'},
-                        {'value': 'low', 'label': 'Low'},
-                      ],
-                      (v) => setState(() => _searchSeverity = v!),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildDropdownField(
-                      'Status',
-                      _searchStatus,
-                      [
-                        {'value': 'all', 'label': 'All Statuses'},
-                        {'value': 'open', 'label': 'Open'},
-                        {'value': 'investigating', 'label': 'Investigating'},
-                        {'value': 'resolved', 'label': 'Resolved'},
-                        {'value': 'false_positive', 'label': 'False Positive'},
-                      ],
-                      (v) => setState(() => _searchStatus = v!),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 20),
+                  if (!isTablet) ...[
+                    Row(
                       children: [
-                        const Text('', style: TextStyle(fontSize: 11)),
-                        const SizedBox(height: 2),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _performSearch,
-                            icon: const Icon(Icons.search, size: 18),
-                            label: const Text('Search'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1E88E5),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                            ),
+                        Expanded(child: _buildUnitDropdown()),
+                        const SizedBox(width: 16),
+                        Expanded(
+                            child: _buildDatePicker('Start Date', _startDate,
+                                () => _selectDate(true))),
+                        const SizedBox(width: 16),
+                        Expanded(
+                            child: _buildDatePicker('End Date', _endDate,
+                                () => _selectDate(false))),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDropdownField(
+                            'Severity',
+                            _searchSeverity,
+                            [
+                              {'value': 'all', 'label': 'All Severities'},
+                              {'value': 'critical', 'label': 'Critical'},
+                              {'value': 'high', 'label': 'High'},
+                              {'value': 'medium', 'label': 'Medium'},
+                              {'value': 'low', 'label': 'Low'},
+                            ],
+                            (v) => setState(() => _searchSeverity = v!),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildDropdownField(
+                            'Status',
+                            _searchStatus,
+                            [
+                              {'value': 'all', 'label': 'All Statuses'},
+                              {'value': 'open', 'label': 'Open'},
+                              {
+                                'value': 'investigating',
+                                'label': 'Investigating'
+                              },
+                              {'value': 'resolved', 'label': 'Resolved'},
+                              {
+                                'value': 'false_positive',
+                                'label': 'False Positive'
+                              },
+                            ],
+                            (v) => setState(() => _searchStatus = v!),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('', style: TextStyle(fontSize: 11)),
+                              const SizedBox(height: 2),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: _performSearch,
+                                  icon: const Icon(Icons.search, size: 18),
+                                  label: const Text('Search'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1E88E5),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ] else ...[
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 12,
+                      children: [
+                        SizedBox(
+                            width: fieldWidth, child: _buildUnitDropdown()),
+                        SizedBox(
+                            width: fieldWidth,
+                            child: _buildDatePicker('Start Date', _startDate,
+                                () => _selectDate(true))),
+                        SizedBox(
+                            width: fieldWidth,
+                            child: _buildDatePicker('End Date', _endDate,
+                                () => _selectDate(false))),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: _buildDropdownField(
+                            'Severity',
+                            _searchSeverity,
+                            [
+                              {'value': 'all', 'label': 'All Severities'},
+                              {'value': 'critical', 'label': 'Critical'},
+                              {'value': 'high', 'label': 'High'},
+                              {'value': 'medium', 'label': 'Medium'},
+                              {'value': 'low', 'label': 'Low'},
+                            ],
+                            (v) => setState(() => _searchSeverity = v!),
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: _buildDropdownField(
+                            'Status',
+                            _searchStatus,
+                            [
+                              {'value': 'all', 'label': 'All Statuses'},
+                              {'value': 'open', 'label': 'Open'},
+                              {
+                                'value': 'investigating',
+                                'label': 'Investigating'
+                              },
+                              {'value': 'resolved', 'label': 'Resolved'},
+                              {
+                                'value': 'false_positive',
+                                'label': 'False Positive'
+                              },
+                            ],
+                            (v) => setState(() => _searchStatus = v!),
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('', style: TextStyle(fontSize: 11)),
+                              const SizedBox(height: 2),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: _performSearch,
+                                  icon: const Icon(Icons.search, size: 18),
+                                  label: const Text('Search'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1E88E5),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
-              ),
-            ],
+              );
+            },
           ),
         ),
         // Results
@@ -1326,152 +1430,192 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                   ],
                 ),
               ),
-              // Table header
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: const BoxDecoration(
-                  border: Border(
-                      bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
-                ),
-                child: const Row(
-                  children: [
-                    Expanded(
-                        flex: 2,
-                        child: Text('ID',
-                            style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600))),
-                    Expanded(
-                        flex: 2,
-                        child: Text('Type',
-                            style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600))),
-                    Expanded(
-                        flex: 1,
-                        child: Text('Severity',
-                            style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600))),
-                    Expanded(
-                        flex: 2,
-                        child: Text('Officer',
-                            style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600))),
-                    Expanded(
-                        flex: 2,
-                        child: Text('Unit',
-                            style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600))),
-                    Expanded(
-                        flex: 2,
-                        child: Text('Detected',
-                            style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600))),
-                    Expanded(
-                        flex: 1,
-                        child: Text('Status',
-                            style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600))),
-                    Expanded(
-                        flex: 1,
-                        child: Text('Actions',
-                            style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600))),
-                  ],
-                ),
-              ),
               Expanded(
-                child: ListView.builder(
-                  itemCount: results.length,
-                  itemBuilder: (context, index) {
-                    final anomaly = results[index];
-                    final severity = anomaly['severity'] ?? 'medium';
-                    final status = anomaly['status'] ?? 'open';
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: index % 2 == 0
-                            ? const Color(0xFF2A3040)
-                            : const Color(0xFF252A3A),
-                        border: const Border(
-                            bottom:
-                                BorderSide(color: Color(0xFF37404F), width: 1)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: Text('#${anomaly['anomaly_id'] ?? 'N/A'}',
-                                style: const TextStyle(
-                                    color: Color(0xFF1E88E5),
-                                    fontSize: 13,
-                                    fontFamily: 'monospace')),
-                          ),
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                                _formatAnomalyType(
-                                    anomaly['anomaly_type'] ?? ''),
-                                style: const TextStyle(
-                                    color: Color(0xFFB0BEC5), fontSize: 13)),
-                          ),
-                          Expanded(
-                              flex: 1, child: _buildSeverityBadge(severity)),
-                          Expanded(
-                            flex: 2,
-                            child: Text(anomaly['officer_name'] ?? 'N/A',
-                                style: const TextStyle(
-                                    color: Color(0xFFB0BEC5), fontSize: 13)),
-                          ),
-                          Expanded(
-                            flex: 2,
-                            child: Text(anomaly['unit_name'] ?? 'N/A',
-                                style: const TextStyle(
-                                    color: Color(0xFFB0BEC5), fontSize: 13)),
-                          ),
-                          Expanded(
-                            flex: 2,
-                            child: Text(_formatDateTime(anomaly['detected_at']),
-                                style: const TextStyle(
-                                    color: Color(0xFF78909C), fontSize: 12)),
-                          ),
-                          Expanded(
-                              flex: 1, child: _buildStatusBadgeStatic(status)),
-                          Expanded(
-                            flex: 1,
-                            child: IconButton(
-                              icon: const Icon(Icons.info_outline, size: 18),
-                              color: const Color(0xFF1E88E5),
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  barrierColor:
-                                      Colors.black.withValues(alpha: 0.5),
-                                  builder: (_) => _AnomalyDetailModal(
-                                      anomaly: anomaly,
-                                      onActionComplete: () {}),
-                                );
-                              },
-                              tooltip: 'View Details',
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final tableWidth = constraints.maxWidth < 900
+                        ? 900.0
+                        : constraints.maxWidth;
+
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: tableWidth,
+                        child: Column(
+                          children: [
+                            // Table header
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                    bottom: BorderSide(
+                                        color: Color(0xFF37404F), width: 1)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Expanded(
+                                      flex: 2,
+                                      child: Text('ID',
+                                          style: TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600))),
+                                  Expanded(
+                                      flex: 2,
+                                      child: Text('Type',
+                                          style: TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600))),
+                                  Expanded(
+                                      flex: 1,
+                                      child: Text('Severity',
+                                          style: TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600))),
+                                  Expanded(
+                                      flex: 2,
+                                      child: Text('Officer',
+                                          style: TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600))),
+                                  Expanded(
+                                      flex: 2,
+                                      child: Text('Unit',
+                                          style: TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600))),
+                                  Expanded(
+                                      flex: 2,
+                                      child: Text('Detected',
+                                          style: TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600))),
+                                  Expanded(
+                                      flex: 1,
+                                      child: Text('Status',
+                                          style: TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600))),
+                                  Expanded(
+                                      flex: 1,
+                                      child: Text('Actions',
+                                          style: TextStyle(
+                                              color: Color(0xFF78909C),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600))),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                            Expanded(
+                              child: ListView.builder(
+                                itemCount: results.length,
+                                itemBuilder: (context, index) {
+                                  final anomaly = results[index];
+                                  final severity =
+                                      anomaly['severity'] ?? 'medium';
+                                  final status = anomaly['status'] ?? 'open';
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: index % 2 == 0
+                                          ? const Color(0xFF2A3040)
+                                          : const Color(0xFF252A3A),
+                                      border: const Border(
+                                          bottom: BorderSide(
+                                              color: Color(0xFF37404F),
+                                              width: 1)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(
+                                              '#${anomaly['anomaly_id'] ?? 'N/A'}',
+                                              style: const TextStyle(
+                                                  color: Color(0xFF1E88E5),
+                                                  fontSize: 13,
+                                                  fontFamily: 'monospace')),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(
+                                              _formatAnomalyType(
+                                                  anomaly['anomaly_type'] ??
+                                                      ''),
+                                              style: const TextStyle(
+                                                  color: Color(0xFFB0BEC5),
+                                                  fontSize: 13)),
+                                        ),
+                                        Expanded(
+                                            flex: 1,
+                                            child:
+                                                _buildSeverityBadge(severity)),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(
+                                              anomaly['officer_name'] ?? 'N/A',
+                                              style: const TextStyle(
+                                                  color: Color(0xFFB0BEC5),
+                                                  fontSize: 13)),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(
+                                              anomaly['unit_name'] ?? 'N/A',
+                                              style: const TextStyle(
+                                                  color: Color(0xFFB0BEC5),
+                                                  fontSize: 13)),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(
+                                              _formatDateTime(
+                                                  anomaly['detected_at']),
+                                              style: const TextStyle(
+                                                  color: Color(0xFF78909C),
+                                                  fontSize: 12)),
+                                        ),
+                                        Expanded(
+                                            flex: 1,
+                                            child: _buildStatusBadgeStatic(
+                                                status)),
+                                        Expanded(
+                                          flex: 1,
+                                          child: IconButton(
+                                            icon: const Icon(Icons.info_outline,
+                                                size: 18),
+                                            color: const Color(0xFF1E88E5),
+                                            onPressed: () {
+                                              showDialog(
+                                                context: context,
+                                                barrierColor: Colors.black
+                                                    .withValues(alpha: 0.5),
+                                                builder: (_) =>
+                                                    _AnomalyDetailModal(
+                                                        anomaly: anomaly,
+                                                        onActionComplete:
+                                                            () {}),
+                                              );
+                                            },
+                                            tooltip: 'View Details',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

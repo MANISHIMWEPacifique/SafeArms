@@ -7,7 +7,7 @@ import '../../models/user_model.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
 
 class UserManagementScreen extends StatefulWidget {
-  const UserManagementScreen({Key? key}) : super(key: key);
+  const UserManagementScreen({super.key});
 
   @override
   State<UserManagementScreen> createState() => _UserManagementScreenState();
@@ -1059,19 +1059,25 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                     style: const TextStyle(color: Colors.white),
                                     obscureText: obscurePassword,
                                     validator: (v) {
-                                      if (v == null || v.isEmpty)
+                                      if (v == null || v.isEmpty) {
                                         return 'Required';
-                                      if (v.length < 8)
+                                      }
+                                      if (v.length < 8) {
                                         return 'Min 8 characters';
-                                      if (!RegExp(r'[A-Z]').hasMatch(v))
+                                      }
+                                      if (!RegExp(r'[A-Z]').hasMatch(v)) {
                                         return 'Need uppercase letter';
-                                      if (!RegExp(r'[a-z]').hasMatch(v))
+                                      }
+                                      if (!RegExp(r'[a-z]').hasMatch(v)) {
                                         return 'Need lowercase letter';
-                                      if (!RegExp(r'[0-9]').hasMatch(v))
+                                      }
+                                      if (!RegExp(r'[0-9]').hasMatch(v)) {
                                         return 'Need a number';
+                                      }
                                       if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]')
-                                          .hasMatch(v))
+                                          .hasMatch(v)) {
                                         return 'Need special char';
+                                      }
                                       return null;
                                     },
                                     onSaved: (v) => password = v!,
@@ -1247,8 +1253,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   if (formState == null) return;
                                   if (!formState.validate()) return;
                                   formState.save();
-                                  final scaffoldMessenger =
-                                      ScaffoldMessenger.of(dialogContext);
                                   final success = await provider.createUser(
                                     username: username,
                                     password: password,
@@ -1259,6 +1263,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                     unitId: unitId,
                                     isActive: isActive,
                                   );
+                                  if (!dialogContext.mounted) return;
+                                  final scaffoldMessenger =
+                                      ScaffoldMessenger.of(dialogContext);
                                   if (success) {
                                     Navigator.pop(dialogContext);
                                     scaffoldMessenger.showSnackBar(
@@ -1784,20 +1791,29 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                               resetPasswordController
                                                   .text.isNotEmpty
                                           ? (v) {
-                                              if (v == null || v.isEmpty)
+                                              if (v == null || v.isEmpty) {
                                                 return 'Required';
-                                              if (v.length < 8)
+                                              }
+                                              if (v.length < 8) {
                                                 return 'Min 8 characters';
-                                              if (!RegExp(r'[A-Z]').hasMatch(v))
+                                              }
+                                              if (!RegExp(r'[A-Z]')
+                                                  .hasMatch(v)) {
                                                 return 'Need uppercase letter';
-                                              if (!RegExp(r'[a-z]').hasMatch(v))
+                                              }
+                                              if (!RegExp(r'[a-z]')
+                                                  .hasMatch(v)) {
                                                 return 'Need lowercase letter';
-                                              if (!RegExp(r'[0-9]').hasMatch(v))
+                                              }
+                                              if (!RegExp(r'[0-9]')
+                                                  .hasMatch(v)) {
                                                 return 'Need a number';
+                                              }
                                               if (!RegExp(
                                                       r'[!@#$%^&*(),.?":{}|<>]')
-                                                  .hasMatch(v))
+                                                  .hasMatch(v)) {
                                                 return 'Need special char';
+                                              }
                                               return null;
                                             }
                                           : null,
@@ -1826,8 +1842,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   if (formState == null) return;
                                   if (!formState.validate()) return;
                                   formState.save();
-                                  final scaffoldMessenger =
-                                      ScaffoldMessenger.of(dialogContext);
 
                                   // Handle password reset if provided
                                   if (showResetPassword &&
@@ -1837,6 +1851,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                       user.userId,
                                       resetPasswordController.text,
                                     );
+                                    if (!dialogContext.mounted) return;
+                                    final scaffoldMessenger =
+                                        ScaffoldMessenger.of(dialogContext);
                                     if (!resetSuccess) {
                                       scaffoldMessenger.showSnackBar(
                                         SnackBar(
@@ -1859,6 +1876,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                     unitId: unitId,
                                     isActive: isActive,
                                   );
+                                  if (!dialogContext.mounted) return;
+                                  final scaffoldMessenger =
+                                      ScaffoldMessenger.of(dialogContext);
                                   if (success) {
                                     Navigator.pop(dialogContext);
                                     scaffoldMessenger.showSnackBar(
@@ -1927,10 +1947,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
 
     if (confirm == true) {
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
       try {
         final success = await provider.deleteUser(user.userId);
         if (!mounted) return;
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(
@@ -1944,6 +1964,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         );
       } catch (e) {
         if (!mounted) return;
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text('Error deleting user: $e'),

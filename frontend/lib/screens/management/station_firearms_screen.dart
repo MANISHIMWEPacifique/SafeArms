@@ -11,7 +11,7 @@ import '../../widgets/firearm_detail_modal.dart';
 import '../../widgets/filter_dropdown_widget.dart';
 
 class StationFirearmsScreen extends StatefulWidget {
-  const StationFirearmsScreen({Key? key}) : super(key: key);
+  const StationFirearmsScreen({super.key});
 
   @override
   State<StationFirearmsScreen> createState() => _StationFirearmsScreenState();

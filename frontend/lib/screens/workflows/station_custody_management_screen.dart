@@ -12,7 +12,7 @@ import '../../widgets/filter_dropdown_widget.dart';
 import '../../widgets/empty_state_widget.dart';
 
 class StationCustodyManagementScreen extends StatefulWidget {
-  const StationCustodyManagementScreen({Key? key}) : super(key: key);
+  const StationCustodyManagementScreen({super.key});
 
   @override
   State<StationCustodyManagementScreen> createState() =>

@@ -8,7 +8,7 @@ import '../../providers/settings_provider.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
 
 class SystemSettingsScreen extends StatefulWidget {
-  const SystemSettingsScreen({Key? key}) : super(key: key);
+  const SystemSettingsScreen({super.key});
 
   @override
   State<SystemSettingsScreen> createState() => _SystemSettingsScreenState();

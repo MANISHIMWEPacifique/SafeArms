@@ -18,13 +18,13 @@ class CustodyTimelineWidget extends StatelessWidget {
   final String? incidentDate;
 
   const CustodyTimelineWidget({
-    Key? key,
+    super.key,
     required this.timeline,
     this.summary,
     this.isLoading = false,
     this.errorMessage,
     this.incidentDate,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -366,8 +366,8 @@ class CustodyTimelineWidget extends StatelessWidget {
   Widget _buildEmptyState() {
     return Container(
       padding: const EdgeInsets.all(32),
-      child: Column(
-        children: const [
+      child: const Column(
+        children: [
           Icon(Icons.timeline, color: Color(0xFF78909C), size: 48),
           SizedBox(height: 16),
           Text(

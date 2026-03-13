@@ -188,7 +188,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () => setState(() => _selectedIndex = index),
+                      onTap: () {
+                        setState(() => _selectedIndex = index);
+                        // Close drawer if open (tablet/compact mode)
+                        final scaffoldState = Scaffold.maybeOf(context);
+                        if (scaffoldState?.isDrawerOpen ?? false) {
+                          Navigator.of(context).pop();
+                        }
+                      },
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -397,8 +404,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildDashboardContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isTablet = constraints.maxWidth < 1000;
+        final padding = isTablet ? 16.0 : 32.0;
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -413,7 +424,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           // Anomaly Table
           _buildAnomalyTable(),
         ],
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -853,44 +866,54 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 )
               else
-                Table(
-                  columnWidths: const {
-                    0: FlexColumnWidth(1.5),
-                    1: FlexColumnWidth(2),
-                    2: FlexColumnWidth(1.5),
-                    3: FlexColumnWidth(2),
-                    4: FlexColumnWidth(1.5),
-                    5: FlexColumnWidth(1.5),
-                    6: FlexColumnWidth(1.5),
-                  },
-                  children: [
-                    // Header Row
-                    TableRow(
-                      decoration: const BoxDecoration(color: Color(0xFF252A3A)),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minWidth: MediaQuery.of(context).size.width > 1200
+                          ? MediaQuery.of(context).size.width - 300
+                          : 700,
+                    ),
+                    child: Table(
+                      columnWidths: const {
+                        0: FlexColumnWidth(1.5),
+                        1: FlexColumnWidth(2),
+                        2: FlexColumnWidth(1.5),
+                        3: FlexColumnWidth(2),
+                        4: FlexColumnWidth(1.5),
+                        5: FlexColumnWidth(1.5),
+                        6: FlexColumnWidth(1.5),
+                      },
                       children: [
-                        _buildTableHeader('ANOMALY ID'),
-                        _buildTableHeader('TYPE'),
-                        _buildTableHeader('SEVERITY'),
-                        _buildTableHeader('UNIT'),
-                        _buildTableHeader('DETECTED'),
-                        _buildTableHeader('STATUS'),
-                        _buildTableHeader('ACTION'),
+                        // Header Row
+                        TableRow(
+                          decoration: const BoxDecoration(color: Color(0xFF252A3A)),
+                          children: [
+                            _buildTableHeader('ANOMALY ID'),
+                            _buildTableHeader('TYPE'),
+                            _buildTableHeader('SEVERITY'),
+                            _buildTableHeader('UNIT'),
+                            _buildTableHeader('DETECTED'),
+                            _buildTableHeader('STATUS'),
+                            _buildTableHeader('ACTION'),
+                          ],
+                        ),
+                        // Data Rows from provider (show top 5)
+                        ...anomalies.take(5).map((anomaly) {
+                          return _buildAnomalyRow(
+                            _formatAnomalyId(anomaly['anomaly_id']),
+                            _formatAnomalyType(anomaly['anomaly_type']),
+                            (anomaly['severity'] ?? 'low').toString().toUpperCase(),
+                            _getSeverityColor(anomaly['severity']),
+                            anomaly['unit_name'] ?? 'Unknown Unit',
+                            _formatDetectedDate(anomaly['detected_at']),
+                            _formatStatus(anomaly['status']),
+                            _getStatusColor(anomaly['status']),
+                          );
+                        }),
                       ],
                     ),
-                    // Data Rows from provider (show top 5)
-                    ...anomalies.take(5).map((anomaly) {
-                      return _buildAnomalyRow(
-                        _formatAnomalyId(anomaly['anomaly_id']),
-                        _formatAnomalyType(anomaly['anomaly_type']),
-                        (anomaly['severity'] ?? 'low').toString().toUpperCase(),
-                        _getSeverityColor(anomaly['severity']),
-                        anomaly['unit_name'] ?? 'Unknown Unit',
-                        _formatDetectedDate(anomaly['detected_at']),
-                        _formatStatus(anomaly['status']),
-                        _getStatusColor(anomaly['status']),
-                      );
-                    }),
-                  ],
+                  ),
                 ),
             ],
           ),

@@ -204,15 +204,15 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.shield_outlined,
                       color: Colors.white,
                       size: 28,
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
+                    SizedBox(width: 12),
+                    Text(
                       'SafeArms',
                       style: TextStyle(
                         color: Colors.white,
@@ -307,6 +307,11 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
                         setState(() {
                           _selectedIndex = index;
                         });
+                        // Close drawer if open (tablet/compact mode)
+                        final scaffoldState = Scaffold.maybeOf(context);
+                        if (scaffoldState?.isDrawerOpen ?? false) {
+                          Navigator.of(context).pop();
+                        }
                       },
                       child: Container(
                         margin: const EdgeInsets.symmetric(
@@ -438,10 +443,10 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Row(
         children: [
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
+            children: [
               Text(
                 'Investigation Overview',
                 style: TextStyle(
@@ -555,20 +560,26 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   // =====================================
 
   Widget _buildDashboardOverview() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildInvestigationMetrics(),
-          const SizedBox(height: 32),
-          _buildRecentActivitySection(),
-          const SizedBox(height: 32),
-          _buildRecentCustodyEvents(),
-          const SizedBox(height: 32),
-          _buildBallisticProfilesTable(),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isTablet = constraints.maxWidth < 900;
+        final padding = isTablet ? 16.0 : 32.0;
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInvestigationMetrics(),
+              const SizedBox(height: 32),
+              _buildRecentActivitySection(),
+              const SizedBox(height: 32),
+              _buildRecentCustodyEvents(),
+              const SizedBox(height: 32),
+              _buildBallisticProfilesTable(),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -592,28 +603,57 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
         .length;
     final mediumLow = totalAnomalies - criticalHigh;
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildActiveCasesCard(
-            dashboardStats,
-            dashboardProvider.isLoading,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 800;
+        final cards = [
+          _buildActiveCasesCard(dashboardStats, dashboardProvider.isLoading),
+          _buildBallisticProfilesCard(dashboardStats),
+          _buildFlaggedAnomaliesCard(totalAnomalies, criticalHigh, mediumLow,
+              dashboardProvider.isLoading),
+          _buildCustodyTracesCard(dashboardStats),
+        ];
+        if (isNarrow) {
+          return Column(
+            children: [
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: cards[0]),
+                    const SizedBox(width: 16),
+                    Expanded(child: cards[1]),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: cards[2]),
+                    const SizedBox(width: 16),
+                    Expanded(child: cards[3]),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+        return IntrinsicHeight(
+          child: Row(
+            children: [
+              Expanded(child: cards[0]),
+              const SizedBox(width: 16),
+              Expanded(child: cards[1]),
+              const SizedBox(width: 16),
+              Expanded(child: cards[2]),
+              const SizedBox(width: 16),
+              Expanded(child: cards[3]),
+            ],
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(child: _buildBallisticProfilesCard(dashboardStats)),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildFlaggedAnomaliesCard(
-            totalAnomalies,
-            criticalHigh,
-            mediumLow,
-            dashboardProvider.isLoading,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(child: _buildCustodyTracesCard(dashboardStats)),
-      ],
+        );
+      },
     );
   }
 
@@ -889,9 +929,9 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'Recent System Activity',
                     style: TextStyle(
@@ -935,8 +975,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
           else
             ...recentActivities
                 .take(6)
-                .map((activity) => _buildActivityItem(activity))
-                .toList(),
+                .map((activity) => _buildActivityItem(activity)),
         ],
       ),
     );
@@ -1285,9 +1324,9 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'Ballistic Profiles Database',
                     style: TextStyle(

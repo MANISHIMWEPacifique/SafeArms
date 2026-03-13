@@ -7,7 +7,7 @@ import '../../providers/ballistic_profile_provider.dart';
 import '../../widgets/empty_state_widget.dart';
 
 class BallisticProfilesScreen extends StatefulWidget {
-  const BallisticProfilesScreen({Key? key}) : super(key: key);
+  const BallisticProfilesScreen({super.key});
 
   @override
   State<BallisticProfilesScreen> createState() =>
@@ -277,10 +277,10 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
     final profiles = provider.filteredProfiles;
 
     if (profiles.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.science_outlined, size: 64, color: Color(0xFF78909C)),
             SizedBox(height: 16),
             Text(

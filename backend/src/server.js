@@ -109,6 +109,29 @@ app.use(errorHandler);
 // Start server — verify DB *before* accepting traffic
 const PORT = SERVER_CONFIG.port;
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const waitForDatabase = async () => {
+    const maxAttempts = parseInt(process.env.DB_CONNECT_RETRIES || '6', 10);
+    const retryDelayMs = parseInt(process.env.DB_CONNECT_RETRY_DELAY_MS || '3000', 10);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            await pool.query('SELECT NOW()');
+            return;
+        } catch (error) {
+            if (attempt === maxAttempts) {
+                throw error;
+            }
+
+            console.warn(
+                `[WARN] Database check attempt ${attempt}/${maxAttempts} failed: ${error.message}. Retrying in ${retryDelayMs}ms...`
+            );
+            await sleep(retryDelayMs);
+        }
+    }
+};
+
 (async () => {
     console.log('\n========================================');
     console.log('[SafeArms] Backend Server');
@@ -117,7 +140,7 @@ const PORT = SERVER_CONFIG.port;
 
     // 1. Test database connection before binding port
     try {
-        await pool.query('SELECT NOW()');
+        await waitForDatabase();
         console.log('[OK] Database connected successfully');
     } catch (error) {
         console.error('[ERROR] Database connection failed:', error.message);

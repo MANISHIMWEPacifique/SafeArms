@@ -49,7 +49,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     // Load all dashboard data - single API call gets all stats
     await Future.wait([
       dashboardProvider.loadDashboardStats(),
-      if (unitId != null) anomalyProvider.loadUnitAnomalies(unitId, limit: 10),
+      if (unitId != null) anomalyProvider.loadUnitAnomalies(unitId),
     ]);
   }
 
@@ -114,15 +114,15 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
                 bottom: BorderSide(color: Color(0xFF37404F), width: 1),
               ),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.shield_outlined,
                   color: Colors.white,
                   size: 28,
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
+                SizedBox(width: 12),
+                Expanded(
                   child: Text(
                     'SafeArms',
                     style: TextStyle(
@@ -166,10 +166,10 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
+                      const Text(
                         'Station Commander',
                         style: TextStyle(
-                          color: const Color(0xFF78909C),
+                          color: Color(0xFF78909C),
                           fontSize: 12,
                         ),
                       ),
@@ -202,6 +202,11 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
                         child: InkWell(
                           onTap: () {
                             setState(() => _selectedIndex = index);
+                            // Close drawer if open (tablet/compact mode)
+                            final scaffoldState = Scaffold.maybeOf(context);
+                            if (scaffoldState?.isDrawerOpen ?? false) {
+                              Navigator.of(context).pop();
+                            }
                             // Reload dashboard data when switching back to Dashboard tab
                             if (index == 0) {
                               _loadDashboardData();
@@ -358,25 +363,40 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         }
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(
+            MediaQuery.of(context).size.width < 1200 ? 16 : 24,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildStatsCards(provider),
               const SizedBox(height: 24),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 5,
-                    child: _buildFirearmStatusChart(provider),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 5,
-                    child: _buildRecentActivity(provider),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 800) {
+                    return Column(
+                      children: [
+                        _buildFirearmStatusChart(provider),
+                        const SizedBox(height: 16),
+                        _buildRecentActivity(provider),
+                      ],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 5,
+                        child: _buildFirearmStatusChart(provider),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 5,
+                        child: _buildRecentActivity(provider),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -390,54 +410,50 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     final firearms = stats?['firearms'];
     final totalFirearms = firearms?['total']?.toString() ?? '0';
     final inCustody = stats?['active_custody']?.toString() ?? '0';
+    final anomalyCount = context.watch<AnomalyProvider>().anomalies.length;
 
-    // Count anomalies
-    int anomalyCount = 0;
-    final anomalies = stats?['anomalies'] as List?;
-    if (anomalies != null) {
-      for (var a in anomalies) {
-        anomalyCount += int.tryParse(a['count']?.toString() ?? '0') ?? 0;
-      }
-    }
+    final cards = [
+      _buildStatCard('Total Firearms', totalFirearms, Icons.security_outlined,
+          const Color(0xFF1E88E5)),
+      _buildStatCard('Active Custody', inCustody, Icons.swap_horiz_rounded,
+          const Color(0xFF1E88E5)),
+      _buildStatCard('Officers', provider.officersCount.toString(),
+          Icons.badge_outlined, const Color(0xFF1E88E5)),
+      _buildStatCard('Anomalies', anomalyCount.toString(),
+          Icons.report_problem_outlined, const Color(0xFF1E88E5)),
+    ];
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            'Total Firearms',
-            totalFirearms,
-            Icons.security_outlined,
-            const Color(0xFF1E88E5),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'Active Custody',
-            inCustody,
-            Icons.swap_horiz_rounded,
-            const Color(0xFF1E88E5),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'Officers',
-            provider.officersCount.toString(),
-            Icons.badge_outlined,
-            const Color(0xFF1E88E5),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'Anomalies',
-            anomalyCount.toString(),
-            Icons.report_problem_outlined,
-            const Color(0xFF1E88E5),
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 700) {
+          return Column(
+            children: [
+              Row(children: [
+                Expanded(child: cards[0]),
+                const SizedBox(width: 16),
+                Expanded(child: cards[1])
+              ]),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: cards[2]),
+                const SizedBox(width: 16),
+                Expanded(child: cards[3])
+              ]),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: cards[0]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[1]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[2]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[3]),
+          ],
+        );
+      },
     );
   }
 

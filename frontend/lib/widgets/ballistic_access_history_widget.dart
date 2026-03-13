@@ -18,12 +18,12 @@ class BallisticAccessHistoryWidget extends StatelessWidget {
   final bool accessDenied;
 
   const BallisticAccessHistoryWidget({
-    Key? key,
+    super.key,
     required this.accessHistory,
     this.isLoading = false,
     this.errorMessage,
     this.accessDenied = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -145,10 +145,10 @@ class BallisticAccessHistoryWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
+          const Padding(
+            padding: EdgeInsets.all(16),
             child: Row(
-              children: const [
+              children: [
                 Icon(Icons.history, color: Color(0xFF42A5F5), size: 18),
                 SizedBox(width: 8),
                 Text(
@@ -328,7 +328,7 @@ class BallisticAccessHistoryWidget extends StatelessWidget {
   Widget _buildAccessTypeBadge(String type) {
     // Use neutral colors for all access types
     // No judgmental red/green indicators
-    final color = const Color(0xFF78909C);
+    const color = Color(0xFF78909C);
 
     String label;
     switch (type.toLowerCase()) {
@@ -352,11 +352,11 @@ class BallisticAccessHistoryWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: const BorderRadius.all(Radius.circular(4)),
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: const TextStyle(
           color: color,
           fontSize: 10,
           fontWeight: FontWeight.bold,
@@ -368,13 +368,13 @@ class BallisticAccessHistoryWidget extends StatelessWidget {
   Widget _buildEmptyState() {
     return Container(
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        border: Border.all(color: const Color(0xFF37404F)),
-        borderRadius: BorderRadius.circular(8),
+      decoration: const BoxDecoration(
+        color: Color(0xFF2A3040),
+        border: Border.fromBorderSide(BorderSide(color: Color(0xFF37404F))),
+        borderRadius: BorderRadius.all(Radius.circular(8)),
       ),
-      child: Column(
-        children: const [
+      child: const Column(
+        children: [
           Icon(Icons.history, color: Color(0xFF546E7A), size: 48),
           SizedBox(height: 16),
           Text(
@@ -399,13 +399,13 @@ class BallisticAccessHistoryWidget extends StatelessWidget {
   Widget _buildAccessDeniedState() {
     return Container(
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        border: Border.all(color: const Color(0xFF37404F)),
-        borderRadius: BorderRadius.circular(8),
+      decoration: const BoxDecoration(
+        color: Color(0xFF2A3040),
+        border: Border.fromBorderSide(BorderSide(color: Color(0xFF37404F))),
+        borderRadius: BorderRadius.all(Radius.circular(8)),
       ),
-      child: Column(
-        children: const [
+      child: const Column(
+        children: [
           Icon(Icons.lock_outline, color: Color(0xFF78909C), size: 48),
           SizedBox(height: 16),
           Text(

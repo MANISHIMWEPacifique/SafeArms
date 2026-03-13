@@ -10,7 +10,7 @@ import '../../widgets/filter_dropdown_widget.dart';
 import '../../widgets/empty_state_widget.dart';
 
 class OfficersRegistryScreen extends StatefulWidget {
-  const OfficersRegistryScreen({Key? key}) : super(key: key);
+  const OfficersRegistryScreen({super.key});
 
   @override
   State<OfficersRegistryScreen> createState() => _OfficersRegistryScreenState();
@@ -53,7 +53,9 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                     Expanded(
                       child: SingleChildScrollView(
                         child: Padding(
-                          padding: const EdgeInsets.all(24.0),
+                          padding: EdgeInsets.all(
+                            MediaQuery.of(context).size.width < 900 ? 16 : 24,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -93,146 +95,232 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
   }
 
   Widget _buildTopNavBar(BuildContext context, OfficerProvider provider) {
-    return Container(
-      height: 70,
-      decoration: const BoxDecoration(
-        color: Color(0xFF252A3A),
-        border: Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Row(
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Officer Registry',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'Manage officers eligible for firearm custody',
-                style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-              ),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 800;
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF252A3A),
+            border:
+                Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
           ),
-          const Spacer(),
-          Container(
-            width: 300,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A3040),
-              border: Border.all(color: const Color(0xFF37404F)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) => provider.setSearchQuery(value),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: const InputDecoration(
-                hintText: 'Search by name, badge number, or rank...',
-                hintStyle: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                prefixIcon:
-                    Icon(Icons.search, color: Color(0xFF78909C), size: 20),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
+          padding: EdgeInsets.symmetric(
+            horizontal: isNarrow ? 16 : 32,
+            vertical: 8,
           ),
-          const SizedBox(width: 16),
-          ElevatedButton.icon(
-            onPressed: () => setState(() => _showAddModal = true),
-            icon: const Icon(Icons.person_add, size: 18),
-            label: const Text('Add New Officer',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: () {
-              // Import officers
-            },
-            icon: const Icon(Icons.upload, size: 18),
-            label: const Text('Import'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB0BEC5),
-              side: const BorderSide(color: Color(0xFF37404F)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: () {
-              // Export list
-            },
-            icon: const Icon(Icons.download, size: 18),
-            label: const Text('Export'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB0BEC5),
-              side: const BorderSide(color: Color(0xFF37404F)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-        ],
-      ),
+          child: isNarrow
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Officer Registry',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => setState(() => _showAddModal = true),
+                          icon: const Icon(Icons.person_add, size: 16),
+                          label: const Text('Add',
+                              style: TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E88E5),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A3040),
+                        border: Border.all(color: const Color(0xFF37404F)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) => provider.setSearchQuery(value),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: const InputDecoration(
+                          hintText: 'Search...',
+                          hintStyle:
+                              TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                          prefixIcon: Icon(Icons.search,
+                              color: Color(0xFF78909C), size: 20),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Officer Registry',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Manage officers eligible for firearm custody',
+                          style:
+                              TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Container(
+                      width: 300,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A3040),
+                        border: Border.all(color: const Color(0xFF37404F)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) => provider.setSearchQuery(value),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: const InputDecoration(
+                          hintText: 'Search by name, badge number, or rank...',
+                          hintStyle:
+                              TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                          prefixIcon: Icon(Icons.search,
+                              color: Color(0xFF78909C), size: 20),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => setState(() => _showAddModal = true),
+                      icon: const Icon(Icons.person_add, size: 18),
+                      label: const Text('Add New Officer',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E88E5),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.upload, size: 18),
+                      label: const Text('Import'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFB0BEC5),
+                        side: const BorderSide(color: Color(0xFF37404F)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('Export'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFB0BEC5),
+                        side: const BorderSide(color: Color(0xFF37404F)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ],
+                ),
+        );
+      },
     );
   }
 
   Widget _buildStatsCards(OfficerProvider provider) {
     final stats = provider.stats;
+    final cards = [
+      _buildStatCard(
+          icon: Icons.people,
+          iconColor: const Color(0xFF1E88E5),
+          number: '${provider.officers.length}',
+          label: 'Total Officers'),
+      _buildStatCard(
+          icon: Icons.check_circle,
+          iconColor: const Color(0xFF3CCB7F),
+          number: '${stats['active_count'] ?? 0}',
+          label: 'Active Officers'),
+      _buildStatCard(
+          icon: Icons.local_police,
+          iconColor: const Color(0xFF42A5F5),
+          number: '${stats['active_custody_count'] ?? 0}',
+          label: 'Active Custody'),
+      _buildStatCard(
+          icon: Icons.business,
+          iconColor: const Color(0xFFFFC857),
+          number: '${stats['units_count'] ?? 0}',
+          label: 'Units Represented'),
+    ];
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.people,
-            iconColor: const Color(0xFF1E88E5),
-            number: '${provider.officers.length}',
-            label: 'Total Officers',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.check_circle,
-            iconColor: const Color(0xFF3CCB7F),
-            number: '${stats['active_count'] ?? 0}',
-            label: 'Active Officers',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.local_police,
-            iconColor: const Color(0xFF42A5F5),
-            number: '${stats['active_custody_count'] ?? 0}',
-            label: 'Active Custody',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.business,
-            iconColor: const Color(0xFFFFC857),
-            number: '${stats['units_count'] ?? 0}',
-            label: 'Units Represented',
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 700) {
+          return Column(
+            children: [
+              Row(children: [
+                Expanded(child: cards[0]),
+                const SizedBox(width: 16),
+                Expanded(child: cards[1])
+              ]),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: cards[2]),
+                const SizedBox(width: 16),
+                Expanded(child: cards[3])
+              ]),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: cards[0]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[1]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[2]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[3]),
+          ],
+        );
+      },
     );
   }
 
@@ -294,10 +382,11 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildFilterDropdown(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isTablet = constraints.maxWidth < 1200;
+          final dropdowns = [
+            _buildFilterDropdown(
               label: 'Filter by Unit',
               value: provider.unitFilter,
               items: const [
@@ -307,10 +396,7 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
               ],
               onChanged: (value) => provider.setUnitFilter(value ?? 'all'),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _buildFilterDropdown(
+            _buildFilterDropdown(
               label: 'Filter by Rank',
               value: provider.rankFilter,
               items: const [
@@ -323,10 +409,7 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
               ],
               onChanged: (value) => provider.setRankFilter(value ?? 'all'),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _buildFilterDropdown(
+            _buildFilterDropdown(
               label: 'Active Status',
               value: provider.activeFilter,
               items: const [
@@ -336,25 +419,63 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
               ],
               onChanged: (value) => provider.setActiveFilter(value ?? 'all'),
             ),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          ];
+
+          final clearButton = TextButton.icon(
+            onPressed: () {
+              provider.clearFilters();
+              _searchController.clear();
+            },
+            icon: const Icon(Icons.clear, size: 18),
+            label: const Text('Clear Filters'),
+            style:
+                TextButton.styleFrom(foregroundColor: const Color(0xFF64B5F6)),
+          );
+
+          if (isTablet) {
+            final itemWidth = constraints.maxWidth < 700
+                ? constraints.maxWidth
+                : constraints.maxWidth < 1000
+                    ? (constraints.maxWidth - 12) / 2
+                    : (constraints.maxWidth - 24) / 3;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: dropdowns.map((d) {
+                    return SizedBox(
+                      width: itemWidth,
+                      child: d,
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerRight, child: clearButton),
+              ],
+            );
+          }
+
+          return Row(
             children: [
-              const SizedBox(height: 16),
-              TextButton.icon(
-                onPressed: () {
-                  provider.clearFilters();
-                  _searchController.clear();
-                },
-                icon: const Icon(Icons.clear, size: 18),
-                label: const Text('Clear Filters'),
-                style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF64B5F6)),
+              Expanded(child: dropdowns[0]),
+              const SizedBox(width: 16),
+              Expanded(child: dropdowns[1]),
+              const SizedBox(width: 16),
+              Expanded(child: dropdowns[2]),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const SizedBox(height: 16),
+                  clearButton,
+                ],
               ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -382,49 +503,113 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
         border:
             const Border(left: BorderSide(color: Color(0xFF42A5F5), width: 4)),
       ),
-      child: Row(
-        children: [
-          Text(
-            '${_selectedOfficers.length} officers selected',
-            style: const TextStyle(
-                color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(width: 24),
-          TextButton.icon(
-            onPressed: () {
-              // Export selected
-            },
-            icon: const Icon(Icons.download, size: 18),
-            label: const Text('Export Selected'),
-            style:
-                TextButton.styleFrom(foregroundColor: const Color(0xFF64B5F6)),
-          ),
-          TextButton.icon(
-            onPressed: () {
-              // Bulk edit
-            },
-            icon: const Icon(Icons.edit, size: 18),
-            label: const Text('Bulk Edit'),
-            style:
-                TextButton.styleFrom(foregroundColor: const Color(0xFF64B5F6)),
-          ),
-          TextButton.icon(
-            onPressed: () {
-              // Bulk deactivate
-            },
-            icon: const Icon(Icons.block, size: 18),
-            label: const Text('Bulk Deactivate'),
-            style:
-                TextButton.styleFrom(foregroundColor: const Color(0xFFE85C5C)),
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: () => setState(() => _selectedOfficers.clear()),
-            child: const Text('Cancel Selection'),
-            style:
-                TextButton.styleFrom(foregroundColor: const Color(0xFF78909C)),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isTablet = constraints.maxWidth < 1000;
+
+          if (isTablet) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_selectedOfficers.length} officers selected',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 6,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () {
+                        // Export selected
+                      },
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('Export Selected'),
+                      style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF64B5F6)),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        // Bulk edit
+                      },
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('Bulk Edit'),
+                      style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF64B5F6)),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        // Bulk deactivate
+                      },
+                      icon: const Icon(Icons.block, size: 18),
+                      label: const Text('Bulk Deactivate'),
+                      style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFFE85C5C)),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          setState(() => _selectedOfficers.clear()),
+                      style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF78909C)),
+                      child: const Text('Cancel Selection'),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Text(
+                '${_selectedOfficers.length} officers selected',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 24),
+              TextButton.icon(
+                onPressed: () {
+                  // Export selected
+                },
+                icon: const Icon(Icons.download, size: 18),
+                label: const Text('Export Selected'),
+                style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF64B5F6)),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  // Bulk edit
+                },
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('Bulk Edit'),
+                style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF64B5F6)),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  // Bulk deactivate
+                },
+                icon: const Icon(Icons.block, size: 18),
+                label: const Text('Bulk Deactivate'),
+                style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFE85C5C)),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => setState(() => _selectedOfficers.clear()),
+                style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF78909C)),
+                child: const Text('Cancel Selection'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -441,45 +626,228 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
       return _buildEmptyState();
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        border: Border.all(color: const Color(0xFF37404F)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          // Table header
-          Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF252A3A),
-              border: Border(
-                  bottom: BorderSide(color: Color(0xFF37404F), width: 2)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 1200;
+
+        if (isDesktop) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: MediaQuery.of(context).size.width - 300,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A3040),
+                  border: Border.all(color: const Color(0xFF37404F)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    // Table header
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF252A3A),
+                        border: Border(
+                            bottom:
+                                BorderSide(color: Color(0xFF37404F), width: 2)),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 14),
+                      child: const Row(
+                        children: [
+                          SizedBox(width: 40, child: _TableHeader('')),
+                          Expanded(flex: 3, child: _TableHeader('OFFICER')),
+                          Expanded(
+                              flex: 2, child: _TableHeader('OFFICER NUMBER')),
+                          Expanded(flex: 2, child: _TableHeader('RANK')),
+                          Expanded(flex: 2, child: _TableHeader('UNIT')),
+                          Expanded(flex: 2, child: _TableHeader('PHONE')),
+                          Expanded(flex: 1, child: _TableHeader('STATUS')),
+                          Expanded(flex: 1, child: _TableHeader('CUSTODY')),
+                          SizedBox(width: 100, child: _TableHeader('ACTIONS')),
+                        ],
+                      ),
+                    ),
+
+                    // Table rows
+                    ...officers
+                        .map((officer) => _buildOfficerRow(officer, provider)),
+
+                    // Pagination
+                    _buildPagination(provider),
+                  ],
+                ),
+              ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Row(
-              children: const [
-                SizedBox(width: 40, child: _TableHeader('')),
-                Expanded(flex: 3, child: _TableHeader('OFFICER')),
-                Expanded(flex: 2, child: _TableHeader('OFFICER NUMBER')),
-                Expanded(flex: 2, child: _TableHeader('RANK')),
-                Expanded(flex: 2, child: _TableHeader('UNIT')),
-                Expanded(flex: 2, child: _TableHeader('PHONE')),
-                Expanded(flex: 1, child: _TableHeader('STATUS')),
-                Expanded(flex: 1, child: _TableHeader('CUSTODY')),
-                SizedBox(width: 100, child: _TableHeader('ACTIONS')),
+          );
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A3040),
+            border: Border.all(color: const Color(0xFF37404F)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: officers.length,
+                itemBuilder: (context, index) =>
+                    _buildOfficerTabletCard(officers[index], provider),
+              ),
+              _buildPagination(provider),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOfficerTabletCard(
+      OfficerModel officer, OfficerProvider provider) {
+    final isSelected = _selectedOfficers.contains(officer.officerId);
+
+    return InkWell(
+      onTap: () => provider.selectOfficer(officer),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Checkbox(
+                  value: isSelected,
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == true) {
+                        _selectedOfficers.add(officer.officerId);
+                      } else {
+                        _selectedOfficers.remove(officer.officerId);
+                      }
+                    });
+                  },
+                  fillColor: WidgetStateProperty.all(
+                    isSelected ? const Color(0xFF1E88E5) : Colors.transparent,
+                  ),
+                  side: const BorderSide(color: Color(0xFF37404F)),
+                ),
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: _getAvatarColor(officer.fullName),
+                  child: Text(
+                    _getInitials(officer.fullName),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        officer.fullName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        officer.officerNumber,
+                        style: const TextStyle(
+                          color: Color(0xFF78909C),
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-
-          // Table rows
-          ...officers
-              .map((officer) => _buildOfficerRow(officer, provider))
-              .toList(),
-
-          // Pagination
-          _buildPagination(provider),
-        ],
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              children: [
+                Text(
+                  _formatRank(officer.rank),
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+                ),
+                Text(
+                  officer.unitId,
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+                ),
+                Text(
+                  officer.phoneNumber ?? '—',
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: officer.isActive
+                        ? const Color(0xFF3CCB7F)
+                        : const Color(0xFF78909C),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  officer.isActive ? 'Active' : 'Inactive',
+                  style: TextStyle(
+                    color: officer.isActive
+                        ? const Color(0xFF3CCB7F)
+                        : const Color(0xFF78909C),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20),
+                  color: const Color(0xFF1E88E5),
+                  onPressed: () {
+                    provider.selectOfficer(officer);
+                    setState(() => _showAddModal = true);
+                  },
+                  tooltip: 'Edit',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  color: const Color(0xFF78909C),
+                  onPressed: () {
+                    // Show actions menu
+                  },
+                  tooltip: 'More actions',
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -657,19 +1025,19 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
             ),
 
             // Active Custody (placeholder - would need backend integration)
-            Expanded(
+            const Expanded(
               flex: 1,
               child: Row(
                 children: [
                   Icon(
                     Icons.local_police,
                     size: 16,
-                    color: const Color(0xFF78909C),
+                    color: Color(0xFF78909C),
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Text(
                     '—',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF78909C),
                       fontSize: 13,
                     ),
@@ -716,16 +1084,16 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
         border: Border(top: BorderSide(color: Color(0xFF37404F), width: 1)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Showing ${(provider.currentPage - 1) * provider.itemsPerPage + 1}-'
-            '${(provider.currentPage * provider.itemsPerPage).clamp(0, provider.totalItems)} '
-            'of ${provider.totalItems} officers',
-            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
-          ),
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isTablet = constraints.maxWidth < 900;
+          final summaryText =
+              'Showing ${(provider.currentPage - 1) * provider.itemsPerPage + 1}-'
+              '${(provider.currentPage * provider.itemsPerPage).clamp(0, provider.totalItems)} '
+              'of ${provider.totalItems} officers';
+
+          final controls = Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
@@ -775,8 +1143,34 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
                     : null,
               ),
             ],
-          ),
-        ],
+          );
+
+          if (isTablet) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  summaryText,
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                controls,
+              ],
+            );
+          }
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                summaryText,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
+              ),
+              controls,
+            ],
+          );
+        },
       ),
     );
   }
@@ -830,7 +1224,7 @@ class _OfficersRegistryScreenState extends State<OfficersRegistryScreen> {
 class _TableHeader extends StatelessWidget {
   final String text;
 
-  const _TableHeader(this.text, {Key? key}) : super(key: key);
+  const _TableHeader(this.text);
 
   @override
   Widget build(BuildContext context) {

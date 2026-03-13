@@ -84,7 +84,7 @@ class SideMenuWidget extends StatelessWidget {
                 final item = items[index];
                 final isSelected = index == selectedIndex;
                 return _buildNavItem(
-                    item, isSelected, () => onItemSelected(index));
+                    context, item, isSelected, () => onItemSelected(index));
               },
             ),
           ),
@@ -114,7 +114,8 @@ class SideMenuWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(NavItem item, bool isSelected, VoidCallback onTap) {
+  Widget _buildNavItem(
+      BuildContext context, NavItem item, bool isSelected, VoidCallback onTap) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       decoration: BoxDecoration(
@@ -141,7 +142,13 @@ class SideMenuWidget extends StatelessWidget {
           ),
         ),
         dense: true,
-        onTap: onTap,
+        onTap: () {
+          onTap();
+          final scaffoldState = Scaffold.maybeOf(context);
+          if (scaffoldState?.isDrawerOpen ?? false) {
+            Navigator.of(context).pop();
+          }
+        },
       ),
     );
   }

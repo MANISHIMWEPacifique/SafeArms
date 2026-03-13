@@ -95,7 +95,7 @@ const bootstrapIfNeeded = async () => {
         const countResult = await query(`
             SELECT COUNT(*) as count FROM ml_training_features
             WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
-        `);
+        `, [], { query_timeout: 120000 });
         const sampleCount = parseInt(countResult.rows[0].count);
 
         if (sampleCount >= 50) {
@@ -120,7 +120,7 @@ const bootstrapIfNeeded = async () => {
                 AND cr.issued_at IS NOT NULL
                 ORDER BY cr.issued_at DESC
                 LIMIT 200
-            `);
+            `, [], { query_timeout: 120000 });
 
             let extracted = 0;
             for (const record of custodyRecords.rows) {
@@ -151,7 +151,7 @@ const bootstrapIfNeeded = async () => {
 const bootstrapAnomalies = async () => {
     try {
         // Check if anomalies already exist
-        const anomalyCount = await query(`SELECT COUNT(*) as count FROM anomalies`);
+        const anomalyCount = await query(`SELECT COUNT(*) as count FROM anomalies`, [], { query_timeout: 120000 });
         const existingAnomalies = parseInt(anomalyCount.rows[0].count);
 
         if (existingAnomalies > 0) {
@@ -175,7 +175,7 @@ const bootstrapAnomalies = async () => {
             WHERE cr.issued_at IS NOT NULL
             ORDER BY cr.issued_at DESC
             LIMIT 100
-        `);
+        `, [], { query_timeout: 120000 });
 
         let detected = 0;
         for (const record of records.rows) {

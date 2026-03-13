@@ -20,12 +20,12 @@ class AnomalyReviewIndicatorWidget extends StatelessWidget {
   final VoidCallback? onViewDetails;
 
   const AnomalyReviewIndicatorWidget({
-    Key? key,
+    super.key,
     required this.anomalies,
     this.isLoading = false,
     this.isCompact = false,
     this.onViewDetails,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -248,9 +248,9 @@ class AnomalyReviewIndicatorWidget extends StatelessWidget {
                       color: const Color(0xFF78909C).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
+                      children: [
                         Icon(
                           Icons.policy_outlined,
                           color: Color(0xFF78909C),
@@ -356,10 +356,10 @@ class AnomalyReviewBadge extends StatelessWidget {
   final VoidCallback? onTap;
 
   const AnomalyReviewBadge({
-    Key? key,
+    super.key,
     required this.count,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -14,10 +14,10 @@ class StationAddOfficerModal extends StatefulWidget {
   final VoidCallback onSuccess;
 
   const StationAddOfficerModal({
-    Key? key,
+    super.key,
     required this.onClose,
     required this.onSuccess,
-  }) : super(key: key);
+  });
 
   @override
   State<StationAddOfficerModal> createState() => _StationAddOfficerModalState();
@@ -126,14 +126,18 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
               dayStyle: const TextStyle(color: Colors.white),
               yearStyle: const TextStyle(color: Colors.white),
               dayForegroundColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) return Colors.white;
-                if (states.contains(WidgetState.disabled))
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.white;
+                }
+                if (states.contains(WidgetState.disabled)) {
                   return const Color(0xFF546E7A);
+                }
                 return Colors.white;
               }),
               dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected))
+                if (states.contains(WidgetState.selected)) {
                   return const Color(0xFF1E88E5);
+                }
                 return Colors.transparent;
               }),
               todayForegroundColor:

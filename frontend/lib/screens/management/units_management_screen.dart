@@ -32,139 +32,252 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrow = screenWidth < 900;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isNarrow ? 16 : 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Units Management',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+          isNarrow
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Units Management',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Manage police units and stations across the country',
-                    style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                  ),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: () => _showAddUnitDialog(),
-                icon: const Icon(Icons.add),
-                label: const Text('Add Unit'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88E5),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Manage police units and stations',
+                      style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => _showAddUnitDialog(),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Unit'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E88E5),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Units Management',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Manage police units and stations across the country',
+                          style:
+                              TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => _showAddUnitDialog(),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Unit'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E88E5),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
           const SizedBox(height: 32),
 
           // Filters Row
-          Row(
-            children: [
-              // Search
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Search units...',
-                    hintStyle: const TextStyle(color: Color(0xFF78909C)),
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      color: Color(0xFF78909C),
+          isNarrow
+              ? Column(
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Search units...',
+                        hintStyle: const TextStyle(color: Color(0xFF78909C)),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Color(0xFF78909C),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF2A3040),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide:
+                              const BorderSide(color: Color(0xFF37404F)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide:
+                              const BorderSide(color: Color(0xFF37404F)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide:
+                              const BorderSide(color: Color(0xFF1E88E5)),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() {});
+                      },
                     ),
-                    filled: true,
-                    fillColor: const Color(0xFF2A3040),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF37404F)),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A3040),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF37404F)),
+                      ),
+                      child: DropdownButton<String>(
+                        value: _typeFilter,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF2A3040),
+                        underline: const SizedBox(),
+                        style: const TextStyle(color: Colors.white),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'all', child: Text('All Types')),
+                          DropdownMenuItem(
+                              value: 'station', child: Text('Police Station')),
+                          DropdownMenuItem(
+                              value: 'headquarters',
+                              child: Text('Headquarters')),
+                          DropdownMenuItem(
+                              value: 'training_school',
+                              child: Text('Training School')),
+                          DropdownMenuItem(
+                              value: 'special_unit',
+                              child: Text('Special Unit')),
+                          DropdownMenuItem(
+                              value: 'specialized', child: Text('Specialized')),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _typeFilter = value ?? 'all';
+                          });
+                        },
+                      ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF37404F)),
+                  ],
+                )
+              : Row(
+                  children: [
+                    // Search
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: _searchController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Search units...',
+                          hintStyle: const TextStyle(color: Color(0xFF78909C)),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Color(0xFF78909C),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFF2A3040),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                                const BorderSide(color: Color(0xFF37404F)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                                const BorderSide(color: Color(0xFF37404F)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                                const BorderSide(color: Color(0xFF1E88E5)),
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {});
+                        },
+                      ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF1E88E5)),
-                    ),
-                  ),
-                  onChanged: (value) {
-                    setState(() {});
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
+                    const SizedBox(width: 16),
 
-              // Type Filter
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A3040),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF37404F)),
-                  ),
-                  child: DropdownButton<String>(
-                    value: _typeFilter,
-                    isExpanded: true,
-                    dropdownColor: const Color(0xFF2A3040),
-                    underline: const SizedBox(),
-                    style: const TextStyle(color: Colors.white),
-                    items: const [
-                      DropdownMenuItem(value: 'all', child: Text('All Types')),
-                      DropdownMenuItem(
-                        value: 'station',
-                        child: Text('Police Station'),
+                    // Type Filter
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A3040),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF37404F)),
+                        ),
+                        child: DropdownButton<String>(
+                          value: _typeFilter,
+                          isExpanded: true,
+                          dropdownColor: const Color(0xFF2A3040),
+                          underline: const SizedBox(),
+                          style: const TextStyle(color: Colors.white),
+                          items: const [
+                            DropdownMenuItem(
+                                value: 'all', child: Text('All Types')),
+                            DropdownMenuItem(
+                                value: 'station',
+                                child: Text('Police Station')),
+                            DropdownMenuItem(
+                                value: 'headquarters',
+                                child: Text('Headquarters')),
+                            DropdownMenuItem(
+                                value: 'training_school',
+                                child: Text('Training School')),
+                            DropdownMenuItem(
+                                value: 'special_unit',
+                                child: Text('Special Unit')),
+                            DropdownMenuItem(
+                                value: 'specialized',
+                                child: Text('Specialized')),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _typeFilter = value ?? 'all';
+                            });
+                          },
+                        ),
                       ),
-                      DropdownMenuItem(
-                        value: 'headquarters',
-                        child: Text('Headquarters'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'training_school',
-                        child: Text('Training School'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'special_unit',
-                        child: Text('Special Unit'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'specialized',
-                        child: Text('Specialized'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _typeFilter = value ?? 'all';
-                      });
-                    },
-                  ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
           const SizedBox(height: 24),
 
           // Units List
@@ -236,114 +349,126 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                 );
               }
 
-              return Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A3040),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF37404F)),
-                ),
-                child: Column(
-                  children: [
-                    // Table Header
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: Color(0xFF37404F)),
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final tableWidth = isNarrow ? 800.0 : constraints.maxWidth;
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A3040),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF37404F)),
+                        ),
+                        child: Column(
+                          children: [
+                            // Table Header
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: Color(0xFF37404F)),
+                                ),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      'Unit Name',
+                                      style: TextStyle(
+                                        color: Color(0xFF78909C),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      'Type',
+                                      style: TextStyle(
+                                        color: Color(0xFF78909C),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      'Location',
+                                      style: TextStyle(
+                                        color: Color(0xFF78909C),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Text(
+                                      'Firearms',
+                                      style: TextStyle(
+                                        color: Color(0xFF78909C),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Text(
+                                      'Officers',
+                                      style: TextStyle(
+                                        color: Color(0xFF78909C),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Text(
+                                      'Status',
+                                      style: TextStyle(
+                                        color: Color(0xFF78909C),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 80),
+                                ],
+                              ),
+                            ),
+
+                            // Table Body
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: units.length,
+                              separatorBuilder: (_, __) => const Divider(
+                                color: Color(0xFF37404F),
+                                height: 1,
+                              ),
+                              itemBuilder: (context, index) {
+                                final unit = units[index];
+                                return _buildUnitRow(unit);
+                              },
+                            ),
+                          ],
                         ),
                       ),
-                      child: const Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Text(
-                              'Unit Name',
-                              style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              'Type',
-                              style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              'Location',
-                              style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 1,
-                            child: Text(
-                              'Firearms',
-                              style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 1,
-                            child: Text(
-                              'Officers',
-                              style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 1,
-                            child: Text(
-                              'Status',
-                              style: TextStyle(
-                                color: Color(0xFF78909C),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 80),
-                        ],
-                      ),
                     ),
-
-                    // Table Body
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: units.length,
-                      separatorBuilder: (_, __) => const Divider(
-                        color: Color(0xFF37404F),
-                        height: 1,
-                      ),
-                      itemBuilder: (context, index) {
-                        final unit = units[index];
-                        return _buildUnitRow(unit);
-                      },
-                    ),
-                  ],
-                ),
+                  );
+                },
               );
             },
           ),

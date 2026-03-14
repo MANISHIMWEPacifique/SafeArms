@@ -6,6 +6,9 @@ import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
 
+const double _desktopBreakpoint = 1024;
+const double _mobileBreakpoint = 768;
+
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
 
@@ -38,17 +41,23 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     return Consumer<UserProvider>(
       builder: (context, provider, child) {
         final stats = provider.stats;
+        final width = MediaQuery.of(context).size.width;
+        final isDesktop = width >= _desktopBreakpoint;
+        final isMobile = width < _mobileBreakpoint;
+        final pagePadding = isDesktop ? 32.0 : (isMobile ? 12.0 : 20.0);
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(pagePadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Column(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final headerIsDesktop =
+                      constraints.maxWidth >= _desktopBreakpoint;
+
+                  const titleBlock = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -66,8 +75,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             TextStyle(color: Color(0xFF78909C), fontSize: 14),
                       ),
                     ],
-                  ),
-                  ElevatedButton.icon(
+                  );
+
+                  final addButton = ElevatedButton.icon(
                     onPressed: () => _showAddUserDialog(context, provider),
                     icon: const Icon(Icons.person_add),
                     label: const Text('Add User'),
@@ -82,125 +92,172 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                  ),
-                ],
+                  );
+
+                  if (headerIsDesktop) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        titleBlock,
+                        addButton,
+                      ],
+                    );
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      titleBlock,
+                      const SizedBox(height: 12),
+                      SizedBox(width: double.infinity, child: addButton),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 32),
 
               // Stats Cards
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final cards = [
+                    _buildStatCard(
                       'Total Users',
                       '${stats['total'] ?? provider.users.length}',
                       Icons.people,
                       const Color(0xFF1E88E5),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
+                    _buildStatCard(
                       'Active Users',
                       '${stats['active'] ?? 0}',
                       Icons.check_circle,
                       const Color(0xFF3CCB7F),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
+                    _buildStatCard(
                       'Inactive Users',
                       '${stats['inactive'] ?? 0}',
                       Icons.cancel,
                       const Color(0xFFEF5350),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
+                    _buildStatCard(
                       'Admins',
                       '${stats['admins'] ?? 0}',
                       Icons.admin_panel_settings,
                       const Color(0xFFFFC857),
                     ),
-                  ),
-                ],
+                  ];
+
+                  if (constraints.maxWidth >= _desktopBreakpoint) {
+                    return Row(
+                      children: [
+                        for (int i = 0; i < cards.length; i++) ...[
+                          Expanded(child: cards[i]),
+                          if (i < cards.length - 1) const SizedBox(width: 16),
+                        ],
+                      ],
+                    );
+                  }
+
+                  final itemWidth = constraints.maxWidth < _mobileBreakpoint
+                      ? constraints.maxWidth
+                      : (constraints.maxWidth - 16) / 2;
+
+                  return Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: cards
+                        .map((card) => SizedBox(width: itemWidth, child: card))
+                        .toList(),
+                  );
+                },
               ),
               const SizedBox(height: 32),
 
               // Filters Row
-              Row(
-                children: [
-                  // Search
-                  Expanded(
-                    flex: 3,
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Search by name, email, or username...',
-                        hintStyle: const TextStyle(color: Color(0xFF78909C)),
-                        prefixIcon:
-                            const Icon(Icons.search, color: Color(0xFF78909C)),
-                        filled: true,
-                        fillColor: const Color(0xFF2A3040),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: Color(0xFF37404F)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: Color(0xFF37404F)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: Color(0xFF1E88E5)),
-                        ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isDesktopFilters =
+                      constraints.maxWidth >= _desktopBreakpoint;
+
+                  final searchField = TextField(
+                    controller: _searchController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Search by name, email, or username...',
+                      hintStyle: const TextStyle(color: Color(0xFF78909C)),
+                      prefixIcon:
+                          const Icon(Icons.search, color: Color(0xFF78909C)),
+                      filled: true,
+                      fillColor: const Color(0xFF2A3040),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF37404F)),
                       ),
-                      onChanged: (value) {
-                        provider.setSearchQuery(value);
-                      },
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF37404F)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF1E88E5)),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
+                    onChanged: (value) {
+                      provider.setSearchQuery(value);
+                    },
+                  );
 
-                  // Role Filter
-                  Expanded(
-                    child: _buildDropdownFilter(
-                      'Role',
-                      _selectedRole,
-                      [
-                        'all',
-                        'admin',
-                        'hq_firearm_commander',
-                        'station_commander',
-                        'investigator'
+                  final roleFilter = _buildDropdownFilter(
+                    'Role',
+                    _selectedRole,
+                    [
+                      'all',
+                      'admin',
+                      'hq_firearm_commander',
+                      'station_commander',
+                      'investigator'
+                    ],
+                    (value) {
+                      setState(() => _selectedRole = value!);
+                      provider.setRoleFilter(value!);
+                    },
+                  );
+
+                  final statusFilter = _buildDropdownFilter(
+                    'Status',
+                    _selectedStatus,
+                    ['all', 'active', 'inactive'],
+                    (value) {
+                      setState(() => _selectedStatus = value!);
+                      provider.setStatusFilter(value!);
+                    },
+                  );
+
+                  if (isDesktopFilters) {
+                    return Row(
+                      children: [
+                        Expanded(flex: 3, child: searchField),
+                        const SizedBox(width: 16),
+                        Expanded(child: roleFilter),
+                        const SizedBox(width: 16),
+                        Expanded(child: statusFilter),
                       ],
-                      (value) {
-                        setState(() => _selectedRole = value!);
-                        provider.setRoleFilter(value!);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
+                    );
+                  }
 
-                  // Status Filter
-                  Expanded(
-                    child: _buildDropdownFilter(
-                      'Status',
-                      _selectedStatus,
-                      ['all', 'active', 'inactive'],
-                      (value) {
-                        setState(() => _selectedStatus = value!);
-                        provider.setStatusFilter(value!);
-                      },
-                    ),
-                  ),
-                ],
+                  return Column(
+                    children: [
+                      searchField,
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: roleFilter),
+                          const SizedBox(width: 12),
+                          Expanded(child: statusFilter),
+                        ],
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
 
@@ -360,77 +417,201 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       );
     }
 
+    final width = MediaQuery.of(context).size.width;
+
+    if (width < _mobileBreakpoint) {
+      return Column(
+        children: users
+            .map((user) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildUserCard(user, provider),
+                ))
+            .toList(),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minWidth: width < 1150 ? 1000 : width),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A3040),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF37404F)),
+          ),
+          child: Column(
+            children: [
+              // Table Header
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFF37404F))),
+                ),
+                child: const Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'User',
+                        style: TextStyle(
+                          color: Color(0xFF78909C),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Role',
+                        style: TextStyle(
+                          color: Color(0xFF78909C),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Unit',
+                        style: TextStyle(
+                          color: Color(0xFF78909C),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Status',
+                        style: TextStyle(
+                          color: Color(0xFF78909C),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 120, child: Text('')),
+                  ],
+                ),
+              ),
+
+              // Table Body
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: users.length,
+                separatorBuilder: (_, __) => const Divider(
+                  color: Color(0xFF37404F),
+                  height: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final user = users[index];
+                  return _buildUserRow(user, provider);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserCard(UserModel user, UserProvider provider) {
     return Container(
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF37404F)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Table Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFF37404F))),
-            ),
-            child: const Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'User',
-                    style: TextStyle(
-                      color: Color(0xFF78909C),
-                      fontWeight: FontWeight.bold,
-                    ),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFF1E88E5),
+                child: Text(
+                  user.fullName.isNotEmpty
+                      ? user.fullName[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                Expanded(
-                  child: Text(
-                    'Role',
-                    style: TextStyle(
-                      color: Color(0xFF78909C),
-                      fontWeight: FontWeight.bold,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.fullName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    'Unit',
-                    style: TextStyle(
-                      color: Color(0xFF78909C),
-                      fontWeight: FontWeight.bold,
+                    Text(
+                      user.email,
+                      style: const TextStyle(
+                          color: Color(0xFF78909C), fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                  ],
                 ),
-                Expanded(
-                  child: Text(
-                    'Status',
-                    style: TextStyle(
-                      color: Color(0xFF78909C),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 120, child: Text('')),
-              ],
-            ),
+              ),
+            ],
           ),
-
-          // Table Body
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: users.length,
-            separatorBuilder: (_, __) => const Divider(
-              color: Color(0xFF37404F),
-              height: 1,
-            ),
-            itemBuilder: (context, index) {
-              final user = users[index];
-              return _buildUserRow(user, provider);
-            },
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildRoleBadge(user.role),
+              _buildStatusBadge(user.isActive),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1F2E),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF37404F)),
+                ),
+                child: Text(
+                  user.unitId ?? 'No Unit',
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.visibility,
+                    color: Color(0xFF78909C), size: 18),
+                onPressed: () => _showUserDetails(user),
+                tooltip: 'View',
+              ),
+              IconButton(
+                icon:
+                    const Icon(Icons.edit, color: Color(0xFF78909C), size: 18),
+                onPressed: () => _showEditUserDialog(user, provider),
+                tooltip: 'Edit',
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: Color(0xFFEF5350),
+                  size: 18,
+                ),
+                onPressed: () => _deleteUser(user, provider),
+                tooltip: 'Delete',
+              ),
+            ],
           ),
         ],
       ),
@@ -588,58 +769,61 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   Widget _buildPagination(UserProvider provider) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left, color: Color(0xFF78909C)),
-          onPressed: provider.currentPage > 1
-              ? () => provider.setPage(provider.currentPage - 1)
-              : null,
-        ),
-        ...List.generate(provider.totalPages, (index) {
-          final page = index + 1;
-          final isCurrentPage = page == provider.currentPage;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: InkWell(
-              onTap: () => provider.setPage(page),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: isCurrentPage
-                      ? const Color(0xFF1E88E5)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left, color: Color(0xFF78909C)),
+            onPressed: provider.currentPage > 1
+                ? () => provider.setPage(provider.currentPage - 1)
+                : null,
+          ),
+          ...List.generate(provider.totalPages, (index) {
+            final page = index + 1;
+            final isCurrentPage = page == provider.currentPage;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: InkWell(
+                onTap: () => provider.setPage(page),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
                     color: isCurrentPage
                         ? const Color(0xFF1E88E5)
-                        : const Color(0xFF37404F),
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    '$page',
-                    style: TextStyle(
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
                       color: isCurrentPage
-                          ? Colors.white
-                          : const Color(0xFF78909C),
-                      fontWeight: FontWeight.bold,
+                          ? const Color(0xFF1E88E5)
+                          : const Color(0xFF37404F),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$page',
+                      style: TextStyle(
+                        color: isCurrentPage
+                            ? Colors.white
+                            : const Color(0xFF78909C),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          );
-        }),
-        IconButton(
-          icon: const Icon(Icons.chevron_right, color: Color(0xFF78909C)),
-          onPressed: provider.currentPage < provider.totalPages
-              ? () => provider.setPage(provider.currentPage + 1)
-              : null,
-        ),
-      ],
+            );
+          }),
+          IconButton(
+            icon: const Icon(Icons.chevron_right, color: Color(0xFF78909C)),
+            onPressed: provider.currentPage < provider.totalPages
+                ? () => provider.setPage(provider.currentPage + 1)
+                : null,
+          ),
+        ],
+      ),
     );
   }
 

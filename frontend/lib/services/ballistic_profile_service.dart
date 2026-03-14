@@ -101,6 +101,9 @@ class BallisticProfileService {
     String? rifling,
     String? chamberFeed,
     String? breechFace,
+    String? firearmSerial,
+    String? testLocation,
+    String? forensicLab,
     String? generalSearch,
     String? incidentDate,
     int page = 1,
@@ -122,6 +125,15 @@ class BallisticProfileService {
       }
       if (breechFace != null && breechFace.isNotEmpty) {
         queryParams.add('breech_face=${Uri.encodeComponent(breechFace)}');
+      }
+      if (firearmSerial != null && firearmSerial.isNotEmpty) {
+        queryParams.add('firearm_serial=${Uri.encodeComponent(firearmSerial)}');
+      }
+      if (testLocation != null && testLocation.isNotEmpty) {
+        queryParams.add('test_location=${Uri.encodeComponent(testLocation)}');
+      }
+      if (forensicLab != null && forensicLab.isNotEmpty) {
+        queryParams.add('forensic_lab=${Uri.encodeComponent(forensicLab)}');
       }
       if (generalSearch != null && generalSearch.isNotEmpty) {
         queryParams.add('search=${Uri.encodeComponent(generalSearch)}');

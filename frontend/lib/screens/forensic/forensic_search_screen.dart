@@ -24,9 +24,9 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
   final TextEditingController _riflingController = TextEditingController();
   final TextEditingController _chamberFeedController = TextEditingController();
   final TextEditingController _breechFaceController = TextEditingController();
+  final TextEditingController _testLocationController = TextEditingController();
 
   // Investigation context
-  final TextEditingController _caseNumberController = TextEditingController();
   final TextEditingController _incidentDateController = TextEditingController();
 
   bool _isSearching = false;
@@ -58,7 +58,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
     _riflingController.dispose();
     _chamberFeedController.dispose();
     _breechFaceController.dispose();
-    _caseNumberController.dispose();
+    _testLocationController.dispose();
     _incidentDateController.dispose();
     super.dispose();
   }
@@ -70,6 +70,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         _riflingController.text.isNotEmpty ||
         _chamberFeedController.text.isNotEmpty ||
         _breechFaceController.text.isNotEmpty ||
+        _testLocationController.text.isNotEmpty ||
         _incidentDateController.text.isNotEmpty;
   }
 
@@ -81,6 +82,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       _riflingController.clear();
       _chamberFeedController.clear();
       _breechFaceController.clear();
+      _testLocationController.clear();
       _searchResults = [];
       _errorMessage = null;
       _selectedFirearmId = null;
@@ -92,7 +94,6 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       _totalResults = 0;
       _totalPages = 0;
       _incidentDateController.clear();
-      _caseNumberController.clear();
     });
   }
 
@@ -137,6 +138,9 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
             : null,
         breechFace: _breechFaceController.text.trim().isNotEmpty
             ? _breechFaceController.text.trim()
+            : null,
+        testLocation: _testLocationController.text.trim().isNotEmpty
+            ? _testLocationController.text.trim()
             : null,
         generalSearch: _generalSearchController.text.trim().isNotEmpty
             ? _generalSearchController.text.trim()
@@ -243,7 +247,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
               ),
               SizedBox(height: 4),
               Text(
-                'Narrow down firearms by evidence characteristics found at crime scene and trace custody chain',
+                'Enter crime-scene evidence traits, narrow candidate weapons, then reconstruct custody at incident time',
                 style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 15),
               ),
             ],
@@ -260,244 +264,151 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
 
   Widget _buildSearchPanel() {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFF232838),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFF2E3546)),
       ),
-      child: Column(
-        children: [
-          // Quick search bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _generalSearchController,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText:
-                          'Search by manufacturer, model, caliber, or any characteristic...',
-                      hintStyle: const TextStyle(
-                          color: Color(0xFF78909C), fontSize: 14),
-                      prefixIcon: const Icon(Icons.search,
-                          color: Color(0xFF64B5F6), size: 22),
-                      filled: true,
-                      fillColor: const Color(0xFF1A1F2E),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF2E3546)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF2E3546)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF1E88E5)),
-                      ),
-                    ),
-                    onSubmitted: (_) => _performSearch(),
+                const Text(
+                  'INVESTIGATION SEARCH CRITERIA',
+                  style: TextStyle(
+                    color: Color(0xFFCFD8DC),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
                   ),
                 ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _isSearching ? null : _performSearch,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E88E5),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: _isSearching
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Search',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14)),
+                const Spacer(),
+                TextButton(
+                  onPressed: _hasAnyFilter ? _clearAllFilters : null,
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFE57373),
                   ),
+                  child: const Text('Clear all filters'),
                 ),
               ],
             ),
-          ),
-
-          // Divider
-          const Divider(color: Color(0xFF2E3546), height: 1),
-
-          // Filter grid
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Section label
-                Row(
+            const SizedBox(height: 16),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final fieldWidth = (constraints.maxWidth - 12) / 2;
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
                   children: [
-                    const Text(
-                      'CRIME SCENE EVIDENCE FILTERS',
-                      style: TextStyle(
-                        color: Color(0xFFCFD8DC),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
+                    SizedBox(
+                      width: fieldWidth,
+                      child: _buildField(
+                        controller: _incidentDateController,
+                        label: 'Incident Date',
+                        isDateField: true,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child:
-                          Container(height: 1, color: const Color(0xFF2E3546)),
-                    ),
-                    if (_hasAnyFilter) ...[
-                      const SizedBox(width: 12),
-                      InkWell(
-                        onTap: _clearAllFilters,
-                        borderRadius: BorderRadius.circular(4),
-                        child: const Padding(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Text(
-                            'Clear all',
-                            style: TextStyle(
-                              color: Color(0xFFE57373),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Enter ballistic characteristics observed from recovered evidence (bullets, casings, cartridges). '
-                  'Even 1-2 filters will narrow down potential matching firearms.',
-                  style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
-                ),
-                const SizedBox(height: 16),
-
-                // Row 1: Caliber, Firing Pin, Rifling
-                Row(
-                  children: [
-                    Expanded(
+                    SizedBox(
+                      width: fieldWidth,
                       child: _buildField(
                         controller: _caliberController,
                         label: 'Caliber / Ammunition',
-                        hint: 'e.g. 9x19mm, 5.56x45mm, 12 gauge',
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    SizedBox(
+                      width: fieldWidth,
                       child: _buildField(
                         controller: _firingPinController,
                         label: 'Firing Pin Impression',
-                        hint: 'e.g. circular, oval, rectangular',
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    SizedBox(
+                      width: fieldWidth,
                       child: _buildField(
                         controller: _riflingController,
                         label: 'Rifling Characteristics',
-                        hint: 'e.g. 6 grooves, right-hand, 1:10',
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Row 2: Chamber/Feed, Breech Face (Ejector/Extractor)
-                Row(
-                  children: [
-                    Expanded(
+                    SizedBox(
+                      width: fieldWidth,
                       child: _buildField(
                         controller: _chamberFeedController,
                         label: 'Chamber / Feed Marks',
-                        hint: 'e.g. detachable magazine, open-slide',
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    SizedBox(
+                      width: fieldWidth,
                       child: _buildField(
                         controller: _breechFaceController,
                         label: 'Breech Face (Ejector / Extractor)',
-                        hint: 'e.g. rectangular, triangular, crescent',
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    const Expanded(child: SizedBox()),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Investigation context row
-                Row(
-                  children: [
-                    const Text(
-                      'INVESTIGATION CONTEXT',
-                      style: TextStyle(
-                        color: Color(0xFFCFD8DC),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child:
-                          Container(height: 1, color: const Color(0xFF2E3546)),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Search by date to find all firearms in custody',
-                      style: TextStyle(
-                        color: Color(0xFF78909C),
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
+                    SizedBox(
+                      width: fieldWidth,
                       child: _buildField(
-                        controller: _caseNumberController,
-                        label: 'Case / Reference No.',
-                        hint: 'e.g. INV-2026-0042',
+                        controller: _testLocationController,
+                        label: 'Recovery Location',
+                        prefixIcon: Icons.location_on_outlined,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildDateField(
-                        controller: _incidentDateController,
-                        label: 'Incident Date',
-                        hint: 'Select date',
+                    SizedBox(
+                      width: fieldWidth,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            ' ',
+                            style: TextStyle(
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: 44,
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _isSearching ? null : _performSearch,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E88E5),
+                                disabledBackgroundColor: const Color(0xFF1E88E5)
+                                    .withValues(alpha: 0.5),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: _isSearching
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Search',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    const Expanded(child: SizedBox()),
                   ],
-                ),
-              ],
+                );
+              },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -505,7 +416,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
   Widget _buildField({
     required TextEditingController controller,
     required String label,
-    required String hint,
+    bool isDateField = false,
+    IconData? prefixIcon,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,150 +434,133 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         const SizedBox(height: 6),
         SizedBox(
           height: 44,
-          child: TextField(
-            controller: controller,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle:
-                  const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-              filled: true,
-              fillColor: const Color(0xFF1A1F2E),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF546E7A)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF546E7A)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF1E88E5)),
-              ),
-            ),
-            onSubmitted: (_) => _performSearch(),
-          ),
+          child: isDateField
+              ? _buildDateTextField(controller: controller)
+              : TextField(
+                  controller: controller,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    prefixIcon: prefixIcon == null
+                        ? null
+                        : Icon(
+                            prefixIcon,
+                            color: const Color(0xFF78909C),
+                            size: 20,
+                          ),
+                    filled: true,
+                    fillColor: const Color(0xFF2A3040),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF37404F)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF37404F)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF1E88E5),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  onSubmitted: (_) => _performSearch(),
+                ),
         ),
       ],
     );
   }
 
-  Widget _buildDateField({
+  Widget _buildDateTextField({
     required TextEditingController controller,
-    required String label,
-    required String hint,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFFCFD8DC),
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
-          ),
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: Colors.white, fontSize: 14),
+      readOnly: true,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: const Color(0xFF2A3040),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        suffixIcon: const Icon(Icons.calendar_today,
+            color: Color(0xFF546E7A), size: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF37404F)),
         ),
-        const SizedBox(height: 6),
-        SizedBox(
-          height: 44,
-          child: TextField(
-            controller: controller,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            readOnly: true,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle:
-                  const TextStyle(color: Color(0xFF78909C), fontSize: 13),
-              filled: true,
-              fillColor: const Color(0xFF1A1F2E),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-              suffixIcon: const Icon(Icons.calendar_today,
-                  color: Color(0xFF546E7A), size: 16),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2E3546)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2E3546)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF1E88E5)),
-              ),
-            ),
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime(2000),
-                lastDate: DateTime.now(),
-                builder: (context, child) {
-                  return Theme(
-                    data: ThemeData.dark().copyWith(
-                      colorScheme: const ColorScheme.dark(
-                        primary: Color(0xFF1E88E5),
-                        onPrimary: Colors.white,
-                        surface: Color(0xFF252A3A),
-                        onSurface: Colors.white,
-                      ),
-                      dialogTheme: const DialogThemeData(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                      ),
-                      datePickerTheme: DatePickerThemeData(
-                        backgroundColor: const Color(0xFF252A3A),
-                        headerBackgroundColor: const Color(0xFF1A1F2E),
-                        headerForegroundColor: Colors.white,
-                        surfaceTintColor: Colors.transparent,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        dayStyle: const TextStyle(color: Colors.white),
-                        yearStyle: const TextStyle(color: Colors.white),
-                        dayForegroundColor:
-                            WidgetStateProperty.resolveWith((states) {
-                          if (states.contains(WidgetState.selected)) {
-                            return Colors.white;
-                          }
-                          if (states.contains(WidgetState.disabled)) {
-                            return const Color(0xFF546E7A);
-                          }
-                          return Colors.white;
-                        }),
-                        dayBackgroundColor:
-                            WidgetStateProperty.resolveWith((states) {
-                          if (states.contains(WidgetState.selected)) {
-                            return const Color(0xFF1E88E5);
-                          }
-                          return Colors.transparent;
-                        }),
-                        todayForegroundColor:
-                            WidgetStateProperty.all(const Color(0xFF42A5F5)),
-                        todayBackgroundColor:
-                            WidgetStateProperty.all(Colors.transparent),
-                        todayBorder: const BorderSide(color: Color(0xFF42A5F5)),
-                      ),
-                    ),
-                    child: child!,
-                  );
-                },
-              );
-              if (picked != null) {
-                controller.text =
-                    '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
-              }
-            },
-          ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF37404F)),
         ),
-      ],
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF1E88E5), width: 2),
+        ),
+      ),
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+          builder: (context, child) {
+            return Theme(
+              data: ThemeData.dark().copyWith(
+                colorScheme: const ColorScheme.dark(
+                  primary: Color(0xFF1E88E5),
+                  onPrimary: Colors.white,
+                  surface: Color(0xFF252A3A),
+                  onSurface: Colors.white,
+                ),
+                dialogTheme: const DialogThemeData(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                datePickerTheme: DatePickerThemeData(
+                  backgroundColor: const Color(0xFF252A3A),
+                  headerBackgroundColor: const Color(0xFF1A1F2E),
+                  headerForegroundColor: Colors.white,
+                  surfaceTintColor: Colors.transparent,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  dayStyle: const TextStyle(color: Colors.white),
+                  yearStyle: const TextStyle(color: Colors.white),
+                  dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Colors.white;
+                    }
+                    if (states.contains(WidgetState.disabled)) {
+                      return const Color(0xFF546E7A);
+                    }
+                    return Colors.white;
+                  }),
+                  dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return const Color(0xFF1E88E5);
+                    }
+                    return Colors.transparent;
+                  }),
+                  todayForegroundColor:
+                      WidgetStateProperty.all(const Color(0xFF42A5F5)),
+                  todayBackgroundColor:
+                      WidgetStateProperty.all(Colors.transparent),
+                  todayBorder: const BorderSide(color: Color(0xFF42A5F5)),
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (picked != null) {
+          controller.text =
+              '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+        }
+      },
     );
   }
 
@@ -842,24 +737,6 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                   ),
                 ),
                 const Spacer(),
-                if (_caseNumberController.text.isNotEmpty)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E88E5).withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'Case: ${_caseNumberController.text}',
-                      style: const TextStyle(
-                        color: Color(0xFF64B5F6),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                const SizedBox(width: 8),
                 const Text(
                   'Click a row to view custody chain',
                   style: TextStyle(

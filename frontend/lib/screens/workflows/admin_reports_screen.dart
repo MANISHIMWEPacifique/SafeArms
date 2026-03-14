@@ -327,145 +327,132 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Date Range Row
-          Row(
-            children: [
-              Expanded(
-                child: _buildFormDateField('Start Date', _dateFrom, (date) {
-                  setState(() => _dateFrom = date);
-                }),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildFormDateField('End Date', _dateTo, (date) {
-                  setState(() => _dateTo = date);
-                }),
-              ),
-            ],
+          // Linear form fields
+          _buildFormDateField('Start Date', _dateFrom, (date) {
+            setState(() => _dateFrom = date);
+          }),
+          const SizedBox(height: 16),
+          _buildFormDateField('End Date', _dateTo, (date) {
+            setState(() => _dateTo = date);
+          }),
+          const SizedBox(height: 16),
+          _buildFormTextField(
+            'Username (optional)',
+            _usernameController,
+            'Type username to filter',
+            Icons.person_outline,
           ),
           const SizedBox(height: 16),
-
-          // Username and Role Row
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _buildFormTextField(
-                  'Username (optional)',
-                  _usernameController,
-                  'Type username to filter',
-                  Icons.person_outline,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Role (optional)',
-                        style:
-                            TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: _roles.map((r) {
-                        final isSelected = _selectedRole == r['value'];
-                        return InkWell(
-                          onTap: () =>
-                              setState(() => _selectedRole = r['value']!),
-                          borderRadius: BorderRadius.circular(6),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFF1E88E5)
-                                      .withValues(alpha: 0.15)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFF1E88E5)
-                                    : const Color(0xFF37404F),
-                              ),
-                            ),
-                            child: Text(
-                              r['label']!,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? const Color(0xFF1E88E5)
-                                    : const Color(0xFFB0BEC5),
-                                fontSize: 12,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+              const Text('Role (optional)',
+                  style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: _roles.map((r) {
+                  final isSelected = _selectedRole == r['value'];
+                  return InkWell(
+                    onTap: () => setState(() => _selectedRole = r['value']!),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF1E88E5).withValues(alpha: 0.15)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFF1E88E5)
+                              : const Color(0xFF37404F),
+                        ),
+                      ),
+                      child: Text(
+                        r['label']!,
+                        style: TextStyle(
+                          color: isSelected
+                              ? const Color(0xFF1E88E5)
+                              : const Color(0xFFB0BEC5),
+                          fontSize: 12,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
                     ),
-                  ],
-                ),
+                  );
+                }).toList(),
               ),
             ],
           ),
           const SizedBox(height: 24),
 
           // Action Buttons
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ElevatedButton.icon(
-                onPressed: _isLoading ? null : _generateReport,
-                icon: const Icon(Icons.play_arrow, size: 18),
-                label: const Text('Generate Report'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88E5),
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _generateReport,
+                  icon: const Icon(Icons.play_arrow, size: 18),
+                  label: const Text('Generate Report'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E88E5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: _reportGenerated ? _exportPdf : null,
-                icon: const Icon(Icons.picture_as_pdf, size: 18),
-                label: const Text('Export PDF'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _reportGenerated
-                      ? const Color(0xFFB0BEC5)
-                      : const Color(0xFF546E7A),
-                  side: BorderSide(
-                      color: _reportGenerated
-                          ? const Color(0xFF37404F)
-                          : const Color(0xFF37404F).withValues(alpha: 0.5)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _reportGenerated ? _exportPdf : null,
+                  icon: const Icon(Icons.picture_as_pdf, size: 18),
+                  label: const Text('Export PDF'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _reportGenerated
+                        ? const Color(0xFFB0BEC5)
+                        : const Color(0xFF546E7A),
+                    side: BorderSide(
+                        color: _reportGenerated
+                            ? const Color(0xFF37404F)
+                            : const Color(0xFF37404F).withValues(alpha: 0.5)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ),
-              const Spacer(),
               if (_usernameController.text.isNotEmpty ||
                   _selectedRole.isNotEmpty ||
                   _dateFrom != null ||
-                  _dateTo != null)
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _usernameController.clear();
-                      _selectedRole = '';
-                      _dateFrom = null;
-                      _dateTo = null;
-                    });
-                  },
-                  icon: const Icon(Icons.clear, size: 16),
-                  label: const Text('Clear All'),
-                  style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF78909C)),
+                  _dateTo != null) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _usernameController.clear();
+                        _selectedRole = '';
+                        _dateFrom = null;
+                        _dateTo = null;
+                      });
+                    },
+                    icon: const Icon(Icons.clear, size: 16),
+                    label: const Text('Clear All'),
+                    style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF78909C)),
+                  ),
                 ),
+              ],
             ],
           ),
         ],

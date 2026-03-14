@@ -27,6 +27,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  bool _isBrandingExpanded = false;
 
   @override
   void dispose() {
@@ -123,58 +124,165 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 900;
+    final primaryWidth = (screenWidth * 0.88).clamp(280.0, screenWidth - 64.0);
+    final secondaryWidth = (screenWidth - primaryWidth).clamp(56.0, 120.0);
+    final brandingWidth = _isBrandingExpanded ? primaryWidth : secondaryWidth;
+    final formWidth = _isBrandingExpanded ? secondaryWidth : primaryWidth;
+
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
-      body: Row(
-        children: [
-          // Left Panel - Branding
-          Expanded(flex: 4, child: _buildBrandingPanel()),
-          // Right Panel - Change Password Form
-          Expanded(flex: 6, child: _buildChangePasswordForm()),
-        ],
-      ),
+      body: isMobile
+          ? SafeArea(
+              child: Row(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeInOut,
+                    width: brandingWidth,
+                    child: _isBrandingExpanded
+                        ? _buildBrandingPanel(
+                            compact: true,
+                            collapsible: true,
+                            onToggle: () => setState(
+                              () => _isBrandingExpanded = false,
+                            ),
+                          )
+                        : _buildBrandingPanel(
+                            compact: true,
+                            collapsible: true,
+                            collapsed: true,
+                            onToggle: () => setState(
+                              () => _isBrandingExpanded = true,
+                            ),
+                          ),
+                  ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeInOut,
+                    width: formWidth,
+                    child: _isBrandingExpanded
+                        ? _buildCollapsedFormTab(
+                            label: 'Password',
+                            onTap: () => setState(
+                              () => _isBrandingExpanded = false,
+                            ),
+                          )
+                        : _buildChangePasswordForm(compact: true),
+                  ),
+                ],
+              ),
+            )
+          : Row(
+              children: [
+                // Left Panel - Branding
+                Expanded(flex: 4, child: _buildBrandingPanel()),
+                // Right Panel - Change Password Form
+                Expanded(flex: 6, child: _buildChangePasswordForm()),
+              ],
+            ),
     );
   }
 
-  Widget _buildBrandingPanel() {
+  Widget _buildBrandingPanel({
+    bool compact = false,
+    bool collapsible = false,
+    bool collapsed = false,
+    VoidCallback? onToggle,
+  }) {
+    if (collapsed) {
+      return Container(
+        color: Colors.white,
+        child: Column(
+          children: [
+            if (collapsible)
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  onPressed: onToggle,
+                  icon: const Icon(Icons.chevron_right),
+                  color: const Color(0xFF1E88E5),
+                ),
+              ),
+            const Spacer(),
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.shield_outlined,
+                color: Color(0xFF1E88E5),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const RotatedBox(
+              quarterTurns: 3,
+              child: Text(
+                'SafeArms',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF1E88E5),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const Spacer(),
+          ],
+        ),
+      );
+    }
+
     return Container(
       color: Colors.white,
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(60.0),
+          padding: EdgeInsets.all(compact ? 28.0 : 60.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              if (collapsible)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    onPressed: onToggle,
+                    icon: const Icon(Icons.chevron_left),
+                    color: const Color(0xFF1E88E5),
+                  ),
+                ),
               // Logo
               Container(
-                width: 120,
-                height: 120,
+                width: compact ? 88 : 120,
+                height: compact ? 88 : 120,
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.shield_outlined,
-                  size: 64,
-                  color: Color(0xFF1E88E5),
+                  size: compact ? 44 : 64,
+                  color: const Color(0xFF1E88E5),
                 ),
               ),
-              const SizedBox(height: 32),
-              const Text(
+              SizedBox(height: compact ? 20 : 32),
+              Text(
                 'SafeArms',
                 style: TextStyle(
-                  fontSize: 42,
+                  fontSize: compact ? 32 : 42,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E88E5),
+                  color: const Color(0xFF1E88E5),
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: compact ? 10 : 16),
+              Text(
                 'Secure Your Account',
                 style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF78909C),
+                  fontSize: compact ? 14 : 16,
+                  color: const Color(0xFF78909C),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -185,12 +293,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 
-  Widget _buildChangePasswordForm() {
+  Widget _buildChangePasswordForm({bool compact = false}) {
     return Container(
       color: const Color(0xFF1A1F2E),
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(40.0),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 20.0 : 40.0,
+            vertical: compact ? 28.0 : 40.0,
+          ),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 460),
             child: Form(
@@ -199,10 +310,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Header
-                  const Text(
+                  Text(
                     'Change Your Password',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: compact ? 24 : 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -454,11 +565,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           color: met ? const Color(0xFF3CCB7F) : const Color(0xFF78909C),
         ),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 12,
-            color: met ? const Color(0xFF3CCB7F) : const Color(0xFF78909C),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              color: met ? const Color(0xFF3CCB7F) : const Color(0xFF78909C),
+            ),
           ),
         ),
       ],
@@ -489,6 +602,42 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               'Set New Password & Continue',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
+    );
+  }
+
+  Widget _buildCollapsedFormTab({
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      color: const Color(0xFF1A1F2E),
+      child: Column(
+        children: [
+          Align(
+            alignment: Alignment.topLeft,
+            child: IconButton(
+              onPressed: onTap,
+              icon: const Icon(Icons.chevron_left),
+              color: const Color(0xFF64B5F6),
+            ),
+          ),
+          const Spacer(),
+          const Icon(Icons.lock_reset, color: Color(0xFF64B5F6), size: 24),
+          const SizedBox(height: 14),
+          RotatedBox(
+            quarterTurns: 1,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFFB0BEC5),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const Spacer(),
+        ],
+      ),
     );
   }
 }

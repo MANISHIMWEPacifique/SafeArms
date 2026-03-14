@@ -9,6 +9,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../../providers/unit_provider.dart';
 
+const double _anomalyDesktopBreakpoint = 1024;
+const double _anomalyMobileBreakpoint = 768;
+
 class AnomalyDetectionScreen extends StatefulWidget {
   const AnomalyDetectionScreen({super.key});
 
@@ -67,30 +70,68 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final role = authProvider.currentUser?['role'];
     final isInvestigator = role == 'investigator';
-    final isCompact = MediaQuery.of(context).size.width < 1100;
+    final width = MediaQuery.of(context).size.width;
+    final isDesktop = width >= _anomalyDesktopBreakpoint;
+    final isMobile = width < _anomalyMobileBreakpoint;
+    final isCompact = !isDesktop;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
-      body: Column(
-        children: [
-          _buildHeader(role, isCompact: isCompact),
-          if (isInvestigator ||
-              role == 'hq_firearm_commander' ||
-              role == 'admin')
-            _buildViewTabs(isCompact: isCompact),
-          if (_activeView == 'monitoring') ...[
-            _buildStatsCards(),
-            _buildFilters(),
-            Expanded(child: _buildAnomalyList()),
-          ] else ...[
-            Expanded(child: _InvestigationSearchPanel()),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(role, isCompact: isCompact, isMobile: isMobile),
+            if (isInvestigator ||
+                role == 'hq_firearm_commander' ||
+                role == 'admin')
+              _buildViewTabs(isCompact: isCompact),
+            if (_activeView == 'monitoring') ...[
+              Expanded(child: _buildMonitoringContent()),
+            ] else ...[
+              Expanded(child: _InvestigationSearchPanel()),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeader(String? role, {bool isCompact = false}) {
+  Widget _buildMonitoringContent() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isTightHeight = constraints.maxHeight < 700;
+
+        if (!isTightHeight) {
+          return Column(
+            children: [
+              _buildStatsCards(),
+              _buildFilters(),
+              Expanded(child: _buildAnomalyList()),
+            ],
+          );
+        }
+
+        final compactListHeight =
+            (constraints.maxHeight * 0.55).clamp(240.0, 520.0);
+
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildStatsCards(),
+              _buildFilters(),
+              SizedBox(
+                height: compactListHeight,
+                child: _buildAnomalyList(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(String? role,
+      {bool isCompact = false, bool isMobile = false}) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isCompact ? 12 : 20,
@@ -132,7 +173,10 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
           OutlinedButton.icon(
             onPressed: _loadAnomalies,
             icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('Refresh', style: TextStyle(fontSize: 12)),
+            label: Text(
+              isMobile ? 'Reload' : 'Refresh',
+              style: const TextStyle(fontSize: 12),
+            ),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFFB0BEC5),
               side: const BorderSide(color: Color(0xFF37404F)),
@@ -260,7 +304,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                 horizontal: constraints.maxWidth < 900 ? 12 : 20,
                 vertical: 12,
               ),
-              child: constraints.maxWidth >= 1100
+              child: constraints.maxWidth >= _anomalyDesktopBreakpoint
                   ? Row(
                       children: [
                         for (int i = 0; i < cards.length; i++) ...[
@@ -274,7 +318,8 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                       runSpacing: 12,
                       children: cards
                           .map((card) => SizedBox(
-                                width: constraints.maxWidth >= 700
+                                width: constraints.maxWidth >=
+                                        _anomalyMobileBreakpoint
                                     ? (constraints.maxWidth - 12) / 2
                                     : constraints.maxWidth,
                                 child: card,
@@ -519,13 +564,18 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   Widget _buildAnomalyList() {
     return Consumer<AnomalyProvider>(
       builder: (context, provider, child) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isDesktopTable = screenWidth >= _anomalyDesktopBreakpoint;
+        final isMobileTable = screenWidth < _anomalyMobileBreakpoint;
+        final isTabletTable = !isDesktopTable && !isMobileTable;
+
         if (provider.isLoading) {
           return const Center(
               child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
         }
 
         if (provider.error != null) {
-          return Center(
+          return _buildScrollableState(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -550,7 +600,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
         }
 
         if (provider.anomalies.isEmpty) {
-          return Center(
+          return _buildScrollableState(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -574,24 +624,35 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                     color: Color(0xFF78909C),
                     fontSize: 14,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
           );
         }
 
-        // Show the last 4 anomalies to fill available space
-        final displayAnomalies = provider.anomalies.length > 4
-            ? provider.anomalies.sublist(provider.anomalies.length - 4)
-            : provider.anomalies;
+        final displayAnomalies = provider.anomalies;
+
+        final horizontalPadding =
+            MediaQuery.of(context).size.width < _anomalyMobileBreakpoint
+                ? 12.0
+                : 20.0;
 
         return Padding(
-          padding:
-              const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 8),
+          padding: EdgeInsets.only(
+            left: horizontalPadding,
+            right: horizontalPadding,
+            top: 16,
+            bottom: 8,
+          ),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final tableWidth =
-                  constraints.maxWidth < 800 ? 800.0 : constraints.maxWidth;
+              final minTableWidth = isDesktopTable
+                  ? 980.0
+                  : (isTabletTable ? 760.0 : constraints.maxWidth);
+              final tableWidth = constraints.maxWidth < minTableWidth
+                  ? minTableWidth
+                  : constraints.maxWidth;
               final listHeight = constraints.maxHeight - 52;
 
               return SingleChildScrollView(
@@ -622,12 +683,17 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                               _buildHeaderCell('Anomaly ID', flex: 2),
                               _buildHeaderCell('Type', flex: 2),
                               _buildHeaderCell('Severity', flex: 1),
-                              _buildHeaderCell('Score', flex: 1),
-                              _buildHeaderCell('Firearm', flex: 2),
-                              _buildHeaderCell('Officer', flex: 2),
-                              _buildHeaderCell('Unit', flex: 2),
+                              if (!isMobileTable)
+                                _buildHeaderCell('Score', flex: 1),
+                              if (isDesktopTable || isTabletTable)
+                                _buildHeaderCell('Firearm', flex: 2),
+                              if (isDesktopTable || isTabletTable)
+                                _buildHeaderCell('Officer', flex: 2),
+                              if (isDesktopTable)
+                                _buildHeaderCell('Unit', flex: 2),
                               _buildHeaderCell('Detected', flex: 2),
-                              _buildHeaderCell('Status', flex: 1),
+                              if (!isMobileTable)
+                                _buildHeaderCell('Status', flex: 1),
                               _buildHeaderCell('Actions', flex: 1),
                             ],
                           ),
@@ -638,7 +704,11 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                           child: ListView.builder(
                             itemCount: displayAnomalies.length,
                             itemBuilder: (context, index) => _buildAnomalyRow(
-                                displayAnomalies[index], index),
+                              displayAnomalies[index],
+                              index,
+                              isDesktopTable: isDesktopTable,
+                              isMobileTable: isMobileTable,
+                            ),
                           ),
                         ),
                       ],
@@ -647,6 +717,25 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                 ),
               );
             },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildScrollableState({required Widget child}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: child,
+              ),
+            ),
           ),
         );
       },
@@ -668,7 +757,12 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
     );
   }
 
-  Widget _buildAnomalyRow(Map<String, dynamic> anomaly, int index) {
+  Widget _buildAnomalyRow(
+    Map<String, dynamic> anomaly,
+    int index, {
+    required bool isDesktopTable,
+    required bool isMobileTable,
+  }) {
     final severity = anomaly['severity'] ?? 'medium';
     final status = anomaly['status'] ?? 'open';
     final score =
@@ -722,6 +816,8 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                 color: Color(0xFFB0BEC5),
                 fontSize: 13,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(
@@ -744,70 +840,80 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
               ),
             ),
           ),
-          Expanded(
-            flex: 1,
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF37404F),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: score,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: severityColor,
-                        borderRadius: BorderRadius.circular(3),
+          if (!isMobileTable)
+            Expanded(
+              flex: 1,
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF37404F),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: score,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: severityColor,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  (score * 100).toStringAsFixed(0),
-                  style: TextStyle(
-                    color: severityColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(width: 8),
+                  Text(
+                    (score * 100).toStringAsFixed(0),
+                    style: TextStyle(
+                      color: severityColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                ],
+              ),
+            ),
+          if (!isMobileTable)
+            Expanded(
+              flex: 2,
+              child: Text(
+                anomaly['serial_number'] ?? 'N/A',
+                style: const TextStyle(
+                  color: Color(0xFFB0BEC5),
+                  fontSize: 13,
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              anomaly['serial_number'] ?? 'N/A',
-              style: const TextStyle(
-                color: Color(0xFFB0BEC5),
-                fontSize: 13,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              anomaly['officer_name'] ?? 'N/A',
-              style: const TextStyle(
-                color: Color(0xFFB0BEC5),
-                fontSize: 13,
+          if (!isMobileTable)
+            Expanded(
+              flex: 2,
+              child: Text(
+                anomaly['officer_name'] ?? 'N/A',
+                style: const TextStyle(
+                  color: Color(0xFFB0BEC5),
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              anomaly['unit_name'] ?? 'N/A',
-              style: const TextStyle(
-                color: Color(0xFFB0BEC5),
-                fontSize: 13,
+          if (isDesktopTable)
+            Expanded(
+              flex: 2,
+              child: Text(
+                anomaly['unit_name'] ?? 'N/A',
+                style: const TextStyle(
+                  color: Color(0xFFB0BEC5),
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
           Expanded(
             flex: 2,
             child: Text(
@@ -818,10 +924,11 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
               ),
             ),
           ),
-          Expanded(
-            flex: 1,
-            child: _buildStatusBadge(status),
-          ),
+          if (!isMobileTable)
+            Expanded(
+              flex: 1,
+              child: _buildStatusBadge(status),
+            ),
           Expanded(
             flex: 1,
             child: IconButton(
@@ -875,6 +982,8 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

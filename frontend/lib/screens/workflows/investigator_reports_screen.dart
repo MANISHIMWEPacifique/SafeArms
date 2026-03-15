@@ -22,7 +22,6 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
 
   // Filter state
   final TextEditingController _serialController = TextEditingController();
-  final TextEditingController _caseRefController = TextEditingController();
   DateTime? _dateFrom;
   DateTime? _dateTo;
   String _selectedReportType = 'firearm_history';
@@ -42,7 +41,6 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
   @override
   void dispose() {
     _serialController.dispose();
-    _caseRefController.dispose();
     super.dispose();
   }
 
@@ -68,9 +66,6 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
       };
       if (_serialController.text.trim().isNotEmpty) {
         queryParams['serial_number'] = _serialController.text.trim();
-      }
-      if (_caseRefController.text.trim().isNotEmpty) {
-        queryParams['case_ref'] = _caseRefController.text.trim();
       }
       if (_dateFrom != null) {
         queryParams['start_date'] = _dateFrom!.toIso8601String();
@@ -112,9 +107,6 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
       final metadata = <String, String>{};
       if (_serialController.text.isNotEmpty) {
         metadata['Serial Number'] = _serialController.text;
-      }
-      if (_caseRefController.text.isNotEmpty) {
-        metadata['Case Reference'] = _caseRefController.text;
       }
       if (_dateFrom != null && _dateTo != null) {
         metadata['Date Range'] =
@@ -290,102 +282,83 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Form Fields Row
-          Row(
-            children: [
-              Expanded(
-                child: _buildFormTextField(
-                  'Firearm Serial Number',
-                  _serialController,
-                  'Enter serial number',
-                  Icons.search,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildFormTextField(
-                  'Case Reference (optional)',
-                  _caseRefController,
-                  'Enter case reference',
-                  Icons.folder_outlined,
-                ),
-              ),
-            ],
+          _buildFormTextField(
+            'Firearm Serial Number',
+            _serialController,
+            'Enter serial number',
+            Icons.search,
           ),
           const SizedBox(height: 16),
-
-          // Date Range Row
-          Row(
-            children: [
-              Expanded(
-                child: _buildFormDateField('Start Date', _dateFrom, (date) {
-                  setState(() => _dateFrom = date);
-                }),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildFormDateField('End Date', _dateTo, (date) {
-                  setState(() => _dateTo = date);
-                }),
-              ),
-            ],
-          ),
+          _buildFormDateField('Start Date', _dateFrom, (date) {
+            setState(() => _dateFrom = date);
+          }),
+          const SizedBox(height: 16),
+          _buildFormDateField('End Date', _dateTo, (date) {
+            setState(() => _dateTo = date);
+          }),
           const SizedBox(height: 24),
 
           // Action Buttons
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ElevatedButton.icon(
-                onPressed: _isLoading ? null : _generateReport,
-                icon: const Icon(Icons.play_arrow, size: 18),
-                label: const Text('Generate Report'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88E5),
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _generateReport,
+                  icon: const Icon(Icons.play_arrow, size: 18),
+                  label: const Text('Generate Report'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E88E5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: _reportGenerated ? _exportPdf : null,
-                icon: const Icon(Icons.picture_as_pdf, size: 18),
-                label: const Text('Export PDF'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _reportGenerated
-                      ? const Color(0xFFB0BEC5)
-                      : const Color(0xFF546E7A),
-                  side: BorderSide(
-                      color: _reportGenerated
-                          ? const Color(0xFF37404F)
-                          : const Color(0xFF37404F).withValues(alpha: 0.5)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _reportGenerated ? _exportPdf : null,
+                  icon: const Icon(Icons.picture_as_pdf, size: 18),
+                  label: const Text('Export PDF'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _reportGenerated
+                        ? const Color(0xFFB0BEC5)
+                        : const Color(0xFF546E7A),
+                    side: BorderSide(
+                        color: _reportGenerated
+                            ? const Color(0xFF37404F)
+                            : const Color(0xFF37404F).withValues(alpha: 0.5)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ),
-              const Spacer(),
               if (_serialController.text.isNotEmpty ||
-                  _caseRefController.text.isNotEmpty ||
                   _dateFrom != null ||
-                  _dateTo != null)
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _serialController.clear();
-                      _caseRefController.clear();
-                      _dateFrom = null;
-                      _dateTo = null;
-                    });
-                  },
-                  icon: const Icon(Icons.clear, size: 16),
-                  label: const Text('Clear All'),
-                  style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF78909C)),
+                  _dateTo != null) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _serialController.clear();
+                        _dateFrom = null;
+                        _dateTo = null;
+                      });
+                    },
+                    icon: const Icon(Icons.clear, size: 16),
+                    label: const Text('Clear All'),
+                    style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF78909C)),
+                  ),
                 ),
+              ],
             ],
           ),
         ],
@@ -604,8 +577,6 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
             _buildHeaderMeta('Generated', generatedAt),
             if (_serialController.text.isNotEmpty)
               _buildHeaderMeta('Serial Number', _serialController.text),
-            if (_caseRefController.text.isNotEmpty)
-              _buildHeaderMeta('Case Reference', _caseRefController.text),
             _buildHeaderMeta(
                 'Date Range',
                 _dateFrom != null && _dateTo != null

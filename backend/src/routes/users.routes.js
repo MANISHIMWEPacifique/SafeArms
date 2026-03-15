@@ -1,13 +1,63 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const { authenticate } = require('../middleware/authentication');
 const { requireAdmin, requireAdminOrHQ } = require('../middleware/authorization');
 const { logCreate, logUpdate, logDelete } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { isValidEmail, isValidPassword, isValidRole } = require('../utils/validators');
+const { isValidEmail, isValidPassword, isValidRole, isValidEntityId } = require('../utils/validators');
 const { BCRYPT_ROUNDS } = require('../config/auth');
+
+const userUploadsDir = path.join(__dirname, '../../uploads/users');
+if (!fs.existsSync(userUploadsDir)) {
+    fs.mkdirSync(userUploadsDir, { recursive: true });
+}
+
+const profileUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, userUploadsDir),
+        filename: (req, file, cb) => {
+            const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+            const safeId = String(req.params.id || 'user').replace(/[^a-zA-Z0-9-_]/g, '');
+            cb(null, `${safeId}-${Date.now()}${ext}`);
+        }
+    }),
+    limits: {
+        fileSize: 3 * 1024 * 1024
+    },
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname || '').toLowerCase();
+        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+        if (!allowedExtensions.includes(ext)) {
+            return cb(new Error('Invalid file type. Allowed formats: JPG, PNG, WEBP'));
+        }
+        cb(null, true);
+    }
+});
+
+const handleProfileUpload = (req, res, next) => {
+    profileUpload.single('photo')(req, res, (err) => {
+        if (!err) {
+            return next();
+        }
+
+        if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({
+                success: false,
+                message: 'Profile photo is too large. Maximum allowed size is 3MB'
+            });
+        }
+
+        return res.status(400).json({
+            success: false,
+            message: err.message || 'Invalid upload request'
+        });
+    });
+};
 
 router.get('/', authenticate, requireAdminOrHQ, asyncHandler(async (req, res) => {
     const { role, unit_id, is_active, limit, offset } = req.query;
@@ -63,6 +113,22 @@ router.post('/', authenticate, requireAdmin, logCreate, asyncHandler(async (req,
         return res.status(400).json({ success: false, message: 'Invalid role' });
     }
 
+    if (role === 'station_commander') {
+        if (!unit_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Unit assignment is required for station_commander role'
+            });
+        }
+
+        if (!isValidEntityId(unit_id, 'UNIT')) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid unit_id format. Expected format: UNIT-XXX'
+            });
+        }
+    }
+
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const user = await User.create({ ...req.body, password_hash, created_by: req.user.user_id });
 
@@ -76,6 +142,40 @@ router.put('/:id', authenticate, requireAdminOrHQ, logUpdate, asyncHandler(async
     const user = await User.update(req.params.id, safeUpdates);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     res.json({ success: true, data: user });
+}));
+
+router.post('/:id/photo', authenticate, requireAdmin, logUpdate, handleProfileUpload, asyncHandler(async (req, res) => {
+    const existingUser = await User.findById(req.params.id);
+
+    if (!existingUser) {
+        if (req.file) {
+            fs.unlink(req.file.path, () => { });
+        }
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Photo file is required' });
+    }
+
+    const relativePhotoPath = `/uploads/users/${req.file.filename}`;
+    const updatedUser = await User.update(req.params.id, {
+        profile_photo_url: relativePhotoPath
+    });
+
+    if (existingUser.profile_photo_url) {
+        const oldFileName = path.basename(existingUser.profile_photo_url);
+        const oldFilePath = path.join(userUploadsDir, oldFileName);
+        if (fs.existsSync(oldFilePath)) {
+            fs.unlink(oldFilePath, () => { });
+        }
+    }
+
+    res.json({
+        success: true,
+        message: 'Profile photo uploaded successfully',
+        data: updatedUser
+    });
 }));
 
 // Admin reset user password - sets new password and forces password change on next login
@@ -104,8 +204,20 @@ router.post('/:id/reset-password', authenticate, requireAdmin, logUpdate, asyncH
 }));
 
 router.delete('/:id', authenticate, requireAdmin, logDelete, asyncHandler(async (req, res) => {
+    const existingUser = await User.findById(req.params.id);
+    if (!existingUser) return res.status(404).json({ success: false, message: 'User not found' });
+
     const user = await User.delete(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (existingUser.profile_photo_url) {
+        const oldFileName = path.basename(existingUser.profile_photo_url);
+        const oldFilePath = path.join(userUploadsDir, oldFileName);
+        if (fs.existsSync(oldFilePath)) {
+            fs.unlink(oldFilePath, () => { });
+        }
+    }
+
     res.json({ success: true, message: 'User deleted successfully' });
 }));
 

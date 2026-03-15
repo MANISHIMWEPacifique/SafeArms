@@ -17,6 +17,7 @@ import '../workflows/reports_screen.dart';
 import '../workflows/hq_reports_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 import '../../widgets/responsive_dashboard_scaffold.dart';
+import '../../widgets/user_avatar.dart';
 
 class HqCommanderDashboard extends StatefulWidget {
   const HqCommanderDashboard({super.key});
@@ -192,17 +193,10 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
             color: const Color(0xFF2A3040),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: const Color(0xFF1E88E5),
-                  child: Text(
-                    (user?['full_name'] ?? 'C')[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
+                UserAvatar(
+                  fullName: user?['full_name']?.toString(),
+                  photoUrl: user?['profile_photo_url']?.toString(),
+                  radius: 24,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

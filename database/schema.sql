@@ -59,6 +59,7 @@ CREATE TABLE units (
     contact_phone VARCHAR(20),
     contact_email VARCHAR(100),
     commander_name VARCHAR(200),
+    commander_user_id VARCHAR(20),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -72,6 +73,7 @@ CREATE TABLE users (
     full_name VARCHAR(200) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     phone_number VARCHAR(20),
+    profile_photo_url TEXT,
     role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'hq_firearm_commander', 'station_commander', 'investigator')),
     unit_id VARCHAR(20) REFERENCES units(unit_id),
     otp_code VARCHAR(6),
@@ -86,6 +88,12 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE units
+ADD CONSTRAINT fk_units_commander_user
+FOREIGN KEY (commander_user_id)
+REFERENCES users(user_id)
+ON DELETE SET NULL;
 
 -- Officers Table
 CREATE TABLE officers (
@@ -120,6 +128,7 @@ CREATE TABLE firearms (
     registration_level VARCHAR(10) NOT NULL CHECK (registration_level IN ('hq', 'unit')),
     registered_by VARCHAR(20) NOT NULL REFERENCES users(user_id),
     assigned_unit_id VARCHAR(20) REFERENCES units(unit_id),
+    image_url TEXT,
     current_status VARCHAR(50) DEFAULT 'available' CHECK (current_status IN ('unassigned', 'available', 'in_custody', 'maintenance', 'lost', 'stolen', 'destroyed')),
     notes TEXT,
     is_active BOOLEAN DEFAULT true,
@@ -393,6 +402,7 @@ CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_unit ON users(unit_id);
+CREATE INDEX idx_units_commander_user ON units(commander_user_id);
 
 -- Officers
 CREATE INDEX idx_officers_number ON officers(officer_number);

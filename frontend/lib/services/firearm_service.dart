@@ -1,6 +1,9 @@
 // Firearm Service - API calls for firearms management
 // SafeArms Frontend
 
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/firearm_model.dart';
 import 'api_client.dart';
@@ -122,6 +125,65 @@ class FirearmService {
       return FirearmModel.fromJson(data['data']);
     } catch (e) {
       throw Exception('Error updating firearm: $e');
+    }
+  }
+
+  // Upload or replace firearm image
+  Future<FirearmModel> uploadFirearmImage({
+    required String firearmId,
+    required Uint8List imageBytes,
+    required String fileName,
+  }) async {
+    try {
+      final token = await ApiClient.getToken();
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiConfig.firearms}/$firearmId/image'),
+      );
+
+      request.headers['Accept'] = 'application/json';
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      request.files.add(http.MultipartFile.fromBytes(
+        'image',
+        imageBytes,
+        filename: fileName,
+      ));
+
+      final streamedResponse = await request.send().timeout(ApiConfig.timeout);
+      final responseBody = await streamedResponse.stream.bytesToString();
+      final decoded = jsonDecode(responseBody) as Map<String, dynamic>;
+
+      if (streamedResponse.statusCode >= 200 &&
+          streamedResponse.statusCode < 300) {
+        return FirearmModel.fromJson(decoded['data']);
+      }
+
+      final message = decoded['message']?.toString() ?? 'Image upload failed';
+      throw ApiException(
+          statusCode: streamedResponse.statusCode, message: message);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw Exception('Error uploading firearm image: $e');
+    }
+  }
+
+  Future<void> deleteFirearm(String firearmId) async {
+    try {
+      await ApiClient.post(
+        '${ApiConfig.firearms}/$firearmId/delete',
+        body: const {},
+      );
+    } on ApiException catch (e) {
+      if (e.statusCode == 409) {
+        throw Exception(e.message);
+      }
+      throw Exception('Error deleting firearm: ${e.message}');
+    } catch (e) {
+      throw Exception('Error deleting firearm: $e');
     }
   }
 

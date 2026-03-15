@@ -1,8 +1,11 @@
 // Register Firearm Modal - HQ Level with Ballistic Profile
 // SafeArms Frontend
 
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
+import '../config/api_config.dart';
 import '../providers/firearm_provider.dart';
 import '../providers/unit_provider.dart';
 import '../models/firearm_model.dart';
@@ -61,6 +64,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
   DateTime _acquisitionDate = DateTime.now();
   DateTime _testDate = DateTime.now();
   bool _isLoading = false;
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageName;
 
   @override
   void initState() {
@@ -200,6 +205,29 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
       );
     }
 
+    if (success && _selectedImageBytes != null && _selectedImageName != null) {
+      String? firearmId = widget.firearm?.firearmId;
+
+      if (firearmId == null) {
+        try {
+          firearmId = firearmProvider.firearms
+              .firstWhere(
+                  (f) => f.serialNumber == _serialNumberController.text.trim())
+              .firearmId;
+        } catch (_) {
+          firearmId = null;
+        }
+      }
+
+      if (firearmId != null) {
+        success = await firearmProvider.uploadFirearmImage(
+          firearmId: firearmId,
+          imageBytes: _selectedImageBytes!,
+          fileName: _selectedImageName!,
+        );
+      }
+    }
+
     if (!mounted) return;
     setState(() => _isLoading = false);
 
@@ -223,6 +251,124 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
         ),
       );
     }
+  }
+
+  Future<void> _pickImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    final file = result.files.first;
+    if (file.bytes == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedImageBytes = file.bytes;
+      _selectedImageName = file.name;
+    });
+  }
+
+  String? _resolveImageUrl(String? rawImageUrl) {
+    if (rawImageUrl == null || rawImageUrl.isEmpty) {
+      return null;
+    }
+    if (rawImageUrl.startsWith('http://') ||
+        rawImageUrl.startsWith('https://')) {
+      return rawImageUrl;
+    }
+    return '${ApiConfig.baseUrl}$rawImageUrl';
+  }
+
+  Widget _buildImageSection() {
+    final existingImageUrl = _resolveImageUrl(widget.firearm?.imageUrl);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Firearm Image',
+          style: TextStyle(
+            color: Color(0xFFB0BEC5),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Optional. This image will be used as the firearm indicator in place of the icon.',
+          style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A3040),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF37404F)),
+              ),
+              child: ClipOval(
+                child: _selectedImageBytes != null
+                    ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
+                    : existingImageUrl != null
+                        ? Image.network(
+                            existingImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.hardware,
+                              color: Color(0xFF42A5F5),
+                              size: 34,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.hardware,
+                            color: Color(0xFF42A5F5),
+                            size: 34,
+                          ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _pickImage,
+                    icon: const Icon(Icons.upload_file, size: 16),
+                    label: Text(widget.firearm == null
+                        ? 'Upload Image'
+                        : 'Replace Image'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E88E5),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _selectedImageName ??
+                        (widget.firearm?.imageUrl != null
+                            ? 'Current image is set'
+                            : 'No image selected'),
+                    style:
+                        const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   @override
@@ -424,6 +570,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
                 ),
               ],
             ),
+            const SizedBox(height: 24),
+            _buildImageSection(),
             const SizedBox(height: 24),
             const Text(
               'Acquisition Details',
@@ -713,9 +861,9 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
                         strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.check_circle, size: 18),
-            label: const Text(
-              'Register Firearm',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            label: Text(
+              widget.firearm != null ? 'Edit Firearm' : 'Register Firearm',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E88E5),

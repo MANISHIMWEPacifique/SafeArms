@@ -16,7 +16,7 @@ const login = async (username, password) => {
         // Find user by username
         const result = await query(
             `SELECT user_id, username, password_hash, full_name, email, 
-              phone_number, role, unit_id,is_active, must_change_password 
+                            phone_number, role, unit_id, profile_photo_url, is_active, must_change_password 
        FROM users 
        WHERE username = $1`,
             [username]
@@ -75,6 +75,7 @@ const login = async (username, password) => {
             email: user.email,
             role: user.role,
             unit_id: user.unit_id,
+            profile_photo_url: user.profile_photo_url,
             must_change_password: user.must_change_password,
             otp_sent: true,
             otp_expires_in: 300 // seconds
@@ -96,6 +97,7 @@ const verifyOTP = async (username, otp) => {
         // Get user with OTP info
         const result = await query(
             `SELECT user_id, username, full_name, email, role, unit_id,
+                            profile_photo_url,
               otp_code, otp_expires_at, otp_verified, unit_confirmed,
               must_change_password
        FROM users 
@@ -152,6 +154,7 @@ const verifyOTP = async (username, otp) => {
                 email: user.email,
                 role: user.role,
                 unit_id: user.unit_id,
+                profile_photo_url: user.profile_photo_url,
                 unit_confirmed: user.unit_confirmed,
                 must_change_password: user.must_change_password,
                 requires_unit_confirmation: user.role === 'station_commander' && !user.unit_confirmed

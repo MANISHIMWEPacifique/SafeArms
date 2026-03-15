@@ -14,6 +14,7 @@ import '../settings/system_settings_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 import '../management/units_management_screen.dart';
 import '../workflows/admin_reports_screen.dart';
+import '../../widgets/user_avatar.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -131,17 +132,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
             color: const Color(0xFF2A3040),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: const Color(0xFF1E88E5),
-                  child: Text(
-                    (user?['full_name'] ?? 'A')[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
+                UserAvatar(
+                  fullName: user?['full_name']?.toString(),
+                  photoUrl: user?['profile_photo_url']?.toString(),
+                  radius: 24,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -410,20 +404,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
         final padding = isTablet ? 16.0 : 32.0;
         return SingleChildScrollView(
           padding: EdgeInsets.all(padding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Stats Cards Row
-          _buildStatsCards(),
-          const SizedBox(height: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Stats Cards Row
+              _buildStatsCards(),
+              const SizedBox(height: 32),
 
-          // Charts Section
-          _buildChartsSection(),
-          const SizedBox(height: 32),
+              // Charts Section
+              _buildChartsSection(),
+              const SizedBox(height: 32),
 
-          // Anomaly Table
-          _buildAnomalyTable(),
-        ],
+              // Anomaly Table
+              _buildAnomalyTable(),
+            ],
           ),
         );
       },
@@ -593,85 +587,97 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildChartsSection() {
-    final dashProvider = Provider.of<DashboardProvider>(context, listen: false);
-    final recentActivities = dashProvider.recentActivities;
+    return Consumer<DashboardProvider>(
+      builder: (context, dashProvider, _) {
+        final recentActivities = dashProvider.recentActivities;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A3040),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.history, color: Color(0xFF1E88E5), size: 22),
-              const SizedBox(width: 10),
-              const Text(
-                'Recent Actions',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${recentActivities.length} entries',
-                  style: const TextStyle(
-                    color: Color(0xFF1E88E5),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+              Row(
+                children: [
+                  const Icon(Icons.history, color: Color(0xFF1E88E5), size: 22),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Recent Actions',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E88E5).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${recentActivities.length} entries',
+                      style: const TextStyle(
+                        color: Color(0xFF1E88E5),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 20),
+              if (dashProvider.isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
+                  ),
+                )
+              else if (recentActivities.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.inbox_outlined,
+                            color: Color(0xFF78909C), size: 40),
+                        SizedBox(height: 12),
+                        Text(
+                          'No recent activity',
+                          style:
+                              TextStyle(color: Color(0xFF78909C), fontSize: 15),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...recentActivities.take(6).map((activity) {
+                  final actionType = activity['action_type']?.toString() ?? '';
+                  final tableName = activity['table_name']?.toString() ?? '';
+                  final actorName =
+                      activity['actor_name']?.toString() ?? 'System';
+                  final createdAt = activity['created_at']?.toString();
+                  final timeAgo = _formatTimeAgo(createdAt);
+                  final actionInfo = _getActionInfo(actionType, tableName);
+                  return _buildRecentAction(
+                    actionInfo['icon'] as IconData,
+                    actionInfo['color'] as Color,
+                    actionInfo['title'] as String,
+                    actorName,
+                    timeAgo,
+                  );
+                }),
             ],
           ),
-          const SizedBox(height: 20),
-          if (recentActivities.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.inbox_outlined,
-                        color: Color(0xFF78909C), size: 40),
-                    SizedBox(height: 12),
-                    Text(
-                      'No recent activity',
-                      style: TextStyle(color: Color(0xFF78909C), fontSize: 15),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            ...recentActivities.take(6).map((activity) {
-              final actionType = activity['action_type']?.toString() ?? '';
-              final tableName = activity['table_name']?.toString() ?? '';
-              final actorName = activity['actor_name']?.toString() ?? 'System';
-              final createdAt = activity['created_at']?.toString();
-              final timeAgo = _formatTimeAgo(createdAt);
-              final actionInfo = _getActionInfo(actionType, tableName);
-              return _buildRecentAction(
-                actionInfo['icon'] as IconData,
-                actionInfo['color'] as Color,
-                actionInfo['title'] as String,
-                actorName,
-                timeAgo,
-              );
-            }),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -887,7 +893,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       children: [
                         // Header Row
                         TableRow(
-                          decoration: const BoxDecoration(color: Color(0xFF252A3A)),
+                          decoration:
+                              const BoxDecoration(color: Color(0xFF252A3A)),
                           children: [
                             _buildTableHeader('ANOMALY ID'),
                             _buildTableHeader('TYPE'),
@@ -903,7 +910,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           return _buildAnomalyRow(
                             _formatAnomalyId(anomaly['anomaly_id']),
                             _formatAnomalyType(anomaly['anomaly_type']),
-                            (anomaly['severity'] ?? 'low').toString().toUpperCase(),
+                            (anomaly['severity'] ?? 'low')
+                                .toString()
+                                .toUpperCase(),
                             _getSeverityColor(anomaly['severity']),
                             anomaly['unit_name'] ?? 'Unknown Unit',
                             _formatDetectedDate(anomaly['detected_at']),

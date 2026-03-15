@@ -2,7 +2,9 @@
 // Manage police units and stations
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/user_model.dart';
 import '../../providers/unit_provider.dart';
+import '../../services/user_service.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
 
 class UnitsManagementScreen extends StatefulWidget {
@@ -14,6 +16,11 @@ class UnitsManagementScreen extends StatefulWidget {
 
 class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final UserService _userService = UserService();
+  static const Set<String> _eligibleCommanderRoles = {
+    'station_commander',
+    'hq_firearm_commander',
+  };
   String _typeFilter = 'all';
 
   @override
@@ -765,7 +772,45 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     }
   }
 
-  void _showAddUnitDialog() {
+  Future<List<UserModel>> _loadEligibleCommanders() async {
+    final users = await _userService.getAllUsers();
+    final commanders = users
+        .where((user) =>
+            user.isActive && _eligibleCommanderRoles.contains(user.role))
+        .toList();
+    commanders.sort((a, b) => a.fullName.compareTo(b.fullName));
+    return commanders;
+  }
+
+  String _formatRoleLabel(String role) {
+    switch (role) {
+      case 'station_commander':
+        return 'Station Commander';
+      case 'hq_firearm_commander':
+        return 'HQ Firearm Commander';
+      default:
+        return role;
+    }
+  }
+
+  Future<void> _showAddUnitDialog() async {
+    List<UserModel> commanderOptions = [];
+    try {
+      commanderOptions = await _loadEligibleCommanders();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Could not load commanders. You can still save without one.'),
+            backgroundColor: Color(0xFFFFC857),
+          ),
+        );
+      }
+    }
+
+    if (!mounted) return;
+
     final nameController = TextEditingController();
     final locationController = TextEditingController();
     final provinceController = TextEditingController();
@@ -773,6 +818,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     final phoneController = TextEditingController();
     final emailController = TextEditingController();
     String selectedType = 'station';
+    String? selectedCommanderUserId;
     bool isActive = true;
 
     showDialog(
@@ -927,6 +973,20 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                           ),
                           const SizedBox(height: 24),
 
+                          // Commander Assignment Section
+                          _buildFormSectionHeader('Commander Assignment'),
+                          const SizedBox(height: 16),
+                          _buildCommanderDropdown(
+                            commanders: commanderOptions,
+                            selectedCommanderUserId: selectedCommanderUserId,
+                            onChanged: (value) {
+                              setDialogState(() {
+                                selectedCommanderUserId = value;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 24),
+
                           // Active Status Toggle
                           _buildStatusToggle(isActive, (value) {
                             setDialogState(() => isActive = value);
@@ -960,6 +1020,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                                   'district': districtController.text,
                                   'contact_phone': phoneController.text,
                                   'contact_email': emailController.text,
+                                  'commander_user_id': selectedCommanderUserId,
                                   'is_active': isActive,
                                 });
                                 scaffoldMessenger.showSnackBar(
@@ -1004,7 +1065,24 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     );
   }
 
-  void _showEditUnitDialog(dynamic unit) {
+  Future<void> _showEditUnitDialog(dynamic unit) async {
+    List<UserModel> commanderOptions = [];
+    try {
+      commanderOptions = await _loadEligibleCommanders();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Could not load commanders. You can still keep current assignment.'),
+            backgroundColor: Color(0xFFFFC857),
+          ),
+        );
+      }
+    }
+
+    if (!mounted) return;
+
     final nameController = TextEditingController(text: unit['unit_name'] ?? '');
     final locationController =
         TextEditingController(text: unit['location'] ?? '');
@@ -1017,6 +1095,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     final emailController =
         TextEditingController(text: unit['contact_email'] ?? '');
     String selectedType = _sanitizeUnitType(unit['unit_type']);
+    String? selectedCommanderUserId = unit['commander_user_id'] as String?;
     bool isActive = unit['is_active'] ?? true;
 
     showDialog(
@@ -1172,6 +1251,22 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                           ),
                           const SizedBox(height: 24),
 
+                          // Commander Assignment Section
+                          _buildFormSectionHeader('Commander Assignment'),
+                          const SizedBox(height: 16),
+                          _buildCommanderDropdown(
+                            commanders: commanderOptions,
+                            selectedCommanderUserId: selectedCommanderUserId,
+                            onChanged: (value) {
+                              setDialogState(() {
+                                selectedCommanderUserId = value;
+                              });
+                            },
+                            legacyCommanderName:
+                                unit['commander_name']?.toString(),
+                          ),
+                          const SizedBox(height: 24),
+
                           // Active Status Toggle
                           _buildStatusToggle(isActive, (value) {
                             setDialogState(() => isActive = value);
@@ -1207,6 +1302,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                                     'district': districtController.text,
                                     'contact_phone': phoneController.text,
                                     'contact_email': emailController.text,
+                                    'commander_user_id':
+                                        selectedCommanderUserId,
                                     'is_active': isActive,
                                   },
                                 );
@@ -1364,6 +1461,69 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Color(0xFFE85C5C))),
       ),
+    );
+  }
+
+  Widget _buildCommanderDropdown({
+    required List<UserModel> commanders,
+    required String? selectedCommanderUserId,
+    required void Function(String?) onChanged,
+    String? legacyCommanderName,
+  }) {
+    final hasLegacyValue = selectedCommanderUserId == null &&
+        legacyCommanderName != null &&
+        legacyCommanderName.trim().isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String?>(
+          initialValue: selectedCommanderUserId,
+          items: [
+            const DropdownMenuItem<String?>(
+              value: null,
+              child: Text('Not assigned'),
+            ),
+            ...commanders.map((commander) => DropdownMenuItem<String?>(
+                  value: commander.userId,
+                  child: Text(
+                    '${commander.fullName} (${_formatRoleLabel(commander.role)})',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                )),
+          ],
+          onChanged: onChanged,
+          dropdownColor: const Color(0xFF2A3040),
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            labelText: 'Unit Commander (Optional)',
+            labelStyle: const TextStyle(color: Colors.white54),
+            prefixIcon:
+                const Icon(Icons.person_pin, color: Colors.white54, size: 20),
+            filled: true,
+            fillColor: const Color(0xFF1A1F2E),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF37404F))),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF37404F))),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF1E88E5))),
+          ),
+        ),
+        if (hasLegacyValue) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Current legacy commander: $legacyCommanderName',
+            style: const TextStyle(
+              color: Color(0xFF78909C),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ],
     );
   }
 

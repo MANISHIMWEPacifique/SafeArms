@@ -9,6 +9,7 @@ class UserModel {
   final String? phoneNumber;
   final String role;
   final String? unitId;
+  final String? profilePhotoUrl;
   final bool isActive;
   final bool mustChangePassword;
   final bool unitConfirmed;
@@ -25,6 +26,7 @@ class UserModel {
     this.phoneNumber,
     required this.role,
     this.unitId,
+    this.profilePhotoUrl,
     required this.isActive,
     required this.mustChangePassword,
     required this.unitConfirmed,
@@ -43,6 +45,7 @@ class UserModel {
       phoneNumber: json['phone_number'],
       role: json['role'] ?? '',
       unitId: json['unit_id'],
+      profilePhotoUrl: json['profile_photo_url'],
       isActive: json['is_active'] ?? true,
       mustChangePassword: json['must_change_password'] ?? false,
       unitConfirmed: json['unit_confirmed'] ?? false,
@@ -68,6 +71,7 @@ class UserModel {
       'phone_number': phoneNumber,
       'role': role,
       'unit_id': unitId,
+      'profile_photo_url': profilePhotoUrl,
       'is_active': isActive,
       'must_change_password': mustChangePassword,
       'unit_confirmed': unitConfirmed,

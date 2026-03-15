@@ -2,6 +2,7 @@
 // Display firearm information in card format
 
 import 'package:flutter/material.dart';
+import '../config/api_config.dart';
 import '../utils/helpers.dart';
 
 class FirearmCardWidget extends StatelessWidget {
@@ -34,10 +35,10 @@ class FirearmCardWidget extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Helpers.firearmTypeIcon(firearm['firearm_type']?.toString()),
-                  color: const Color(0xFF1E88E5),
-                  size: 24,
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: _buildFirearmIndicator(),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -99,6 +100,41 @@ class FirearmCardWidget extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  String? _resolveImageUrl(String? rawImageUrl) {
+    if (rawImageUrl == null || rawImageUrl.isEmpty) {
+      return null;
+    }
+    if (rawImageUrl.startsWith('http://') ||
+        rawImageUrl.startsWith('https://')) {
+      return rawImageUrl;
+    }
+    return '${ApiConfig.baseUrl}$rawImageUrl';
+  }
+
+  Widget _buildFirearmIndicator() {
+    final imageUrl = _resolveImageUrl(firearm['image_url']?.toString());
+    if (imageUrl == null) {
+      return Icon(
+        Helpers.firearmTypeIcon(firearm['firearm_type']?.toString()),
+        color: const Color(0xFF1E88E5),
+        size: 24,
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Icon(
+          Helpers.firearmTypeIcon(firearm['firearm_type']?.toString()),
+          color: const Color(0xFF1E88E5),
+          size: 24,
+        ),
       ),
     );
   }

@@ -15,6 +15,7 @@ class FirearmModel {
   final String registeredBy;
   final String? assignedUnitId;
   final String? assignedUnitName; // User-friendly unit name from backend join
+  final String? imageUrl;
   final String currentStatus;
   final bool isActive;
   final DateTime? createdAt;
@@ -34,6 +35,7 @@ class FirearmModel {
     required this.registeredBy,
     this.assignedUnitId,
     this.assignedUnitName,
+    this.imageUrl,
     required this.currentStatus,
     required this.isActive,
     this.createdAt,
@@ -69,6 +71,7 @@ class FirearmModel {
       registeredBy: json['registered_by'] ?? '',
       assignedUnitId: json['assigned_unit_id'],
       assignedUnitName: json['unit_name'], // From backend LEFT JOIN
+      imageUrl: json['image_url'],
       currentStatus: json['current_status'] ?? 'available',
       isActive: json['is_active'] ?? true,
       createdAt: json['created_at'] != null
@@ -94,6 +97,7 @@ class FirearmModel {
       'registration_level': registrationLevel,
       'registered_by': registeredBy,
       'assigned_unit_id': assignedUnitId,
+      'image_url': imageUrl,
       'current_status': currentStatus,
       'is_active': isActive,
     };

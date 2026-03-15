@@ -2,6 +2,7 @@
 // SafeArms Frontend
 
 import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
 
@@ -125,6 +126,8 @@ class UserProvider with ChangeNotifier {
     required String phoneNumber,
     required String role,
     String? unitId,
+    Uint8List? profilePhotoBytes,
+    String? profilePhotoFileName,
     bool isActive = true,
     bool mustChangePassword = true,
   }) async {
@@ -133,7 +136,7 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final newUser = await _userService.createUser(
+      var newUser = await _userService.createUser(
         username: username,
         password: password,
         fullName: fullName,
@@ -144,6 +147,14 @@ class UserProvider with ChangeNotifier {
         isActive: isActive,
         mustChangePassword: mustChangePassword,
       );
+
+      if (profilePhotoBytes != null && profilePhotoFileName != null) {
+        newUser = await _userService.uploadUserPhoto(
+          userId: newUser.userId,
+          imageBytes: profilePhotoBytes,
+          fileName: profilePhotoFileName,
+        );
+      }
 
       _users.add(newUser);
       _totalItems = _users.length;
@@ -170,6 +181,8 @@ class UserProvider with ChangeNotifier {
     String? phoneNumber,
     String? role,
     String? unitId,
+    Uint8List? profilePhotoBytes,
+    String? profilePhotoFileName,
     bool? isActive,
     bool? mustChangePassword,
   }) async {
@@ -178,7 +191,7 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final updatedUser = await _userService.updateUser(
+      var updatedUser = await _userService.updateUser(
         userId: userId,
         fullName: fullName,
         email: email,
@@ -188,6 +201,14 @@ class UserProvider with ChangeNotifier {
         isActive: isActive,
         mustChangePassword: mustChangePassword,
       );
+
+      if (profilePhotoBytes != null && profilePhotoFileName != null) {
+        updatedUser = await _userService.uploadUserPhoto(
+          userId: userId,
+          imageBytes: profilePhotoBytes,
+          fileName: profilePhotoFileName,
+        );
+      }
 
       final index = _users.indexWhere((u) => u.userId == userId);
       if (index != -1) {

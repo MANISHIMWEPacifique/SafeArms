@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import 'unit_confirmation_screen.dart';
 import '../dashboards/admin_dashboard.dart';
 import '../dashboards/hq_commander_dashboard.dart';
 import '../dashboards/station_commander_dashboard.dart';
@@ -95,25 +94,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   void _navigateToAppropriateScreen(AuthProvider authProvider) {
     Widget screen;
 
-    if (authProvider.requiresUnitConfirmation) {
-      screen = const UnitConfirmationScreen();
-    } else {
-      switch (authProvider.userRole) {
-        case 'admin':
-          screen = const AdminDashboard();
-          break;
-        case 'hq_firearm_commander':
-          screen = const HqCommanderDashboard();
-          break;
-        case 'station_commander':
-          screen = const StationCommanderDashboard();
-          break;
-        case 'investigator':
-          screen = const InvestigatorDashboard();
-          break;
-        default:
-          screen = const AdminDashboard();
-      }
+    switch (authProvider.userRole) {
+      case 'admin':
+        screen = const AdminDashboard();
+        break;
+      case 'hq_firearm_commander':
+        screen = const HqCommanderDashboard();
+        break;
+      case 'station_commander':
+        screen = const StationCommanderDashboard();
+        break;
+      case 'investigator':
+        screen = const InvestigatorDashboard();
+        break;
+      default:
+        screen = const AdminDashboard();
     }
 
     Navigator.of(context).pushAndRemoveUntil(

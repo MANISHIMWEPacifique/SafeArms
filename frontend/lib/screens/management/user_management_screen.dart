@@ -1,13 +1,22 @@
 // User Management Screen
 // Admin interface for managing system users
+import 'dart:typed_data';
+import 'dart:math' as math;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
+import '../../widgets/user_avatar.dart';
 
 const double _desktopBreakpoint = 1024;
 const double _mobileBreakpoint = 768;
+const int _userColumnFlex = 3;
+const int _roleColumnFlex = 2;
+const int _unitColumnFlex = 2;
+const int _statusColumnFlex = 2;
+const int _actionsColumnFlex = 2;
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -262,7 +271,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               const SizedBox(height: 24),
 
               // Users Table
-              _buildUsersTable(provider),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return _buildUsersTable(provider, constraints.maxWidth);
+                },
+              ),
 
               // Pagination
               if (provider.totalPages > 1) ...[
@@ -348,7 +361,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }).join(' ');
   }
 
-  Widget _buildUsersTable(UserProvider provider) {
+  Widget _buildUsersTable(UserProvider provider, double availableWidth) {
     if (provider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
@@ -417,9 +430,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       );
     }
 
-    final width = MediaQuery.of(context).size.width;
-
-    if (width < _mobileBreakpoint) {
+    if (availableWidth < _mobileBreakpoint) {
       return Column(
         children: users
             .map((user) => Padding(
@@ -432,8 +443,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minWidth: width < 1150 ? 1000 : width),
+      child: SizedBox(
+        width: math.max(availableWidth, 980.0),
         child: Container(
           decoration: BoxDecoration(
             color: const Color(0xFF2A3040),
@@ -452,60 +463,86 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 child: const Row(
                   children: [
                     Expanded(
-                      flex: 2,
-                      child: Text(
-                        'User',
-                        style: TextStyle(
-                          color: Color(0xFF78909C),
-                          fontWeight: FontWeight.bold,
+                      flex: _userColumnFlex,
+                      child: Center(
+                        child: Text(
+                          'User',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF78909C),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                     Expanded(
-                      child: Text(
-                        'Role',
-                        style: TextStyle(
-                          color: Color(0xFF78909C),
-                          fontWeight: FontWeight.bold,
+                      flex: _roleColumnFlex,
+                      child: Center(
+                        child: Text(
+                          'Role',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF78909C),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                     Expanded(
-                      child: Text(
-                        'Unit',
-                        style: TextStyle(
-                          color: Color(0xFF78909C),
-                          fontWeight: FontWeight.bold,
+                      flex: _unitColumnFlex,
+                      child: Center(
+                        child: Text(
+                          'Unit',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF78909C),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                     Expanded(
-                      child: Text(
-                        'Status',
-                        style: TextStyle(
-                          color: Color(0xFF78909C),
-                          fontWeight: FontWeight.bold,
+                      flex: _statusColumnFlex,
+                      child: Center(
+                        child: Text(
+                          'Status',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF78909C),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                    SizedBox(width: 120, child: Text('')),
+                    Expanded(
+                      flex: _actionsColumnFlex,
+                      child: Center(
+                        child: Text(
+                          'Actions',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF78909C),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
 
               // Table Body
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: users.length,
-                separatorBuilder: (_, __) => const Divider(
-                  color: Color(0xFF37404F),
-                  height: 1,
-                ),
-                itemBuilder: (context, index) {
-                  final user = users[index];
-                  return _buildUserRow(user, provider);
-                },
+              Column(
+                children: [
+                  for (int index = 0; index < users.length; index++) ...[
+                    _buildUserRow(users[index], provider),
+                    if (index < users.length - 1)
+                      const Divider(
+                        color: Color(0xFF37404F),
+                        height: 1,
+                      ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -527,18 +564,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: const Color(0xFF1E88E5),
-                child: Text(
-                  user.fullName.isNotEmpty
-                      ? user.fullName[0].toUpperCase()
-                      : '?',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              UserAvatar(
+                fullName: user.fullName,
+                photoUrl: user.profilePhotoUrl,
+                radius: 20,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -624,21 +653,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       child: Row(
         children: [
           Expanded(
-            flex: 2,
+            flex: _userColumnFlex,
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: const Color(0xFF1E88E5),
-                  child: Text(
-                    user.fullName.isNotEmpty
-                        ? user.fullName[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                UserAvatar(
+                  fullName: user.fullName,
+                  photoUrl: user.profilePhotoUrl,
+                  radius: 22,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -666,44 +687,54 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ),
           ),
           Expanded(
+            flex: _roleColumnFlex,
             child: _buildRoleBadge(user.role),
           ),
           Expanded(
-            child: Text(
-              user.unitId ?? 'No Unit',
-              style: const TextStyle(color: Color(0xFFB0BEC5)),
+            flex: _unitColumnFlex,
+            child: Center(
+              child: Text(
+                user.unitId ?? 'No Unit',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFB0BEC5)),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
           Expanded(
+            flex: _statusColumnFlex,
             child: _buildStatusBadge(user.isActive),
           ),
-          SizedBox(
-            width: 120,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.visibility,
-                      color: Color(0xFF78909C), size: 18),
-                  onPressed: () => _showUserDetails(user),
-                  tooltip: 'View',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit,
-                      color: Color(0xFF78909C), size: 18),
-                  onPressed: () => _showEditUserDialog(user, provider),
-                  tooltip: 'Edit',
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: Color(0xFFEF5350),
-                    size: 18,
+          Expanded(
+            flex: _actionsColumnFlex,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.visibility,
+                        color: Color(0xFF78909C), size: 18),
+                    onPressed: () => _showUserDetails(user),
+                    tooltip: 'View',
                   ),
-                  onPressed: () => _deleteUser(user, provider),
-                  tooltip: 'Delete',
-                ),
-              ],
+                  IconButton(
+                    icon: const Icon(Icons.edit,
+                        color: Color(0xFF78909C), size: 18),
+                    onPressed: () => _showEditUserDialog(user, provider),
+                    tooltip: 'Edit',
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Color(0xFFEF5350),
+                      size: 18,
+                    ),
+                    onPressed: () => _deleteUser(user, provider),
+                    tooltip: 'Delete',
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -910,20 +941,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         Center(
                           child: Column(
                             children: [
-                              CircleAvatar(
-                                radius: 48,
-                                backgroundColor: const Color(0xFF1E88E5)
-                                    .withValues(alpha: 0.2),
-                                child: Text(
-                                  user.fullName.isNotEmpty
-                                      ? user.fullName[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                    color: Color(0xFF1E88E5),
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                              UserAvatar(
+                                fullName: user.fullName,
+                                photoUrl: user.profilePhotoUrl,
+                                radius: 54,
                               ),
                               const SizedBox(height: 12),
                               Text(
@@ -1092,6 +1113,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     String? unitId;
     bool isActive = true;
     bool obscurePassword = true;
+    bool isSubmitting = false;
+    Uint8List? selectedProfilePhotoBytes;
+    String? selectedProfilePhotoFileName;
 
     showDialog(
       context: context,
@@ -1175,6 +1199,27 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            _buildProfilePhotoUploadSection(
+                              fullName: fullName,
+                              selectedPhotoBytes: selectedProfilePhotoBytes,
+                              selectedPhotoFileName:
+                                  selectedProfilePhotoFileName,
+                              onPickPhoto: isSubmitting
+                                  ? null
+                                  : () async {
+                                      await _pickProfilePhoto(
+                                        onSelected: (bytes, fileName) {
+                                          setDialogState(() {
+                                            selectedProfilePhotoBytes = bytes;
+                                            selectedProfilePhotoFileName =
+                                                fileName;
+                                          });
+                                        },
+                                      );
+                                    },
+                            ),
+                            const SizedBox(height: 24),
+
                             // Account Credentials Section
                             const Text(
                               'Account Credentials',
@@ -1432,44 +1477,57 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () async {
-                                  final formState = formKey.currentState;
-                                  if (formState == null) return;
-                                  if (!formState.validate()) return;
-                                  formState.save();
-                                  final success = await provider.createUser(
-                                    username: username,
-                                    password: password,
-                                    fullName: fullName,
-                                    email: email,
-                                    phoneNumber: phoneNumber,
-                                    role: role,
-                                    unitId: unitId,
-                                    isActive: isActive,
-                                  );
-                                  if (!dialogContext.mounted) return;
-                                  final scaffoldMessenger =
-                                      ScaffoldMessenger.of(dialogContext);
-                                  if (success) {
-                                    Navigator.pop(dialogContext);
-                                    scaffoldMessenger.showSnackBar(
-                                      const SnackBar(
-                                        content:
-                                            Text('User created successfully'),
-                                        backgroundColor: Color(0xFF3CCB7F),
-                                      ),
-                                    );
-                                  } else {
-                                    scaffoldMessenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text(provider.errorMessage ??
-                                            'Failed to create user'),
-                                        backgroundColor:
-                                            const Color(0xFFEF5350),
-                                      ),
-                                    );
-                                  }
-                                },
+                                onPressed: isSubmitting
+                                    ? null
+                                    : () async {
+                                        final formState = formKey.currentState;
+                                        if (formState == null) return;
+                                        if (!formState.validate()) return;
+                                        formState.save();
+                                        setDialogState(
+                                            () => isSubmitting = true);
+                                        final success =
+                                            await provider.createUser(
+                                          username: username,
+                                          password: password,
+                                          fullName: fullName,
+                                          email: email,
+                                          phoneNumber: phoneNumber,
+                                          role: role,
+                                          unitId: unitId,
+                                          profilePhotoBytes:
+                                              selectedProfilePhotoBytes,
+                                          profilePhotoFileName:
+                                              selectedProfilePhotoFileName,
+                                          isActive: isActive,
+                                        );
+                                        if (!dialogContext.mounted) return;
+                                        setDialogState(
+                                            () => isSubmitting = false);
+                                        final scaffoldMessenger =
+                                            ScaffoldMessenger.of(dialogContext);
+                                        if (success) {
+                                          Navigator.pop(dialogContext);
+                                          scaffoldMessenger.showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'User created successfully'),
+                                              backgroundColor:
+                                                  Color(0xFF3CCB7F),
+                                            ),
+                                          );
+                                        } else {
+                                          scaffoldMessenger.showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  provider.errorMessage ??
+                                                      'Failed to create user'),
+                                              backgroundColor:
+                                                  const Color(0xFFEF5350),
+                                            ),
+                                          );
+                                        }
+                                      },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF1E88E5),
                                   foregroundColor: Colors.white,
@@ -1573,6 +1631,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     bool isActive = user.isActive;
     bool showResetPassword = false;
     bool obscureNewPassword = true;
+    bool isSubmitting = false;
+    Uint8List? selectedProfilePhotoBytes;
+    String? selectedProfilePhotoFileName;
     final resetPasswordController = TextEditingController();
 
     showDialog(
@@ -1657,6 +1718,28 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            _buildProfilePhotoUploadSection(
+                              fullName: fullName,
+                              currentPhotoUrl: user.profilePhotoUrl,
+                              selectedPhotoBytes: selectedProfilePhotoBytes,
+                              selectedPhotoFileName:
+                                  selectedProfilePhotoFileName,
+                              onPickPhoto: isSubmitting
+                                  ? null
+                                  : () async {
+                                      await _pickProfilePhoto(
+                                        onSelected: (bytes, fileName) {
+                                          setDialogState(() {
+                                            selectedProfilePhotoBytes = bytes;
+                                            selectedProfilePhotoFileName =
+                                                fileName;
+                                          });
+                                        },
+                                      );
+                                    },
+                            ),
+                            const SizedBox(height: 24),
+
                             // Account Information Section
                             const Text(
                               'Account Information',
@@ -2021,72 +2104,89 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () async {
-                                  final formState = formKey.currentState;
-                                  if (formState == null) return;
-                                  if (!formState.validate()) return;
-                                  formState.save();
+                                onPressed: isSubmitting
+                                    ? null
+                                    : () async {
+                                        final formState = formKey.currentState;
+                                        if (formState == null) return;
+                                        if (!formState.validate()) return;
+                                        formState.save();
+                                        setDialogState(
+                                            () => isSubmitting = true);
 
-                                  // Handle password reset if provided
-                                  if (showResetPassword &&
-                                      resetPasswordController.text.isNotEmpty) {
-                                    final resetSuccess =
-                                        await provider.resetUserPassword(
-                                      user.userId,
-                                      resetPasswordController.text,
-                                    );
-                                    if (!dialogContext.mounted) return;
-                                    final scaffoldMessenger =
-                                        ScaffoldMessenger.of(dialogContext);
-                                    if (!resetSuccess) {
-                                      scaffoldMessenger.showSnackBar(
-                                        SnackBar(
-                                          content: Text(provider.errorMessage ??
-                                              'Failed to reset password'),
-                                          backgroundColor:
-                                              const Color(0xFFEF5350),
-                                        ),
-                                      );
-                                      return;
-                                    }
-                                  }
+                                        // Handle password reset if provided
+                                        if (showResetPassword &&
+                                            resetPasswordController
+                                                .text.isNotEmpty) {
+                                          final resetSuccess =
+                                              await provider.resetUserPassword(
+                                            user.userId,
+                                            resetPasswordController.text,
+                                          );
+                                          if (!dialogContext.mounted) return;
+                                          final scaffoldMessenger =
+                                              ScaffoldMessenger.of(
+                                                  dialogContext);
+                                          if (!resetSuccess) {
+                                            scaffoldMessenger.showSnackBar(
+                                              SnackBar(
+                                                content: Text(provider
+                                                        .errorMessage ??
+                                                    'Failed to reset password'),
+                                                backgroundColor:
+                                                    const Color(0xFFEF5350),
+                                              ),
+                                            );
+                                            setDialogState(
+                                                () => isSubmitting = false);
+                                            return;
+                                          }
+                                        }
 
-                                  final success = await provider.updateUser(
-                                    userId: user.userId,
-                                    fullName: fullName,
-                                    email: email,
-                                    phoneNumber: phoneNumber,
-                                    role: role,
-                                    unitId: unitId,
-                                    isActive: isActive,
-                                  );
-                                  if (!dialogContext.mounted) return;
-                                  final scaffoldMessenger =
-                                      ScaffoldMessenger.of(dialogContext);
-                                  if (success) {
-                                    Navigator.pop(dialogContext);
-                                    scaffoldMessenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text(showResetPassword &&
-                                                resetPasswordController
-                                                    .text.isNotEmpty
-                                            ? 'User updated & password reset successfully'
-                                            : 'User updated successfully'),
-                                        backgroundColor:
-                                            const Color(0xFF3CCB7F),
-                                      ),
-                                    );
-                                  } else {
-                                    scaffoldMessenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text(provider.errorMessage ??
-                                            'Failed to update user'),
-                                        backgroundColor:
-                                            const Color(0xFFEF5350),
-                                      ),
-                                    );
-                                  }
-                                },
+                                        final success =
+                                            await provider.updateUser(
+                                          userId: user.userId,
+                                          fullName: fullName,
+                                          email: email,
+                                          phoneNumber: phoneNumber,
+                                          role: role,
+                                          unitId: unitId,
+                                          profilePhotoBytes:
+                                              selectedProfilePhotoBytes,
+                                          profilePhotoFileName:
+                                              selectedProfilePhotoFileName,
+                                          isActive: isActive,
+                                        );
+                                        if (!dialogContext.mounted) return;
+                                        setDialogState(
+                                            () => isSubmitting = false);
+                                        final scaffoldMessenger =
+                                            ScaffoldMessenger.of(dialogContext);
+                                        if (success) {
+                                          Navigator.pop(dialogContext);
+                                          scaffoldMessenger.showSnackBar(
+                                            SnackBar(
+                                              content: Text(showResetPassword &&
+                                                      resetPasswordController
+                                                          .text.isNotEmpty
+                                                  ? 'User updated & password reset successfully'
+                                                  : 'User updated successfully'),
+                                              backgroundColor:
+                                                  const Color(0xFF3CCB7F),
+                                            ),
+                                          );
+                                        } else {
+                                          scaffoldMessenger.showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  provider.errorMessage ??
+                                                      'Failed to update user'),
+                                              backgroundColor:
+                                                  const Color(0xFFEF5350),
+                                            ),
+                                          );
+                                        }
+                                      },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF1E88E5),
                                   foregroundColor: Colors.white,
@@ -2116,6 +2216,99 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _pickProfilePhoto({
+    required void Function(Uint8List bytes, String fileName) onSelected,
+  }) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    final file = result.files.first;
+    if (file.bytes == null) {
+      return;
+    }
+
+    onSelected(file.bytes!, file.name);
+  }
+
+  Widget _buildProfilePhotoUploadSection({
+    required String fullName,
+    required Uint8List? selectedPhotoBytes,
+    required String? selectedPhotoFileName,
+    required VoidCallback? onPickPhoto,
+    String? currentPhotoUrl,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Profile Photo',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Optional. Used only as visual user indicator in the system.',
+          style: TextStyle(
+            color: Color(0xFF78909C),
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            UserAvatar(
+              fullName: fullName,
+              photoUrl: currentPhotoUrl,
+              memoryBytes: selectedPhotoBytes,
+              radius: 32,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: onPickPhoto,
+                    icon: const Icon(Icons.upload_file, size: 16),
+                    label: const Text('Upload Image'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E88E5),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    selectedPhotoFileName ??
+                        (currentPhotoUrl != null
+                            ? 'Current photo is set'
+                            : 'No image selected'),
+                    style: const TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

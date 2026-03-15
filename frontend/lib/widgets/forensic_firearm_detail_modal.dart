@@ -6,6 +6,7 @@
 // Anomalies are labeled "Requires Review" NOT "Suspicious"
 
 import 'package:flutter/material.dart';
+import '../config/api_config.dart';
 import '../models/firearm_model.dart';
 import '../services/forensic_traceability_service.dart';
 import 'custody_timeline_widget.dart';
@@ -568,11 +569,7 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
             color: Color(0xFF2A3040),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            _getFirearmIcon(widget.firearm.firearmType),
-            color: const Color(0xFF42A5F5),
-            size: 50,
-          ),
+          child: _buildFirearmIndicator(size: 50),
         ),
         const SizedBox(height: 16),
         Text(
@@ -832,6 +829,40 @@ class _ForensicFirearmDetailModalState extends State<ForensicFirearmDetailModal>
       default:
         return Icons.hardware;
     }
+  }
+
+  String? _resolveImageUrl(String? rawImageUrl) {
+    if (rawImageUrl == null || rawImageUrl.isEmpty) {
+      return null;
+    }
+    if (rawImageUrl.startsWith('http://') ||
+        rawImageUrl.startsWith('https://')) {
+      return rawImageUrl;
+    }
+    return '${ApiConfig.baseUrl}$rawImageUrl';
+  }
+
+  Widget _buildFirearmIndicator({required double size}) {
+    final imageUrl = _resolveImageUrl(widget.firearm.imageUrl);
+    if (imageUrl == null) {
+      return Icon(
+        _getFirearmIcon(widget.firearm.firearmType),
+        color: const Color(0xFF42A5F5),
+        size: size,
+      );
+    }
+
+    return ClipOval(
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Icon(
+          _getFirearmIcon(widget.firearm.firearmType),
+          color: const Color(0xFF42A5F5),
+          size: size,
+        ),
+      ),
+    );
   }
 
   String _formatFirearmType(String type) {

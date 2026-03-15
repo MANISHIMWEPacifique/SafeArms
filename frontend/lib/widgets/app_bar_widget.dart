@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import 'user_avatar.dart';
 
 class SafeArmsAppBar extends StatelessWidget {
   final String title;
@@ -56,16 +57,10 @@ class SafeArmsAppBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: const Color(0xFF1E88E5),
-                  child: Text(
-                    (user?['full_name'] ?? 'U')
-                        .toString()
-                        .substring(0, 1)
-                        .toUpperCase(),
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
+                UserAvatar(
+                  fullName: user?['full_name']?.toString(),
+                  photoUrl: user?['profile_photo_url']?.toString(),
+                  radius: 16,
                 ),
                 const SizedBox(width: 8),
                 Text(

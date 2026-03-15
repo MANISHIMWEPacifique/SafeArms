@@ -1,6 +1,9 @@
 // User Service - API calls for user management
 // SafeArms Frontend
 
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/user_model.dart';
 import 'api_client.dart';
@@ -155,6 +158,49 @@ class UserService {
       return items.map((json) => UserModel.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Error searching users: $e');
+    }
+  }
+
+  // Upload or replace user profile photo
+  Future<UserModel> uploadUserPhoto({
+    required String userId,
+    required Uint8List imageBytes,
+    required String fileName,
+  }) async {
+    try {
+      final token = await ApiClient.getToken();
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiConfig.users}/$userId/photo'),
+      );
+
+      request.headers['Accept'] = 'application/json';
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      request.files.add(http.MultipartFile.fromBytes(
+        'photo',
+        imageBytes,
+        filename: fileName,
+      ));
+
+      final streamedResponse = await request.send().timeout(ApiConfig.timeout);
+      final responseBody = await streamedResponse.stream.bytesToString();
+      final decoded = jsonDecode(responseBody) as Map<String, dynamic>;
+
+      if (streamedResponse.statusCode >= 200 &&
+          streamedResponse.statusCode < 300) {
+        return UserModel.fromJson(decoded['data']);
+      }
+
+      final message = decoded['message']?.toString() ?? 'Photo upload failed';
+      throw ApiException(
+          statusCode: streamedResponse.statusCode, message: message);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw Exception('Error uploading user photo: $e');
     }
   }
 }

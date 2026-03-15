@@ -18,6 +18,7 @@ import '../workflows/investigator_reports_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/responsive_dashboard_scaffold.dart';
+import '../../widgets/user_avatar.dart';
 
 class InvestigatorDashboard extends StatefulWidget {
   const InvestigatorDashboard({super.key});
@@ -242,22 +243,10 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: const Color(0xFF1E88E5),
-                      radius: 20,
-                      child: Text(
-                        user?['full_name']
-                                ?.toString()
-                                .split(' ')
-                                .map((e) => e[0])
-                                .take(2)
-                                .join() ??
-                            'IN',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    UserAvatar(
+                      fullName: user?['full_name']?.toString(),
+                      photoUrl: user?['profile_photo_url']?.toString(),
+                      radius: 24,
                     ),
                     const SizedBox(width: 12),
                     Expanded(

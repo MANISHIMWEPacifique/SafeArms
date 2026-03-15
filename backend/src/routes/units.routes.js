@@ -5,6 +5,19 @@ const { authenticate } = require('../middleware/authentication');
 const { requireAdminOrHQ } = require('../middleware/authorization');
 const { logCreate, logUpdate, logDelete } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { isValidEntityId } = require('../utils/validators');
+
+const validateCommanderUserId = (commanderUserId) => {
+    if (commanderUserId === undefined || commanderUserId === null || commanderUserId === '') {
+        return;
+    }
+
+    if (!isValidEntityId(commanderUserId, 'USR')) {
+        const error = new Error('Invalid commander_user_id format. Expected format: USR-XXX');
+        error.statusCode = 400;
+        throw error;
+    }
+};
 
 router.get('/', authenticate, asyncHandler(async (req, res) => {
     const units = await Unit.findAll(req.query);
@@ -18,11 +31,13 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
 }));
 
 router.post('/', authenticate, requireAdminOrHQ, logCreate, asyncHandler(async (req, res) => {
+    validateCommanderUserId(req.body.commander_user_id);
     const unit = await Unit.create(req.body);
     res.status(201).json({ success: true, data: unit });
 }));
 
 router.put('/:id', authenticate, requireAdminOrHQ, logUpdate, asyncHandler(async (req, res) => {
+    validateCommanderUserId(req.body.commander_user_id);
     const unit = await Unit.update(req.params.id, req.body);
     if (!unit) return res.status(404).json({ success: false, message: 'Unit not found' });
     res.json({ success: true, data: unit });

@@ -1,14 +1,68 @@
 const { query, withTransaction } = require('../config/database');
 
+const ELIGIBLE_COMMANDER_ROLES = ['station_commander', 'hq_firearm_commander'];
+
+const normalizeCommanderUserId = (commanderUserId) => {
+    if (commanderUserId === undefined) return undefined;
+    if (commanderUserId === null) return null;
+
+    const trimmed = String(commanderUserId).trim();
+    return trimmed.length > 0 ? trimmed : null;
+};
+
+const createBadRequestError = (message) => {
+    const error = new Error(message);
+    error.statusCode = 400;
+    return error;
+};
+
 const Unit = {
+    async resolveCommanderFields(commanderUserId, fallbackCommanderName = null) {
+        const normalizedCommanderUserId = normalizeCommanderUserId(commanderUserId);
+
+        if (normalizedCommanderUserId === undefined) {
+            return {
+                commander_user_id: undefined,
+                commander_name: fallbackCommanderName
+            };
+        }
+
+        if (normalizedCommanderUserId === null) {
+            return {
+                commander_user_id: null,
+                commander_name: null
+            };
+        }
+
+        const commanderResult = await query(
+            `SELECT user_id, full_name
+             FROM users
+             WHERE user_id = $1
+               AND is_active = true
+               AND role = ANY($2)`,
+            [normalizedCommanderUserId, ELIGIBLE_COMMANDER_ROLES]
+        );
+
+        if (!commanderResult.rows[0]) {
+            throw createBadRequestError('Selected commander is invalid. Choose an active station or HQ commander.');
+        }
+
+        return {
+            commander_user_id: commanderResult.rows[0].user_id,
+            commander_name: commanderResult.rows[0].full_name
+        };
+    },
+
     async findById(unitId) {
         const result = await query(`
             SELECT u.*,
+                   COALESCE(cmd.full_name, u.commander_name) as commander_name,
                    COALESCE(f.firearm_count, 0) as firearm_count,
                    COALESCE(o.officer_count, 0) as officer_count,
                    COALESCE(c.active_custody, 0) as active_custody,
                    COALESCE(a.anomaly_count, 0) as anomaly_count
             FROM units u
+            LEFT JOIN users cmd ON u.commander_user_id = cmd.user_id
             LEFT JOIN (
                 SELECT assigned_unit_id, COUNT(*) as firearm_count 
                 FROM firearms WHERE is_active = true 
@@ -59,11 +113,13 @@ const Unit = {
 
         const result = await query(`
             SELECT u.*,
+                   COALESCE(cmd.full_name, u.commander_name) as commander_name,
                    COALESCE(f.firearm_count, 0) as firearm_count,
                    COALESCE(o.officer_count, 0) as officer_count,
                    COALESCE(c.active_custody, 0) as active_custody,
                    COALESCE(a.anomaly_count, 0) as anomaly_count
             FROM units u
+            LEFT JOIN users cmd ON u.commander_user_id = cmd.user_id
             LEFT JOIN (
                 SELECT assigned_unit_id, COUNT(*) as firearm_count 
                 FROM firearms WHERE is_active = true 
@@ -92,7 +148,7 @@ const Unit = {
     },
 
     async create(unitData) {
-        const { unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, is_active } = unitData;
+        const { unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, commander_user_id, is_active } = unitData;
 
         // Generate unit_id
         const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(unit_id FROM 6) AS INTEGER)), 0) as max_num FROM units WHERE unit_id ~ '^UNIT-[0-9]+$'`);
@@ -107,12 +163,27 @@ const Unit = {
             else mappedType = 'station';
         }
 
-        const result = await query(
-            `INSERT INTO units (unit_id, unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-            [unit_id, unit_name, mappedType, location, province, district, contact_phone, contact_email, commander_name, is_active !== undefined ? is_active : true]
+        const commanderFields = await this.resolveCommanderFields(commander_user_id, commander_name || null);
+
+        await query(
+            `INSERT INTO units (unit_id, unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, commander_user_id, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+            [
+                unit_id,
+                unit_name,
+                mappedType,
+                location,
+                province,
+                district,
+                contact_phone,
+                contact_email,
+                commanderFields.commander_name,
+                commanderFields.commander_user_id ?? null,
+                is_active !== undefined ? is_active : true
+            ]
         );
-        return result.rows[0];
+
+        return await this.findById(unit_id);
     },
 
     async update(unitId, updates) {
@@ -128,13 +199,28 @@ const Unit = {
             }
         }
 
+        if (Object.prototype.hasOwnProperty.call(updates, 'commander_user_id')) {
+            const commanderFields = await this.resolveCommanderFields(
+                updates.commander_user_id,
+                updates.commander_name || null
+            );
+
+            updates.commander_user_id = commanderFields.commander_user_id;
+            updates.commander_name = commanderFields.commander_name;
+        }
+
         const fields = Object.keys(updates).map((key, idx) => `${key} = $${idx + 2}`);
+        if (fields.length === 0) {
+            return await this.findById(unitId);
+        }
+
         const values = [unitId, ...Object.values(updates)];
-        const result = await query(
+        await query(
             `UPDATE units SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE unit_id = $1 RETURNING *`,
             values
         );
-        return result.rows[0];
+
+        return await this.findById(unitId);
     },
 
     async getStats() {

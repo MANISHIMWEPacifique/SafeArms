@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const { pool, setShuttingDown } = require('./config/database');
@@ -49,6 +51,20 @@ if (SERVER_CONFIG.nodeEnv === 'development') {
 // Body parsing middleware
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// Static firearm image uploads
+const firearmUploadsDir = path.join(__dirname, '../uploads/firearms');
+if (!fs.existsSync(firearmUploadsDir)) {
+    fs.mkdirSync(firearmUploadsDir, { recursive: true });
+}
+app.use('/uploads/firearms', express.static(firearmUploadsDir));
+
+// Static user profile photo uploads
+const userUploadsDir = path.join(__dirname, '../uploads/users');
+if (!fs.existsSync(userUploadsDir)) {
+    fs.mkdirSync(userUploadsDir, { recursive: true });
+}
+app.use('/uploads/users', express.static(userUploadsDir));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

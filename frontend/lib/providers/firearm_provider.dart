@@ -243,6 +243,67 @@ class FirearmProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> uploadFirearmImage({
+    required String firearmId,
+    required Uint8List imageBytes,
+    required String fileName,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updatedFirearm = await _firearmService.uploadFirearmImage(
+        firearmId: firearmId,
+        imageBytes: imageBytes,
+        fileName: fileName,
+      );
+
+      final index = _firearms.indexWhere((f) => f.firearmId == firearmId);
+      if (index != -1) {
+        _firearms[index] = updatedFirearm;
+      }
+
+      if (_selectedFirearm?.firearmId == firearmId) {
+        _selectedFirearm = updatedFirearm;
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteFirearm(String firearmId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _firearmService.deleteFirearm(firearmId);
+
+      _firearms.removeWhere((f) => f.firearmId == firearmId);
+      if (_selectedFirearm?.firearmId == firearmId) {
+        _selectedFirearm = null;
+      }
+      _totalItems = _firearms.length;
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Select firearm
   void selectFirearm(FirearmModel firearm) {
     _selectedFirearm = firearm;

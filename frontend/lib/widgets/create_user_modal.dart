@@ -1,11 +1,15 @@
 // Create/Edit User Modal Dialog
 // SafeArms Frontend
 
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/unit_provider.dart';
 import '../../models/user_model.dart';
+import 'user_avatar.dart';
 
 class CreateUserModal extends StatefulWidget {
   final UserModel? user; // null for create, not null for edit
@@ -43,6 +47,11 @@ class _CreateUserModalState extends State<CreateUserModal> {
   bool _showPassword = false;
   bool _showConfirmPassword = false;
   bool _isLoading = false;
+  String? _unitValidationMessage;
+  Uint8List? _selectedProfilePhotoBytes;
+  String? _selectedProfilePhotoFileName;
+
+  bool _isUnitRequiredForRole(String role) => role == 'station_commander';
 
   @override
   void initState() {
@@ -77,6 +86,24 @@ class _CreateUserModalState extends State<CreateUserModal> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (widget.user == null &&
+        _isUnitRequiredForRole(_selectedRole) &&
+        (_selectedUnit == null || _selectedUnit!.isEmpty)) {
+      setState(() {
+        _unitValidationMessage =
+            'Assigned unit is required for Station Commander';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please assign a unit before creating this user'),
+          backgroundColor: Color(0xFFE85C5C),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _unitValidationMessage = null);
+
     setState(() => _isLoading = true);
 
     final userProvider = context.read<UserProvider>();
@@ -92,6 +119,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
         phoneNumber: _phoneController.text.trim(),
         role: _selectedRole,
         unitId: _selectedUnit,
+        profilePhotoBytes: _selectedProfilePhotoBytes,
+        profilePhotoFileName: _selectedProfilePhotoFileName,
         isActive: _isActive,
         mustChangePassword: _mustChangePassword,
       );
@@ -104,6 +133,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
         phoneNumber: _phoneController.text.trim(),
         role: _selectedRole,
         unitId: _selectedUnit,
+        profilePhotoBytes: _selectedProfilePhotoBytes,
+        profilePhotoFileName: _selectedProfilePhotoFileName,
         isActive: _isActive,
         mustChangePassword: _mustChangePassword,
       );
@@ -162,6 +193,8 @@ class _CreateUserModalState extends State<CreateUserModal> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildProfilePhotoSection(),
+                        const SizedBox(height: 24),
                         _buildPersonalInfo(),
                         const SizedBox(height: 24),
                         _buildAccountDetails(),
@@ -192,6 +225,91 @@ class _CreateUserModalState extends State<CreateUserModal> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _pickProfilePhoto() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    final file = result.files.first;
+    if (file.bytes == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedProfilePhotoBytes = file.bytes;
+      _selectedProfilePhotoFileName = file.name;
+    });
+  }
+
+  Widget _buildProfilePhotoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Profile Photo',
+          style: TextStyle(
+            color: Color(0xFFB0BEC5),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Optional. Uploaded image will be used wherever this user appears.',
+          style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            UserAvatar(
+              fullName: _fullNameController.text.trim().isEmpty
+                  ? widget.user?.fullName
+                  : _fullNameController.text.trim(),
+              photoUrl: widget.user?.profilePhotoUrl,
+              memoryBytes: _selectedProfilePhotoBytes,
+              radius: 34,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _pickProfilePhoto,
+                    icon: const Icon(Icons.upload_file, size: 16),
+                    label: Text(widget.user == null
+                        ? 'Upload Profile Photo'
+                        : 'Replace Profile Photo'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E88E5),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _selectedProfilePhotoFileName ??
+                        (widget.user?.profilePhotoUrl != null
+                            ? 'Current profile photo is set'
+                            : 'No photo selected'),
+                    style:
+                        const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -439,7 +557,12 @@ class _CreateUserModalState extends State<CreateUserModal> {
 
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _selectedRole = role),
+        onTap: () => setState(() {
+          _selectedRole = role;
+          if (!_isUnitRequiredForRole(role)) {
+            _unitValidationMessage = null;
+          }
+        }),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -521,14 +644,15 @@ class _CreateUserModalState extends State<CreateUserModal> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Text(
+                const Text(
                   'Assigned Unit',
                   style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
                 ),
-                SizedBox(width: 4),
-                Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
+                const SizedBox(width: 4),
+                if (_isUnitRequiredForRole(_selectedRole))
+                  const Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
               ],
             ),
             const SizedBox(height: 8),
@@ -548,7 +672,11 @@ class _CreateUserModalState extends State<CreateUserModal> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2A3040),
-                  border: Border.all(color: const Color(0xFF37404F)),
+                  border: Border.all(
+                    color: _unitValidationMessage == null
+                        ? const Color(0xFF37404F)
+                        : const Color(0xFFE85C5C),
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -571,10 +699,20 @@ class _CreateUserModalState extends State<CreateUserModal> {
                         ),
                       );
                     }).toList(),
-                    onChanged: (value) => setState(() => _selectedUnit = value),
+                    onChanged: (value) => setState(() {
+                      _selectedUnit = value;
+                      _unitValidationMessage = null;
+                    }),
                   ),
                 ),
               ),
+            if (_unitValidationMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _unitValidationMessage!,
+                style: const TextStyle(color: Color(0xFFE85C5C), fontSize: 12),
+              ),
+            ],
           ],
         );
       },

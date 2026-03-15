@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../config/api_config.dart';
 import '../../providers/firearm_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/dashboard_provider.dart';
 import '../../models/firearm_model.dart';
 import '../../widgets/register_firearm_modal.dart';
 import '../../widgets/firearm_detail_modal.dart';
@@ -27,6 +29,11 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   bool get _isInvestigator {
     final authProvider = context.read<AuthProvider>();
     return authProvider.currentUser?['role'] == 'investigator';
+  }
+
+  bool get _canDeleteFirearm {
+    final authProvider = context.read<AuthProvider>();
+    return authProvider.currentUser?['role'] == 'hq_firearm_commander';
   }
 
   @override
@@ -749,17 +756,14 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             // Firearm icon
             Center(
               child: Container(
-                width: 96,
-                height: 96,
+                width: 140,
+                height: 140,
                 decoration: const BoxDecoration(
                   color: Color(0xFF252A3A),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  _getFirearmIcon(firearm.firearmType),
-                  color: const Color(0xFF42A5F5),
-                  size: 48,
-                ),
+                child: _buildFirearmIndicator(firearm,
+                    size: 72, fit: BoxFit.cover),
               ),
             ),
             const SizedBox(height: 16),
@@ -886,13 +890,13 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                       });
                     },
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.more_vert,
-                        size: 18, color: Color(0xFF78909C)),
-                    onPressed: () {
-                      // More actions
-                    },
-                  ),
+                  if (_canDeleteFirearm)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          size: 18, color: Color(0xFFE85C5C)),
+                      tooltip: 'Delete firearm',
+                      onPressed: () => _confirmDeleteFirearm(firearm),
+                    ),
                 ],
               ],
             ),
@@ -1129,11 +1133,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                     color: Color(0xFF2A3040),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    _getFirearmIcon(firearm.firearmType),
-                    color: const Color(0xFF42A5F5),
-                    size: 17,
-                  ),
+                  child: _buildFirearmIndicator(firearm, size: 17),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -1218,6 +1218,17 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
+                  if (_canDeleteFirearm) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          size: 18, color: Color(0xFFE85C5C)),
+                      tooltip: 'Delete firearm',
+                      onPressed: () => _confirmDeleteFirearm(firearm),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
                 ],
               ],
             ),
@@ -1250,11 +1261,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 color: Color(0xFF2A3040),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                _getFirearmIcon(firearm.firearmType),
-                color: const Color(0xFF42A5F5),
-                size: 18,
-              ),
+              child: _buildFirearmIndicator(firearm, size: 18),
             ),
             // Serial / Model
             Expanded(
@@ -1322,7 +1329,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             ),
             // Actions
             SizedBox(
-              width: 80,
+              width: 120,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -1350,6 +1357,17 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
+                    if (_canDeleteFirearm) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            size: 18, color: Color(0xFFE85C5C)),
+                        onPressed: () => _confirmDeleteFirearm(firearm),
+                        tooltip: 'Delete firearm',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -1478,6 +1496,130 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
       default:
         return Icons.hardware;
     }
+  }
+
+  String? _resolveImageUrl(String? rawImageUrl) {
+    if (rawImageUrl == null || rawImageUrl.isEmpty) {
+      return null;
+    }
+    if (rawImageUrl.startsWith('http://') ||
+        rawImageUrl.startsWith('https://')) {
+      return rawImageUrl;
+    }
+    return '${ApiConfig.baseUrl}$rawImageUrl';
+  }
+
+  Future<void> _confirmDeleteFirearm(FirearmModel firearm) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF252A3A),
+        title:
+            const Text('Delete Firearm', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Delete firearm ${firearm.serialNumber}? This action cannot be undone.',
+          style: const TextStyle(color: Color(0xFFB0BEC5)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: Color(0xFF78909C))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE85C5C)),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    final firearmProvider = context.read<FirearmProvider>();
+    final success = await firearmProvider.deleteFirearm(firearm.firearmId);
+
+    if (!mounted) return;
+
+    if (success) {
+      if (_selectedFirearmForDetail?.firearmId == firearm.firearmId) {
+        setState(() => _selectedFirearmForDetail = null);
+      }
+
+      final dashboardProvider = context.read<DashboardProvider>();
+
+      // Keep HQ dashboard stats in sync with successful deletions.
+      try {
+        await dashboardProvider.loadDashboardStats();
+      } catch (_) {
+        // Dashboard refresh is best-effort; firearm delete already succeeded.
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Firearm ${firearm.serialNumber} deleted'),
+          backgroundColor: const Color(0xFF3CCB7F),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      final message = _formatDeleteErrorMessage(firearmProvider.errorMessage);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: const Color(0xFFE85C5C),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  String _formatDeleteErrorMessage(String? rawMessage) {
+    if (rawMessage == null || rawMessage.isEmpty) {
+      return 'Failed to delete firearm.';
+    }
+
+    final normalized = rawMessage.toLowerCase();
+    if (normalized.contains('cannot delete firearm with') ||
+        normalized.contains('operational history') ||
+        normalized.contains('violates foreign key constraint') ||
+        normalized.contains('code: 23503')) {
+      return 'Delete blocked: this firearm has custody/ballistic history. '
+          'Set status to Destroyed instead.';
+    }
+
+    return rawMessage;
+  }
+
+  Widget _buildFirearmIndicator(
+    FirearmModel firearm, {
+    required double size,
+    BoxFit fit = BoxFit.cover,
+  }) {
+    final imageUrl = _resolveImageUrl(firearm.imageUrl);
+    if (imageUrl == null) {
+      return Icon(
+        _getFirearmIcon(firearm.firearmType),
+        color: const Color(0xFF42A5F5),
+        size: size,
+      );
+    }
+
+    return ClipOval(
+      child: Image.network(
+        imageUrl,
+        fit: fit,
+        errorBuilder: (_, __, ___) => Icon(
+          _getFirearmIcon(firearm.firearmType),
+          color: const Color(0xFF42A5F5),
+          size: size,
+        ),
+      ),
+    );
   }
 
   String _formatFirearmType(String type) {

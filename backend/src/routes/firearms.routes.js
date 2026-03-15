@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 const Firearm = require('../models/Firearm');
 const CustodyRecord = require('../models/CustodyRecord');
 const BallisticProfile = require('../models/BallisticProfile');
@@ -12,10 +15,57 @@ const {
     enforceUnitFirearmAccess,
     ROLES 
 } = require('../middleware/authorization');
-const { logCreate, logUpdate } = require('../middleware/auditLogger');
+const { logCreate, logUpdate, logDelete } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query, withTransaction } = require('../config/database');
 const logger = require('../utils/logger');
+
+const firearmUploadsDir = path.join(__dirname, '../../uploads/firearms');
+if (!fs.existsSync(firearmUploadsDir)) {
+    fs.mkdirSync(firearmUploadsDir, { recursive: true });
+}
+
+const imageUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, firearmUploadsDir),
+        filename: (req, file, cb) => {
+            const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+            const safeId = String(req.params.id || 'firearm').replace(/[^a-zA-Z0-9-_]/g, '');
+            cb(null, `${safeId}-${Date.now()}${ext}`);
+        }
+    }),
+    limits: {
+        fileSize: 5 * 1024 * 1024
+    },
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname || '').toLowerCase();
+        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+        if (!allowedExtensions.includes(ext)) {
+            return cb(new Error('Invalid file type. Allowed formats: JPG, PNG, WEBP'));
+        }
+        cb(null, true);
+    }
+});
+
+const handleImageUpload = (req, res, next) => {
+    imageUpload.single('image')(req, res, (err) => {
+        if (!err) {
+            return next();
+        }
+
+        if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({
+                success: false,
+                message: 'Image is too large. Maximum allowed size is 5MB'
+            });
+        }
+
+        return res.status(400).json({
+            success: false,
+            message: err.message || 'Invalid upload request'
+        });
+    });
+};
 
 /**
  * Firearms Routes - Chain of Custody and Registry Management
@@ -184,6 +234,41 @@ router.get('/unit/:unit_id', authenticate, asyncHandler(async (req, res) => {
     res.json({ success: true, data: firearms });
 }));
 
+router.post('/:id/image', authenticate, requireHQCommander, logUpdate, handleImageUpload, asyncHandler(async (req, res) => {
+    const firearm = await Firearm.findById(req.params.id);
+
+    if (!firearm) {
+        if (req.file) {
+            fs.unlink(req.file.path, () => {});
+        }
+        return res.status(404).json({ success: false, message: 'Firearm not found' });
+    }
+
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Image file is required' });
+    }
+
+    const relativeImagePath = `/uploads/firearms/${req.file.filename}`;
+
+    const updatedFirearm = await Firearm.update(req.params.id, {
+        image_url: relativeImagePath
+    });
+
+    if (firearm.image_url) {
+        const oldFileName = path.basename(firearm.image_url);
+        const oldFilePath = path.join(firearmUploadsDir, oldFileName);
+        if (fs.existsSync(oldFilePath)) {
+            fs.unlink(oldFilePath, () => {});
+        }
+    }
+
+    return res.json({
+        success: true,
+        message: 'Firearm image uploaded successfully',
+        data: updatedFirearm
+    });
+}));
+
 router.get('/:id', authenticate, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
     const firearm = await Firearm.findById(req.params.id);
@@ -331,6 +416,87 @@ router.put('/:id', authenticate, requireCommander, requireUnitAccess, logUpdate,
     if (!firearm) return res.status(404).json({ success: false, message: 'Firearm not found' });
     res.json({ success: true, data: firearm });
 }));
+
+const getFirearmDependencyCounts = async (firearmId) => {
+    const dependencyQuery = await query(`
+        SELECT
+            (SELECT COUNT(*)::int FROM custody_records WHERE firearm_id = $1) AS custody_records,
+            (SELECT COUNT(*)::int FROM ballistic_profiles WHERE firearm_id = $1) AS ballistic_profiles,
+            (SELECT COUNT(*)::int FROM firearm_unit_movements WHERE firearm_id = $1) AS firearm_unit_movements,
+            (SELECT COUNT(*)::int FROM ballistic_access_logs WHERE firearm_id = $1) AS ballistic_access_logs,
+            (SELECT COUNT(*)::int FROM ml_training_features WHERE firearm_id = $1) AS ml_training_features,
+            (SELECT COUNT(*)::int FROM anomalies WHERE firearm_id = $1) AS anomalies,
+            (SELECT COUNT(*)::int FROM loss_reports WHERE firearm_id = $1) AS loss_reports,
+            (SELECT COUNT(*)::int FROM destruction_requests WHERE firearm_id = $1) AS destruction_requests
+    `, [firearmId]);
+
+    return dependencyQuery.rows[0];
+};
+
+const deleteFirearmHandler = async (req, res) => {
+    const firearm = await Firearm.findById(req.params.id);
+
+    if (!firearm) {
+        return res.status(404).json({ success: false, message: 'Firearm not found' });
+    }
+
+    const dependencyCounts = await getFirearmDependencyCounts(req.params.id);
+    const blockingDependencies = Object.entries(dependencyCounts)
+        .filter(([, count]) => Number(count) > 0)
+        .reduce((acc, [table, count]) => {
+            acc[table] = Number(count);
+            return acc;
+        }, {});
+
+    if (Object.keys(blockingDependencies).length > 0) {
+        logger.warn('Firearm delete blocked by dependencies', {
+            firearmId: req.params.id,
+            dependencies: blockingDependencies,
+            userId: req.user?.user_id,
+            role: req.user?.role
+        });
+
+        return res.status(409).json({
+            success: false,
+            message: 'Cannot delete firearm with operational history. Set status to destroyed instead.',
+            code: 'FIREARM_DELETE_BLOCKED',
+            dependencies: blockingDependencies
+        });
+    }
+
+    try {
+        const deleted = await query(
+            'DELETE FROM firearms WHERE firearm_id = $1 RETURNING firearm_id, serial_number',
+            [req.params.id]
+        );
+
+        if (firearm.image_url) {
+            const oldFileName = path.basename(firearm.image_url);
+            const oldFilePath = path.join(firearmUploadsDir, oldFileName);
+            if (fs.existsSync(oldFilePath)) {
+                fs.unlink(oldFilePath, () => {});
+            }
+        }
+
+        return res.json({
+            success: true,
+            message: 'Firearm deleted successfully',
+            data: deleted.rows[0]
+        });
+    } catch (error) {
+        if (error.code === '23503') {
+            return res.status(409).json({
+                success: false,
+                message: 'Cannot delete firearm with operational history. Set status to destroyed instead.',
+                code: 'FIREARM_DELETE_BLOCKED'
+            });
+        }
+        throw error;
+    }
+};
+
+router.delete('/:id', authenticate, requireHQCommander, logDelete, asyncHandler(deleteFirearmHandler));
+router.post('/:id/delete', authenticate, requireHQCommander, logDelete, asyncHandler(deleteFirearmHandler));
 
 // ============================================
 // FULL TRACEABILITY ENDPOINT

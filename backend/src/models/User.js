@@ -12,7 +12,7 @@ const User = {
     async findById(userId) {
         const result = await query(
             `SELECT user_id, username, full_name, email, phone_number, role, 
-              unit_id, is_active, must_change_password, unit_confirmed, last_login
+                            unit_id, profile_photo_url, is_active, must_change_password, unit_confirmed, last_login
        FROM users WHERE user_id = $1`,
             [userId]
         );
@@ -79,7 +79,7 @@ const User = {
 
         const result = await query(
             `SELECT user_id, username, full_name, email, phone_number, role,
-              unit_id, is_active, must_change_password, unit_confirmed, created_at
+                            unit_id, profile_photo_url, is_active, must_change_password, unit_confirmed, created_at
        FROM users
        ${whereClause}
        ORDER BY created_at DESC
@@ -96,7 +96,7 @@ const User = {
     async create(userData) {
         const {
             username, password_hash, full_name, email, phone_number,
-            role, unit_id, created_by
+            role, unit_id, profile_photo_url, created_by
         } = userData;
 
         // Generate user_id using MAX to avoid collisions after deletions
@@ -107,10 +107,10 @@ const User = {
         const result = await query(
             `INSERT INTO users (
         user_id, username, password_hash, full_name, email, phone_number,
-        role, unit_id, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING user_id, username, full_name, email, role, unit_id, is_active, must_change_password`,
-            [user_id, username, password_hash, full_name, email, phone_number, role, unit_id || null, created_by]
+                role, unit_id, profile_photo_url, created_by
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING user_id, username, full_name, email, role, unit_id, profile_photo_url, is_active, must_change_password`,
+                        [user_id, username, password_hash, full_name, email, phone_number, role, unit_id || null, profile_photo_url || null, created_by]
         );
 
         return result.rows[0];
@@ -141,7 +141,7 @@ const User = {
             `UPDATE users 
        SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
        WHERE user_id = $${paramCount}
-       RETURNING user_id, username, full_name, email, role, unit_id, is_active, must_change_password`,
+       RETURNING user_id, username, full_name, email, role, unit_id, profile_photo_url, is_active, must_change_password`,
             values
         );
 

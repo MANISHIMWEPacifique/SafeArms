@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/api_config.dart';
 import '../../providers/firearm_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/firearm_model.dart';
@@ -520,8 +521,11 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
                     color: const Color(0xFF2A3040),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.gavel,
-                      color: Color(0xFF42A5F5), size: 20),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: _buildFirearmIndicator(firearm, size: 20),
+                  ),
                 ),
                 const Spacer(),
                 _buildStatusBadge(firearm.currentStatus),
@@ -547,10 +551,10 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
             const Spacer(),
             Row(
               children: [
-                Icon(
-                  _getTypeIcon(firearm.firearmType),
-                  color: const Color(0xFF78909C),
-                  size: 14,
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: _buildFirearmIndicator(firearm, size: 14),
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -593,10 +597,10 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
                           color: const Color(0xFF2A3040),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
-                          Icons.gavel,
-                          color: Color(0xFF42A5F5),
-                          size: 20,
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: _buildFirearmIndicator(firearm, size: 20),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -646,8 +650,11 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
                     color: const Color(0xFF2A3040),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.gavel,
-                      color: Color(0xFF42A5F5), size: 24),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: _buildFirearmIndicator(firearm, size: 24),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -783,5 +790,40 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
       default:
         return Icons.gavel;
     }
+  }
+
+  String? _resolveImageUrl(String? rawImageUrl) {
+    if (rawImageUrl == null || rawImageUrl.isEmpty) {
+      return null;
+    }
+    if (rawImageUrl.startsWith('http://') ||
+        rawImageUrl.startsWith('https://')) {
+      return rawImageUrl;
+    }
+    return '${ApiConfig.baseUrl}$rawImageUrl';
+  }
+
+  Widget _buildFirearmIndicator(FirearmModel firearm, {required double size}) {
+    final imageUrl = _resolveImageUrl(firearm.imageUrl);
+    if (imageUrl == null) {
+      return Icon(
+        _getTypeIcon(firearm.firearmType),
+        color: const Color(0xFF42A5F5),
+        size: size,
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Icon(
+          _getTypeIcon(firearm.firearmType),
+          color: const Color(0xFF42A5F5),
+          size: size,
+        ),
+      ),
+    );
   }
 }

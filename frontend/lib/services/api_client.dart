@@ -37,7 +37,11 @@ class ApiClient {
   }) async {
     final headers = await authHeaders();
     final response = await http
-        .post(Uri.parse(url), headers: headers, body: jsonEncode(body))
+        .post(
+          Uri.parse(url),
+          headers: headers,
+          body: body == null ? null : jsonEncode(body),
+        )
         .timeout(ApiConfig.timeout);
     return _handleResponse(response);
   }
@@ -49,7 +53,11 @@ class ApiClient {
   }) async {
     final headers = await authHeaders();
     final response = await http
-        .put(Uri.parse(url), headers: headers, body: jsonEncode(body))
+        .put(
+          Uri.parse(url),
+          headers: headers,
+          body: body == null ? null : jsonEncode(body),
+        )
         .timeout(ApiConfig.timeout);
     return _handleResponse(response);
   }
@@ -70,7 +78,11 @@ class ApiClient {
   }) async {
     final headers = await authHeaders();
     final response = await http
-        .patch(Uri.parse(url), headers: headers, body: jsonEncode(body))
+        .patch(
+          Uri.parse(url),
+          headers: headers,
+          body: body == null ? null : jsonEncode(body),
+        )
         .timeout(ApiConfig.timeout);
     return _handleResponse(response);
   }

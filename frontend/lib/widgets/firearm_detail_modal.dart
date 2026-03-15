@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import '../config/api_config.dart';
 import '../models/firearm_model.dart';
 import '../services/custody_service.dart';
 
@@ -180,228 +181,6 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
     }
   }
 
-  void _generateReport() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A3040),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.description, color: Color(0xFF1E88E5)),
-            SizedBox(width: 12),
-            Text('Generate Report', style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildReportOption('Firearm Summary Report', Icons.summarize, () {
-              Navigator.pop(context);
-              _showReportPreview('summary');
-            }),
-            const SizedBox(height: 12),
-            _buildReportOption('Custody Chain Report', Icons.link, () {
-              Navigator.pop(context);
-              _showReportPreview('custody');
-            }),
-            const SizedBox(height: 12),
-            _buildReportOption('Ballistic Profile Report', Icons.fingerprint,
-                () {
-              Navigator.pop(context);
-              _showReportPreview('ballistic');
-            }),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF78909C))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReportOption(String title, IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.zero,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1F2E),
-          border: Border.all(color: const Color(0xFF37404F)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: const Color(0xFF1E88E5)),
-            const SizedBox(width: 12),
-            Expanded(
-                child:
-                    Text(title, style: const TextStyle(color: Colors.white))),
-            const Icon(Icons.arrow_forward_ios,
-                size: 16, color: Color(0xFF78909C)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showReportPreview(String type) {
-    final reportContent = _generateReportContent(type);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A3040),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
-        title: Row(
-          children: [
-            const Icon(Icons.preview, color: Color(0xFF1E88E5)),
-            const SizedBox(width: 12),
-            Text(
-              type == 'summary'
-                  ? 'Firearm Summary'
-                  : type == 'custody'
-                      ? 'Custody Chain'
-                      : 'Ballistic Profile',
-              style: const TextStyle(color: Colors.white),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 500,
-          child: SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-              ),
-              child: SelectableText(
-                reportContent,
-                style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 12,
-                    fontFamily: 'monospace'),
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child:
-                const Text('Close', style: TextStyle(color: Color(0xFF78909C))),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('Report ready for print'),
-                    backgroundColor: Color(0xFF3CCB7F)),
-              );
-            },
-            icon: const Icon(Icons.print, size: 18),
-            label: const Text('Print'),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E88E5)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _generateReportContent(String type) {
-    final dateFormat = DateFormat('MMMM dd, yyyy');
-    final now = dateFormat.format(DateTime.now());
-
-    if (type == 'summary') {
-      return '''
-RWANDA NATIONAL POLICE
-FIREARM SUMMARY REPORT
-Generated: $now
-
-═══════════════════════════════════════════
-FIREARM IDENTIFICATION
-═══════════════════════════════════════════
-Serial Number: ${widget.firearm.serialNumber}
-Manufacturer: ${widget.firearm.manufacturer}
-Model: ${widget.firearm.model}
-Type: ${_formatFirearmType(widget.firearm.firearmType)}
-Caliber: ${widget.firearm.caliber ?? 'N/A'}
-
-═══════════════════════════════════════════
-ACQUISITION DETAILS
-═══════════════════════════════════════════
-Source: ${widget.firearm.acquisitionSource ?? 'N/A'}
-Date: ${dateFormat.format(widget.firearm.acquisitionDate)}
-
-═══════════════════════════════════════════
-CURRENT STATUS
-═══════════════════════════════════════════
-Status: ${widget.firearm.currentStatus.toUpperCase()}
-Unit: ${widget.firearm.unitDisplayName}
-
-═══════════════════════════════════════════
-This is an official document of the RNP.
-''';
-    } else if (type == 'custody') {
-      return '''
-RWANDA NATIONAL POLICE
-CUSTODY CHAIN REPORT
-Generated: $now
-
-═══════════════════════════════════════════
-FIREARM DETAILS
-═══════════════════════════════════════════
-Serial Number: ${widget.firearm.serialNumber}
-Manufacturer/Model: ${widget.firearm.manufacturer} ${widget.firearm.model}
-
-═══════════════════════════════════════════
-CURRENT CUSTODY
-═══════════════════════════════════════════
-Unit: ${widget.firearm.unitDisplayName}
-Status: ${widget.firearm.currentStatus.toUpperCase()}
-
-═══════════════════════════════════════════
-CHAIN OF CUSTODY
-═══════════════════════════════════════════
-[View full history in Custody History section]
-
-═══════════════════════════════════════════
-This report certifies the custody chain.
-''';
-    } else {
-      return '''
-RWANDA NATIONAL POLICE
-BALLISTIC PROFILE REPORT
-Generated: $now
-
-═══════════════════════════════════════════
-FIREARM IDENTIFICATION
-═══════════════════════════════════════════
-Serial Number: ${widget.firearm.serialNumber}
-Manufacturer: ${widget.firearm.manufacturer}
-Model: ${widget.firearm.model}
-Caliber: ${widget.firearm.caliber ?? 'N/A'}
-
-═══════════════════════════════════════════
-BALLISTIC PROFILE STATUS
-═══════════════════════════════════════════
-Status: PENDING PROFILE
-
-═══════════════════════════════════════════
-This is an official forensic document.
-''';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -491,11 +270,7 @@ This is an official forensic document.
             color: Color(0xFF2A3040),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            _getFirearmIcon(widget.firearm.firearmType),
-            color: const Color(0xFF42A5F5),
-            size: 60,
-          ),
+          child: _buildFirearmIndicator(size: 60),
         ),
         const SizedBox(height: 16),
         Text(
@@ -715,22 +490,6 @@ This is an official forensic document.
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _generateReport,
-            icon: const Icon(Icons.description, size: 18),
-            label: const Text('Generate Report'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB0BEC5),
-              side: const BorderSide(color: Color(0xFF37404F)),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -859,6 +618,40 @@ This is an official forensic document.
       default:
         return Icons.hardware;
     }
+  }
+
+  String? _resolveImageUrl(String? rawImageUrl) {
+    if (rawImageUrl == null || rawImageUrl.isEmpty) {
+      return null;
+    }
+    if (rawImageUrl.startsWith('http://') ||
+        rawImageUrl.startsWith('https://')) {
+      return rawImageUrl;
+    }
+    return '${ApiConfig.baseUrl}$rawImageUrl';
+  }
+
+  Widget _buildFirearmIndicator({required double size}) {
+    final imageUrl = _resolveImageUrl(widget.firearm.imageUrl);
+    if (imageUrl == null) {
+      return Icon(
+        _getFirearmIcon(widget.firearm.firearmType),
+        color: const Color(0xFF42A5F5),
+        size: size,
+      );
+    }
+
+    return ClipOval(
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Icon(
+          _getFirearmIcon(widget.firearm.firearmType),
+          color: const Color(0xFF42A5F5),
+          size: size,
+        ),
+      ),
+    );
   }
 
   String _formatFirearmType(String type) {

@@ -11,6 +11,7 @@ class UnitModel {
   final String? contactPhone;
   final String? contactEmail;
   final String? commanderName;
+  final String? commanderUserId;
   final bool isActive;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -25,6 +26,7 @@ class UnitModel {
     this.contactPhone,
     this.contactEmail,
     this.commanderName,
+    this.commanderUserId,
     required this.isActive,
     this.createdAt,
     this.updatedAt,
@@ -41,6 +43,7 @@ class UnitModel {
       contactPhone: json['contact_phone'],
       contactEmail: json['contact_email'],
       commanderName: json['commander_name'],
+      commanderUserId: json['commander_user_id'],
       isActive: json['is_active'] ?? true,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -62,6 +65,7 @@ class UnitModel {
       'contact_phone': contactPhone,
       'contact_email': contactEmail,
       'commander_name': commanderName,
+      'commander_user_id': commanderUserId,
       'is_active': isActive,
     };
   }

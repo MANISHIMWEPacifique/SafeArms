@@ -16,6 +16,10 @@ const createBadRequestError = (message) => {
     return error;
 };
 
+const isMissingCommanderUserIdColumnError = (error) => {
+    return error && error.code === '42703' && typeof error.message === 'string' && error.message.includes('commander_user_id');
+};
+
 const Unit = {
     async resolveCommanderFields(commanderUserId, fallbackCommanderName = null) {
         const normalizedCommanderUserId = normalizeCommanderUserId(commanderUserId);
@@ -54,37 +58,78 @@ const Unit = {
     },
 
     async findById(unitId) {
-        const result = await query(`
-            SELECT u.*,
-                   COALESCE(cmd.full_name, u.commander_name) as commander_name,
-                   COALESCE(f.firearm_count, 0) as firearm_count,
-                   COALESCE(o.officer_count, 0) as officer_count,
-                   COALESCE(c.active_custody, 0) as active_custody,
-                   COALESCE(a.anomaly_count, 0) as anomaly_count
-            FROM units u
-            LEFT JOIN users cmd ON u.commander_user_id = cmd.user_id
-            LEFT JOIN (
-                SELECT assigned_unit_id, COUNT(*) as firearm_count 
-                FROM firearms WHERE is_active = true 
-                GROUP BY assigned_unit_id
-            ) f ON u.unit_id = f.assigned_unit_id
-            LEFT JOIN (
-                SELECT unit_id, COUNT(*) as officer_count 
-                FROM officers WHERE is_active = true 
-                GROUP BY unit_id
-            ) o ON u.unit_id = o.unit_id
-            LEFT JOIN (
-                SELECT unit_id, COUNT(*) as active_custody 
-                FROM custody_records WHERE returned_at IS NULL 
-                GROUP BY unit_id
-            ) c ON u.unit_id = c.unit_id
-            LEFT JOIN (
-                SELECT unit_id, COUNT(*) as anomaly_count 
-                FROM anomalies WHERE status IN ('open', 'pending') 
-                GROUP BY unit_id
-            ) a ON u.unit_id = a.unit_id
-            WHERE u.unit_id = $1
-        `, [unitId]);
+        let result;
+
+        try {
+            result = await query(`
+                SELECT u.*,
+                       COALESCE(cmd.full_name, u.commander_name) as commander_name,
+                       COALESCE(f.firearm_count, 0) as firearm_count,
+                       COALESCE(o.officer_count, 0) as officer_count,
+                       COALESCE(c.active_custody, 0) as active_custody,
+                       COALESCE(a.anomaly_count, 0) as anomaly_count
+                FROM units u
+                LEFT JOIN users cmd ON u.commander_user_id = cmd.user_id
+                LEFT JOIN (
+                    SELECT assigned_unit_id, COUNT(*) as firearm_count 
+                    FROM firearms WHERE is_active = true 
+                    GROUP BY assigned_unit_id
+                ) f ON u.unit_id = f.assigned_unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as officer_count 
+                    FROM officers WHERE is_active = true 
+                    GROUP BY unit_id
+                ) o ON u.unit_id = o.unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as active_custody 
+                    FROM custody_records WHERE returned_at IS NULL 
+                    GROUP BY unit_id
+                ) c ON u.unit_id = c.unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as anomaly_count 
+                    FROM anomalies WHERE status IN ('open', 'pending') 
+                    GROUP BY unit_id
+                ) a ON u.unit_id = a.unit_id
+                WHERE u.unit_id = $1
+            `, [unitId]);
+        } catch (error) {
+            if (!isMissingCommanderUserIdColumnError(error)) {
+                throw error;
+            }
+
+            // Legacy fallback for environments that have not applied commander assignment migration yet.
+            result = await query(`
+                SELECT u.*,
+                       u.commander_name as commander_name,
+                       COALESCE(f.firearm_count, 0) as firearm_count,
+                       COALESCE(o.officer_count, 0) as officer_count,
+                       COALESCE(c.active_custody, 0) as active_custody,
+                       COALESCE(a.anomaly_count, 0) as anomaly_count
+                FROM units u
+                LEFT JOIN (
+                    SELECT assigned_unit_id, COUNT(*) as firearm_count 
+                    FROM firearms WHERE is_active = true 
+                    GROUP BY assigned_unit_id
+                ) f ON u.unit_id = f.assigned_unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as officer_count 
+                    FROM officers WHERE is_active = true 
+                    GROUP BY unit_id
+                ) o ON u.unit_id = o.unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as active_custody 
+                    FROM custody_records WHERE returned_at IS NULL 
+                    GROUP BY unit_id
+                ) c ON u.unit_id = c.unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as anomaly_count 
+                    FROM anomalies WHERE status IN ('open', 'pending') 
+                    GROUP BY unit_id
+                ) a ON u.unit_id = a.unit_id
+                WHERE u.unit_id = $1
+            `, [unitId]);
+        }
+
         return result.rows[0];
     },
 
@@ -111,39 +156,82 @@ const Unit = {
         pCount++;
         params.push(offset);
 
-        const result = await query(`
-            SELECT u.*,
-                   COALESCE(cmd.full_name, u.commander_name) as commander_name,
-                   COALESCE(f.firearm_count, 0) as firearm_count,
-                   COALESCE(o.officer_count, 0) as officer_count,
-                   COALESCE(c.active_custody, 0) as active_custody,
-                   COALESCE(a.anomaly_count, 0) as anomaly_count
-            FROM units u
-            LEFT JOIN users cmd ON u.commander_user_id = cmd.user_id
-            LEFT JOIN (
-                SELECT assigned_unit_id, COUNT(*) as firearm_count 
-                FROM firearms WHERE is_active = true 
-                GROUP BY assigned_unit_id
-            ) f ON u.unit_id = f.assigned_unit_id
-            LEFT JOIN (
-                SELECT unit_id, COUNT(*) as officer_count 
-                FROM officers WHERE is_active = true 
-                GROUP BY unit_id
-            ) o ON u.unit_id = o.unit_id
-            LEFT JOIN (
-                SELECT unit_id, COUNT(*) as active_custody 
-                FROM custody_records WHERE returned_at IS NULL 
-                GROUP BY unit_id
-            ) c ON u.unit_id = c.unit_id
-            LEFT JOIN (
-                SELECT unit_id, COUNT(*) as anomaly_count 
-                FROM anomalies WHERE status IN ('open', 'pending') 
-                GROUP BY unit_id
-            ) a ON u.unit_id = a.unit_id
-            ${where} 
-            ORDER BY u.unit_name 
-            LIMIT $${pCount - 1} OFFSET $${pCount}
-        `, params);
+        let result;
+
+        try {
+            result = await query(`
+                SELECT u.*,
+                       COALESCE(cmd.full_name, u.commander_name) as commander_name,
+                       COALESCE(f.firearm_count, 0) as firearm_count,
+                       COALESCE(o.officer_count, 0) as officer_count,
+                       COALESCE(c.active_custody, 0) as active_custody,
+                       COALESCE(a.anomaly_count, 0) as anomaly_count
+                FROM units u
+                LEFT JOIN users cmd ON u.commander_user_id = cmd.user_id
+                LEFT JOIN (
+                    SELECT assigned_unit_id, COUNT(*) as firearm_count 
+                    FROM firearms WHERE is_active = true 
+                    GROUP BY assigned_unit_id
+                ) f ON u.unit_id = f.assigned_unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as officer_count 
+                    FROM officers WHERE is_active = true 
+                    GROUP BY unit_id
+                ) o ON u.unit_id = o.unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as active_custody 
+                    FROM custody_records WHERE returned_at IS NULL 
+                    GROUP BY unit_id
+                ) c ON u.unit_id = c.unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as anomaly_count 
+                    FROM anomalies WHERE status IN ('open', 'pending') 
+                    GROUP BY unit_id
+                ) a ON u.unit_id = a.unit_id
+                ${where} 
+                ORDER BY u.unit_name 
+                LIMIT $${pCount - 1} OFFSET $${pCount}
+            `, params);
+        } catch (error) {
+            if (!isMissingCommanderUserIdColumnError(error)) {
+                throw error;
+            }
+
+            // Legacy fallback for environments that have not applied commander assignment migration yet.
+            result = await query(`
+                SELECT u.*,
+                       u.commander_name as commander_name,
+                       COALESCE(f.firearm_count, 0) as firearm_count,
+                       COALESCE(o.officer_count, 0) as officer_count,
+                       COALESCE(c.active_custody, 0) as active_custody,
+                       COALESCE(a.anomaly_count, 0) as anomaly_count
+                FROM units u
+                LEFT JOIN (
+                    SELECT assigned_unit_id, COUNT(*) as firearm_count 
+                    FROM firearms WHERE is_active = true 
+                    GROUP BY assigned_unit_id
+                ) f ON u.unit_id = f.assigned_unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as officer_count 
+                    FROM officers WHERE is_active = true 
+                    GROUP BY unit_id
+                ) o ON u.unit_id = o.unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as active_custody 
+                    FROM custody_records WHERE returned_at IS NULL 
+                    GROUP BY unit_id
+                ) c ON u.unit_id = c.unit_id
+                LEFT JOIN (
+                    SELECT unit_id, COUNT(*) as anomaly_count 
+                    FROM anomalies WHERE status IN ('open', 'pending') 
+                    GROUP BY unit_id
+                ) a ON u.unit_id = a.unit_id
+                ${where} 
+                ORDER BY u.unit_name 
+                LIMIT $${pCount - 1} OFFSET $${pCount}
+            `, params);
+        }
+
         return result.rows;
     },
 

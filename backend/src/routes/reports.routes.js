@@ -5,9 +5,32 @@ const DestructionRequest = require('../models/DestructionRequest');
 const ProcurementRequest = require('../models/ProcurementRequest');
 const { authenticate } = require('../middleware/authentication');
 const { requireCommander, requireRole, PERMISSIONS, ROLES } = require('../middleware/authorization');
-const { logCreate, logLossReport, exportLegalChainOfCustody, verifyChainIntegrity } = require('../middleware/auditLogger');
+const { logCreate, logDelete, logLossReport, exportLegalChainOfCustody, verifyChainIntegrity } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
+
+const ensureDeleteAccess = (req, reportRow, reportLabel) => {
+    if (!reportRow) {
+        return {
+            allowed: false,
+            status: 404,
+            payload: { success: false, message: `${reportLabel} not found` }
+        };
+    }
+
+    if (req.user.role === ROLES.STATION_COMMANDER && req.user.unit_id !== reportRow.unit_id) {
+        return {
+            allowed: false,
+            status: 403,
+            payload: {
+                success: false,
+                message: 'Access denied. You can only delete reports from your assigned unit.'
+            }
+        };
+    }
+
+    return { allowed: true };
+};
 
 /**
  * Reports Routes
@@ -561,6 +584,32 @@ router.patch('/loss/:id/status', authenticate, requireRole(['hq_firearm_commande
     res.json({ success: true, data: report });
 }));
 
+router.delete('/loss/:id', authenticate, requireRole([ROLES.STATION_COMMANDER, ROLES.HQ_COMMANDER, ROLES.ADMIN]), logDelete, asyncHandler(async (req, res) => {
+    const reportResult = await query(
+        `SELECT loss_id, unit_id FROM loss_reports WHERE loss_id = $1`,
+        [req.params.id]
+    );
+
+    const access = ensureDeleteAccess(req, reportResult.rows[0], 'Loss report');
+    if (!access.allowed) {
+        return res.status(access.status).json(access.payload);
+    }
+
+    const deleteResult = await query(
+        `DELETE FROM loss_reports WHERE loss_id = $1 RETURNING loss_id`,
+        [req.params.id]
+    );
+
+    res.json({
+        success: true,
+        message: 'Loss report deleted successfully',
+        data: {
+            id: deleteResult.rows[0].loss_id,
+            type: 'loss'
+        }
+    });
+}));
+
 // ============================================
 // DESTRUCTION REQUESTS
 // ============================================
@@ -590,6 +639,32 @@ router.patch('/destruction/:id/status', authenticate, requireRole(['hq_firearm_c
     res.json({ success: true, data: request });
 }));
 
+router.delete('/destruction/:id', authenticate, requireRole([ROLES.STATION_COMMANDER, ROLES.HQ_COMMANDER, ROLES.ADMIN]), logDelete, asyncHandler(async (req, res) => {
+    const requestResult = await query(
+        `SELECT destruction_id, unit_id FROM destruction_requests WHERE destruction_id = $1`,
+        [req.params.id]
+    );
+
+    const access = ensureDeleteAccess(req, requestResult.rows[0], 'Destruction request');
+    if (!access.allowed) {
+        return res.status(access.status).json(access.payload);
+    }
+
+    const deleteResult = await query(
+        `DELETE FROM destruction_requests WHERE destruction_id = $1 RETURNING destruction_id`,
+        [req.params.id]
+    );
+
+    res.json({
+        success: true,
+        message: 'Destruction request deleted successfully',
+        data: {
+            id: deleteResult.rows[0].destruction_id,
+            type: 'destruction'
+        }
+    });
+}));
+
 // Procurement Requests
 router.get('/procurement', authenticate, asyncHandler(async (req, res) => {
     const requests = await ProcurementRequest.findAll(req.query);
@@ -615,6 +690,32 @@ router.patch('/procurement/:id/status', authenticate, requireRole(['hq_firearm_c
     });
     if (!request) return res.status(404).json({ success: false, message: 'Procurement request not found' });
     res.json({ success: true, data: request });
+}));
+
+router.delete('/procurement/:id', authenticate, requireRole([ROLES.STATION_COMMANDER, ROLES.HQ_COMMANDER, ROLES.ADMIN]), logDelete, asyncHandler(async (req, res) => {
+    const requestResult = await query(
+        `SELECT procurement_id, unit_id FROM procurement_requests WHERE procurement_id = $1`,
+        [req.params.id]
+    );
+
+    const access = ensureDeleteAccess(req, requestResult.rows[0], 'Procurement request');
+    if (!access.allowed) {
+        return res.status(access.status).json(access.payload);
+    }
+
+    const deleteResult = await query(
+        `DELETE FROM procurement_requests WHERE procurement_id = $1 RETURNING procurement_id`,
+        [req.params.id]
+    );
+
+    res.json({
+        success: true,
+        message: 'Procurement request deleted successfully',
+        data: {
+            id: deleteResult.rows[0].procurement_id,
+            type: 'procurement'
+        }
+    });
 }));
 
 module.exports = router;

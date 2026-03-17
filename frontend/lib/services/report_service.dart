@@ -8,7 +8,8 @@ class ReportService {
   /// Build query string from optional filters
   String _buildQuery(Map<String, String?> params) {
     final filtered = params.entries
-        .where((e) => e.value != null && e.value!.isNotEmpty && e.value != 'all')
+        .where(
+            (e) => e.value != null && e.value!.isNotEmpty && e.value != 'all')
         .map((e) => '${e.key}=${e.value}')
         .toList();
     return filtered.isEmpty ? '' : '?${filtered.join('&')}';
@@ -57,6 +58,14 @@ class ReportService {
     }
   }
 
+  Future<void> deleteLossReport(String reportId) async {
+    try {
+      await ApiClient.delete('${ApiConfig.reportsUrl}/loss/$reportId');
+    } catch (e) {
+      throw Exception('Error deleting loss report: $e');
+    }
+  }
+
   // ============================================
   // DESTRUCTION REQUESTS
   // ============================================
@@ -93,6 +102,14 @@ class ReportService {
       return data['data'];
     } catch (e) {
       throw Exception('Error creating destruction request: $e');
+    }
+  }
+
+  Future<void> deleteDestructionRequest(String requestId) async {
+    try {
+      await ApiClient.delete('${ApiConfig.reportsUrl}/destruction/$requestId');
+    } catch (e) {
+      throw Exception('Error deleting destruction request: $e');
     }
   }
 
@@ -134,6 +151,14 @@ class ReportService {
       return data['data'];
     } catch (e) {
       throw Exception('Error creating procurement request: $e');
+    }
+  }
+
+  Future<void> deleteProcurementRequest(String requestId) async {
+    try {
+      await ApiClient.delete('${ApiConfig.reportsUrl}/procurement/$requestId');
+    } catch (e) {
+      throw Exception('Error deleting procurement request: $e');
     }
   }
 

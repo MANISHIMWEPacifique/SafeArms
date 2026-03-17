@@ -3,6 +3,7 @@
 // SafeArms Frontend
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../config/api_config.dart';
 import '../../providers/firearm_provider.dart';
@@ -451,17 +452,13 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         int crossAxisCount;
-        if (constraints.maxWidth >= 1400) {
-          crossAxisCount = 4;
-        } else if (constraints.maxWidth >= 1100) {
+        if (constraints.maxWidth >= 1000) {
           crossAxisCount = 3;
-        } else if (constraints.maxWidth >= _mobileBreakpoint) {
+        } else if (constraints.maxWidth >= 600) {
           crossAxisCount = 2;
         } else {
           crossAxisCount = 1;
         }
-
-        final aspectRatio = crossAxisCount == 1 ? 1.6 : 1.0;
 
         return GridView.builder(
           shrinkWrap: true,
@@ -470,7 +467,7 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: aspectRatio,
+            childAspectRatio: 0.58,
           ),
           itemCount: firearms.length,
           itemBuilder: (context, index) => _buildFirearmCard(firearms[index]),
@@ -502,70 +499,174 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
 
   Widget _buildFirearmCard(FirearmModel firearm) {
     return InkWell(
-      onTap: () => setState(() => _selectedFirearmForDetail = firearm),
+      onTap: () {
+        setState(() => _selectedFirearmForDetail = firearm);
+      },
+      hoverColor: Colors.transparent,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF252A3A),
+          color: const Color(0xFF2A3040),
           border: Border.all(color: const Color(0xFF37404F)),
           borderRadius: BorderRadius.circular(12),
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A3040),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: _buildFirearmIndicator(firearm, size: 20),
-                  ),
-                ),
-                const Spacer(),
                 _buildStatusBadge(firearm.currentStatus),
+                const Spacer(),
+                _buildRegistrationLevelBadge(firearm.registrationLevel),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            Center(
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF252A3A),
+                  shape: BoxShape.circle,
+                ),
+                child: _buildFirearmIndicator(
+                  firearm,
+                  size: 72,
+                  fit: BoxFit.cover,
+                  circular: true,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             Text(
-              firearm.serialNumber,
+              '${firearm.manufacturer} ${firearm.model}',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 14,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
-                fontFamily: 'monospace',
               ),
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
-            Text(
-              '${firearm.manufacturer} ${firearm.model}',
-              style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
-              overflow: TextOverflow.ellipsis,
-            ),
-            const Spacer(),
             Row(
               children: [
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: _buildFirearmIndicator(firearm, size: 14),
+                Expanded(
+                  child: Text(
+                    firearm.serialNumber,
+                    style: const TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 14,
+                      fontFamily: 'monospace',
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  firearm.caliber ?? 'N/A',
-                  style:
-                      const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                IconButton(
+                  icon: const Icon(
+                    Icons.copy,
+                    size: 16,
+                    color: Color(0xFF78909C),
+                  ),
+                  onPressed: () {
+                    Clipboard.setData(
+                        ClipboardData(text: firearm.serialNumber));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Serial number copied: ${firearm.serialNumber}'),
+                        duration: const Duration(seconds: 2),
+                        backgroundColor: const Color(0xFF3CCB7F),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            const Divider(color: Color(0xFF37404F), height: 32),
+            _buildSpecRow('Type', _formatFirearmType(firearm.firearmType)),
+            _buildSpecRow('Caliber', firearm.caliber ?? 'N/A'),
+            _buildSpecRow('Year', firearm.manufactureYear?.toString() ?? 'N/A'),
+            _buildSpecRow('Acquired', _formatDate(firearm.acquisitionDate)),
+            const SizedBox(height: 16),
+            if (firearm.assignedUnitId != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF252A3A),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.business,
+                        color: Color(0xFF42A5F5), size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Assigned Unit',
+                            style: TextStyle(
+                                color: Color(0xFF78909C), fontSize: 11),
+                          ),
+                          Text(
+                            firearm.unitDisplayName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() => _selectedFirearmForDetail = firearm);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E88E5),
+                      side: const BorderSide(color: Color(0xFF1E88E5)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('View Details',
+                        style: TextStyle(fontSize: 13)),
+                  ),
                 ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSpecRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: const TextStyle(color: Color(0xFF78909C), fontSize: 12)),
+          Text(value,
+              style: const TextStyle(color: Colors.white, fontSize: 13)),
+        ],
       ),
     );
   }
@@ -693,40 +794,73 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
   }
 
   Widget _buildStatusBadge(String status) {
-    Color color;
-    String label;
+    Color backgroundColor;
+    String displayText;
 
     switch (status) {
       case 'available':
-        color = const Color(0xFF3CCB7F);
-        label = 'Available';
+        backgroundColor = const Color(0xFF3CCB7F);
+        displayText = 'AVAILABLE';
         break;
       case 'in_custody':
-        color = const Color(0xFFFFC857);
-        label = 'In Custody';
+        backgroundColor = const Color(0xFF42A5F5);
+        displayText = 'IN CUSTODY';
         break;
       case 'maintenance':
-        color = const Color(0xFF78909C);
-        label = 'Maintenance';
+        backgroundColor = const Color(0xFFFFC857);
+        displayText = 'MAINTENANCE';
         break;
       default:
-        color = const Color(0xFF78909C);
-        label = status;
+        backgroundColor = const Color(0xFF78909C);
+        displayText = status.toUpperCase();
     }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        displayText,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegistrationLevelBadge(String level) {
+    final isHQ = level == 'hq';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
+        border: Border.all(
+          color: isHQ ? const Color(0xFF1E88E5) : const Color(0xFF3CCB7F),
         ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isHQ ? Icons.domain : Icons.business,
+            size: 12,
+            color: isHQ ? const Color(0xFF1E88E5) : const Color(0xFF3CCB7F),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isHQ ? 'HQ' : 'UNIT',
+            style: TextStyle(
+              color: isHQ ? const Color(0xFF1E88E5) : const Color(0xFF3CCB7F),
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -803,7 +937,12 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
     return '${ApiConfig.baseUrl}$rawImageUrl';
   }
 
-  Widget _buildFirearmIndicator(FirearmModel firearm, {required double size}) {
+  Widget _buildFirearmIndicator(
+    FirearmModel firearm, {
+    required double size,
+    BoxFit fit = BoxFit.cover,
+    bool circular = false,
+  }) {
     final imageUrl = _resolveImageUrl(firearm.imageUrl);
     if (imageUrl == null) {
       return Icon(
@@ -813,11 +952,25 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
       );
     }
 
+    if (circular) {
+      return ClipOval(
+        child: Image.network(
+          imageUrl,
+          fit: fit,
+          errorBuilder: (_, __, ___) => Icon(
+            _getTypeIcon(firearm.firearmType),
+            color: const Color(0xFF42A5F5),
+            size: size,
+          ),
+        ),
+      );
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(6),
       child: Image.network(
         imageUrl,
-        fit: BoxFit.cover,
+        fit: fit,
         errorBuilder: (_, __, ___) => Icon(
           _getTypeIcon(firearm.firearmType),
           color: const Color(0xFF42A5F5),
@@ -825,5 +978,30 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
         ),
       ),
     );
+  }
+
+  String _formatFirearmType(String type) {
+    return type
+        .split('_')
+        .map((word) => word[0].toUpperCase() + word.substring(1))
+        .join(' ');
+  }
+
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }

@@ -9,6 +9,7 @@ import '../../providers/approval_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../services/report_service.dart';
 import '../../services/firearm_service.dart';
+import '../../widgets/delete_confirmation_dialog.dart';
 import '../../widgets/searchable_dropdown.dart';
 import '../../widgets/empty_state_widget.dart';
 
@@ -112,6 +113,8 @@ class _ReportsScreenState extends State<ReportsScreen>
     final isInvestigator = role == 'investigator';
     // HQ commanders and admin can approve/reject
     final canApprove = role == 'admin' || role == 'hq_firearm_commander';
+    final canDelete =
+        role == 'station_commander' || role == 'hq_firearm_commander';
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
@@ -124,9 +127,12 @@ class _ReportsScreenState extends State<ReportsScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildLossReportsTab(isStation, canApprove: canApprove),
-                _buildDestructionRequestsTab(isStation, canApprove: canApprove),
-                _buildProcurementRequestsTab(isStation, canApprove: canApprove),
+                _buildLossReportsTab(isStation,
+                    canApprove: canApprove, canDelete: canDelete),
+                _buildDestructionRequestsTab(isStation,
+                    canApprove: canApprove, canDelete: canDelete),
+                _buildProcurementRequestsTab(isStation,
+                    canApprove: canApprove, canDelete: canDelete),
               ],
             ),
           ),
@@ -359,7 +365,8 @@ class _ReportsScreenState extends State<ReportsScreen>
     );
   }
 
-  Widget _buildLossReportsTab(bool isStation, {bool canApprove = false}) {
+  Widget _buildLossReportsTab(bool isStation,
+      {bool canApprove = false, bool canDelete = false}) {
     if (_isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
@@ -374,12 +381,12 @@ class _ReportsScreenState extends State<ReportsScreen>
       itemCount: _lossReports.length,
       itemBuilder: (context, index) => _buildLossReportCard(
           _lossReports[index], isStation,
-          canApprove: canApprove),
+          canApprove: canApprove, canDelete: canDelete),
     );
   }
 
   Widget _buildLossReportCard(Map<String, dynamic> report, bool isStation,
-      {bool canApprove = false}) {
+      {bool canApprove = false, bool canDelete = false}) {
     final status = report['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
     final createdAt = report['created_at'] != null
@@ -426,6 +433,22 @@ class _ReportsScreenState extends State<ReportsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (canDelete) ...[
+                  OutlinedButton(
+                    onPressed: () => _handleDeleteReport(report, 'loss'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFE85C5C),
+                      side: const BorderSide(color: Color(0xFF37404F)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Delete'),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 OutlinedButton(
                   onPressed: () =>
                       _handleReportAction(report, 'loss', 'rejected'),
@@ -458,13 +481,34 @@ class _ReportsScreenState extends State<ReportsScreen>
               ],
             ),
           ],
+          if ((!canApprove || status != 'pending') && canDelete) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: () => _handleDeleteReport(report, 'loss'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFE85C5C),
+                    side: const BorderSide(color: Color(0xFF37404F)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Delete'),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildDestructionRequestsTab(bool isStation,
-      {bool canApprove = false}) {
+      {bool canApprove = false, bool canDelete = false}) {
     if (_isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
@@ -480,12 +524,12 @@ class _ReportsScreenState extends State<ReportsScreen>
       itemCount: _destructionRequests.length,
       itemBuilder: (context, index) => _buildDestructionCard(
           _destructionRequests[index], isStation,
-          canApprove: canApprove),
+          canApprove: canApprove, canDelete: canDelete),
     );
   }
 
   Widget _buildDestructionCard(Map<String, dynamic> request, bool isStation,
-      {bool canApprove = false}) {
+      {bool canApprove = false, bool canDelete = false}) {
     final status = request['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
     final createdAt = request['created_at'] != null
@@ -532,6 +576,23 @@ class _ReportsScreenState extends State<ReportsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (canDelete) ...[
+                  OutlinedButton(
+                    onPressed: () =>
+                        _handleDeleteReport(request, 'destruction'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFE85C5C),
+                      side: const BorderSide(color: Color(0xFF37404F)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Delete'),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 OutlinedButton(
                   onPressed: () =>
                       _handleReportAction(request, 'destruction', 'rejected'),
@@ -564,13 +625,34 @@ class _ReportsScreenState extends State<ReportsScreen>
               ],
             ),
           ],
+          if ((!canApprove || status != 'pending') && canDelete) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: () => _handleDeleteReport(request, 'destruction'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFE85C5C),
+                    side: const BorderSide(color: Color(0xFF37404F)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Delete'),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildProcurementRequestsTab(bool isStation,
-      {bool canApprove = false}) {
+      {bool canApprove = false, bool canDelete = false}) {
     if (_isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
@@ -586,12 +668,12 @@ class _ReportsScreenState extends State<ReportsScreen>
       itemCount: _procurementRequests.length,
       itemBuilder: (context, index) => _buildProcurementCard(
           _procurementRequests[index], isStation,
-          canApprove: canApprove),
+          canApprove: canApprove, canDelete: canDelete),
     );
   }
 
   Widget _buildProcurementCard(Map<String, dynamic> request, bool isStation,
-      {bool canApprove = false}) {
+      {bool canApprove = false, bool canDelete = false}) {
     final status = request['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
     final createdAt = request['created_at'] != null
@@ -637,6 +719,23 @@ class _ReportsScreenState extends State<ReportsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (canDelete) ...[
+                  OutlinedButton(
+                    onPressed: () =>
+                        _handleDeleteReport(request, 'procurement'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFE85C5C),
+                      side: const BorderSide(color: Color(0xFF37404F)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Delete'),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 OutlinedButton(
                   onPressed: () =>
                       _handleReportAction(request, 'procurement', 'rejected'),
@@ -665,6 +764,27 @@ class _ReportsScreenState extends State<ReportsScreen>
                     ),
                   ),
                   child: const Text('Approve'),
+                ),
+              ],
+            ),
+          ],
+          if ((!canApprove || status != 'pending') && canDelete) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: () => _handleDeleteReport(request, 'procurement'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFE85C5C),
+                    side: const BorderSide(color: Color(0xFF37404F)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Delete'),
                 ),
               ],
             ),
@@ -1196,6 +1316,75 @@ class _ReportsScreenState extends State<ReportsScreen>
               backgroundColor: const Color(0xFFE85C5C)),
         );
       }
+    }
+  }
+
+  Future<void> _handleDeleteReport(
+      Map<String, dynamic> report, String type) async {
+    final recordId = _getReportId(report, type);
+    final confirmed = await DeleteConfirmationDialog.show(
+      context,
+      title: 'Delete ${_typeLabel(type)}?',
+      message: 'You are about to permanently delete',
+      itemName: '#$recordId',
+      detail: 'This action cannot be undone.',
+      confirmText: 'Delete ${_typeLabel(type)}',
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      if (type == 'loss') {
+        await _reportService.deleteLossReport(recordId);
+      } else if (type == 'destruction') {
+        await _reportService.deleteDestructionRequest(recordId);
+      } else if (type == 'procurement') {
+        await _reportService.deleteProcurementRequest(recordId);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${_typeLabel(type)} deleted successfully'),
+            backgroundColor: const Color(0xFF3CCB7F),
+          ),
+        );
+        _loadData();
+        context.read<ApprovalProvider>().loadPendingApprovals();
+        context.read<DashboardProvider>().loadDashboardStats();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Error deleting ${_typeLabel(type).toLowerCase()}: $e'),
+              backgroundColor: const Color(0xFFE85C5C)),
+        );
+      }
+    }
+  }
+
+  String _getReportId(Map<String, dynamic> report, String type) {
+    if (type == 'loss') {
+      return report['loss_id'].toString();
+    }
+    if (type == 'destruction') {
+      return report['destruction_id'].toString();
+    }
+    return report['procurement_id'].toString();
+  }
+
+  String _typeLabel(String type) {
+    switch (type) {
+      case 'loss':
+        return 'Loss Report';
+      case 'destruction':
+        return 'Destruction Request';
+      default:
+        return 'Procurement Request';
     }
   }
 }

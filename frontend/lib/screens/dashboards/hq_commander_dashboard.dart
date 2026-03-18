@@ -157,31 +157,21 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                 bottom: BorderSide(color: Color(0xFF37404F), width: 1),
               ),
             ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: const Row(
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.shield_outlined,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                    SizedBox(width: 12),
-                    Text(
-                      'SafeArms',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                Icon(
+                  Icons.shield_outlined,
+                  color: Colors.white,
+                  size: 28,
                 ),
-                SizedBox(height: 4),
+                SizedBox(width: 12),
                 Text(
-                  'HQ Command',
-                  style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                  'SafeArms',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),

@@ -186,9 +186,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     bool collapsed = false,
     VoidCallback? onToggle,
   }) {
+    const Color logoBgColor = Color(0xFFF0F3F6);
+
     if (collapsed) {
       return Container(
-        color: Colors.white,
+        color: logoBgColor,
         child: Column(
           children: [
             if (collapsible)
@@ -220,7 +222,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
 
     return Container(
-      color: Colors.white,
+      color: logoBgColor,
       child: Center(
         child: Padding(
           padding: EdgeInsets.all(compact ? 28.0 : 60.0),

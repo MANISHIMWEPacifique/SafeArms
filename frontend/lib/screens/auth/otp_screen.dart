@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import 'login_screen.dart';
 import 'change_password_screen.dart';
 import '../dashboards/admin_dashboard.dart';
 import '../dashboards/hq_commander_dashboard.dart';
@@ -259,9 +260,11 @@ class _OtpScreenState extends State<OtpScreen> {
     bool collapsed = false,
     VoidCallback? onToggle,
   }) {
+    const Color logoBgColor = Color(0xFFF0F3F6);
+
     if (collapsed) {
       return Container(
-        color: Colors.white,
+        color: logoBgColor,
         child: Column(
           children: [
             if (collapsible)
@@ -293,7 +296,7 @@ class _OtpScreenState extends State<OtpScreen> {
     }
 
     return Container(
-      color: Colors.white,
+      color: logoBgColor,
       child: Center(
         child: Padding(
           padding: EdgeInsets.all(compact ? 28.0 : 60.0),
@@ -440,7 +443,13 @@ class _OtpScreenState extends State<OtpScreen> {
                 const SizedBox(height: 16),
                 // Back button
                 TextButton.icon(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.arrow_back, color: Color(0xFF78909C)),
                   label: const Text(
                     'Back to Login',

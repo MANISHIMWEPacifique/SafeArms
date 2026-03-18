@@ -131,9 +131,11 @@ class _LoginScreenState extends State<LoginScreen> {
     bool collapsed = false,
     VoidCallback? onToggle,
   }) {
+    const Color logoBgColor = Color(0xFFF0F3F6);
+
     if (collapsed) {
       return Container(
-        color: Colors.white,
+        color: logoBgColor,
         child: Column(
           children: [
             if (collapsible)
@@ -165,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     return Container(
-      color: Colors.white,
+      color: logoBgColor,
       child: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(compact ? 28.0 : 60.0),
@@ -285,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Footer
                   const Center(
                     child: Text(
-                      '© 2025 Rwanda National Police',
+                      '© 2026 Rwanda National Police',
                       style: TextStyle(fontSize: 12, color: Color(0xFF78909C)),
                     ),
                   ),

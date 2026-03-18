@@ -857,7 +857,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   Widget _buildDistributionChart() {
     final dashProvider = Provider.of<DashboardProvider>(context, listen: false);
     final firearms = dashProvider.firearmsStats;
-    final anomalies = dashProvider.anomaliesStats ?? [];
 
     final available =
         double.tryParse(firearms?['available']?.toString() ?? '0') ?? 0;
@@ -865,14 +864,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         double.tryParse(firearms?['in_custody']?.toString() ?? '0') ?? 0;
     final maintenance =
         double.tryParse(firearms?['maintenance']?.toString() ?? '0') ?? 0;
-
-    // Build anomaly severity data for bar chart
-    final Map<String, double> severityData = {};
-    for (final a in anomalies) {
-      final severity = a['severity']?.toString() ?? 'unknown';
-      final count = double.tryParse(a['count']?.toString() ?? '0') ?? 0;
-      severityData[severity] = count;
-    }
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -884,7 +875,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Firearm Status & Anomalies',
+            'Firearms Distribution',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -899,8 +890,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
           const SizedBox(height: 24),
           SizedBox(
             height: 250,
-            child: (available + inCustody + maintenance) == 0 &&
-                    severityData.isEmpty
+            child: (available + inCustody + maintenance) == 0
                 ? const Center(
                     child: Text(
                       'No data available',
@@ -914,7 +904,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                                 available,
                                 inCustody,
                                 maintenance,
-                                ...severityData.values
                               ].fold(0.0, (a, b) => a > b ? a : b) *
                               1.2 +
                           1,
@@ -926,8 +915,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                               'Available',
                               'In Custody',
                               'Maintenance',
-                              ...severityData.keys.map(
-                                  (s) => s[0].toUpperCase() + s.substring(1))
                             ];
                             return BarTooltipItem(
                               '${labels[groupIndex]}\n${rod.toY.toInt()}',
@@ -951,8 +938,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                                 'Avail',
                                 'Custody',
                                 'Maint',
-                                ...severityData.keys.map((s) =>
-                                    s.length > 6 ? '${s.substring(0, 5)}.' : s)
                               ];
                               final idx = value.toInt();
                               if (idx >= 0 && idx < labels.length) {
@@ -997,15 +982,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                         _makeBarGroup(0, available, const Color(0xFF3CCB7F)),
                         _makeBarGroup(1, inCustody, const Color(0xFF42A5F5)),
                         _makeBarGroup(2, maintenance, const Color(0xFFFFB74D)),
-                        ...severityData.entries
-                            .toList()
-                            .asMap()
-                            .entries
-                            .map((entry) {
-                          final color = _getSeverityColor(entry.value.key);
-                          return _makeBarGroup(
-                              3 + entry.key, entry.value.value, color);
-                        }),
                       ],
                     ),
                   ),

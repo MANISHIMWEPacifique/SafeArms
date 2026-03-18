@@ -234,10 +234,12 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                 child: Container(
                   margin: EdgeInsets.only(left: isFirst ? 0 : 12),
                   child: InkWell(
-                    onTap: () => setState(() => _selectedReportType = rt['value']!),
+                    onTap: () =>
+                        setState(() => _selectedReportType = rt['value']!),
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? const Color(0xFF1E88E5).withValues(alpha: 0.15)
@@ -255,8 +257,8 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            rt['value'] == 'firearm_history' 
-                                ? Icons.description_outlined 
+                            rt['value'] == 'firearm_history'
+                                ? Icons.description_outlined
                                 : Icons.track_changes,
                             color: isSelected
                                 ? const Color(0xFF1E88E5)
@@ -273,7 +275,9 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                                     ? const Color(0xFF1E88E5)
                                     : const Color(0xFFB0BEC5),
                                 fontSize: 13,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                             ),
                           ),
@@ -344,7 +348,8 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                         side: BorderSide(
                             color: _reportGenerated
                                 ? const Color(0xFF37404F)
-                                : const Color(0xFF37404F).withValues(alpha: 0.5)),
+                                : const Color(0xFF37404F)
+                                    .withValues(alpha: 0.5)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
@@ -354,7 +359,9 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: (_serialController.text.isNotEmpty || _dateFrom != null || _dateTo != null)
+                      onPressed: (_serialController.text.isNotEmpty ||
+                              _dateFrom != null ||
+                              _dateTo != null)
                           ? () {
                               setState(() {
                                 _serialController.clear();
@@ -366,13 +373,18 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                       icon: const Icon(Icons.clear, size: 18),
                       label: const Text('Clear All'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: (_serialController.text.isNotEmpty || _dateFrom != null || _dateTo != null)
+                        foregroundColor: (_serialController.text.isNotEmpty ||
+                                _dateFrom != null ||
+                                _dateTo != null)
                             ? const Color(0xFFB0BEC5)
                             : const Color(0xFF546E7A),
                         side: BorderSide(
-                            color: (_serialController.text.isNotEmpty || _dateFrom != null || _dateTo != null)
+                            color: (_serialController.text.isNotEmpty ||
+                                    _dateFrom != null ||
+                                    _dateTo != null)
                                 ? const Color(0xFF37404F)
-                                : const Color(0xFF37404F).withValues(alpha: 0.5)),
+                                : const Color(0xFF37404F)
+                                    .withValues(alpha: 0.5)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
@@ -495,31 +507,31 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
           borderRadius: BorderRadius.circular(8),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFF1A1F2E),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFF37404F)),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  value != null
-                      ? DateFormat('MMM d, yyyy').format(value)
-                      : 'mm/dd/yyyy',
-                  style: TextStyle(
-                    color:
-                        value != null ? Colors.white : const Color(0xFF78909C),
-                    fontSize: 14,
-                  ),
-                ),
                 Icon(
                   Icons.calendar_today,
                   color: value != null
                       ? const Color(0xFF1E88E5)
                       : const Color(0xFF78909C),
                   size: 18,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  value != null
+                      ? DateFormat('MMM d, yyyy').format(value)
+                      : 'Select date',
+                  style: TextStyle(
+                    color:
+                        value != null ? Colors.white : const Color(0xFF78909C),
+                    fontSize: 14,
+                  ),
                 ),
               ],
             ),

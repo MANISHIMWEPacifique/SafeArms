@@ -269,57 +269,69 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           const SizedBox(height: 20),
 
           // Report Type Selection
-          const Text('Select Report Type',
+          const Text('SELECT REPORT TYPE',
               style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
+          Row(
             children: _reportTypes.map((rt) {
               final isSelected = _selectedReportType == rt['value'];
-              return InkWell(
-                onTap: () => setState(() => _selectedReportType = rt['value']!),
-                borderRadius: BorderRadius.circular(8),
+              final isFirst = _reportTypes.first == rt;
+              return Expanded(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF1E88E5).withValues(alpha: 0.15)
-                        : const Color(0xFF1A1F2E),
+                  margin: EdgeInsets.only(left: isFirst ? 0 : 12),
+                  child: InkWell(
+                    onTap: () =>
+                        setState(() => _selectedReportType = rt['value']!),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFF1E88E5)
-                          : const Color(0xFF37404F),
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isSelected
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_off,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFF1E88E5)
-                            : const Color(0xFF78909C),
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        rt['label']!,
-                        style: TextStyle(
+                            ? const Color(0xFF1E88E5).withValues(alpha: 0.15)
+                            : const Color(0xFF1A1F2E),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
                           color: isSelected
                               ? const Color(0xFF1E88E5)
-                              : const Color(0xFFB0BEC5),
-                          fontSize: 14,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.normal,
+                              : const Color(0xFF37404F),
+                          width: isSelected ? 2 : 1,
                         ),
                       ),
-                    ],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            rt['value'] == 'user_activity'
+                                ? Icons.people_outline
+                                : rt['value'] == 'audit_log'
+                                    ? Icons.list_alt
+                                    : Icons.warning_amber_rounded,
+                            color: isSelected
+                                ? const Color(0xFF1E88E5)
+                                : const Color(0xFF78909C),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              rt['label']!,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? const Color(0xFF1E88E5)
+                                    : const Color(0xFFB0BEC5),
+                                fontSize: 13,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -328,16 +340,24 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           const SizedBox(height: 20),
 
           // Linear form fields
-          _buildFormDateField('Start Date', _dateFrom, (date) {
-            setState(() => _dateFrom = date);
-          }),
-          const SizedBox(height: 16),
-          _buildFormDateField('End Date', _dateTo, (date) {
-            setState(() => _dateTo = date);
-          }),
+          Row(
+            children: [
+              Expanded(
+                child: _buildFormDateField('START DATE', _dateFrom, (date) {
+                  setState(() => _dateFrom = date);
+                }),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildFormDateField('END DATE', _dateTo, (date) {
+                  setState(() => _dateTo = date);
+                }),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           _buildFormTextField(
-            'Username (optional)',
+            'USERNAME (OPTIONAL)',
             _usernameController,
             'Type username to filter',
             Icons.person_outline,
@@ -346,7 +366,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Role (optional)',
+              const Text('ROLE (OPTIONAL)',
                   style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
               const SizedBox(height: 8),
               Wrap(
@@ -410,49 +430,69 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _reportGenerated ? _exportPdf : null,
-                  icon: const Icon(Icons.picture_as_pdf, size: 18),
-                  label: const Text('Export PDF'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _reportGenerated
-                        ? const Color(0xFFB0BEC5)
-                        : const Color(0xFF546E7A),
-                    side: BorderSide(
-                        color: _reportGenerated
-                            ? const Color(0xFF37404F)
-                            : const Color(0xFF37404F).withValues(alpha: 0.5)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _reportGenerated ? _exportPdf : null,
+                      icon: const Icon(Icons.picture_as_pdf, size: 18),
+                      label: const Text('Export PDF'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _reportGenerated
+                            ? const Color(0xFFB0BEC5)
+                            : const Color(0xFF546E7A),
+                        side: BorderSide(
+                            color: _reportGenerated
+                                ? const Color(0xFF37404F)
+                                : const Color(0xFF37404F)
+                                    .withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: (_usernameController.text.isNotEmpty ||
+                              _selectedRole.isNotEmpty ||
+                              _dateFrom != null ||
+                              _dateTo != null)
+                          ? () {
+                              setState(() {
+                                _usernameController.clear();
+                                _selectedRole = '';
+                                _dateFrom = null;
+                                _dateTo = null;
+                              });
+                            }
+                          : null,
+                      icon: const Icon(Icons.clear, size: 18),
+                      label: const Text('Clear All'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: (_usernameController.text.isNotEmpty ||
+                                _selectedRole.isNotEmpty ||
+                                _dateFrom != null ||
+                                _dateTo != null)
+                            ? const Color(0xFFB0BEC5)
+                            : const Color(0xFF546E7A),
+                        side: BorderSide(
+                            color: (_usernameController.text.isNotEmpty ||
+                                    _selectedRole.isNotEmpty ||
+                                    _dateFrom != null ||
+                                    _dateTo != null)
+                                ? const Color(0xFF37404F)
+                                : const Color(0xFF37404F)
+                                    .withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              if (_usernameController.text.isNotEmpty ||
-                  _selectedRole.isNotEmpty ||
-                  _dateFrom != null ||
-                  _dateTo != null) ...[
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _usernameController.clear();
-                        _selectedRole = '';
-                        _dateFrom = null;
-                        _dateTo = null;
-                      });
-                    },
-                    icon: const Icon(Icons.clear, size: 16),
-                    label: const Text('Clear All'),
-                    style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF78909C)),
-                  ),
-                ),
-              ],
             ],
           ),
         ],

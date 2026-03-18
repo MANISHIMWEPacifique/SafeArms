@@ -146,28 +146,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             const Spacer(),
+            // Logo
             Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+              width: 52,
+              height: 52,
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.shield_outlined,
-                color: Color(0xFF1E88E5),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const RotatedBox(
-              quarterTurns: 3,
-              child: Text(
-                'SafeArms',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF1E88E5),
-                  fontWeight: FontWeight.w700,
-                ),
+              child: Image.asset(
+                'assets/images/logo.png',
+                fit: BoxFit.contain,
               ),
             ),
             const Spacer(),
@@ -196,48 +184,39 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               // Logo
               Container(
-                width: compact ? 88 : 120,
-                height: compact ? 88 : 120,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                width: compact ? 200 : 280,
+                height: compact ? 200 : 280,
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.shield_outlined,
-                  size: compact ? 44 : 64,
-                  color: const Color(0xFF1E88E5),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  fit: BoxFit.contain,
                 ),
               ),
-              SizedBox(height: compact ? 20 : 32),
-              // SafeArms Title
-              Text(
-                'SafeArms',
-                style: TextStyle(
-                  fontSize: compact ? 32 : 42,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1E88E5),
-                  letterSpacing: -0.5,
-                ),
-              ),
-              SizedBox(height: compact ? 10 : 16),
+              SizedBox(height: compact ? 30 : 40),
               // Tagline
               Text(
                 'Police Firearm Control &\nInvestigation Support Platform',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: compact ? 15 : 18,
-                  color: const Color(0xFF1A1F2E),
-                  height: 1.5,
+                  fontSize: compact ? 16 : 20,
+                  color: const Color(
+                      0xFF1A1F2E), // Using dark background color for high contrast
+                  height: 1.4,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               // Subtitle
               Text(
-                'Rwanda National Police',
+                'RWANDA NATIONAL POLICE',
                 style: TextStyle(
-                  fontSize: compact ? 14 : 16,
-                  color: const Color(0xFF78909C),
-                  fontWeight: FontWeight.w500,
+                  fontSize: compact ? 13 : 15,
+                  color: const Color(0xFF1E88E5), // Using app primary color
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
                 ),
               ),
             ],

@@ -23,6 +23,7 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
   DateTime? _dateFrom;
   DateTime? _dateTo;
   final TextEditingController _unitNameController = TextEditingController();
+  final TextEditingController _serialNumberController = TextEditingController();
   String _selectedReportType = 'firearm_history';
 
   // Data state
@@ -48,6 +49,7 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
   @override
   void dispose() {
     _unitNameController.dispose();
+    _serialNumberController.dispose();
     super.dispose();
   }
 
@@ -91,6 +93,9 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
       }
       if (_dateTo != null) {
         queryParams['end_date'] = _dateTo!.toIso8601String();
+      }
+      if (_serialNumberController.text.trim().isNotEmpty) {
+        queryParams['serial_number'] = _serialNumberController.text.trim();
       }
       if (_unitNameController.text.trim().isNotEmpty) {
         // Find unit by name
@@ -138,6 +143,9 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
       final metadata = <String, String>{};
       if (_unitNameController.text.isNotEmpty) {
         metadata['Unit'] = _unitNameController.text;
+      }
+      if (_serialNumberController.text.isNotEmpty) {
+        metadata['Serial Number'] = _serialNumberController.text;
       }
       if (_dateFrom != null && _dateTo != null) {
         metadata['Date Range'] =
@@ -313,7 +321,7 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Date Range + Unit Name Row
+          // Date Range + Text Row
           Row(
             children: [
               Expanded(
@@ -332,8 +340,17 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
                 child: _buildFormTextField(
                   'Unit Name (optional)',
                   _unitNameController,
-                  'Type unit name to filter',
+                  'Type unit name',
                   Icons.business,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildFormTextField(
+                  'Serial Number (optional)',
+                  _serialNumberController,
+                  'Type ref/serial number',
+                  Icons.numbers,
                 ),
               ),
             ],
@@ -377,12 +394,14 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
               ),
               const Spacer(),
               if (_unitNameController.text.isNotEmpty ||
+                  _serialNumberController.text.isNotEmpty ||
                   _dateFrom != null ||
                   _dateTo != null)
                 TextButton.icon(
                   onPressed: () {
                     setState(() {
                       _unitNameController.clear();
+                      _serialNumberController.clear();
                       _dateFrom = null;
                       _dateTo = null;
                     });
@@ -603,6 +622,9 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
                     ? '${DateFormat('MMM d, yyyy').format(_dateFrom!)} – ${DateFormat('MMM d, yyyy').format(_dateTo!)}'
                     : 'All time'),
             _buildHeaderMeta('Unit', unitName),
+            if (_serialNumberController.text.trim().isNotEmpty)
+              _buildHeaderMeta(
+                  'Serial Number', _serialNumberController.text.trim()),
           ],
         ),
       ],
@@ -776,6 +798,8 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
   Widget _buildBallisticSummaryReport() {
     final profiles =
         List<Map<String, dynamic>>.from(_reportData['profiles'] ?? []);
+    final recentCustodyLogs = List<Map<String, dynamic>>.from(
+        _reportData['recent_custody_logs'] ?? []);
 
     if (profiles.isEmpty) {
       return _buildEmptyState(
@@ -790,21 +814,52 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
         _buildDataTable(
           columns: const [
             'Serial Number',
+            'Ref ID',
             'Caliber',
             'Rifling',
             'Firing Pin',
-            'Recorded'
+            'Ejector/Extractor',
+            'Chamber Marks',
           ],
           rows: profiles
               .map((p) => [
                     p['serial_number']?.toString() ?? '',
+                    p['ballistic_id']?.toString() ?? '',
                     p['caliber']?.toString() ?? '',
                     p['rifling_characteristics']?.toString() ?? '',
                     p['firing_pin_impression']?.toString() ?? '',
-                    _fmtDate(p['created_at']?.toString()),
+                    '${p['ejector_marks'] ?? ''} / ${p['extractor_marks'] ?? ''}',
+                    p['chamber_marks']?.toString() ?? '',
                   ])
               .toList(),
         ),
+        if (recentCustodyLogs.isNotEmpty) ...[
+          const SizedBox(height: 32),
+          _buildSectionTitle('Recent Custody Logs'),
+          const SizedBox(height: 12),
+          _buildDataTable(
+            columns: const [
+              'Custody ID',
+              'Custody Type',
+              'Officer Name',
+              'Unit Name',
+              'Issued At',
+              'Returned At',
+            ],
+            rows: recentCustodyLogs
+                .map((log) => [
+                      log['custody_id']?.toString() ?? '',
+                      (log['custody_type']?.toString() ?? '').toUpperCase(),
+                      log['officer_name']?.toString() ?? 'N/A',
+                      log['unit_name']?.toString() ?? 'N/A',
+                      _fmtDate(log['issued_at']?.toString()),
+                      log['returned_at'] != null
+                          ? _fmtDate(log['returned_at']?.toString())
+                          : 'Active',
+                    ])
+                .toList(),
+          ),
+        ]
       ],
     );
   }

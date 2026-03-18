@@ -34,7 +34,6 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
 
   final List<Map<String, String>> _reportTypes = [
     {'value': 'firearm_history', 'label': 'Firearm History & Custody Chain'},
-    {'value': 'custody_timeline', 'label': 'Custody Timeline Report'},
     {'value': 'ballistic_summary', 'label': 'Ballistic Reference Traceability'},
   ];
 
@@ -224,57 +223,63 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
           const SizedBox(height: 20),
 
           // Report Type Selection
-          const Text('Select Report Type',
+          const Text('SELECT REPORT TYPE',
               style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
+          Row(
             children: _reportTypes.map((rt) {
               final isSelected = _selectedReportType == rt['value'];
-              return InkWell(
-                onTap: () => setState(() => _selectedReportType = rt['value']!),
-                borderRadius: BorderRadius.circular(8),
+              final isFirst = _reportTypes.first == rt;
+              return Expanded(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF1E88E5).withValues(alpha: 0.15)
-                        : const Color(0xFF1A1F2E),
+                  margin: EdgeInsets.only(left: isFirst ? 0 : 12),
+                  child: InkWell(
+                    onTap: () => setState(() => _selectedReportType = rt['value']!),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFF1E88E5)
-                          : const Color(0xFF37404F),
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isSelected
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_off,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFF1E88E5)
-                            : const Color(0xFF78909C),
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        rt['label']!,
-                        style: TextStyle(
+                            ? const Color(0xFF1E88E5).withValues(alpha: 0.15)
+                            : const Color(0xFF1A1F2E),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
                           color: isSelected
                               ? const Color(0xFF1E88E5)
-                              : const Color(0xFFB0BEC5),
-                          fontSize: 14,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.normal,
+                              : const Color(0xFF37404F),
+                          width: isSelected ? 2 : 1,
                         ),
                       ),
-                    ],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            rt['value'] == 'firearm_history' 
+                                ? Icons.description_outlined 
+                                : Icons.track_changes,
+                            color: isSelected
+                                ? const Color(0xFF1E88E5)
+                                : const Color(0xFF78909C),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              rt['label']!,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? const Color(0xFF1E88E5)
+                                    : const Color(0xFFB0BEC5),
+                                fontSize: 13,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -283,19 +288,26 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
           const SizedBox(height: 20),
 
           _buildFormTextField(
-            'Firearm Serial Number',
+            'FIREARM SERIAL NUMBER',
             _serialController,
             'Enter serial number',
-            Icons.search,
           ),
           const SizedBox(height: 16),
-          _buildFormDateField('Start Date', _dateFrom, (date) {
-            setState(() => _dateFrom = date);
-          }),
-          const SizedBox(height: 16),
-          _buildFormDateField('End Date', _dateTo, (date) {
-            setState(() => _dateTo = date);
-          }),
+          Row(
+            children: [
+              Expanded(
+                child: _buildFormDateField('START DATE', _dateFrom, (date) {
+                  setState(() => _dateFrom = date);
+                }),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildFormDateField('END DATE', _dateTo, (date) {
+                  setState(() => _dateTo = date);
+                }),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
 
           // Action Buttons
@@ -318,47 +330,57 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _reportGenerated ? _exportPdf : null,
-                  icon: const Icon(Icons.picture_as_pdf, size: 18),
-                  label: const Text('Export PDF'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _reportGenerated
-                        ? const Color(0xFFB0BEC5)
-                        : const Color(0xFF546E7A),
-                    side: BorderSide(
-                        color: _reportGenerated
-                            ? const Color(0xFF37404F)
-                            : const Color(0xFF37404F).withValues(alpha: 0.5)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _reportGenerated ? _exportPdf : null,
+                      icon: const Icon(Icons.picture_as_pdf, size: 18),
+                      label: const Text('Export PDF'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _reportGenerated
+                            ? const Color(0xFFB0BEC5)
+                            : const Color(0xFF546E7A),
+                        side: BorderSide(
+                            color: _reportGenerated
+                                ? const Color(0xFF37404F)
+                                : const Color(0xFF37404F).withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: (_serialController.text.isNotEmpty || _dateFrom != null || _dateTo != null)
+                          ? () {
+                              setState(() {
+                                _serialController.clear();
+                                _dateFrom = null;
+                                _dateTo = null;
+                              });
+                            }
+                          : null,
+                      icon: const Icon(Icons.clear, size: 18),
+                      label: const Text('Clear All'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: (_serialController.text.isNotEmpty || _dateFrom != null || _dateTo != null)
+                            ? const Color(0xFFB0BEC5)
+                            : const Color(0xFF546E7A),
+                        side: BorderSide(
+                            color: (_serialController.text.isNotEmpty || _dateFrom != null || _dateTo != null)
+                                ? const Color(0xFF37404F)
+                                : const Color(0xFF37404F).withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              if (_serialController.text.isNotEmpty ||
-                  _dateFrom != null ||
-                  _dateTo != null) ...[
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _serialController.clear();
-                        _dateFrom = null;
-                        _dateTo = null;
-                      });
-                    },
-                    icon: const Icon(Icons.clear, size: 16),
-                    label: const Text('Clear All'),
-                    style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF78909C)),
-                  ),
-                ),
-              ],
             ],
           ),
         ],
@@ -370,7 +392,6 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
     String label,
     TextEditingController controller,
     String hint,
-    IconData icon,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,10 +412,9 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
               hintText: hint,
               hintStyle:
                   const TextStyle(color: Color(0xFF78909C), fontSize: 13),
-              prefixIcon: Icon(icon, color: const Color(0xFF78909C), size: 18),
               border: InputBorder.none,
               contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           ),
         ),
@@ -475,31 +495,31 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
           borderRadius: BorderRadius.circular(8),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFF1A1F2E),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFF37404F)),
             ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Text(
+                  value != null
+                      ? DateFormat('MMM d, yyyy').format(value)
+                      : 'mm/dd/yyyy',
+                  style: TextStyle(
+                    color:
+                        value != null ? Colors.white : const Color(0xFF78909C),
+                    fontSize: 14,
+                  ),
+                ),
                 Icon(
                   Icons.calendar_today,
                   color: value != null
                       ? const Color(0xFF1E88E5)
                       : const Color(0xFF78909C),
                   size: 18,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  value != null
-                      ? DateFormat('MMM d, yyyy').format(value)
-                      : 'Select date',
-                  style: TextStyle(
-                    color:
-                        value != null ? Colors.white : const Color(0xFF78909C),
-                    fontSize: 14,
-                  ),
                 ),
               ],
             ),
@@ -534,8 +554,6 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
           // Report body
           if (_selectedReportType == 'firearm_history')
             _buildFirearmHistoryReport(),
-          if (_selectedReportType == 'custody_timeline')
-            _buildCustodyTimelineReport(),
           if (_selectedReportType == 'ballistic_summary')
             _buildBallisticSummaryReport(),
 
@@ -648,6 +666,7 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
           const SizedBox(height: 12),
           _buildDataTable(
             columns: const [
+              'Serial Number',
               'Officer',
               'Unit',
               'Issued Date',
@@ -657,6 +676,7 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
             rows: List<Map<String, dynamic>>.from(
                     _reportData['custody_records'] ?? [])
                 .map((c) => [
+                      c['serial_number']?.toString() ?? '',
                       c['officer_name']?.toString() ??
                           c['officer_id']?.toString() ??
                           '',
@@ -701,47 +721,6 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
   }
 
   // ==============================
-  // CUSTODY TIMELINE REPORT
-  // ==============================
-  Widget _buildCustodyTimelineReport() {
-    final records =
-        List<Map<String, dynamic>>.from(_reportData['custody_records'] ?? []);
-
-    if (records.isEmpty) {
-      return _buildEmptyState(
-          'No custody records found for the selected filters.');
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle('Custody Records – Chronological'),
-        const SizedBox(height: 12),
-        _buildDataTable(
-          columns: const [
-            'Serial Number',
-            'Officer',
-            'Unit',
-            'Issued',
-            'Returned',
-            'Status'
-          ],
-          rows: records
-              .map((c) => [
-                    c['serial_number']?.toString() ?? '',
-                    c['officer_name']?.toString() ?? '',
-                    c['unit_name']?.toString() ?? '',
-                    _fmtDate(c['issued_at']?.toString()),
-                    _fmtDate(c['returned_at']?.toString()),
-                    c['custody_status']?.toString() ?? '',
-                  ])
-              .toList(),
-        ),
-      ],
-    );
-  }
-
-  // ==============================
   // BALLISTIC SUMMARY REPORT
   // ==============================
   Widget _buildBallisticSummaryReport() {
@@ -756,7 +735,7 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Ballistic Reference Profiles'),
+        _buildSectionTitle('Ballistic Reference Profiles & Traceability'),
         const SizedBox(height: 12),
         ...profiles.map((p) {
           return Container(
@@ -770,16 +749,90 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Firearm: ${p['serial_number'] ?? 'N/A'}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Firearm: ${p['serial_number'] ?? 'N/A'}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Ref ID: ${p['ballistic_id']?.toString() ?? 'N/A'}',
+                      style: const TextStyle(
+                        color: Color(0xFF78909C),
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 _buildMetadataGrid(p),
+                const SizedBox(height: 16),
+                _buildRecentCustodyForBallistic(p['firearm_id']),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildRecentCustodyForBallistic(dynamic firearmId) {
+    if (firearmId == null) return const SizedBox.shrink();
+
+    final logs = List<Map<String, dynamic>>.from(
+        _reportData['recent_custody_logs'] ?? []);
+
+    final firearmLogs =
+        logs.where((l) => l['firearm_id'] == firearmId).toList();
+
+    if (firearmLogs.isEmpty) {
+      return const Text('No recent custody history found.',
+          style: TextStyle(
+              color: Color(0xFF78909C),
+              fontSize: 13,
+              fontStyle: FontStyle.italic));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Recent Custody Chain',
+          style: TextStyle(
+              color: Color(0xFF1E88E5),
+              fontSize: 13,
+              fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        ...firearmLogs.take(5).map((log) {
+          final outDate = _fmtDate(log['issued_at']?.toString());
+          final inDate = log['returned_at'] != null
+              ? _fmtDate(log['returned_at']?.toString())
+              : 'Current';
+          final officer = log['officer_name'] ?? 'Unknown';
+          final unit = log['unit_name'] ?? 'Unknown Unit';
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.arrow_right,
+                    size: 16, color: Color(0xFF78909C)),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    '$outDate - $inDate • $officer ($unit)',
+                    style:
+                        const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                  ),
+                ),
               ],
             ),
           );

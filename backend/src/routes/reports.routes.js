@@ -111,7 +111,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
             if (firearmIds.length > 0) {
                 const custodyResult = await query(`
                     SELECT cr.custody_id, cr.firearm_id, cr.issued_at, cr.returned_at,
-                           cr.custody_type,
+                           cr.custody_type, f.serial_number,
                            CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as custody_status,
                            o.full_name as officer_name, o.officer_id,
                            u.unit_name,
@@ -120,11 +120,12 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                                 ELSE 'Active'
                            END as duration
                     FROM custody_records cr
+                    LEFT JOIN firearms f ON cr.firearm_id = f.firearm_id
                     LEFT JOIN officers o ON cr.officer_id = o.officer_id
                     LEFT JOIN units u ON cr.unit_id = u.unit_id
                     WHERE cr.firearm_id = ANY($1)
-                    ORDER BY cr.issued_at DESC
-                    LIMIT 50
+                    ORDER BY cr.issued_at ASC
+                    LIMIT 500
                 `, [firearmIds]);
                 custodyRecords = custodyResult.rows;
 
@@ -163,43 +164,6 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
             break;
         }
 
-        // ===== CUSTODY TIMELINE =====
-        case 'custody_timeline': {
-            let custodyFilter = 'WHERE 1=1';
-            const cParams = [...dateParams];
-            let cIdx = paramIdx;
-
-            if (serial_number) {
-                custodyFilter += ` AND f.serial_number ILIKE $${cIdx}`;
-                cParams.push(`%${serial_number}%`);
-                cIdx++;
-            }
-            if (unit_id) {
-                custodyFilter += ` AND cr.unit_id = $${cIdx}`;
-                cParams.push(unit_id);
-                cIdx++;
-            }
-
-            const custody = await query(`
-                SELECT cr.custody_id, cr.issued_at, cr.returned_at,
-                       cr.custody_type,
-                       CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as custody_status,
-                       f.serial_number, f.firearm_type,
-                       o.full_name as officer_name,
-                       u.unit_name
-                FROM custody_records cr
-                LEFT JOIN firearms f ON cr.firearm_id = f.firearm_id
-                LEFT JOIN officers o ON cr.officer_id = o.officer_id
-                LEFT JOIN units u ON cr.unit_id = u.unit_id
-                ${(custodyFilter + dateFilter).replace(/created_at/g, 'cr.issued_at')}
-                ORDER BY cr.issued_at DESC
-                LIMIT 100
-            `, cParams);
-
-            data = { custody_records: custody.rows };
-            break;
-        }
-
         // ===== BALLISTIC REFERENCE SUMMARY =====
         case 'ballistic_summary': {
             let bpFilter = 'WHERE 1=1';
@@ -218,7 +182,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
             }
 
             const profiles = await query(`
-                SELECT bp.ballistic_id, bp.rifling_characteristics, bp.firing_pin_impression,
+                SELECT bp.ballistic_id, bp.firearm_id, bp.rifling_characteristics, bp.firing_pin_impression,
                        bp.ejector_marks, bp.extractor_marks, bp.chamber_marks,
                        bp.test_date, bp.test_location, bp.forensic_lab,
                        bp.is_locked, bp.registration_hash,
@@ -231,7 +195,28 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 LIMIT 100
             `, bParams);
 
-            data = { profiles: profiles.rows };
+            const firearmIds = profiles.rows.map(p => p.firearm_id).filter(Boolean);
+            let recent_custody_logs = [];
+
+            if (firearmIds.length > 0) {
+                const custodyResult = await query(`
+                    SELECT cr.custody_id, cr.firearm_id, cr.issued_at, cr.returned_at,
+                           cr.custody_type, o.full_name as officer_name,
+                           u.unit_name
+                    FROM custody_records cr
+                    LEFT JOIN officers o ON cr.officer_id = o.officer_id
+                    LEFT JOIN units u ON cr.unit_id = u.unit_id
+                    WHERE cr.firearm_id = ANY($1)
+                    ORDER BY cr.issued_at DESC
+                    LIMIT 200
+                `, [firearmIds]);
+                recent_custody_logs = custodyResult.rows;
+            }
+
+            data = { 
+                profiles: profiles.rows,
+                recent_custody_logs: recent_custody_logs
+            };
             break;
         }
 

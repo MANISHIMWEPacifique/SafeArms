@@ -2,7 +2,6 @@
 // SafeArms Frontend
 
 import 'package:flutter/foundation.dart';
-import 'dart:typed_data';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
 

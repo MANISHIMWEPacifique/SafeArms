@@ -163,8 +163,6 @@ class PdfReportGenerator {
     switch (type) {
       case 'firearm_history':
         return _firearmHistory(data);
-      case 'custody_timeline':
-        return _custodyTimeline(data);
       case 'ballistic_summary':
         return _ballisticSummary(data);
       case 'anomaly_summary':
@@ -223,9 +221,17 @@ class PdfReportGenerator {
       widgets.add(pw.SizedBox(height: 16));
       widgets.add(_sectionTitle('Custody Timeline'));
       widgets.add(_table(
-        headers: ['Officer', 'Unit', 'Issued', 'Returned', 'Duration'],
+        headers: [
+          'Serial Number',
+          'Officer',
+          'Unit',
+          'Issued',
+          'Returned',
+          'Duration'
+        ],
         rows: custody
             .map((c) => [
+                  c['serial_number']?.toString() ?? '',
                   c['officer_name']?.toString() ??
                       c['officer_id']?.toString() ??
                       '',
@@ -276,42 +282,6 @@ class PdfReportGenerator {
     }
 
     return widgets;
-  }
-
-  // ─────────────────────────────────────────────
-  // CUSTODY TIMELINE
-  // ─────────────────────────────────────────────
-  static List<pw.Widget> _custodyTimeline(Map<String, dynamic> data) {
-    final records = _asList(data['custody_records']);
-    if (records.isEmpty) {
-      return [
-        _sectionTitle('Custody Records'),
-        _emptyNote('No custody records found.')
-      ];
-    }
-    return [
-      _sectionTitle('Custody Records – Chronological'),
-      _table(
-        headers: [
-          'Serial Number',
-          'Officer',
-          'Unit',
-          'Issued',
-          'Returned',
-          'Status'
-        ],
-        rows: records
-            .map((c) => [
-                  c['serial_number']?.toString() ?? '',
-                  c['officer_name']?.toString() ?? '',
-                  c['unit_name']?.toString() ?? '',
-                  _fmtDate(c['issued_at']?.toString()),
-                  _fmtDate(c['returned_at']?.toString()),
-                  c['custody_status']?.toString() ?? '',
-                ])
-            .toList(),
-      ),
-    ];
   }
 
   // ─────────────────────────────────────────────

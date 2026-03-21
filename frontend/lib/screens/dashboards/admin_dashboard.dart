@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../utils/date_formatter.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/anomaly_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../widgets/responsive_dashboard_scaffold.dart';
 import '../auth/login_screen.dart';
 import '../management/user_management_screen.dart';
@@ -15,6 +16,7 @@ import '../anomaly/anomaly_detection_screen.dart';
 import '../management/units_management_screen.dart';
 import '../workflows/admin_reports_screen.dart';
 import '../../widgets/user_avatar.dart';
+import '../../widgets/charts/role_activity_chart.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -46,11 +48,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
       context,
       listen: false,
     );
+    final settingsProvider = Provider.of<SettingsProvider>(
+      context,
+      listen: false,
+    );
 
     // Load all dashboard data - single API call gets all stats
     await Future.wait([
       dashboardProvider.loadDashboardStats(),
-      anomalyProvider.loadAnomalies(limit: 10),
+      anomalyProvider.loadAnomalies(
+          limit: settingsProvider.itemsPerPage > 0
+              ? settingsProvider.itemsPerPage
+              : 10),
     ]);
   }
 
@@ -409,6 +418,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
             children: [
               // Stats Cards Row
               _buildStatsCards(),
+              const SizedBox(height: 32),
+
+              // Role Activity Chart
+              const RoleActivityChart(),
               const SizedBox(height: 32),
 
               // Charts Section

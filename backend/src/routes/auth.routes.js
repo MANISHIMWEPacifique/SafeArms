@@ -62,7 +62,7 @@ router.post('/login', authRateLimit, logLogin, asyncHandler(async (req, res) => 
 
     res.json({
         success: true,
-        message: 'OTP sent to your email',
+        message: result.otp_sent === false ? 'Login successful' : 'OTP sent to your email',
         data: result
     });
 }));

@@ -172,9 +172,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           : Row(
               children: [
                 // Left Panel - Branding
-                Expanded(flex: 4, child: _buildBrandingPanel()),
+                Expanded(flex: 5, child: _buildBrandingPanel()),
                 // Right Panel - Change Password Form
-                Expanded(flex: 6, child: _buildChangePasswordForm()),
+                Expanded(flex: 5, child: _buildChangePasswordForm()),
               ],
             ),
     );

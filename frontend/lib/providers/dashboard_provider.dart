@@ -28,6 +28,7 @@ class DashboardProvider with ChangeNotifier {
       _dashboardStats?['recent_custody'] ?? [];
   List<dynamic> get recentActivities =>
       _dashboardStats?['recent_activities'] ?? [];
+  List<dynamic> get roleActivity => _dashboardStats?['role_activity'] ?? [];
 
   // Load all dashboard statistics with one API call
   Future<void> loadDashboardStats() async {

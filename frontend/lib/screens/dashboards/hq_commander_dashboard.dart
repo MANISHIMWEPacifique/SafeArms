@@ -9,6 +9,7 @@ import '../../providers/dashboard_provider.dart';
 import '../../providers/firearm_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../../providers/approval_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../auth/login_screen.dart';
 import '../management/units_management_screen.dart';
 import '../management/firearms_registry_screen.dart';
@@ -56,12 +57,19 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
       context,
       listen: false,
     );
+    final settingsProvider = Provider.of<SettingsProvider>(
+      context,
+      listen: false,
+    );
 
     // Load all dashboard data - single API call for main stats
     await Future.wait([
       dashboardProvider.loadDashboardStats(),
       firearmsProvider.loadStats(),
-      anomalyProvider.loadAnomalies(limit: 10),
+      anomalyProvider.loadAnomalies(
+          limit: settingsProvider.itemsPerPage > 0
+              ? settingsProvider.itemsPerPage
+              : 10),
       approvalProvider.loadPendingApprovals(),
     ]);
   }

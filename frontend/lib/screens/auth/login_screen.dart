@@ -5,6 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'otp_screen.dart';
+import 'change_password_screen.dart';
+import '../dashboards/admin_dashboard.dart';
+import '../dashboards/hq_commander_dashboard.dart';
+import '../dashboards/station_commander_dashboard.dart';
+import '../dashboards/investigator_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.login(
+    final result = await authProvider.login(
       _usernameController.text.trim(),
       _passwordController.text,
     );
@@ -43,14 +48,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
-    if (success) {
-      // Navigate to OTP screen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) =>
-              OtpScreen(username: _usernameController.text.trim()),
-        ),
-      );
+    if (result['success'] == true) {
+      if (result['bypassed_otp'] == true) {
+        // Direct to application
+        _navigateToAppropriateScreen(authProvider);
+      } else {
+        // Navigate to OTP screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) =>
+                OtpScreen(username: _usernameController.text.trim()),
+          ),
+        );
+      }
     } else {
       // Show error
       ScaffoldMessenger.of(context).showSnackBar(
@@ -60,6 +70,37 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     }
+  }
+
+  void _navigateToAppropriateScreen(AuthProvider authProvider) {
+    Widget screen;
+
+    // Check if user must change their password first
+    if (authProvider.requiresPasswordChange) {
+      screen = const ChangePasswordScreen();
+    } else {
+      // Navigate to role-specific dashboard
+      switch (authProvider.userRole) {
+        case 'admin':
+          screen = const AdminDashboard();
+          break;
+        case 'hq_firearm_commander':
+          screen = const HqCommanderDashboard();
+          break;
+        case 'station_commander':
+          screen = const StationCommanderDashboard();
+          break;
+        case 'investigator':
+          screen = const InvestigatorDashboard();
+          break;
+        default:
+          screen = const AdminDashboard();
+      }
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => screen),
+    );
   }
 
   @override
@@ -117,9 +158,9 @@ class _LoginScreenState extends State<LoginScreen> {
           : Row(
               children: [
                 // Left Panel - Branding
-                Expanded(flex: 4, child: _buildBrandingPanel()),
+                Expanded(flex: 5, child: _buildBrandingPanel()),
                 // Right Panel - Login Form
-                Expanded(flex: 6, child: _buildLoginForm()),
+                Expanded(flex: 5, child: _buildLoginForm()),
               ],
             ),
     );

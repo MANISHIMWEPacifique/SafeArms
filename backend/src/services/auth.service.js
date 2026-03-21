@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const { query } = require('../config/database');
-const { generateToken, generateOTP, getOTPExpiration, BCRYPT_ROUNDS } = require('../config/auth');
+const { generateToken, generateOTP, BCRYPT_ROUNDS } = require('../config/auth');
 const { sendOTPEmail } = require('./email.service');
 const logger = require('../utils/logger');
 
@@ -40,9 +40,58 @@ const login = async (username, password) => {
             throw new Error('Invalid username or password');
         }
 
+        // Fetch 2FA and OTP validity settings
+        let is2FaRequired = true;
+        let otpValidityMinutes = 5; // Default 5 minutes
+        try {
+            const settingsResult = await query(
+                `SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('enforce_2fa', 'otp_validity_minutes')`
+            );
+            
+            for (const row of settingsResult.rows) {
+                if (row.setting_key === 'enforce_2fa') {
+                    is2FaRequired = row.setting_value === true || row.setting_value === 'true';
+                }
+                if (row.setting_key === 'otp_validity_minutes') {
+                    otpValidityMinutes = parseInt(row.setting_value) || 5;
+                }
+            }
+        } catch (err) {
+            logger.error('Error fetching system settings for auth:', err);
+        }
+
+        if (!is2FaRequired) {
+            // Bypass OTP, generate JWT token directly
+            await query(
+                'UPDATE users SET otp_verified = true, last_login = CURRENT_TIMESTAMP WHERE user_id = $1',
+                [user.user_id]
+            );
+
+            const token = generateToken(user);
+            logger.info(`Login bypass OTP for user: ${username}`);
+            
+            return {
+                token,
+                user: {
+                    user_id: user.user_id,
+                    username: user.username,
+                    full_name: user.full_name,
+                    email: user.email,
+                    role: user.role,
+                    unit_id: user.unit_id,
+                    profile_photo_url: user.profile_photo_url,
+                    must_change_password: user.must_change_password,
+                },
+                otp_sent: false
+            };
+        }
+
         // Generate OTP
         const otp = generateOTP();
-        const otpExpiresAt = getOTPExpiration();
+        
+        // Calculate OTP expiration based on dynamic setting
+        const otpExpiresAtSeconds = otpValidityMinutes * 60;
+        const otpExpiresAt = new Date(Date.now() + otpExpiresAtSeconds * 1000);
 
         // Store OTP in database
         await query(
@@ -78,7 +127,7 @@ const login = async (username, password) => {
             profile_photo_url: user.profile_photo_url,
             must_change_password: user.must_change_password,
             otp_sent: true,
-            otp_expires_in: 300 // seconds
+            otp_expires_in: otpValidityMinutes * 60 // use settings value
         };
     } catch (error) {
         logger.error('Login error:', error);
@@ -185,9 +234,23 @@ const resendOTP = async (username) => {
 
         const user = result.rows[0];
 
+        // Fetch OTP validity from system settings
+        let otpValidityMinutes = 5; // Default
+        try {
+            const settingsResult = await query(
+                `SELECT setting_value FROM system_settings WHERE setting_key = 'otp_validity_minutes'`
+            );
+            if (settingsResult.rows.length > 0) {
+                otpValidityMinutes = parseInt(settingsResult.rows[0].setting_value) || 5;
+            }
+        } catch (err) {
+            logger.error('Error fetching OTP validity:', err);
+        }
+
         // Generate new OTP
         const otp = generateOTP();
-        const otpExpiresAt = getOTPExpiration();
+        const otpExpiresAtSeconds = otpValidityMinutes * 60;
+        const otpExpiresAt = new Date(Date.now() + otpExpiresAtSeconds * 1000);
 
         // Update OTP in database
         await query(
@@ -211,7 +274,7 @@ const resendOTP = async (username) => {
         return {
             success: true,
             message: 'OTP sent to your email',
-            otp_expires_in: 300
+            otp_expires_in: otpValidityMinutes * 60
         };
     } catch (error) {
         logger.error('Resend OTP error:', error);

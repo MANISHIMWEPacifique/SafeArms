@@ -17,6 +17,7 @@ import 'providers/settings_provider.dart';
 import 'providers/ballistic_profile_provider.dart';
 import 'providers/operations_provider.dart';
 import 'screens/auth/login_screen.dart';
+import 'dart:async';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,17 +45,74 @@ class SafeArmsApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => BallisticProfileProvider()),
         ChangeNotifierProvider(create: (_) => OperationsProvider()),
       ],
-      child: MaterialApp(
-        title: 'SafeArms',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          scaffoldBackgroundColor: const Color(0xFF1A1F2E),
-          fontFamily: 'Roboto',
-          brightness: Brightness.dark,
+      child: SessionTimeoutManager(
+        child: MaterialApp(
+          title: 'SafeArms',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+            scaffoldBackgroundColor: const Color(0xFF1A1F2E),
+            fontFamily: 'Roboto',
+            brightness: Brightness.dark,
+          ),
+          home: const LoginScreen(),
         ),
-        home: const LoginScreen(),
       ),
+    );
+  }
+}
+
+class SessionTimeoutManager extends StatefulWidget {
+  final Widget child;
+  const SessionTimeoutManager({Key? key, required this.child})
+      : super(key: key);
+
+  @override
+  State<SessionTimeoutManager> createState() => _SessionTimeoutManagerState();
+}
+
+class _SessionTimeoutManagerState extends State<SessionTimeoutManager> {
+  Timer? _authTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Pre-load application settings
+      context.read<SettingsProvider>().loadSettings();
+      _resetTimer();
+    });
+  }
+
+  void _resetTimer() {
+    _authTimer?.cancel();
+    final auth = context.read<AuthProvider>();
+    final settings = context.read<SettingsProvider>();
+
+    if (auth.isAuthenticated) {
+      final timeoutMinutes =
+          settings.sessionTimeout > 0 ? settings.sessionTimeout : 20;
+      _authTimer = Timer(Duration(minutes: timeoutMinutes), _handleTimeout);
+    }
+  }
+
+  void _handleTimeout() {
+    final auth = context.read<AuthProvider>();
+    if (auth.isAuthenticated) {
+      auth.logout();
+      // Optionally could show a global snackbar using a navigation key, but logging out will trigger redirect if handled,
+      // or at least clears the token. Usually a GlobalKey<NavigatorState> is used to push login route,
+      // but assuming logging out forces standard re-authentication flow next API call.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _resetTimer(),
+      onPointerMove: (_) => _resetTimer(),
+      child: widget.child,
     );
   }
 }

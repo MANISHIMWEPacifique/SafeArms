@@ -57,35 +57,89 @@ router.get('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
         return res.json({ success: true, data: result.rows });
     }
     
-    // Otherwise, return system settings
-    res.json({
-        success: true,
-        data: {
-            platform_name: 'SafeArms',
-            organization: 'Rwanda National Police',
-            timezone: 'Africa/Kigali',
-            date_format: 'DD/MM/YYYY',
-            time_format: '24-hour',
-            session_timeout: 30,
-            concurrent_sessions: false,
-            remember_me_duration: 7,
-            two_factor_required: false,
-            password_expiry_days: 90,
-            min_password_length: 8,
-            max_login_attempts: 5,
-            lockout_duration: 15,
-            audit_retention_days: 365,
-            backup_frequency: 'daily',
-            notification_email: true,
-            notification_sms: false
+    // Otherwise, return system settings from database table
+    try {
+        const result = await query('SELECT setting_key, setting_value FROM system_settings');
+        
+        const settings = {};
+        for (const row of result.rows) {
+            settings[row.setting_key] = row.setting_value;
         }
-    });
+
+        // If the table is empty for some reason, provide fallbacks
+        if (Object.keys(settings).length === 0) {
+            return res.json({
+                success: true,
+                data: {
+                    platform_name: 'SafeArms',
+                    organization: 'Rwanda National Police',
+                    timezone: 'Africa/Kigali',
+                    date_format: 'DD/MM/YYYY',
+                    time_format: '24-hour',
+                    session_timeout: 30,
+                    concurrent_sessions: false,
+                    remember_me_duration: 7,
+                    two_factor_required: false,
+                    password_expiry_days: 90,
+                    min_password_length: 8,
+                    max_login_attempts: 5,
+                    lockout_duration: 15,
+                    audit_retention_days: 365,
+                    backup_frequency: 'daily',
+                    notification_email: true,
+                    notification_sms: false
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: settings
+        });
+    } catch (e) {
+        logger.error('Error fetching settings:', e);
+        // Fallback if table doesn't exist yet
+        res.json({
+            success: true,
+            data: {
+                platform_name: 'SafeArms',
+                organization: 'Rwanda National Police',
+                timezone: 'Africa/Kigali',
+                date_format: 'DD/MM/YYYY',
+                time_format: '24-hour',
+                session_timeout: 30,
+                concurrent_sessions: false,
+                remember_me_duration: 7,
+                two_factor_required: false,
+                password_expiry_days: 90,
+                min_password_length: 8,
+                max_login_attempts: 5,
+                lockout_duration: 15,
+                audit_retention_days: 365,
+                backup_frequency: 'daily',
+                notification_email: true,
+                notification_sms: false
+            }
+        });
+    }
 }));
 
 // Update system settings
 router.put('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
-    // In production, save to database
+    // Save to database
     const settings = req.body;
+    
+    // Upsert each setting
+    for (const [key, value] of Object.entries(settings)) {
+        await query(`
+            INSERT INTO system_settings (setting_key, setting_value, updated_at, updated_by)
+            VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
+            ON CONFLICT (setting_key) DO UPDATE 
+            SET setting_value = EXCLUDED.setting_value,
+                updated_at = CURRENT_TIMESTAMP,
+                updated_by = EXCLUDED.updated_by
+        `, [key, JSON.stringify(value), req.user.user_id]);
+    }
     
     // Log the settings update
     await query(`

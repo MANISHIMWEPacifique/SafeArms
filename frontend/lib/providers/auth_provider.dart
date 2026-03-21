@@ -14,6 +14,7 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? _currentUser;
   String? _token;
   String? _pendingUsername;
+  int _otpExpiresIn = 300;
 
   // Getters
   bool get isLoading => _isLoading;
@@ -23,6 +24,7 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? get currentUser => _currentUser;
   String? get token => _token;
   String? get pendingUsername => _pendingUsername;
+  int get otpExpiresIn => _otpExpiresIn;
   String? get userRole => _currentUser?['role'];
   String? get userName => _currentUser?['full_name'];
   bool get requiresUnitConfirmation =>
@@ -49,7 +51,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   /// Login with username and password
-  Future<bool> login(String username, String password) async {
+  Future<Map<String, dynamic>> login(String username, String password) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -58,12 +60,21 @@ class AuthProvider with ChangeNotifier {
       final result = await _authService.login(username, password);
 
       if (result['success']) {
-        _pendingUsername = username;
-        _errorMessage = null;
-        return true;
+        if (result['bypassed_otp'] == true) {
+          _token = result['token'];
+          _currentUser = result['user'];
+          _isAuthenticated = true;
+          _pendingUsername = null;
+          _errorMessage = null;
+        } else {
+          _pendingUsername = username;
+          _errorMessage = null;
+          _otpExpiresIn = result['otp_expires_in'] ?? 300;
+        }
+        return result;
       } else {
         _errorMessage = result['message'];
-        return false;
+        return result;
       }
     } finally {
       _isLoading = false;
@@ -118,7 +129,9 @@ class AuthProvider with ChangeNotifier {
     try {
       final result = await _authService.resendOtp(_pendingUsername!);
 
-      if (!result['success']) {
+      if (result['success']) {
+        _otpExpiresIn = result['otp_expires_in'] ?? 300;
+      } else {
         _errorMessage = result['message'];
       }
       return result['success'];

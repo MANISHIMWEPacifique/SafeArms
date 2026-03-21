@@ -86,17 +86,6 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     if (role === 'admin') {
         queries.usersCount = () => query(`SELECT COUNT(*) as total FROM users WHERE is_active = true`);
         queries.activeUnits = () => query(`SELECT COUNT(*) as total FROM units WHERE is_active = true`);
-        queries.roleActivity = () => query(`
-            SELECT 
-                DATE(created_at) as activity_date,
-                actor_role,
-                COUNT(*) as actions_count
-            FROM audit_logs
-            WHERE created_at >= CURRENT_DATE - INTERVAL '90 days'
-            AND actor_role IS NOT NULL
-            GROUP BY DATE(created_at), actor_role
-            ORDER BY activity_date ASC
-        `);
     }
 
     if (role === 'hq_firearm_commander') {
@@ -163,10 +152,11 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         `);
     }
 
-    // ─── Execute ALL queries sequentially to prevent connection pool exhaustion ───
+    // ── Execute ALL queries in one parallel batch ──
     const keys = Object.keys(queries);
+    const results = await Promise.all(keys.map(k => queries[k]));
     const r = {};
-    for (const k of keys) { r[k] = await queries[k](); }
+    keys.forEach((k, i) => { r[k] = results[i]; });
 
     // ── Assemble response ──
     const dashboardData = {
@@ -183,7 +173,6 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     if (r.pendingApprovals) dashboardData.pending_approvals = r.pendingApprovals.rows[0];
     if (r.usersCount) dashboardData.total_users = parseInt(r.usersCount.rows[0].total);
     if (r.activeUnits) dashboardData.active_units = parseInt(r.activeUnits.rows[0].total);
-    if (r.roleActivity) dashboardData.role_activity = r.roleActivity.rows;
     if (r.officersCount) dashboardData.officers_count = parseInt(r.officersCount.rows[0].total);
 
     if (role === 'investigator') {

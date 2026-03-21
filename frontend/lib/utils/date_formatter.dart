@@ -4,11 +4,24 @@
 import 'package:intl/intl.dart';
 
 class DateFormatter {
+  // Global formatting settings that can be updated from system settings
+  static String _dateFormatStr = 'MMM dd, yyyy';
+  static String _timeFormatStr = 'HH:mm';
+
+  static void setFormats({String? dateFormat, String? timeFormat}) {
+    if (dateFormat != null && dateFormat.isNotEmpty) {
+      _dateFormatStr = dateFormat;
+    }
+    if (timeFormat != null && timeFormat.isNotEmpty) {
+      _timeFormatStr = timeFormat;
+    }
+  }
+
   static String formatDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return 'N/A';
     try {
       final date = DateTime.parse(dateStr);
-      return DateFormat('MMM dd, yyyy').format(date);
+      return DateFormat(_dateFormatStr).format(date);
     } catch (_) {
       return dateStr;
     }
@@ -18,7 +31,7 @@ class DateFormatter {
     if (dateStr == null || dateStr.isEmpty) return 'N/A';
     try {
       final date = DateTime.parse(dateStr);
-      return DateFormat('MMM dd, yyyy HH:mm').format(date);
+      return DateFormat('$_dateFormatStr $_timeFormatStr').format(date);
     } catch (_) {
       return dateStr;
     }
@@ -28,7 +41,7 @@ class DateFormatter {
     if (dateStr == null || dateStr.isEmpty) return 'N/A';
     try {
       final date = DateTime.parse(dateStr);
-      return DateFormat('HH:mm').format(date);
+      return DateFormat(_timeFormatStr).format(date);
     } catch (_) {
       return dateStr;
     }

@@ -36,12 +36,33 @@ class AuthService {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
+        final responseData = data['data'] ?? {};
+        // Check if OTP was bypassed
+        if (responseData['otp_sent'] == false &&
+            responseData['token'] != null) {
+          final token = responseData['token'];
+          final user = responseData['user'];
+
+          await _storage.write(key: _tokenKey, value: token);
+          await _storage.write(key: _userKey, value: json.encode(user));
+
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Login successful',
+            'bypassed_otp': true,
+            'token': token,
+            'user': user,
+          };
+        }
+
         // Store username for OTP verification
         await _storage.write(key: _usernameKey, value: username);
         return {
           'success': true,
           'message': data['message'] ?? 'OTP sent to your email',
           'username': username,
+          'bypassed_otp': false,
+          'otp_expires_in': responseData['otp_expires_in'] ?? 300,
         };
       } else {
         return {'success': false, 'message': data['message'] ?? 'Login failed'};
@@ -105,6 +126,7 @@ class AuthService {
         return {
           'success': true,
           'message': data['message'] ?? 'New OTP sent to your email',
+          'otp_expires_in': data['otp_expires_in'] ?? 300,
         };
       } else {
         return {

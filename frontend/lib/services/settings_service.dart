@@ -9,6 +9,10 @@ class SettingsService {
   // Get system settings
   Future<Map<String, dynamic>> getSystemSettings() async {
     try {
+      final token = await ApiClient.getToken();
+      if (token == null) {
+        return {}; // Silently fall back if not authenticated
+      }
       final data = await ApiClient.get('${ApiConfig.baseUrl}/api/settings');
       return data['data'] ?? {};
     } catch (e) {

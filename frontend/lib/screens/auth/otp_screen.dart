@@ -32,13 +32,15 @@ class _OtpScreenState extends State<OtpScreen> {
   bool _isLoading = false;
   bool _isInvalid = false;
   bool _isBrandingExpanded = false;
-  int _remainingSeconds = 300; // 5 minutes
+  late int _remainingSeconds;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _remainingSeconds = authProvider.otpExpiresIn;
+    _startTimer(_remainingSeconds);
     // Auto-focus first input
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes[0].requestFocus();
@@ -57,9 +59,9 @@ class _OtpScreenState extends State<OtpScreen> {
     super.dispose();
   }
 
-  void _startTimer() {
+  void _startTimer(int seconds) {
     _timer?.cancel();
-    setState(() => _remainingSeconds = 300);
+    setState(() => _remainingSeconds = seconds);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (_remainingSeconds > 0) {
@@ -172,7 +174,7 @@ class _OtpScreenState extends State<OtpScreen> {
       for (var controller in _controllers) {
         controller.clear();
       }
-      _startTimer();
+      _startTimer(authProvider.otpExpiresIn);
       _focusNodes[0].requestFocus();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -246,9 +248,9 @@ class _OtpScreenState extends State<OtpScreen> {
           : Row(
               children: [
                 // Left Panel - Branding
-                Expanded(flex: 4, child: _buildBrandingPanel()),
+                Expanded(flex: 5, child: _buildBrandingPanel()),
                 // Right Panel - OTP Form
-                Expanded(flex: 6, child: _buildOtpForm()),
+                Expanded(flex: 5, child: _buildOtpForm()),
               ],
             ),
     );

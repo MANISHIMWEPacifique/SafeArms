@@ -89,12 +89,12 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         queries.roleActivity = () => query(`
             SELECT 
                 DATE(created_at) as activity_date,
-                actor_role,
+                new_values->>'actor_role' as actor_role,
                 COUNT(*) as actions_count
             FROM audit_logs
             WHERE created_at >= CURRENT_DATE - INTERVAL '90 days'
-            AND actor_role IS NOT NULL
-            GROUP BY DATE(created_at), actor_role
+            AND new_values->>'actor_role' IS NOT NULL
+            GROUP BY DATE(created_at), new_values->>'actor_role'
             ORDER BY activity_date ASC
         `);
     }

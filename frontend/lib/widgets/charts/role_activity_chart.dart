@@ -15,10 +15,10 @@ class _RoleActivityChartState extends State<RoleActivityChart> {
   String _selectedPeriod = 'Weekly';
 
   final Map<String, Color> _roleColors = {
-    'admin': const Color(0xFF185FA5), // Blue
-    'hq_firearm_commander': const Color(0xFF0F6E56), // Green
-    'station_commander': const Color(0xFFBA7517), // Amber
-    'investigator': const Color(0xFF534AB7), // Purple
+    'admin': const Color(0xFFFFA726), // Orange
+    'hq_firearm_commander': const Color(0xFF1E88E5), // Blue
+    'station_commander': const Color(0xFFFFCA28), // Yellow
+    'investigator': const Color(0xFFFFFFFF), // White
   };
 
   final Map<String, String> _roleNames = {
@@ -125,32 +125,37 @@ class _RoleActivityChartState extends State<RoleActivityChart> {
   }
 
   Widget _buildLineChart(List<dynamic> rawData) {
-    // Determine cutoff based on period
     final now = DateTime.now();
-    late DateTime cutoff;
-    if (_selectedPeriod == 'Daily') {
-      cutoff = now.subtract(const Duration(days: 14)); // Last 14 days
-    } else if (_selectedPeriod == 'Weekly') {
-      cutoff = now.subtract(const Duration(days: 42)); // Last 6 weeks
-    } else {
-      cutoff = now.subtract(const Duration(days: 90)); // Last 3 months
-    }
 
     // Process data points directly in memory
     final parsedMap = <String, Map<String, double>>{};
 
-    // Initialize required roles
-    for (var r in _roleColors.keys) {
-      parsedMap[r] = {};
+    // Pre-generate exactly 4 labels (from oldest to newest)
+    final sortedLabels = <String>[];
+    for (int i = 3; i >= 0; i--) {
+      if (_selectedPeriod == 'Daily') {
+        sortedLabels.add(_formatDateKey(now.subtract(Duration(days: i))));
+      } else if (_selectedPeriod == 'Weekly') {
+        sortedLabels.add(_formatDateKey(now.subtract(Duration(days: i * 7))));
+      } else {
+        // Monthly approximation
+        sortedLabels.add(_formatDateKey(DateTime(now.year, now.month - i, now.day)));
+      }
     }
 
-    final periodLabels = <String>{};
+    // Initialize required roles with 0 for all pre-generated labels
+    for (var r in _roleColors.keys) {
+      parsedMap[r] = {};
+      for (var label in sortedLabels) {
+        parsedMap[r]![label] = 0;
+      }
+    }
 
     for (var item in rawData) {
       if (item['activity_date'] == null || item['actor_role'] == null) continue;
 
       final date = DateTime.tryParse(item['activity_date'].toString());
-      if (date == null || date.isBefore(cutoff)) continue;
+      if (date == null) continue;
 
       final role = item['actor_role'].toString();
       if (!_roleColors.containsKey(role)) continue;
@@ -158,11 +163,11 @@ class _RoleActivityChartState extends State<RoleActivityChart> {
       final val = double.tryParse(item['actions_count'].toString()) ?? 0;
       final timeKey = _formatDateKey(date);
 
-      periodLabels.add(timeKey);
-      parsedMap[role]![timeKey] = (parsedMap[role]![timeKey] ?? 0) + val;
+      // Only add if it falls within our exact 4 periods
+      if (sortedLabels.contains(timeKey)) {
+        parsedMap[role]![timeKey] = (parsedMap[role]![timeKey] ?? 0) + val;
+      }
     }
-
-    final sortedLabels = periodLabels.toList()..sort();
 
     final lineBarsData = <LineChartBarData>[];
     double maxY = 10; // Baseline max
@@ -183,8 +188,7 @@ class _RoleActivityChartState extends State<RoleActivityChart> {
         isStrokeCapRound: true,
         dotData: const FlDotData(show: false),
         belowBarData: BarAreaData(
-          show: true,
-          color: _roleColors[role]!.withOpacity(0.1),
+          show: false,
         ),
       ));
     });
@@ -214,11 +218,9 @@ class _RoleActivityChartState extends State<RoleActivityChart> {
               interval: 1,
               getTitlesWidget: (value, meta) {
                 final index = value.toInt();
-                if (index < 0 || index >= sortedLabels.length)
+                if (index < 0 || index >= sortedLabels.length) {
                   return const SizedBox();
-                // show every 2nd label if there are too many (e.g. daily view)
-                if (sortedLabels.length > 8 && index % 2 != 0)
-                  return const SizedBox();
+                }
 
                 return Padding(
                   padding: const EdgeInsets.only(top: 8.0),
@@ -255,7 +257,7 @@ class _RoleActivityChartState extends State<RoleActivityChart> {
             tooltipBgColor: const Color(0xFF1A1F2E).withOpacity(0.9),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
-                final roleIndex = lineBarsData.indexOf(spot.bar);
+                final roleIndex = spot.barIndex;
                 final roleKey = _roleColors.keys.elementAt(roleIndex);
                 final color = _roleColors[roleKey]!;
                 return LineTooltipItem(

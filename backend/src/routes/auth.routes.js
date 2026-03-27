@@ -60,6 +60,14 @@ router.post('/login', authRateLimit, logLogin, asyncHandler(async (req, res) => 
 
     const result = await login(username, password);
 
+    // Populate req.user so auditLogger can capture user details for LOGIN events
+    req.user = result.user || {
+        user_id: result.user_id,
+        role: result.role,
+        unit_id: result.unit_id,
+        username: result.username
+    };
+
     res.json({
         success: true,
         message: result.otp_sent === false ? 'Login successful' : 'OTP sent to your email',

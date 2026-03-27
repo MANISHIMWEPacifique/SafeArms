@@ -108,6 +108,25 @@ class ApprovalsService {
     }
   }
 
+  Future<bool> rejectDestruction({
+    required String requestId,
+    required String rejectionReason,
+    required String feedback,
+  }) async {
+    try {
+      await ApiClient.put(
+        '${ApiConfig.approvalsUrl}/destruction-requests/$requestId/reject',
+        body: {
+          'rejection_reason': rejectionReason,
+          'detailed_feedback': feedback,
+        },
+      );
+      return true;
+    } catch (e) {
+      throw Exception('Error rejecting destruction request: $e');
+    }
+  }
+
   // ===== PROCUREMENT APPROVALS =====
 
   Future<List<Map<String, dynamic>>> getPendingProcurementRequests({
@@ -140,6 +159,25 @@ class ApprovalsService {
       return true;
     } catch (e) {
       throw Exception('Error approving procurement request: $e');
+    }
+  }
+
+  Future<bool> rejectProcurement({
+    required String requestId,
+    required String rejectionReason,
+    required String feedback,
+  }) async {
+    try {
+      await ApiClient.put(
+        '${ApiConfig.approvalsUrl}/procurement-requests/$requestId/reject',
+        body: {
+          'rejection_reason': rejectionReason,
+          'detailed_feedback': feedback,
+        },
+      );
+      return true;
+    } catch (e) {
+      throw Exception('Error rejecting procurement request: $e');
     }
   }
 

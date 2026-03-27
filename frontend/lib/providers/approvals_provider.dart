@@ -179,6 +179,39 @@ class ApprovalsProvider with ChangeNotifier {
     }
   }
 
+  // Reject destruction request
+  Future<bool> rejectDestruction({
+    required String requestId,
+    required String rejectionReason,
+    required String feedback,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final success = await _approvalsService.rejectDestruction(
+        requestId: requestId,
+        rejectionReason: rejectionReason,
+        feedback: feedback,
+      );
+
+      if (success) {
+        _successMessage = 'Destruction request rejected';
+        await loadPendingDestructionRequests();
+        await loadStats();
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return success;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Load pending procurement requests
   Future<void> loadPendingProcurementRequests() async {
     _isLoading = true;
@@ -230,6 +263,74 @@ class ApprovalsProvider with ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  // Reject procurement request
+  Future<bool> rejectProcurement({
+    required String requestId,
+    required String rejectionReason,
+    required String feedback,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final success = await _approvalsService.rejectProcurement(
+        requestId: requestId,
+        rejectionReason: rejectionReason,
+        feedback: feedback,
+      );
+
+      if (success) {
+        _successMessage = 'Procurement request rejected';
+        await loadPendingProcurementRequests();
+        await loadStats();
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return success;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+  
+  // Generic update requests status
+  Future<bool> updateRequestStatus(dynamic requestIdDynamic, String type, String status) async {
+    final requestId = requestIdDynamic.toString();
+    if (status == 'approved') {
+      if (type == 'loss') {
+        return await approveLossReport(reportId: requestId, approvalNotes: 'Approved directly from list view');
+      } else if (type == 'destruction') {
+        return await approveDestruction(requestId: requestId, approvalNotes: 'Approved directly from list view');
+      } else if (type == 'procurement') {
+        return await approveProcurement(requestId: requestId, approvalNotes: 'Approved directly from list view');
+      }
+    } else if (status == 'rejected') {
+      if (type == 'loss') {
+        return await rejectLossReport(
+          reportId: requestId,
+          rejectionReason: 'Rejected from list view',
+          feedback: 'No detailed feedback provided.',
+        );
+      } else if (type == 'destruction') {
+        return await rejectDestruction(
+          requestId: requestId,
+          rejectionReason: 'Rejected from list view',
+          feedback: 'No detailed feedback provided.',
+        );
+      } else if (type == 'procurement') {
+        return await rejectProcurement(
+          requestId: requestId,
+          rejectionReason: 'Rejected from list view',
+          feedback: 'No detailed feedback provided.',
+        );
+      }
+    }
+    return false;
   }
 
   // Load statistics

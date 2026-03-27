@@ -254,7 +254,7 @@ class _RoleActivityChartState extends State<RoleActivityChart> {
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
             // Specify exact colors and shapes for the tooltip
-            tooltipBgColor: const Color(0xFF1A1F2E).withOpacity(0.9),
+            tooltipBgColor: const Color(0xFF1A1F2E).withValues(alpha: 0.9),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
                 final roleIndex = spot.barIndex;

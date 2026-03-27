@@ -64,8 +64,7 @@ class SafeArmsApp extends StatelessWidget {
 
 class SessionTimeoutManager extends StatefulWidget {
   final Widget child;
-  const SessionTimeoutManager({Key? key, required this.child})
-      : super(key: key);
+  const SessionTimeoutManager({super.key, required this.child});
 
   @override
   State<SessionTimeoutManager> createState() => _SessionTimeoutManagerState();

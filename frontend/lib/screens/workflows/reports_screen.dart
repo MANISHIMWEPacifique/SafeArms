@@ -113,8 +113,7 @@ class _ReportsScreenState extends State<ReportsScreen>
     final isInvestigator = role == 'investigator';
     // HQ commanders and admin can approve/reject
     final canApprove = role == 'admin' || role == 'hq_firearm_commander';
-    final canDelete =
-        role == 'station_commander' || role == 'hq_firearm_commander';
+    final canDelete = role == 'admin' || role == 'hq_firearm_commander';
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),

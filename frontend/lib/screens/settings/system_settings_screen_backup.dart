@@ -20,10 +20,9 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
   static const Color _panelAlt = Color(0xFF273047);
   static const Color _b1 = Color(0x12FFFFFF); // ~rgba(255,255,255,0.07)
   static const Color _b2 = Color(0x1EFFFFFF); // ~rgba(255,255,255,0.12)
-  static const Color _textPrimary = Colors.white; // Increased brightness
-  static const Color _textSecondary = Color(0xFFCBD5E1); // Lighter gray
-  static const Color _textMuted =
-      Color(0xFFA0ABC0); // Lighter gray for readability
+  static const Color _textPrimary = Color(0xFFE8EDF5);
+  static const Color _textSecondary = Color(0xFF8B97AA);
+  static const Color _textMuted = Color(0xFF5A6478);
 
   static const Color _accentBlue = Color(0xFF3B82F6);
   static const Color _accentBlueDim = Color(0x263B82F6); // ~0.15

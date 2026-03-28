@@ -3,6 +3,7 @@
 
 import 'package:flutter/foundation.dart';
 import '../services/custody_service.dart';
+import '../utils/auth_error_utils.dart';
 
 class CustodyProvider with ChangeNotifier {
   final CustodyService _custodyService = CustodyService();
@@ -98,6 +99,12 @@ class CustodyProvider with ChangeNotifier {
       _stats = await _custodyService.getCustodyStats();
       notifyListeners();
     } catch (e) {
+      if (isAuthFailureError(e)) {
+        _stats = {};
+        notifyListeners();
+        return;
+      }
+
       debugPrint('Error loading stats: $e');
     }
   }

@@ -4,6 +4,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/officer_model.dart';
 import '../services/officer_service.dart';
+import '../utils/auth_error_utils.dart';
 
 class OfficerProvider with ChangeNotifier {
   final OfficerService _officerService = OfficerService();
@@ -137,6 +138,12 @@ class OfficerProvider with ChangeNotifier {
       _stats = await _officerService.getOfficerStats(unitId: unitId);
       notifyListeners();
     } catch (e) {
+      if (isAuthFailureError(e)) {
+        _stats = {};
+        notifyListeners();
+        return;
+      }
+
       debugPrint('Error loading stats: $e');
     }
   }

@@ -6,10 +6,13 @@ import '../services/dashboard_service.dart';
 
 class DashboardProvider with ChangeNotifier {
   final DashboardService _dashboardService = DashboardService();
+  static const Duration _dashboardCacheTtl = Duration(seconds: 15);
 
   Map<String, dynamic>? _dashboardStats;
   bool _isLoading = false;
   String? _error;
+  DateTime? _lastLoadedAt;
+  Future<void>? _loadDashboardFuture;
 
   Map<String, dynamic>? get dashboardStats => _dashboardStats;
   bool get isLoading => _isLoading;
@@ -31,13 +34,41 @@ class DashboardProvider with ChangeNotifier {
   List<dynamic> get roleActivity => _dashboardStats?['role_activity'] ?? [];
 
   // Load all dashboard statistics with one API call
-  Future<void> loadDashboardStats() async {
+  Future<void> loadDashboardStats({bool force = false}) async {
+    if (_loadDashboardFuture != null) {
+      await _loadDashboardFuture;
+      if (!force) {
+        return;
+      }
+    }
+
+    if (!force &&
+        _dashboardStats != null &&
+        _lastLoadedAt != null &&
+        DateTime.now().difference(_lastLoadedAt!) < _dashboardCacheTtl) {
+      return;
+    }
+
+    final loadFuture = _loadDashboardStatsInternal();
+    _loadDashboardFuture = loadFuture;
+
+    try {
+      await loadFuture;
+    } finally {
+      if (identical(_loadDashboardFuture, loadFuture)) {
+        _loadDashboardFuture = null;
+      }
+    }
+  }
+
+  Future<void> _loadDashboardStatsInternal() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       _dashboardStats = await _dashboardService.getDashboardStats();
+      _lastLoadedAt = DateTime.now();
       _error = null;
     } catch (e) {
       _error = e.toString();

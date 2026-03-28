@@ -3,6 +3,7 @@
 
 import 'package:flutter/foundation.dart';
 import '../services/operations_service.dart';
+import '../utils/auth_error_utils.dart';
 
 class OperationsProvider with ChangeNotifier {
   final OperationsService _operationsService = OperationsService();
@@ -246,6 +247,12 @@ class OperationsProvider with ChangeNotifier {
       _stats = await _operationsService.getOperationsStats();
       notifyListeners();
     } catch (e) {
+      if (isAuthFailureError(e)) {
+        _stats = {};
+        notifyListeners();
+        return;
+      }
+
       debugPrint('Error loading stats: $e');
     }
   }

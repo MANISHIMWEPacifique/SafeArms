@@ -4,6 +4,27 @@ const { query } = require('../config/database');
 const { authenticate } = require('../middleware/authentication');
 const { asyncHandler } = require('../middleware/errorHandler');
 
+const parsedDashboardBatchSize = parseInt(process.env.DASHBOARD_QUERY_BATCH_SIZE || '5', 10);
+const DASHBOARD_QUERY_BATCH_SIZE = Number.isFinite(parsedDashboardBatchSize) && parsedDashboardBatchSize > 0
+    ? parsedDashboardBatchSize
+    : 5;
+
+const executeQueryMapInBatches = async (queries, batchSize = DASHBOARD_QUERY_BATCH_SIZE) => {
+    const keys = Object.keys(queries);
+    const results = {};
+
+    for (let i = 0; i < keys.length; i += batchSize) {
+        const batchKeys = keys.slice(i, i + batchSize);
+        const batchResults = await Promise.all(batchKeys.map((key) => queries[key]()));
+
+        batchKeys.forEach((key, index) => {
+            results[key] = batchResults[index];
+        });
+    }
+
+    return results;
+};
+
 router.get('/', authenticate, asyncHandler(async (req, res) => {
     const { role, unit_id } = req.user;
     const isStationCmd = role === 'station_commander';
@@ -163,10 +184,9 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         `);
     }
 
-    // ─── Execute ALL queries sequentially to prevent connection pool exhaustion ───
-    const keys = Object.keys(queries);
-    const r = {};
-    for (const k of keys) { r[k] = await queries[k](); }
+    // Execute independent queries in bounded parallel batches to reduce latency
+    // while keeping DB pool usage controlled under concurrent traffic.
+    const r = await executeQueryMapInBatches(queries);
 
     // ── Assemble response ──
     const dashboardData = {

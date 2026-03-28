@@ -528,7 +528,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
             'Custody Timeline',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),

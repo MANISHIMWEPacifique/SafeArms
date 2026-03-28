@@ -4,6 +4,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
+import '../utils/auth_error_utils.dart';
 
 class UserProvider with ChangeNotifier {
   final UserService _userService = UserService();
@@ -112,6 +113,12 @@ class UserProvider with ChangeNotifier {
       _stats = await _userService.getUserStats();
       notifyListeners();
     } catch (e) {
+      if (isAuthFailureError(e)) {
+        _stats = {};
+        notifyListeners();
+        return;
+      }
+
       debugPrint('Error loading stats: $e');
     }
   }

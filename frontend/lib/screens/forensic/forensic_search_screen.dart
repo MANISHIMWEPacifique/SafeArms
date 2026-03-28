@@ -240,7 +240,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                 'Investigation Search',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 24,
+                  fontSize: 20,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.3,
                 ),

@@ -15,15 +15,30 @@ class ApiClient {
   }
 
   /// Build auth headers for an authenticated request.
-  static Future<Map<String, String>> authHeaders() async {
+  static Future<Map<String, String>> authHeaders({
+    bool requireAuth = true,
+  }) async {
     final token = await getToken();
-    if (token == null) return ApiConfig.defaultHeaders;
+    if (token == null || token.isEmpty) {
+      if (requireAuth) {
+        throw ApiException(
+          statusCode: 401,
+          message: 'Authentication required. Please login again.',
+        );
+      }
+
+      return ApiConfig.defaultHeaders;
+    }
+
     return ApiConfig.authHeaders(token);
   }
 
   /// Generic GET request.
-  static Future<Map<String, dynamic>> get(String url) async {
-    final headers = await authHeaders();
+  static Future<Map<String, dynamic>> get(
+    String url, {
+    bool requireAuth = true,
+  }) async {
+    final headers = await authHeaders(requireAuth: requireAuth);
     final response = await http
         .get(Uri.parse(url), headers: headers)
         .timeout(ApiConfig.timeout);
@@ -34,8 +49,9 @@ class ApiClient {
   static Future<Map<String, dynamic>> post(
     String url, {
     Map<String, dynamic>? body,
+    bool requireAuth = true,
   }) async {
-    final headers = await authHeaders();
+    final headers = await authHeaders(requireAuth: requireAuth);
     final response = await http
         .post(
           Uri.parse(url),
@@ -50,8 +66,9 @@ class ApiClient {
   static Future<Map<String, dynamic>> put(
     String url, {
     Map<String, dynamic>? body,
+    bool requireAuth = true,
   }) async {
-    final headers = await authHeaders();
+    final headers = await authHeaders(requireAuth: requireAuth);
     final response = await http
         .put(
           Uri.parse(url),
@@ -63,8 +80,11 @@ class ApiClient {
   }
 
   /// Generic DELETE request.
-  static Future<Map<String, dynamic>> delete(String url) async {
-    final headers = await authHeaders();
+  static Future<Map<String, dynamic>> delete(
+    String url, {
+    bool requireAuth = true,
+  }) async {
+    final headers = await authHeaders(requireAuth: requireAuth);
     final response = await http
         .delete(Uri.parse(url), headers: headers)
         .timeout(ApiConfig.timeout);
@@ -75,8 +95,9 @@ class ApiClient {
   static Future<Map<String, dynamic>> patch(
     String url, {
     Map<String, dynamic>? body,
+    bool requireAuth = true,
   }) async {
-    final headers = await authHeaders();
+    final headers = await authHeaders(requireAuth: requireAuth);
     final response = await http
         .patch(
           Uri.parse(url),
@@ -88,13 +109,27 @@ class ApiClient {
   }
 
   static Map<String, dynamic> _handleResponse(http.Response response) {
-    final body = jsonDecode(response.body);
+    dynamic body;
+
+    if (response.body.isNotEmpty) {
+      try {
+        body = jsonDecode(response.body);
+      } catch (_) {
+        body = null;
+      }
+    }
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body is Map<String, dynamic> ? body : {'data': body};
     }
+
+    final message = body is Map<String, dynamic>
+        ? body['message']?.toString()
+        : null;
+
     throw ApiException(
       statusCode: response.statusCode,
-      message: body['message']?.toString() ?? 'Request failed',
+      message: message ?? 'Request failed',
     );
   }
 }

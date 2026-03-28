@@ -126,31 +126,41 @@ router.get('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
 
 // Update system settings
 router.put('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
-    // Save to database
     const settings = req.body;
-    
-    // Upsert each setting
-    for (const [key, value] of Object.entries(settings)) {
+
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Settings payload must be a JSON object'
+        });
+    }
+
+    const sanitizedSettings = Object.fromEntries(
+        Object.entries(settings).filter(([key]) => typeof key === 'string' && key.trim().length > 0)
+    );
+
+    if (Object.keys(sanitizedSettings).length > 0) {
         await query(`
             INSERT INTO system_settings (setting_key, setting_value, updated_at, updated_by)
-            VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
-            ON CONFLICT (setting_key) DO UPDATE 
+            SELECT kv.key, kv.value, CURRENT_TIMESTAMP, $2
+            FROM jsonb_each($1::jsonb) AS kv
+            ON CONFLICT (setting_key) DO UPDATE
             SET setting_value = EXCLUDED.setting_value,
                 updated_at = CURRENT_TIMESTAMP,
                 updated_by = EXCLUDED.updated_by
-        `, [key, JSON.stringify(value), req.user.user_id]);
+        `, [JSON.stringify(sanitizedSettings), req.user.user_id]);
     }
     
     // Log the settings update
     await query(`
         INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
         VALUES ($1, 'UPDATE', 'system_settings', $2, $3)
-    `, [req.user.user_id, JSON.stringify(settings), req.ip]);
+    `, [req.user.user_id, JSON.stringify(sanitizedSettings), req.ip]);
     
     res.json({
         success: true,
         message: 'Settings updated successfully',
-        data: settings
+        data: sanitizedSettings
     });
 }));
 

@@ -3,6 +3,7 @@
 
 import 'package:flutter/foundation.dart';
 import '../services/approvals_service.dart';
+import '../utils/auth_error_utils.dart';
 
 class ApprovalsProvider with ChangeNotifier {
   final ApprovalsService _approvalsService = ApprovalsService();
@@ -339,6 +340,12 @@ class ApprovalsProvider with ChangeNotifier {
       _stats = await _approvalsService.getApprovalStats();
       notifyListeners();
     } catch (e) {
+      if (isAuthFailureError(e)) {
+        _stats = {};
+        notifyListeners();
+        return;
+      }
+
       debugPrint('Error loading approval stats: $e');
     }
   }

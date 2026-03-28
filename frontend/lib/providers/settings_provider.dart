@@ -9,6 +9,9 @@ import '../utils/date_formatter.dart';
 class SettingsProvider with ChangeNotifier {
   PreferencesService? _prefs;
   final SettingsService _settingsService = SettingsService();
+  static const Duration _settingsReloadGracePeriod = Duration(seconds: 30);
+  DateTime? _lastLoadedAt;
+  Future<void>? _loadSettingsFuture;
 
   bool _isLoading = false;
   final bool _isSaving = false;
@@ -101,7 +104,34 @@ class SettingsProvider with ChangeNotifier {
   }
 
   // ── Load all settings from SharedPreferences and API ─────────────
-  Future<void> loadSettings() async {
+  Future<void> loadSettings({bool force = false}) async {
+    if (_loadSettingsFuture != null) {
+      await _loadSettingsFuture;
+      if (!force) {
+        return;
+      }
+    }
+
+    if (!force &&
+        _lastLoadedAt != null &&
+        DateTime.now().difference(_lastLoadedAt!) <
+            _settingsReloadGracePeriod) {
+      return;
+    }
+
+    final loadFuture = _loadSettingsInternal();
+    _loadSettingsFuture = loadFuture;
+
+    try {
+      await loadFuture;
+    } finally {
+      if (identical(_loadSettingsFuture, loadFuture)) {
+        _loadSettingsFuture = null;
+      }
+    }
+  }
+
+  Future<void> _loadSettingsInternal() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -188,6 +218,7 @@ class SettingsProvider with ChangeNotifier {
         timeFormat: _timeFormat,
       );
 
+      _lastLoadedAt = DateTime.now();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -350,7 +381,7 @@ class SettingsProvider with ChangeNotifier {
   // ── Reset to defaults ─────────────────────────────────────
   Future<void> resetToDefaults() async {
     await _prefs?.resetToDefaults();
-    await loadSettings();
+    await loadSettings(force: true);
     _successMessage = 'Settings reset to defaults';
     notifyListeners();
   }

@@ -4,6 +4,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/firearm_model.dart';
 import '../services/firearm_service.dart';
+import '../utils/auth_error_utils.dart';
 
 class FirearmProvider with ChangeNotifier {
   final FirearmService _firearmService = FirearmService();
@@ -154,6 +155,12 @@ class FirearmProvider with ChangeNotifier {
       _stats = await _firearmService.getFirearmStats(unitId: unitId);
       notifyListeners();
     } catch (e) {
+      if (isAuthFailureError(e)) {
+        _stats = {};
+        notifyListeners();
+        return;
+      }
+
       debugPrint('Error loading stats: $e');
     }
   }

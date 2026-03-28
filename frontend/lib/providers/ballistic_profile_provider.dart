@@ -3,6 +3,7 @@
 
 import 'package:flutter/foundation.dart';
 import '../services/ballistic_profile_service.dart';
+import '../utils/auth_error_utils.dart';
 
 class BallisticProfileProvider with ChangeNotifier {
   final BallisticProfileService _ballisticProfileService =
@@ -89,6 +90,12 @@ class BallisticProfileProvider with ChangeNotifier {
       _stats = await _ballisticProfileService.getProfileStats();
       notifyListeners();
     } catch (e) {
+      if (isAuthFailureError(e)) {
+        _stats = {};
+        notifyListeners();
+        return;
+      }
+
       debugPrint('Error loading stats: $e');
     }
   }

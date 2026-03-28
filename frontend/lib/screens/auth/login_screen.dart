@@ -12,7 +12,9 @@ import '../dashboards/station_commander_dashboard.dart';
 import '../dashboards/investigator_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? sessionExpiredMessage;
+
+  const LoginScreen({super.key, this.sessionExpiredMessage});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -25,12 +27,38 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
   bool _isBrandingExpanded = false;
+  bool _hasShownSessionExpiredMessage = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showSessionExpiredMessageIfNeeded();
+    });
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _showSessionExpiredMessageIfNeeded() {
+    if (!mounted || _hasShownSessionExpiredMessage) return;
+
+    final message = widget.sessionExpiredMessage;
+    if (message == null || message.trim().isEmpty) return;
+
+    _hasShownSessionExpiredMessage = true;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFF1E88E5),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _handleLogin() async {

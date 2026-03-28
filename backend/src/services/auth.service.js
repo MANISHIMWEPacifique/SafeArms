@@ -104,14 +104,22 @@ const login = async (username, password) => {
             [otp, otpExpiresAt, user.user_id]
         );
 
-        // In development mode, skip email and log OTP to console
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`\n========================================`);
-            console.log(`[AUTH] DEV MODE - OTP for ${user.username}: ${otp}`);
-            console.log(`========================================\n`);
+        // Send real email if it's a real domain (like @gmail.com) or in production
+        // This allows you to update any user's email to a Gmail address in the admin dashboard and dynamically receive OTPs
+        const isRealEmail = user.email.endsWith('@gmail.com') || user.email.endsWith('@rnp.gov.rw');
+
+        if (isRealEmail || process.env.NODE_ENV === 'production') {
+            try {
+                await sendOTPEmail(user.email, user.full_name, otp);
+                console.log(`\n[DEMO] Genuine OTP email sent via Nodemailer to ${user.email}`);
+            } catch (err) {
+                console.error(`\n[DEMO FALLBACK] Nodemailer failed to send to ${user.email}. OTP is: ${otp}`);
+            }
         } else {
-            // Send OTP via email in production
-            await sendOTPEmail(user.email, user.full_name, otp);
+            // For all other random/fake accounts (e.g. @example.com), print to terminal to keep the demo smooth
+            console.log(`\n========================================`);
+            console.log(`[DEMO BYPASS] OTP for ${user.username} (${user.email}): ${otp}`);
+            console.log(`========================================\n`);
         }
 
         logger.info(`Login initiated for user: ${username}`);
@@ -260,13 +268,22 @@ const resendOTP = async (username) => {
             [otp, otpExpiresAt, user.user_id]
         );
 
-        // Send OTP via email
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`\n========================================`);
-            console.log(`[AUTH] DEV MODE - OTP for ${user.email}: ${otp}`);
-            console.log(`========================================\n`);
+        // Send real email if it's a real domain (like @gmail.com) or in production
+        // This allows you to update any user's email to a Gmail address in the admin dashboard and dynamically receive OTPs
+        const isRealEmail = user.email.endsWith('@gmail.com') || user.email.endsWith('@rnp.gov.rw');
+
+        if (isRealEmail || process.env.NODE_ENV === 'production') {
+            try {
+                await sendOTPEmail(user.email, user.full_name, otp);
+                console.log(`\n[DEMO] Genuine resent OTP email sent via Nodemailer to ${user.email}`);
+            } catch (err) {
+                console.error(`\n[DEMO FALLBACK] Nodemailer failed to send to ${user.email}. Resent OTP is: ${otp}`);
+            }
         } else {
-            await sendOTPEmail(user.email, user.full_name, otp);
+            // For all other random/fake accounts (e.g. @example.com), print to terminal to keep the demo smooth
+            console.log(`\n========================================`);
+            console.log(`[DEMO BYPASS] Resend OTP for ${user.username} (${user.email}): ${otp}`);
+            console.log(`========================================\n`);
         }
 
         logger.info(`OTP resent for user: ${username}`);

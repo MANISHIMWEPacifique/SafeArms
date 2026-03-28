@@ -43,6 +43,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   List<Map<String, dynamic>> _custodyTimelineData = [];
   Map<String, dynamic>? _custodyTimelineSummary;
   String? _timelineError;
+  static const Color _dashboardStatInfoColor = Color(0xFF66FF99);
 
   @override
   void initState() {
@@ -701,24 +702,24 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
             children: [
               const Icon(
                 Icons.report_problem,
-                color: Color(0xFFFFC857),
+                color: _dashboardStatInfoColor,
                 size: 14,
               ),
               const SizedBox(width: 4),
               Text(
                 '$pendingLoss Loss reports pending',
-                style: const TextStyle(color: Color(0xFFFFC857), fontSize: 13),
+                style: const TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.policy, color: Color(0xFFE85C5C), size: 14),
+              const Icon(Icons.policy, color: _dashboardStatInfoColor, size: 14),
               const SizedBox(width: 4),
               Text(
                 '$mandatoryPending Mandatory reviews',
-                style: const TextStyle(color: Color(0xFFE85C5C), fontSize: 13),
+                style: const TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
               ),
             ],
           ),
@@ -760,11 +761,11 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
           const SizedBox(height: 12),
           const Text(
             'National database',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
+            style: TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
           ),
           const Text(
             'Cross-unit searchable',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
+            style: TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
           ),
         ],
       ),
@@ -817,14 +818,14 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFE85C5C),
+                  color: _dashboardStatInfoColor,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 '$criticalHigh Critical/High',
-                style: const TextStyle(color: Color(0xFFE85C5C), fontSize: 13),
+                style: const TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
               ),
             ],
           ),
@@ -835,14 +836,14 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF42A5F5),
+                  color: _dashboardStatInfoColor,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 '$mediumLow Medium/Low',
-                style: const TextStyle(color: Color(0xFF42A5F5), fontSize: 13),
+                style: const TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
               ),
             ],
           ),
@@ -885,7 +886,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
           const SizedBox(height: 12),
           const Text(
             'All units nationwide',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
+            style: TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
           ),
         ],
       ),

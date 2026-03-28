@@ -164,10 +164,6 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final unitName =
-        authProvider.currentUser?['unit_name']?.toString() ?? 'Your Unit';
-
     return BaseModalWidget(
       width: 600,
       headerTitle: 'Add New Officer',
@@ -180,10 +176,6 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Unit Assignment Banner
-            _buildUnitBanner(unitName),
-            const SizedBox(height: 24),
-
             // Error Message
             if (_errorMessage != null) ...[
               Container(
@@ -260,67 +252,6 @@ class _StationAddOfficerModalState extends State<StationAddOfficerModal> {
             _buildSubmitButton(),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildUnitBanner(String unitName) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF1E88E5).withValues(alpha: 0.2),
-            const Color(0xFF1A1F2E),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.apartment, color: Color(0xFF1E88E5), size: 24),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Unit Assignment',
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 12,
-                ),
-              ),
-              Text(
-                unitName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Text(
-              'Auto-assigned',
-              style: TextStyle(
-                color: Color(0xFF1E88E5),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

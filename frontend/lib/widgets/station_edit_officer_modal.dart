@@ -6,7 +6,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/officer_provider.dart';
-import '../providers/auth_provider.dart';
 import '../models/officer_model.dart';
 
 class StationEditOfficerModal extends StatefulWidget {
@@ -176,10 +175,6 @@ class _StationEditOfficerModalState extends State<StationEditOfficerModal> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final unitName =
-        authProvider.currentUser?['unit_name']?.toString() ?? 'Your Unit';
-
     return Material(
       color: Colors.black.withValues(alpha: 0.5),
       child: Center(
@@ -210,10 +205,6 @@ class _StationEditOfficerModalState extends State<StationEditOfficerModal> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Unit Assignment Banner
-                        _buildUnitBanner(unitName),
-                        const SizedBox(height: 24),
-
                         // Error Message
                         if (_errorMessage != null) ...[
                           Container(
@@ -349,67 +340,6 @@ class _StationEditOfficerModalState extends State<StationEditOfficerModal> {
             onPressed: widget.onClose,
             icon: const Icon(Icons.close, color: Colors.white54),
             hoverColor: Colors.white.withValues(alpha: 0.1),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUnitBanner(String unitName) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF1E88E5).withValues(alpha: 0.2),
-            const Color(0xFF1A1F2E),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.apartment, color: Color(0xFF1E88E5), size: 24),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Unit Assignment',
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 12,
-                ),
-              ),
-              Text(
-                unitName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF37404F),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Text(
-              'Locked',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
           ),
         ],
       ),

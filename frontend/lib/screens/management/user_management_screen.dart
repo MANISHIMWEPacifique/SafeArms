@@ -1398,37 +1398,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             }),
                             const SizedBox(height: 16),
 
-                            // Unit assignment info for station commanders
-                            if (role == 'station_commander') ...[
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1E88E5)
-                                      .withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                      color: const Color(0xFF1E88E5)
-                                          .withValues(alpha: 0.3)),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.info_outline,
-                                        color: Color(0xFF1E88E5), size: 16),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        'Station Commander will need to confirm their unit assignment on first login.',
-                                        style: TextStyle(
-                                            color: Color(0xFFB0BEC5),
-                                            fontSize: 12),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-
                             // Active Status Toggle
                             Container(
                               padding: const EdgeInsets.symmetric(

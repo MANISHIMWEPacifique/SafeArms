@@ -4,7 +4,7 @@ const { query } = require('../config/database');
 const { authenticate } = require('../middleware/authentication');
 const { asyncHandler } = require('../middleware/errorHandler');
 
-const parsedDashboardBatchSize = parseInt(process.env.DASHBOARD_QUERY_BATCH_SIZE || '5', 10);
+const parsedDashboardBatchSize = parseInt(process.env.DASHBOARD_QUERY_BATCH_SIZE || '10', 10);
 const DASHBOARD_QUERY_BATCH_SIZE = Number.isFinite(parsedDashboardBatchSize) && parsedDashboardBatchSize > 0
     ? parsedDashboardBatchSize
     : 5;

@@ -41,6 +41,9 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
   bool _isExpanded = false;
   bool _isHovered = false;
   late String _currentStatus;
+  // Single source of truth for programmatic expand/collapse.
+  // Drives both the ExpansionTile and the "View Details" button.
+  final ExpansibleController _expansionController = ExpansibleController();
 
   // Colors based on requested theme
   static const Color _cardBgColor = Color(0xFF212D42);
@@ -59,6 +62,12 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
   void initState() {
     super.initState();
     _currentStatus = widget.status.toLowerCase();
+  }
+
+  @override
+  void dispose() {
+    _expansionController.dispose();
+    super.dispose();
   }
 
   @override
@@ -159,7 +168,7 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
             child: Theme(
               data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
-                initiallyExpanded: _isExpanded,
+                controller: _expansionController,
                 onExpansionChanged: (expanded) {
                   setState(() => _isExpanded = expanded);
                 },
@@ -217,7 +226,9 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
               children: [
                 GestureDetector(
                   onTap: _cycleStatus,
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: _getStatusColor().withValues(alpha: 0.15),
@@ -226,14 +237,16 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
                         color: _getStatusColor().withValues(alpha: 0.5),
                       ),
                     ),
-                    child: Text(
-                      _currentStatus.toUpperCase(),
+                    child: AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOut,
                       style: TextStyle(
                         fontFamily: 'DM Sans',
                         color: _getStatusColor(),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
+                      child: Text(_currentStatus.toUpperCase()),
                     ),
                   ),
                 ),
@@ -310,7 +323,14 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
               ),
             const SizedBox(width: 8),
             ElevatedButton(
-              onPressed: () => setState(() => _isExpanded = !_isExpanded),
+              onPressed: () {
+                if (_isExpanded) {
+                  _expansionController.collapse();
+                } else {
+                  _expansionController.expand();
+                }
+                // _isExpanded is updated by onExpansionChanged callback above
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _accentBlueDim,
                 foregroundColor: _accentBlue,
@@ -318,7 +338,13 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                 side: const BorderSide(color: _accentBlue, width: 1),
               ),
-              child: Text(_isExpanded ? 'Hide Details' : 'View Details'),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: Text(
+                  _isExpanded ? 'Hide Details' : 'View Details',
+                  key: ValueKey(_isExpanded),
+                ),
+              ),
             ),
           ],
         ),

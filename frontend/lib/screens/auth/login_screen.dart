@@ -4,12 +4,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/app_transitions.dart';
 import 'otp_screen.dart';
-import 'change_password_screen.dart';
-import '../dashboards/admin_dashboard.dart';
-import '../dashboards/hq_commander_dashboard.dart';
-import '../dashboards/station_commander_dashboard.dart';
-import '../dashboards/investigator_dashboard.dart';
+import 'change_password_screen.dart' deferred as change_password_screen;
+import '../dashboards/admin_dashboard.dart' deferred as admin_dashboard;
+import '../dashboards/hq_commander_dashboard.dart' deferred as hq_dashboard;
+import '../dashboards/station_commander_dashboard.dart'
+  deferred as station_dashboard;
+import '../dashboards/investigator_dashboard.dart'
+  deferred as investigator_dashboard;
 
 class LoginScreen extends StatefulWidget {
   final String? sessionExpiredMessage;
@@ -79,14 +82,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result['success'] == true) {
       if (result['bypassed_otp'] == true) {
         // Direct to application
-        _navigateToAppropriateScreen(authProvider);
+        await _navigateToAppropriateScreen(authProvider);
       } else {
         // Navigate to OTP screen
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) =>
-                OtpScreen(username: _usernameController.text.trim()),
-          ),
+          fadeRoute(OtpScreen(username: _usernameController.text.trim())),
         );
       }
     } else {
@@ -100,34 +100,42 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _navigateToAppropriateScreen(AuthProvider authProvider) {
+  Future<void> _navigateToAppropriateScreen(AuthProvider authProvider) async {
     Widget screen;
 
     // Check if user must change their password first
     if (authProvider.requiresPasswordChange) {
-      screen = const ChangePasswordScreen();
+      await change_password_screen.loadLibrary();
+      screen = change_password_screen.ChangePasswordScreen();
     } else {
       // Navigate to role-specific dashboard
       switch (authProvider.userRole) {
         case 'admin':
-          screen = const AdminDashboard();
+          await admin_dashboard.loadLibrary();
+          screen = admin_dashboard.AdminDashboard();
           break;
         case 'hq_firearm_commander':
-          screen = const HqCommanderDashboard();
+          await hq_dashboard.loadLibrary();
+          screen = hq_dashboard.HqCommanderDashboard();
           break;
         case 'station_commander':
-          screen = const StationCommanderDashboard();
+          await station_dashboard.loadLibrary();
+          screen = station_dashboard.StationCommanderDashboard();
           break;
         case 'investigator':
-          screen = const InvestigatorDashboard();
+          await investigator_dashboard.loadLibrary();
+          screen = investigator_dashboard.InvestigatorDashboard();
           break;
         default:
-          screen = const AdminDashboard();
+          await admin_dashboard.loadLibrary();
+          screen = admin_dashboard.AdminDashboard();
       }
     }
 
+    if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => screen),
+      slideFadeRoute(screen),
     );
   }
 

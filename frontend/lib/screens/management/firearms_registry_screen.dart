@@ -92,9 +92,30 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                               const SizedBox(height: 24),
                               _buildStatsBar(firearmProvider),
                               const SizedBox(height: 24),
-                              firearmProvider.isGridView
-                                  ? _buildGridView(firearmProvider)
-                                  : _buildListView(firearmProvider),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 240),
+                                transitionBuilder: (child, animation) {
+                                  final scale = Tween<double>(
+                                          begin: 0.97, end: 1.0)
+                                      .animate(CurvedAnimation(
+                                          parent: animation,
+                                          curve: Curves.easeOut));
+                                  return FadeTransition(
+                                    opacity: animation,
+                                    child: ScaleTransition(
+                                        scale: scale, child: child),
+                                  );
+                                },
+                                child: firearmProvider.isGridView
+                                    ? KeyedSubtree(
+                                        key: const ValueKey('grid'),
+                                        child:
+                                            _buildGridView(firearmProvider))
+                                    : KeyedSubtree(
+                                        key: const ValueKey('list'),
+                                        child:
+                                            _buildListView(firearmProvider)),
+                              ),
                             ],
                           ),
                         ),

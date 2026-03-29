@@ -1,6 +1,8 @@
 // Admin Dashboard
 // Dashboard for admin role
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -53,14 +55,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
       listen: false,
     );
 
-    // Load all dashboard data - single API call gets all stats
-    await Future.wait([
-      dashboardProvider.loadDashboardStats(),
+    // Load core stats first for faster first paint.
+    await dashboardProvider.loadDashboardStats();
+
+    if (!mounted) return;
+
+    // Fetch secondary data in background.
+    unawaited(
       anomalyProvider.loadAnomalies(
-          limit: settingsProvider.itemsPerPage > 0
-              ? settingsProvider.itemsPerPage
-              : 10),
-    ]);
+        limit: settingsProvider.itemsPerPage > 0
+            ? settingsProvider.itemsPerPage
+            : 10,
+      ),
+    );
   }
 
   final List<_NavItem> _navItems = [

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/app_transitions.dart';
 import 'login_screen.dart';
 import 'change_password_screen.dart';
 import '../dashboards/admin_dashboard.dart';
@@ -145,7 +146,7 @@ class _OtpScreenState extends State<OtpScreen> {
     }
 
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => screen),
+      slideFadeRoute(screen),
       (route) => false,
     );
   }
@@ -447,9 +448,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 TextButton.icon(
                   onPressed: () {
                     Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => const LoginScreen(),
-                      ),
+                      fadeRoute(const LoginScreen()),
                     );
                   },
                   icon: const Icon(Icons.arrow_back, color: Color(0xFF78909C)),

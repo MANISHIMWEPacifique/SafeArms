@@ -2,6 +2,8 @@
 // Dashboard for investigator role - investigation and analysis center
 // All data is fetched from backend APIs - no hardcoded/dummy data
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -64,10 +66,13 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       listen: false,
     );
 
-    await Future.wait([
-      dashboardProvider.loadDashboardStats(),
-      anomalyProvider.loadAnomalies(limit: 15),
-    ]);
+    // Load core stats first for faster first paint.
+    await dashboardProvider.loadDashboardStats();
+
+    if (!mounted) return;
+
+    // Fetch anomalies in background.
+    unawaited(anomalyProvider.loadAnomalies(limit: 15));
   }
 
   @override

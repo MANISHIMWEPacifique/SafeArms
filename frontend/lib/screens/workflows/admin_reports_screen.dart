@@ -235,8 +235,20 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               ),
             ),
 
-          // Report content
-          if (_reportGenerated && !_isLoading) _buildReportContent(),
+          // Report content — fades in when generated
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 320),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: CurvedAnimation(
+                  parent: animation, curve: Curves.easeOut),
+              child: child,
+            ),
+            child: (_reportGenerated && !_isLoading)
+                ? KeyedSubtree(
+                    key: ValueKey(_selectedReportType),
+                    child: _buildReportContent())
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     );
@@ -900,45 +912,64 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     required List<String> columns,
     required List<List<String>> rows,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1F2E),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF37404F)),
-      ),
-      child: DataTable(
-        headingRowColor: WidgetStateProperty.all(const Color(0xFF252A3A)),
-        dataRowColor: WidgetStateProperty.all(const Color(0xFF1A1F2E)),
-        headingRowHeight: 44,
-        dataRowMinHeight: 40,
-        dataRowMaxHeight: 44,
-        columnSpacing: 24,
-        columns: columns
-            .map((c) => DataColumn(
-                  label: Text(
-                    c.toUpperCase(),
-                    style: const TextStyle(
-                      color: Color(0xFFB0BEC5),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ))
-            .toList(),
-        rows: rows
-            .map((r) => DataRow(
-                  cells: r
-                      .map((cell) => DataCell(
-                            Text(
-                              cell,
-                              style: const TextStyle(
-                                  color: Color(0xFFB0BEC5), fontSize: 13),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final estimatedTableWidth = columns.length * 170.0;
+        final tableWidth =
+            estimatedTableWidth > constraints.maxWidth
+                ? estimatedTableWidth
+                : constraints.maxWidth;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1F2E),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF37404F)),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: tableWidth,
+              child: DataTable(
+                headingRowColor:
+                    WidgetStateProperty.all(const Color(0xFF252A3A)),
+                dataRowColor:
+                    WidgetStateProperty.all(const Color(0xFF1A1F2E)),
+                headingRowHeight: 44,
+                dataRowMinHeight: 40,
+                dataRowMaxHeight: 44,
+                columnSpacing: 24,
+                columns: columns
+                    .map((c) => DataColumn(
+                          label: Text(
+                            c.toUpperCase(),
+                            style: const TextStyle(
+                              color: Color(0xFFB0BEC5),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
                             ),
-                          ))
-                      .toList(),
-                ))
-            .toList(),
-      ),
+                          ),
+                        ))
+                    .toList(),
+                rows: rows
+                    .map((r) => DataRow(
+                          cells: r
+                              .map((cell) => DataCell(
+                                    Text(
+                                      cell,
+                                      style: const TextStyle(
+                                          color: Color(0xFFB0BEC5),
+                                          fontSize: 13),
+                                    ),
+                                  ))
+                              .toList(),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

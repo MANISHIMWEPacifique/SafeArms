@@ -1,6 +1,8 @@
 // HQ Commander Dashboard
 // Dashboard for HQ firearm commander role
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -62,16 +64,21 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
       listen: false,
     );
 
-    // Load all dashboard data - single API call for main stats
-    await Future.wait([
-      dashboardProvider.loadDashboardStats(),
-      firearmsProvider.loadStats(),
+    // Load core stats first for faster first paint.
+    await dashboardProvider.loadDashboardStats();
+
+    if (!mounted) return;
+
+    // Fetch secondary panels in background.
+    unawaited(firearmsProvider.loadStats());
+    unawaited(
       anomalyProvider.loadAnomalies(
-          limit: settingsProvider.itemsPerPage > 0
-              ? settingsProvider.itemsPerPage
-              : 10),
-      approvalProvider.loadPendingApprovals(),
-    ]);
+        limit: settingsProvider.itemsPerPage > 0
+            ? settingsProvider.itemsPerPage
+            : 10,
+      ),
+    );
+    unawaited(approvalProvider.loadPendingApprovals());
   }
 
   // Build dynamic nav items based on provider data

@@ -1,6 +1,8 @@
 // Station Commander Dashboard
 // Dashboard for station commander role - unit-level control center
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -47,11 +49,13 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
     final unitId = authProvider.currentUser?['unit_id']?.toString();
 
-    // Load all dashboard data - single API call gets all stats
-    await Future.wait([
-      dashboardProvider.loadDashboardStats(),
-      if (unitId != null) anomalyProvider.loadUnitAnomalies(unitId),
-    ]);
+    // Load core stats first for faster first paint.
+    await dashboardProvider.loadDashboardStats();
+
+    if (!mounted || unitId == null) return;
+
+    // Fetch anomalies in background.
+    unawaited(anomalyProvider.loadUnitAnomalies(unitId));
   }
 
   // Build dynamic nav items based on provider data

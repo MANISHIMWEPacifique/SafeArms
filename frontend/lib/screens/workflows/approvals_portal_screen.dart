@@ -374,6 +374,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
             itemBuilder: (context, index) {
               final report = provider.pendingLossReports[index];
               return ExpandableReportCard(
+                key: ValueKey("loss-${report['loss_id'] ?? index}"),
                 reportId: 'LOSS-${report['loss_id'] ?? 'N/A'}',
                 status: report['status'] ?? 'pending',
                 primaryCodeLabel: 'FIREARM',
@@ -414,6 +415,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
             itemBuilder: (context, index) {
               final req = provider.pendingDestructionRequests[index];
               return ExpandableReportCard(
+                key: ValueKey("destruction-${req['destruction_id'] ?? index}"),
                 reportId: 'DEST-${req['destruction_id'] ?? 'N/A'}',
                 status: req['status'] ?? 'pending',
                 primaryCodeLabel: 'FIREARM',
@@ -454,6 +456,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
             itemBuilder: (context, index) {
               final req = provider.pendingProcurementRequests[index];
               return ExpandableReportCard(
+                key: ValueKey("procurement-${req['procurement_id'] ?? index}"),
                 reportId: 'PROC-${req['procurement_id'] ?? 'N/A'}',
                 status: req['status'] ?? 'pending',
                 primaryCodeLabel: 'TYPE',

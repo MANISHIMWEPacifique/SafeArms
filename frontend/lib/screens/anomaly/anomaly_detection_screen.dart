@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../../providers/unit_provider.dart';
+import '../../utils/app_transitions.dart';
 
 const double _anomalyDesktopBreakpoint = 1024;
 const double _anomalyMobileBreakpoint = 768;
@@ -85,11 +86,25 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                 role == 'hq_firearm_commander' ||
                 role == 'admin')
               _buildViewTabs(isCompact: isCompact),
-            if (_activeView == 'monitoring') ...[
-              Expanded(child: _buildMonitoringContent()),
-            ] else ...[
-              Expanded(child: _InvestigationSearchPanel()),
-            ],
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: CurvedAnimation(
+                      parent: animation, curve: Curves.easeOut),
+                  child: child,
+                ),
+                child: _activeView == 'monitoring'
+                    ? KeyedSubtree(
+                        key: const ValueKey('monitoring'),
+                        child: _buildMonitoringContent(),
+                      )
+                    : const KeyedSubtree(
+                        key: ValueKey('investigation'),
+                        child: _InvestigationSearchPanel(),
+                      ),
+              ),
+            ),
           ],
         ),
       ),
@@ -786,17 +801,19 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
         severityColor = const Color(0xFF78909C);
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color:
-            index % 2 == 0 ? const Color(0xFF2A3040) : const Color(0xFF252A3A),
-        border: const Border(
-          bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+    return staggeredItem(
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: index % 2 == 0
+              ? const Color(0xFF2A3040)
+              : const Color(0xFF252A3A),
+          border: const Border(
+            bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+          ),
         ),
-      ),
-      child: Row(
-        children: [
+        child: Row(
+          children: [
           Expanded(
             flex: 2,
             child: Text(
@@ -938,8 +955,10 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
               tooltip: 'View Details',
             ),
           ),
-        ],
+          ],
+        ),
       ),
+      index,
     );
   }
 
@@ -1038,6 +1057,8 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
 // Investigation Search Panel - Filter by unit and time interval
 // ============================================================
 class _InvestigationSearchPanel extends StatefulWidget {
+  const _InvestigationSearchPanel();
+
   @override
   State<_InvestigationSearchPanel> createState() =>
       _InvestigationSearchPanelState();

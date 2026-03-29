@@ -78,6 +78,7 @@ class _SessionTimeoutManagerState extends State<SessionTimeoutManager> {
   AuthProvider? _authProvider;
   SettingsProvider? _settingsProvider;
   int? _currentTimeoutMinutes;
+  bool _hasRequestedAuthenticatedSettingsLoad = false;
 
   @override
   void initState() {
@@ -90,9 +91,6 @@ class _SessionTimeoutManagerState extends State<SessionTimeoutManager> {
 
       _authProvider?.addListener(_handleProviderStateChanged);
       _settingsProvider?.addListener(_handleProviderStateChanged);
-
-      // Pre-load application settings
-      context.read<SettingsProvider>().loadSettings();
       _syncTimerWithAuthState();
     });
   }
@@ -117,7 +115,18 @@ class _SessionTimeoutManagerState extends State<SessionTimeoutManager> {
       _authTimer?.cancel();
       _authTimer = null;
       _currentTimeoutMinutes = null;
+      _hasRequestedAuthenticatedSettingsLoad = false;
       return;
+    }
+
+    if (!_hasRequestedAuthenticatedSettingsLoad) {
+      _hasRequestedAuthenticatedSettingsLoad = true;
+      Future<void>.delayed(const Duration(milliseconds: 600), () {
+        if (!mounted) return;
+        final latestAuth = _authProvider ?? context.read<AuthProvider>();
+        if (!latestAuth.isAuthenticated) return;
+        unawaited(settings.loadSettings());
+      });
     }
 
     final timeoutMinutes =

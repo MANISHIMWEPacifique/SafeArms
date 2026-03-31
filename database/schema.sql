@@ -12,6 +12,7 @@
 DROP MATERIALIZED VIEW IF EXISTS firearm_usage_profile CASCADE;
 DROP MATERIALIZED VIEW IF EXISTS officer_behavior_profile CASCADE;
 DROP VIEW IF EXISTS unified_firearm_events_timeline CASCADE;
+DROP TABLE IF EXISTS anomaly_dashboard_hides CASCADE;
 DROP TABLE IF EXISTS anomaly_investigations CASCADE;
 DROP TABLE IF EXISTS anomalies CASCADE;
 DROP TABLE IF EXISTS ml_training_features CASCADE;
@@ -286,7 +287,11 @@ CREATE TABLE anomalies (
     is_mandatory_review BOOLEAN DEFAULT false,
     event_context JSONB,
     ballistic_access_context JSONB,
-    status VARCHAR(50) DEFAULT 'open' CHECK (status IN ('open', 'pending', 'investigating', 'resolved', 'false_positive')),
+    status VARCHAR(50) DEFAULT 'open' CHECK (status IN ('open', 'pending', 'investigating', 'resolved', 'false_positive', 'acceptable_change')),
+    removed_from_dashboard BOOLEAN DEFAULT false,
+    removed_from_dashboard_at TIMESTAMP,
+    removed_from_dashboard_by VARCHAR(20) REFERENCES users(user_id),
+    removed_from_dashboard_reason TEXT,
     investigated_by VARCHAR(20) REFERENCES users(user_id),
     investigation_notes TEXT,
     resolution_date TIMESTAMP,
@@ -295,6 +300,16 @@ CREATE TABLE anomalies (
     notified_users JSONB,
     detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Per-user anomaly dashboard visibility (hide from dashboard without deleting records)
+CREATE TABLE anomaly_dashboard_hides (
+    hide_id BIGSERIAL PRIMARY KEY,
+    anomaly_id VARCHAR(20) NOT NULL REFERENCES anomalies(anomaly_id) ON DELETE CASCADE,
+    user_id VARCHAR(20) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    reason TEXT,
+    hidden_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (anomaly_id, user_id)
 );
 
 -- Anomaly Investigations Table
@@ -430,6 +445,12 @@ CREATE INDEX idx_anomalies_unit ON anomalies(unit_id);
 CREATE INDEX idx_anomalies_severity ON anomalies(severity);
 CREATE INDEX idx_anomalies_status ON anomalies(status);
 CREATE INDEX idx_anomalies_detected_at ON anomalies(detected_at);
+CREATE INDEX idx_anomalies_removed_from_dashboard ON anomalies(removed_from_dashboard);
+
+-- Anomaly Dashboard Hide
+CREATE INDEX idx_anomaly_hides_user ON anomaly_dashboard_hides(user_id);
+CREATE INDEX idx_anomaly_hides_anomaly ON anomaly_dashboard_hides(anomaly_id);
+CREATE INDEX idx_anomaly_hides_hidden_at ON anomaly_dashboard_hides(hidden_at);
 
 -- ML Features
 CREATE INDEX idx_ml_features_officer ON ml_training_features(officer_id);

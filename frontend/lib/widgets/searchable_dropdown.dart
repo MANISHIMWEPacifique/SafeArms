@@ -99,6 +99,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     } else {
       // Delay closing to allow tap registration on overlay items
       Future.delayed(const Duration(milliseconds: 200), () {
+        if (!mounted) return;
         if (!_focusNode.hasFocus) {
           _closeDropdown();
           _updateDisplayText();

@@ -19,7 +19,7 @@ ALTER TABLE anomalies
 -- Fix anomalies.status: add 'pending' value
 ALTER TABLE anomalies DROP CONSTRAINT IF EXISTS anomalies_status_check;
 ALTER TABLE anomalies ADD CONSTRAINT anomalies_status_check
-    CHECK (status IN ('open', 'pending', 'investigating', 'resolved', 'false_positive'));
+    CHECK (status IN ('open', 'pending', 'investigating', 'resolved', 'false_positive', 'acceptable_change'));
 
 -- Fix loss_reports.status: add 'under_investigation' value
 ALTER TABLE loss_reports DROP CONSTRAINT IF EXISTS loss_reports_status_check;

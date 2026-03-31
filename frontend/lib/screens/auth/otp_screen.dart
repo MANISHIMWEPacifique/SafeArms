@@ -62,8 +62,13 @@ class _OtpScreenState extends State<OtpScreen> {
 
   void _startTimer(int seconds) {
     _timer?.cancel();
+    if (!mounted) return;
     setState(() => _remainingSeconds = seconds);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() {
         if (_remainingSeconds > 0) {
           _remainingSeconds--;

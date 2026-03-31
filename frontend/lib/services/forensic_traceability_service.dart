@@ -117,7 +117,8 @@ class ForensicTraceabilityService {
     String? status,
   }) async {
     try {
-      var url = '${ApiConfig.anomalies}?firearm_id=$firearmId';
+      var url =
+          '${ApiConfig.anomalies}?firearm_id=$firearmId&include_removed=true';
       if (status != null) url += '&status=$status';
       final data = await ApiClient.get(url);
       return List<Map<String, dynamic>>.from(data['data'] ?? []);

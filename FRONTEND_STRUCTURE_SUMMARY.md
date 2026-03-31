@@ -65,7 +65,7 @@
 ✅ `lib/screens/management/custody_management_screen.dart`  
 ✅ `lib/screens/management/officer_registry_screen.dart` - Modal restyled  
 ✅ `lib/screens/management/ballistic_profiles_screen.dart`  
-✅ `lib/screens/management/system_settings_screen.dart`  
+✅ `lib/screens/settings/system_settings_screen.dart`  
 
 **Workflows (5 screens)**
 ✅ `lib/screens/workflows/operations_portal_screen.dart`  
@@ -153,7 +153,8 @@
 
 ### Anomaly Monitoring
 - Real-time anomaly detection with auto-refresh (2-minute interval)
-- Stats cards: Total Anomalies, Critical, High Priority, Medium, Open Cases
+- Stats cards: Total Anomalies, Critical, High Priority, Medium
+- Off-hours activity (night/weekend) is not treated as a standalone anomaly signal
 - Filter by severity and status
 - Enlarged stats row, compact filter row
 

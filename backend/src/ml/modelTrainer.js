@@ -2,6 +2,15 @@ const { trainKMeansModel } = require('./kmeans');
 const { query } = require('../config/database');
 const logger = require('../utils/logger');
 
+const toPositiveInt = (value, fallback) => {
+    const parsed = parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const MIN_TRAINING_SAMPLES = toPositiveInt(process.env.ML_MIN_TRAINING_SAMPLES, 100);
+
+const getMinTrainingSamples = () => MIN_TRAINING_SAMPLES;
+
 /**
  * Model Trainer
  * Handles periodic retraining of ML models
@@ -14,7 +23,7 @@ const logger = require('../utils/logger');
  */
 const trainModel = async (options = {}) => {
     try {
-        const { k = 6, minSamples = 50 } = options;
+        const { k = 6, minSamples = getMinTrainingSamples() } = options;
 
         logger.info('Starting model training...');
 
@@ -186,5 +195,6 @@ const getModelMetrics = async (modelId) => {
 module.exports = {
     trainModel,
     checkRetrainingNeeded,
-    getModelMetrics
+    getModelMetrics,
+    getMinTrainingSamples
 };

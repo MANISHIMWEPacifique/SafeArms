@@ -358,18 +358,41 @@ class SettingsProvider with ChangeNotifier {
     }
   }
 
-  Future<void> trainModel() async {
+  Future<void> trainModel({bool force = false, bool wait = true}) async {
     _isTraining = true;
     _trainingError = null;
     notifyListeners();
 
     try {
-      await _settingsService.trainMLModel();
-      // Wait briefly then refresh status
-      await Future.delayed(const Duration(seconds: 2));
+      final result = await _settingsService.trainMLModel(
+        force: force,
+        wait: wait,
+      );
+      final payload = (result['data'] is Map<String, dynamic>)
+          ? result['data'] as Map<String, dynamic>
+          : <String, dynamic>{};
+      final status = payload['status']?.toString() ?? '';
+
+      if (wait) {
+        // Give the backend a short window to commit model metadata updates.
+        await Future.delayed(const Duration(seconds: 2));
+      }
+
       await loadMLStatus();
       _isTraining = false;
-      _successMessage = 'Model training completed successfully';
+
+      if (status == 'skipped') {
+        final reason = payload['reason']?.toString();
+        _successMessage = reason == null || reason.isEmpty
+            ? 'Model training skipped: retraining not needed yet'
+            : 'Model training skipped: $reason';
+      } else if (status == 'started' || status == 'running') {
+        _successMessage = 'Model training started in background';
+      } else {
+        _successMessage =
+            result['message']?.toString() ?? 'Model training completed';
+      }
+
       notifyListeners();
     } catch (e) {
       _isTraining = false;

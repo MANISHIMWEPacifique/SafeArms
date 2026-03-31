@@ -38,7 +38,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
   AnimationController? _pulseController;
 
   bool _securityValuesInitialized = false;
-  bool _isTraining = false;
 
   bool _otpDragging = false;
   bool _maxAttemptsDragging = false;
@@ -607,6 +606,38 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
   }
 
   Widget _buildAnomalyTab(SettingsProvider sp) {
+    final mlStatus = sp.mlStatus ?? const <String, dynamic>{};
+    final activeModel = mlStatus['active_model'] is Map
+        ? Map<String, dynamic>.from(mlStatus['active_model'] as Map)
+        : null;
+    final lastRun = mlStatus['last_training_run'] is Map
+        ? Map<String, dynamic>.from(mlStatus['last_training_run'] as Map)
+        : null;
+
+    final canTrain = mlStatus['can_train'] == true;
+    final isTraining = sp.isTraining;
+
+    final modelId = _safeString(activeModel?['model_id'], fallback: 'N/A');
+    final lastTrained = _formatIsoDateTime(activeModel?['training_date']);
+    final trainingSamples = _formatInt(activeModel?['training_samples']);
+    final silhouette = _formatDouble(activeModel?['silhouette_score']);
+    final clusters = _formatInt(activeModel?['num_clusters']);
+
+    final availableSamples = _formatInt(mlStatus['available_training_samples']);
+    final minimumRequired = _formatInt(mlStatus['minimum_required_samples']);
+    final recentDetections = _formatInt(mlStatus['recent_detections']);
+    final falsePositiveRate =
+        _safeString(mlStatus['false_positive_rate'], fallback: '0%');
+    final readinessLabel = canTrain ? 'Ready to train' : 'Needs more samples';
+
+    final lastRunStatus = _prettyTrainingStatus(
+        _safeString(lastRun?['status'], fallback: 'idle'));
+    final lastRunReason = _safeString(lastRun?['reason'], fallback: '');
+
+    final trainHint = canTrain
+        ? 'Sufficient samples available for training'
+        : 'Need more samples before training';
+
     return _buildPanel(
       header: _buildPanelHeader(
         icon: Icons.hub_outlined,
@@ -614,7 +645,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
         iconBg: _tealDim,
         title: 'Anomaly detection engine',
         subtitle: 'Rules Engine + K-Means clustering model',
-        trailing: _buildModelActiveBadge(),
+        trailing: _buildModelActiveBadge(sp),
       ),
       children: [
         Container(
@@ -632,98 +663,173 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
                 childAspectRatio: compact ? 2.0 : 1.8,
-                children: const [
-                  _MiniStatCard(label: 'MODEL ID', value: 'MDL-001'),
+                children: [
+                  _MiniStatCard(label: 'MODEL ID', value: modelId),
                   _MiniStatCard(
-                      label: 'LAST TRAINED',
-                      value: 'Jan 8, 2025',
-                      valueSize: 15),
-                  _MiniStatCard(label: 'TRAINING SAMPLES', value: '134'),
-                  _MiniStatCard(label: 'SILHOUETTE SCORE', value: '0.68'),
+                      label: 'LAST TRAINED', value: lastTrained, valueSize: 15),
+                  _MiniStatCard(
+                      label: 'TRAINING SAMPLES', value: trainingSamples),
+                  _MiniStatCard(label: 'SILHOUETTE SCORE', value: silhouette),
                 ],
               );
             },
           ),
         ),
         _buildKvTable([
-          {'label': 'Clusters', 'value': '4'},
-          {'label': 'Available samples', 'value': '182'},
-          {'label': 'Minimum required', 'value': '100'},
-          {'label': 'Recent detections (30d)', 'value': '4'},
+          {'label': 'Clusters', 'value': clusters},
+          {'label': 'Available samples', 'value': availableSamples},
+          {'label': 'Minimum required', 'value': minimumRequired},
+          {
+            'label': 'Training readiness',
+            'value': readinessLabel,
+            'color': canTrain ? _successGreen : _warningAmber,
+          },
+          {'label': 'Recent detections (30d)', 'value': recentDetections},
           {
             'label': 'False positive rate',
-            'value': '75.0%',
+            'value': falsePositiveRate,
             'color': _warningAmber
           },
+          {
+            'label': 'Last training run',
+            'value': lastRunStatus,
+          },
+          if (lastRunReason.isNotEmpty)
+            {
+              'label': 'Last run detail',
+              'value': lastRunReason,
+            },
         ]),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Train K-Means model',
-                      style: TextStyle(
-                          color: _textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500)),
-                  SizedBox(height: 4),
-                  Text('Sufficient samples available for training',
-                      style: TextStyle(color: _textSecondary, fontSize: 13)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Train K-Means model',
+                            style: TextStyle(
+                                color: _textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 4),
+                        Text(trainHint,
+                            style: const TextStyle(
+                              color: _textSecondary,
+                              fontSize: 13,
+                            )),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton.icon(
+                    onPressed: isTraining || !canTrain
+                        ? null
+                        : () async {
+                            await sp.trainModel();
+                            if (!mounted) {
+                              return;
+                            }
+
+                            if (sp.trainingError == null) {
+                              _showSnack(
+                                  sp.successMessage ??
+                                      'K-Means model training completed',
+                                  backgroundColor: _panelSurface);
+                              return;
+                            }
+
+                            _showSnack(sp.trainingError!,
+                                backgroundColor: _panelSurface,
+                                borderColor: _dangerRed);
+                          },
+                    icon: isTraining
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.play_arrow, size: 16),
+                    label: Text(isTraining ? 'Training...' : 'Train model'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _accentBlue,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: _panelAlt,
+                      disabledForegroundColor: _textMuted,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: 'DM Sans'),
+                      elevation: 0,
+                    ),
+                  ),
                 ],
-              ),
-              ElevatedButton.icon(
-                onPressed: _isTraining
-                    ? null
-                    : () async {
-                        setState(() => _isTraining = true);
-                        await sp.trainModel();
-                        if (!mounted) {
-                          return;
-                        }
-                        setState(() => _isTraining = false);
-
-                        if (sp.trainingError == null) {
-                          _showSnack('K-Means model trained successfully',
-                              backgroundColor: _panelSurface);
-                          return;
-                        }
-
-                        _showSnack(sp.trainingError!,
-                            backgroundColor: _panelSurface,
-                            borderColor: _dangerRed);
-                      },
-                icon: _isTraining
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.play_arrow, size: 16),
-                label: Text(_isTraining ? 'Training...' : 'Train model'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _accentBlue,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: _panelAlt,
-                  disabledForegroundColor: _textMuted,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  textStyle: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'DM Sans'),
-                  elevation: 0,
-                ),
               ),
             ],
           ),
         ),
       ],
     );
+  }
+
+  String _safeString(dynamic value, {String fallback = '0'}) {
+    final text = value?.toString();
+    if (text == null || text.trim().isEmpty || text == 'null') {
+      return fallback;
+    }
+    return text;
+  }
+
+  String _formatInt(dynamic value) {
+    final parsed = int.tryParse(_safeString(value, fallback: '0'));
+    return (parsed ?? 0).toString();
+  }
+
+  String _formatDouble(dynamic value, {int decimals = 2}) {
+    final parsed = double.tryParse(_safeString(value, fallback: '0'));
+    return (parsed ?? 0).toStringAsFixed(decimals);
+  }
+
+  String _formatIsoDateTime(dynamic value) {
+    final text = _safeString(value, fallback: '');
+    if (text.isEmpty) return 'Never';
+
+    final parsed = DateTime.tryParse(text);
+    if (parsed == null) return text;
+
+    final local = parsed.toLocal();
+    final y = local.year.toString();
+    final m = local.month.toString().padLeft(2, '0');
+    final d = local.day.toString().padLeft(2, '0');
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $hh:$mm';
+  }
+
+  String _prettyTrainingStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'Completed';
+      case 'running':
+        return 'Running';
+      case 'started':
+        return 'Started';
+      case 'skipped':
+        return 'Skipped';
+      case 'failed':
+        return 'Failed';
+      default:
+        return 'Idle';
+    }
   }
 
   Widget _buildAboutTab() {
@@ -901,14 +1007,40 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
     );
   }
 
-  Widget _buildModelActiveBadge() {
+  Widget _buildModelActiveBadge(SettingsProvider sp) {
     final pulseAnimation =
         _pulseController ?? const AlwaysStoppedAnimation<double>(1);
+
+    final isTraining = sp.isTraining;
+    final hasActiveModel = sp.hasActiveModel;
+
+    final Color iconColor;
+    final Color badgeColor;
+    final Color borderColor;
+    final String label;
+
+    if (isTraining) {
+      iconColor = _warningAmber;
+      badgeColor = _warningAmberDim;
+      borderColor = const Color(0x40F59E0B);
+      label = 'Training in progress';
+    } else if (hasActiveModel) {
+      iconColor = _teal;
+      badgeColor = _tealDim;
+      borderColor = const Color(0x4014B8A6);
+      label = 'Model active';
+    } else {
+      iconColor = _dangerRed;
+      badgeColor = _dangerRedDim;
+      borderColor = const Color(0x40EF4444);
+      label = 'No active model';
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: _tealDim,
-        border: Border.all(color: const Color(0x4014B8A6)),
+        color: badgeColor,
+        border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -916,13 +1048,13 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
         children: [
           FadeTransition(
             opacity: pulseAnimation,
-            child: const Icon(Icons.circle, size: 8, color: _teal),
+            child: Icon(Icons.circle, size: 8, color: iconColor),
           ),
           const SizedBox(width: 8),
-          const Text(
-            'Model active',
+          Text(
+            label,
             style: TextStyle(
-                color: _teal, fontSize: 13, fontWeight: FontWeight.w600),
+                color: iconColor, fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ],
       ),

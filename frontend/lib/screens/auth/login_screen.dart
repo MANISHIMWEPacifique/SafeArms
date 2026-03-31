@@ -24,6 +24,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const AssetImage _logoAsset = AssetImage('assets/images/logo.png');
+
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -36,7 +38,16 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
       _showSessionExpiredMessageIfNeeded();
+      precacheImage(
+        _logoAsset,
+        context,
+        onError: (_, __) {
+          // Fallback UI handles temporary or missing asset issues.
+        },
+      );
     });
   }
 
@@ -232,10 +243,7 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
               ),
-              child: Image.asset(
-                'assets/images/logo.png',
-                fit: BoxFit.contain,
-              ),
+              child: _buildLogoImage(size: 52),
             ),
             const Spacer(),
           ],
@@ -268,10 +276,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                 ),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  fit: BoxFit.contain,
-                ),
+                child: _buildLogoImage(size: compact ? 200 : 280),
               ),
               SizedBox(height: compact ? 30 : 40),
               // Tagline
@@ -302,6 +307,28 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLogoImage({required double size}) {
+    return Image(
+      image: _logoAsset,
+      fit: BoxFit.contain,
+      gaplessPlayback: true,
+      errorBuilder: (_, __, ___) {
+        return Container(
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color(0xFFE3E8EE),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.shield_outlined,
+            size: size * 0.42,
+            color: const Color(0xFF1E88E5),
+          ),
+        );
+      },
     );
   }
 

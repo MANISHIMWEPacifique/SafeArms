@@ -107,8 +107,13 @@ const trainKMeansModel = async (k = 6) => {
         // Normalize features
         const { data: normalizedData, params: normParams } = normalizeFeatures(data);
 
+        // Guard against rare NaN/Infinity propagation from upstream feature stats.
+        const sanitizedData = normalizedData.map((row) =>
+            row.map((value) => Number.isFinite(value) ? value : 0)
+        );
+
         // Ensure enough unique rows for kmeans++ initialization
-        const uniqueRows = new Set(normalizedData.map(r => r.join(','))).size;
+        const uniqueRows = new Set(sanitizedData.map(r => r.join(','))).size;
         if (uniqueRows < effectiveK) {
             if (uniqueRows < 2) {
                 throw new Error(`Training data has only ${uniqueRows} unique pattern(s) after normalization. Need at least 2 distinct patterns.`);
@@ -117,17 +122,33 @@ const trainKMeansModel = async (k = 6) => {
             effectiveK = uniqueRows;
         }
 
-        // Train K-Means
-        const kmeansResult = ml.kmeans(normalizedData, effectiveK, {
-            initialization: 'kmeans++',
-            maxIterations: 100
-        });
+        // Train K-Means. Fallback from kmeans++ if library hits known edge case.
+        let kmeansResult;
+        try {
+            kmeansResult = ml.kmeans(sanitizedData, effectiveK, {
+                initialization: 'kmeans++',
+                maxIterations: 100
+            });
+        } catch (error) {
+            const isIndexError = error instanceof RangeError
+                || (error?.message && error.message.includes('Row index out of range'));
+
+            if (!isIndexError) {
+                throw error;
+            }
+
+            logger.warn('K-Means++ initialization failed with index error; retrying with random initialization');
+            kmeansResult = ml.kmeans(sanitizedData, effectiveK, {
+                initialization: 'random',
+                maxIterations: 100
+            });
+        }
 
         // Calculate silhouette score (quality metric)
-        const silhouetteScore = calculateSilhouetteScore(normalizedData, kmeansResult.clusters);
+        const silhouetteScore = calculateSilhouetteScore(sanitizedData, kmeansResult.clusters);
 
         // Calculate outlier threshold (distance-based)
-        const distances = calculateClusterDistances(normalizedData, kmeansResult.centroids, kmeansResult.clusters);
+        const distances = calculateClusterDistances(sanitizedData, kmeansResult.centroids, kmeansResult.clusters);
         const outlierThreshold = calculateOutlierThreshold(distances);
 
         // Store model in database

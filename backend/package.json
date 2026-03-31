@@ -7,6 +7,14 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/scripts/seedDatabase.js",
+    "seed:training": "node src/scripts/runTrainingWorkflowSeed.js all",
+    "seed:training:baseline": "node src/scripts/runTrainingWorkflowSeed.js baseline",
+    "seed:training:anomalies": "node src/scripts/runTrainingWorkflowSeed.js anomalies",
+    "seed:training:validate": "node src/scripts/runTrainingWorkflowSeed.js validate",
+    "seed:training:detect": "node src/scripts/detectSeededAnomalies.js",
+    "seed:training:generate": "node src/scripts/generateTrainingData.js all",
+    "seed:training:generate:baseline": "node src/scripts/generateTrainingData.js baseline",
+    "seed:training:generate:anomalies": "node src/scripts/generateTrainingData.js anomalies",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

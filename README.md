@@ -135,11 +135,13 @@ SafeArms uses **ML.js** for unsupervised anomaly detection on firearm custody pa
 
 ### Detected Anomalies
 - ⚠️ Rapid firearm exchanges (< 1 hour between custody changes)
-- ⚠️ Night/weekend unusual activity
+- ⚠️ Ballistic-access timing anomalies around custody changes
 - ⚠️ Excessive custody frequency
 - ⚠️ Extended custody durations
 - ⚠️ Cross-unit irregular movements
 - ⚠️ Shift misalignment patterns
+
+Note: Off-hours activity (night/weekend) is treated as normal 24/7 security operations and is not a standalone anomaly signal.
 
 ### Severity Levels
 - 🔴 **CRITICAL** (score ≥ 0.85) - Immediate HQ attention

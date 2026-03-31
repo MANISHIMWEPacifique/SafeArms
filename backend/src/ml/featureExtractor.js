@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { query } = require('../config/database');
 const logger = require('../utils/logger');
 
@@ -505,8 +506,18 @@ const extractAllFeatures = async (custodyRecord) => {
  */
 const storeFeatures = async (custodyRecord, features) => {
     try {
-        // Generate feature_id using a unique suffix to avoid collisions
-        const featureId = `FEAT-${custodyRecord.custody_id.replace('CUS-', '')}`;
+        // Keep feature_id within VARCHAR(20). Use readable IDs when short,
+        // and fall back to a stable hash for longer custody IDs.
+        const custodyId = String(custodyRecord.custody_id || 'UNKNOWN');
+        const readableFeatureId = `FEAT-${custodyId.replace('CUS-', '')}`;
+        const featureId = readableFeatureId.length <= 20
+            ? readableFeatureId
+            : `FEAT-${crypto
+                .createHash('sha1')
+                .update(custodyId)
+                .digest('hex')
+                .slice(0, 15)
+                .toUpperCase()}`;
 
         await query(
             `INSERT INTO ml_training_features (

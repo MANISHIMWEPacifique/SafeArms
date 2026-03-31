@@ -4,8 +4,10 @@ const { authenticate } = require('../middleware/authentication');
 const { requireAdmin } = require('../middleware/authorization');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
-const { triggerManualTraining } = require('../jobs/modelTraining.job');
+const { triggerManualTraining, getLatestTrainingRun } = require('../jobs/modelTraining.job');
+const { getMinTrainingSamples } = require('../ml/modelTrainer');
 const { triggerManualOverdueScan } = require('../jobs/overdueDetection.job');
+const { generateTrainingDataBatch } = require('../services/trainingDataGenerator.service');
 const logger = require('../utils/logger');
 
 // Get audit logs - mounted at /api/audit-logs
@@ -252,33 +254,105 @@ router.put('/config', authenticate, requireAdmin, asyncHandler(async (req, res) 
 
 // Trigger ML model training manually
 router.post('/train', authenticate, requireAdmin, asyncHandler(async (req, res) => {
-    logger.info(`ML model training triggered by user: ${req.user.user_id}`);
+    const force = req.body?.force === true || req.query.force === 'true';
+    const wait = req.body?.wait === undefined
+        ? true
+        : req.body.wait === true || req.query.wait === 'true';
+
+    logger.info(`ML model training triggered by user: ${req.user.user_id} (force=${force}, wait=${wait})`);
     
     // Log the training initiation
     await query(`
         INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
-        VALUES ($1, 'TRAIN', 'ml_model', '{"status": "initiated"}', $2)
-    `, [req.user.user_id, req.ip]);
-    
-    // Trigger actual training (async - don't wait for completion)
-    triggerManualTraining().then(() => {
-        logger.info('ML model training completed successfully');
-    }).catch((err) => {
-        logger.error('ML model training failed:', err);
-    });
-    
+        VALUES ($1, 'TRAIN', 'ml_model', $2, $3)
+    `, [
+        req.user.user_id,
+        JSON.stringify({ status: 'initiated', force, wait }),
+        req.ip
+    ]);
+
+    const result = await triggerManualTraining({ force, wait });
+
+    if (result.status === 'failed') {
+        return res.status(500).json({
+            success: false,
+            message: `ML model training failed: ${result.error || 'unknown error'}`,
+            data: result
+        });
+    }
+
+    if (result.status === 'skipped') {
+        return res.json({
+            success: true,
+            message: `ML model training skipped: ${result.reason}`,
+            data: result
+        });
+    }
+
+    if (result.status === 'started' || result.status === 'running') {
+        return res.json({
+            success: true,
+            message: 'ML model training started in background. Monitor /api/ml/ml-status for progress.',
+            data: result
+        });
+    }
+
     res.json({
         success: true,
-        message: 'ML model training initiated. This may take a few minutes.',
-        data: {
-            status: 'training',
-            started_at: new Date().toISOString()
+        message: 'ML model training completed successfully.',
+        data: result
+    });
+}));
+
+// Generate realistic custody-cycle training data batch
+router.post('/generate-training-data', authenticate, requireAdmin, asyncHandler(async (req, res) => {
+    const mode = req.body?.mode || req.query.mode || 'all';
+    const extractFeatures = req.body?.extract_features === undefined
+        ? true
+        : req.body.extract_features === true || req.query.extract_features === 'true';
+    const startDate = req.body?.start_date || req.query.start_date || null;
+
+    logger.info(
+        `Training data generation triggered by user: ${req.user.user_id} (mode=${mode}, extract_features=${extractFeatures}, start_date=${startDate || 'auto'})`
+    );
+
+    let result;
+    try {
+        result = await generateTrainingDataBatch({
+            mode,
+            extractFeatures,
+            startDate
+        });
+    } catch (error) {
+        if (error.message?.includes('Unsupported mode') || error.message?.includes('Invalid start_date')) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
         }
+        throw error;
+    }
+
+    await query(`
+        INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
+        VALUES ($1, 'GENERATE_TRAINING_DATA', 'custody_records', $2, $3)
+    `, [
+        req.user.user_id,
+        JSON.stringify(result),
+        req.ip
+    ]);
+
+    res.json({
+        success: true,
+        message: `Generated ${result.seeded_rows} realistic custody-cycle records in batch ${result.batch_code}.`,
+        data: result
     });
 }));
 
 // Get ML model status
 router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, res) => {
+    const minimumRequiredSamples = getMinTrainingSamples();
+
     // Get active model info
     const modelResult = await query(`
         SELECT 
@@ -316,6 +390,31 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
     `);
     
     const anomalyStats = anomalyResult.rows[0];
+    const latestTrainingRun = getLatestTrainingRun();
+
+    const generationResult = await query(`
+        SELECT user_id, created_at, new_values
+        FROM audit_logs
+        WHERE action_type = 'GENERATE_TRAINING_DATA'
+        ORDER BY created_at DESC
+        LIMIT 1
+    `);
+
+    const generationRow = generationResult.rows[0] || null;
+    const generationPayload = generationRow?.new_values && typeof generationRow.new_values === 'object'
+        ? generationRow.new_values
+        : null;
+
+    const lastGenerationRun = generationRow ? {
+        generated_at: generationRow.created_at,
+        generated_by: generationRow.user_id,
+        batch_code: generationPayload?.batch_code || null,
+        mode: generationPayload?.mode || null,
+        seeded_rows: parseInt(generationPayload?.seeded_rows || 0),
+        extracted_features: parseInt(generationPayload?.extracted_features || 0),
+        available_training_samples: parseInt(generationPayload?.available_training_samples || 0),
+        can_train: generationPayload?.can_train === true
+    } : null;
     
     res.json({
         success: true,
@@ -329,12 +428,14 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
                 silhouette_score: parseFloat(model.silhouette_score) || 0
             } : null,
             available_training_samples: availableSamples,
-            minimum_required_samples: 100,
-            can_train: availableSamples >= 100,
+            minimum_required_samples: minimumRequiredSamples,
+            can_train: availableSamples >= minimumRequiredSamples,
             recent_detections: parseInt(anomalyStats.total),
             false_positive_rate: anomalyStats.total > 0 
                 ? (parseInt(anomalyStats.false_positives) / parseInt(anomalyStats.total) * 100).toFixed(1) + '%'
-                : '0%'
+                : '0%',
+            last_training_run: latestTrainingRun,
+            last_generation_run: lastGenerationRun
         }
     });
 }));

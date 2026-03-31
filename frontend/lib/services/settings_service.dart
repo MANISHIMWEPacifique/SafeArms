@@ -1,7 +1,6 @@
 // Settings Service - API calls for system configuration
 // SafeArms Frontend
 
-import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import 'api_client.dart';
 
@@ -13,7 +12,7 @@ class SettingsService {
       if (token == null) {
         return {}; // Silently fall back if not authenticated
       }
-      final data = await ApiClient.get('${ApiConfig.baseUrl}/api/settings');
+      final data = await ApiClient.get('${ApiConfig.apiBase}/settings');
       return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error fetching settings: $e');
@@ -23,7 +22,7 @@ class SettingsService {
   // Update system settings
   Future<bool> updateSettings(Map<String, dynamic> settings) async {
     try {
-      await ApiClient.put('${ApiConfig.baseUrl}/api/settings', body: settings);
+      await ApiClient.put('${ApiConfig.apiBase}/settings', body: settings);
       return true;
     } catch (e) {
       throw Exception('Error updating settings: $e');
@@ -50,7 +49,7 @@ class SettingsService {
       if (action != null) queryParams.add('action=$action');
       if (status != null) queryParams.add('status=$status');
 
-      var url = '${ApiConfig.baseUrl}/api/audit-logs';
+      var url = '${ApiConfig.apiBase}/audit-logs';
       if (queryParams.isNotEmpty) url += '?${queryParams.join('&')}';
 
       final data = await ApiClient.get(url);
@@ -63,8 +62,7 @@ class SettingsService {
   // Get system health status
   Future<Map<String, dynamic>> getSystemHealth() async {
     try {
-      final data =
-          await ApiClient.get('${ApiConfig.baseUrl}/api/system/health');
+      final data = await ApiClient.get('${ApiConfig.apiBase}/system/health');
       return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error fetching system health: $e');
@@ -74,7 +72,7 @@ class SettingsService {
   // Get ML model configuration
   Future<Map<String, dynamic>> getMLConfiguration() async {
     try {
-      final data = await ApiClient.get('${ApiConfig.baseUrl}/api/ml/config');
+      final data = await ApiClient.get('${ApiConfig.apiBase}/ml/config');
       return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error fetching ML config: $e');
@@ -84,7 +82,7 @@ class SettingsService {
   // Update ML model configuration
   Future<bool> updateMLConfiguration(Map<String, dynamic> config) async {
     try {
-      await ApiClient.put('${ApiConfig.baseUrl}/api/ml/config', body: config);
+      await ApiClient.put('${ApiConfig.apiBase}/ml/config', body: config);
       return true;
     } catch (e) {
       throw Exception('Error updating ML config: $e');
@@ -92,16 +90,20 @@ class SettingsService {
   }
 
   // Trigger ML model training (longer timeout needed)
-  Future<bool> trainMLModel() async {
+  Future<Map<String, dynamic>> trainMLModel({
+    bool force = false,
+    bool wait = true,
+  }) async {
     try {
-      final headers = await ApiClient.authHeaders();
-      final response = await http
-          .post(
-            Uri.parse('${ApiConfig.baseUrl}/api/ml/train'),
-            headers: headers,
-          )
-          .timeout(const Duration(seconds: 120));
-      return response.statusCode == 200;
+      final data = await ApiClient.post(
+        '${ApiConfig.apiBase}/ml/train',
+        body: {
+          'force': force,
+          'wait': wait,
+        },
+        timeout: const Duration(seconds: 120),
+      );
+      return data;
     } catch (e) {
       throw Exception('Error training ML model: $e');
     }
@@ -110,7 +112,7 @@ class SettingsService {
   // Get ML model status (active model, training samples, etc.)
   Future<Map<String, dynamic>> getMLStatus() async {
     try {
-      final data = await ApiClient.get('${ApiConfig.baseUrl}/api/ml/ml-status');
+      final data = await ApiClient.get('${ApiConfig.apiBase}/ml/ml-status');
       return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error fetching ML status: $e');

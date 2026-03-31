@@ -88,10 +88,11 @@ class AnomalyProvider with ChangeNotifier {
     int? offset,
     String? severity,
     String? status,
+    bool includeRemoved = false,
     bool force = false,
   }) async {
     final cacheKey =
-        'all:${limit ?? ''}:${offset ?? ''}:${severity ?? ''}:${status ?? ''}';
+        'all:${limit ?? ''}:${offset ?? ''}:${severity ?? ''}:${status ?? ''}:$includeRemoved';
 
     await _loadAnomaliesWithCache(
       cacheKey: cacheKey,
@@ -101,6 +102,7 @@ class AnomalyProvider with ChangeNotifier {
         offset: offset,
         severity: severity,
         status: status,
+        includeRemoved: includeRemoved,
       ),
     );
   }
@@ -110,9 +112,11 @@ class AnomalyProvider with ChangeNotifier {
     String unitId, {
     int? limit,
     int? offset,
+    bool includeRemoved = false,
     bool force = false,
   }) async {
-    final cacheKey = 'unit:$unitId:${limit ?? ''}:${offset ?? ''}';
+    final cacheKey =
+        'unit:$unitId:${limit ?? ''}:${offset ?? ''}:$includeRemoved';
 
     await _loadAnomaliesWithCache(
       cacheKey: cacheKey,
@@ -121,6 +125,7 @@ class AnomalyProvider with ChangeNotifier {
         unitId,
         limit: limit,
         offset: offset,
+        includeRemoved: includeRemoved,
       ),
     );
   }
@@ -209,6 +214,75 @@ class AnomalyProvider with ChangeNotifier {
     }
   }
 
+  // Mark anomaly as acceptable operational change
+  Future<bool> markAcceptableChange(String id, {String? notes}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _anomalyService.markAcceptableChange(id, notes: notes);
+      _invalidateAnomalyCache();
+      _error = null;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Delete anomaly from dashboard views globally (record is retained).
+  Future<bool> deleteFromDashboard(String id, {String? reason}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _anomalyService.deleteFromDashboard(id, reason: reason);
+      _invalidateAnomalyCache();
+      _error = null;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Restore anomaly into dashboard views.
+  Future<bool> restoreToDashboard(String id) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _anomalyService.restoreToDashboard(id);
+      _invalidateAnomalyCache();
+      _error = null;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Backward-compatible aliases.
+  Future<bool> hideFromDashboard(String id, {String? reason}) =>
+      deleteFromDashboard(id, reason: reason);
+
+  Future<bool> unhideFromDashboard(String id) => restoreToDashboard(id);
+
   // Submit explanation for critical anomaly
   Future<bool> submitExplanation(String id, {required String message}) async {
     _isLoading = true;
@@ -239,6 +313,7 @@ class AnomalyProvider with ChangeNotifier {
     String? status,
     int? limit,
     int? offset,
+    bool includeRemoved = true,
   }) async {
     _isLoading = true;
     _error = null;
@@ -253,6 +328,7 @@ class AnomalyProvider with ChangeNotifier {
         status: status,
         limit: limit,
         offset: offset,
+        includeRemoved: includeRemoved,
       );
       _error = null;
     } catch (e) {

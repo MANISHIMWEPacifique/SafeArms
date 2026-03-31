@@ -56,12 +56,14 @@ const SHORT_TERM_HOURS = {
  * Counts how many times ONE firearm is issued in a single day at the station level.
  */
 const checkDailyTransferFrequency = async (custodyRecord) => {
+    const eventTime = custodyRecord.issued_at || new Date().toISOString();
+
     const result = await query(`
         SELECT COUNT(*) as today_count
         FROM custody_records
         WHERE firearm_id = $1
-          AND issued_at::date = CURRENT_DATE
-    `, [custodyRecord.firearm_id]);
+          AND issued_at::date = $2::date
+    `, [custodyRecord.firearm_id, eventTime]);
 
     const todayCount = parseInt(result.rows[0].today_count);
 
@@ -137,22 +139,24 @@ const checkCustodyDurationVsShift = async (custodyRecord) => {
  */
 const checkOfficerFirearmRotation = async (custodyRecord) => {
     const shiftHours = DURATION_TYPE_HOURS[custodyRecord.duration_type] || 8;
+    const eventTime = custodyRecord.issued_at || new Date().toISOString();
 
     // Count distinct firearms in current shift window
     const shiftResult = await query(`
         SELECT COUNT(DISTINCT firearm_id) as shift_firearms
         FROM custody_records
         WHERE officer_id = $1
-          AND issued_at >= CURRENT_TIMESTAMP - make_interval(hours => $2)
-    `, [custodyRecord.officer_id, shiftHours]);
+        AND issued_at >= $2::timestamp - make_interval(hours => $3)
+        AND issued_at <= $2::timestamp
+    `, [custodyRecord.officer_id, eventTime, shiftHours]);
 
     // Count distinct firearms today
     const dailyResult = await query(`
         SELECT COUNT(DISTINCT firearm_id) as daily_firearms
         FROM custody_records
         WHERE officer_id = $1
-          AND issued_at::date = CURRENT_DATE
-    `, [custodyRecord.officer_id]);
+        AND issued_at::date = $2::date
+    `, [custodyRecord.officer_id, eventTime]);
 
     const shiftCount = parseInt(shiftResult.rows[0].shift_firearms);
     const dailyCount = parseInt(dailyResult.rows[0].daily_firearms);
@@ -189,13 +193,15 @@ const checkOfficerFirearmRotation = async (custodyRecord) => {
  * Counts high-severity overdue anomalies and loss reports for the station in the past year.
  */
 const checkStationLossRate = async (custodyRecord) => {
+    const eventTime = custodyRecord.issued_at || new Date().toISOString();
+
     // Count loss reports
     const lossResult = await query(`
         SELECT COUNT(*) as loss_count
         FROM loss_reports
         WHERE unit_id = $1
-          AND report_date >= CURRENT_TIMESTAMP - INTERVAL '1 year'
-    `, [custodyRecord.unit_id]);
+          AND loss_date >= ($2::date - INTERVAL '1 year')
+    `, [custodyRecord.unit_id, eventTime]);
 
     const lossCount = parseInt(lossResult.rows[0].loss_count);
 
@@ -227,16 +233,18 @@ const checkShortTermAssignments = async (custodyRecord) => {
     const shiftHours = DURATION_TYPE_HOURS[custodyRecord.duration_type] || 8;
     const shortThresholdHours = SHORT_TERM_HOURS[custodyRecord.duration_type] || 4;
     const shortThresholdSeconds = shortThresholdHours * 3600;
+    const eventTime = custodyRecord.issued_at || new Date().toISOString();
 
     const result = await query(`
         SELECT COUNT(*) as short_count
         FROM custody_records
         WHERE officer_id = $1
-          AND issued_at >= CURRENT_TIMESTAMP - make_interval(hours => $2)
+          AND issued_at >= $2::timestamp - make_interval(hours => $3)
+          AND issued_at <= $2::timestamp
           AND returned_at IS NOT NULL
           AND custody_duration_seconds IS NOT NULL
-          AND custody_duration_seconds < $3
-    `, [custodyRecord.officer_id, shiftHours, shortThresholdSeconds]);
+          AND custody_duration_seconds < $4
+    `, [custodyRecord.officer_id, eventTime, shiftHours, shortThresholdSeconds]);
 
     const shortCount = parseInt(result.rows[0].short_count);
 

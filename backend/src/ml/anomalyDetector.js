@@ -300,7 +300,15 @@ const getSeverityDescription = (severity) => {
  */
 const getUnitAnomalies = async (unitId, filters = {}) => {
     try {
-        const { severity, status, limit = 50, offset = 0 } = filters;
+        const {
+            severity,
+            status,
+            firearm_id,
+            include_removed,
+            limit = 50,
+            offset = 0
+        } = filters;
+        const includeRemoved = include_removed === true || include_removed === 'true';
 
         let whereClause = 'WHERE a.unit_id = $1';
         let params = [unitId];
@@ -316,6 +324,16 @@ const getUnitAnomalies = async (unitId, filters = {}) => {
             paramCount++;
             whereClause += ` AND a.status = $${paramCount}`;
             params.push(status);
+        }
+
+        if (firearm_id) {
+            paramCount++;
+            whereClause += ` AND a.firearm_id = $${paramCount}`;
+            params.push(firearm_id);
+        }
+
+        if (!includeRemoved) {
+            whereClause += ` AND COALESCE(a.removed_from_dashboard, false) = false`;
         }
 
         paramCount++;
@@ -360,7 +378,16 @@ const getUnitAnomalies = async (unitId, filters = {}) => {
  */
 const getAllAnomalies = async (filters = {}) => {
     try {
-        const { severity, status, unit_id, limit = 100, offset = 0 } = filters;
+        const {
+            severity,
+            status,
+            unit_id,
+            firearm_id,
+            include_removed,
+            limit = 100,
+            offset = 0
+        } = filters;
+        const includeRemoved = include_removed === true || include_removed === 'true';
 
         let whereClause = 'WHERE 1=1';
         let params = [];
@@ -382,6 +409,16 @@ const getAllAnomalies = async (filters = {}) => {
             paramCount++;
             whereClause += ` AND a.unit_id = $${paramCount}`;
             params.push(unit_id);
+        }
+
+        if (firearm_id) {
+            paramCount++;
+            whereClause += ` AND a.firearm_id = $${paramCount}`;
+            params.push(firearm_id);
+        }
+
+        if (!includeRemoved) {
+            whereClause += ` AND COALESCE(a.removed_from_dashboard, false) = false`;
         }
 
         paramCount++;

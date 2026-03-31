@@ -104,6 +104,7 @@
 - ✅ Statistical outlier detection (z-scores, IQR)
 - ✅ Ensemble scoring (weighted combination)
 - ✅ Severity classification (CRITICAL, HIGH, MEDIUM, LOW)
+- ✅ Off-hours policy aligned: night/weekend timing is not a standalone anomaly signal (24/7 security operations)
 - ✅ Automatic email alerts
 - ✅ Weekly model retraining
 - ✅ Performance metrics tracking

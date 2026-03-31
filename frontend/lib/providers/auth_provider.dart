@@ -35,8 +35,9 @@ class AuthProvider with ChangeNotifier {
       _currentUser?['must_change_password'] == true;
 
   AuthProvider() {
-    // Defer auth check until after the first frame to avoid double-build.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAuthStatus());
+    // Use a microtask instead of a frame callback to avoid stale view callbacks
+    // during web hot-restart/reload transitions.
+    Future<void>.microtask(_checkAuthStatus);
   }
 
   /// Check if user is already authenticated on app start

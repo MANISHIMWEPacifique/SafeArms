@@ -8,7 +8,12 @@
 
 require('dotenv').config();
 const { pool, query } = require('../config/database');
-const { trainModel, checkRetrainingNeeded, getModelMetrics } = require('../ml/modelTrainer');
+const {
+    trainModel,
+    checkRetrainingNeeded,
+    getModelMetrics,
+    getMinTrainingSamples
+} = require('../ml/modelTrainer');
 const logger = require('../utils/logger');
 
 const trainMLModel = async () => {
@@ -24,12 +29,13 @@ const trainMLModel = async () => {
             WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
         `);
         const sampleCount = parseInt(countResult.rows[0].count);
+        const minimumSamples = getMinTrainingSamples();
         
         console.log(`\nTraining samples available: ${sampleCount}`);
         
-        if (sampleCount < 50) {
+        if (sampleCount < minimumSamples) {
             console.log('\n[ERROR] Insufficient training data!');
-            console.log(`   Need at least 50 samples, you have ${sampleCount}.`);
+            console.log(`   Need at least ${minimumSamples} samples, you have ${sampleCount}.`);
             console.log('\nOptions:');
             console.log('  1. Create more custody records in the app');
             console.log('  2. Run: node src/scripts/populateTrainingFeatures.js');
@@ -48,7 +54,10 @@ const trainMLModel = async () => {
         console.log('Starting K-Means model training...');
         console.log('-'.repeat(60));
 
-        const result = await trainModel({ k: 6, minSamples: 50 });
+        const result = await trainModel({
+            k: 6,
+            minSamples: minimumSamples
+        });
 
         console.log('\n' + '='.repeat(60));
         console.log('[OK] MODEL TRAINING COMPLETE');

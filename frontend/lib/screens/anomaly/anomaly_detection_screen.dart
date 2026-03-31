@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/anomaly_provider.dart';
 import '../../providers/unit_provider.dart';
 import '../../utils/app_transitions.dart';
+import '../../widgets/anomaly_card_widget.dart';
 
 const double _anomalyDesktopBreakpoint = 1024;
 const double _anomalyMobileBreakpoint = 768;
@@ -45,6 +46,12 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
         _startAutoRefresh();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _autoRefresh = false;
+    super.dispose();
   }
 
   Future<void> _loadAnomalies() async {
@@ -277,7 +284,6 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             anomalies.where((a) => a['severity'] == 'critical').length;
         final high = anomalies.where((a) => a['severity'] == 'high').length;
         final medium = anomalies.where((a) => a['severity'] == 'medium').length;
-        final open = anomalies.where((a) => a['status'] == 'open').length;
 
         final cards = [
           _buildStatCard(
@@ -302,12 +308,6 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             'Medium',
             medium.toString(),
             Icons.info,
-            const Color(0xFF1E88E5),
-          ),
-          _buildStatCard(
-            'Open Cases',
-            open.toString(),
-            Icons.folder_open,
             const Color(0xFF1E88E5),
           ),
         ];
@@ -425,6 +425,10 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                 {'value': 'investigating', 'label': 'Investigating'},
                 {'value': 'resolved', 'label': 'Resolved'},
                 {'value': 'false_positive', 'label': 'False Positive'},
+                {
+                  'value': 'acceptable_change',
+                  'label': 'Acceptable Change'
+                },
               ],
               onChanged: (value) {
                 setState(() => _selectedStatus = value!);
@@ -652,6 +656,28 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             MediaQuery.of(context).size.width < _anomalyMobileBreakpoint
                 ? 12.0
                 : 20.0;
+
+        if (isMobileTable) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: horizontalPadding,
+              right: horizontalPadding,
+              top: 12,
+              bottom: 8,
+            ),
+            child: ListView.separated(
+              itemCount: displayAnomalies.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final anomaly = displayAnomalies[index];
+                return AnomalyCardWidget(
+                  anomaly: anomaly,
+                  onTap: () => _showAnomalyDetails(anomaly),
+                );
+              },
+            ),
+          );
+        }
 
         return Padding(
           padding: EdgeInsets.only(
@@ -984,6 +1010,10 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
         statusColor = const Color(0xFF78909C);
         statusIcon = Icons.cancel;
         break;
+      case 'acceptable_change':
+        statusColor = const Color(0xFF42A5F5);
+        statusIcon = Icons.rule;
+        break;
       default:
         statusColor = const Color(0xFF78909C);
         statusIcon = Icons.help_outline;
@@ -1254,6 +1284,10 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                                 'value': 'false_positive',
                                 'label': 'False Positive'
                               },
+                              {
+                                'value': 'acceptable_change',
+                                'label': 'Acceptable Change'
+                              },
                             ],
                             (v) => setState(() => _searchStatus = v!),
                           ),
@@ -1332,6 +1366,10 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                               {
                                 'value': 'false_positive',
                                 'label': 'False Positive'
+                              },
+                              {
+                                'value': 'acceptable_change',
+                                'label': 'Acceptable Change'
                               },
                             ],
                             (v) => setState(() => _searchStatus = v!),
@@ -1801,6 +1839,10 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
         statusColor = const Color(0xFF78909C);
         statusIcon = Icons.cancel;
         break;
+      case 'acceptable_change':
+        statusColor = const Color(0xFF42A5F5);
+        statusIcon = Icons.rule;
+        break;
       default:
         statusColor = const Color(0xFF78909C);
         statusIcon = Icons.help_outline;
@@ -1905,6 +1947,14 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
         success = await provider.markFalsePositive(anomalyId,
             notes: notes.isNotEmpty ? notes : null);
         break;
+      case 'acceptable_change':
+        success = await provider.markAcceptableChange(anomalyId,
+            notes: notes.isNotEmpty ? notes : null);
+        break;
+      case 'hide':
+        success = await provider.deleteFromDashboard(anomalyId,
+            reason: notes.isNotEmpty ? notes : null);
+        break;
       case 'explanation':
         final message = _explanationController.text.trim();
         if (message.isEmpty) {
@@ -1926,6 +1976,9 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
       'resolve': 'Anomaly resolved',
       'false_positive':
           'Marked as false positive — this data will be used to improve ML model accuracy',
+      'acceptable_change': 'Marked as acceptable operational change',
+      'hide':
+          'Deleted from dashboard view. It remains available in reports and system records.',
       'explanation': 'Explanation submitted successfully',
     };
 
@@ -1984,32 +2037,38 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
     return Material(
       color: Colors.black.withValues(alpha: 0.5),
       child: Center(
-        child: Container(
-          width: 700,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.9,
-          ),
-          decoration: BoxDecoration(
-            color: const Color(0xFF252A3A),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth < 760
+                ? constraints.maxWidth * 0.94
+                : 700.0;
+
+            return Container(
+              width: maxWidth,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.9,
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+              decoration: BoxDecoration(
+                color: const Color(0xFF252A3A),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
               // Header - Officer details form style
-              _buildModalHeader(severity, severityColor, severityIcon),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  _buildModalHeader(severity, severityColor, severityIcon),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                       // Severity Banner
                       _buildSeverityBanner(severity, severityColor),
                       const SizedBox(height: 24),
@@ -2018,8 +2077,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
                       if (isCritical &&
                           isOpen &&
                           !hasExplanation &&
-                          (role == 'station_commander' ||
-                              role == 'hq_firearm_commander')) ...[
+                          role == 'station_commander') ...[
                         _buildExplanationRequired(role),
                         const SizedBox(height: 24)
                       ],
@@ -2031,7 +2089,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
                       ],
 
                       // False positive ML training info
-                      if (isOpen) ...[
+                      if (isOpen && role == 'station_commander') ...[
                         _buildFalsePositiveInfo(),
                         const SizedBox(height: 24)
                       ],
@@ -2119,14 +2177,16 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
                               'Enter investigation notes...', Icons.notes),
                         ),
                       ],
-                    ],
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  // Action buttons footer
+                  _buildActionFooter(status, role),
+                ],
               ),
-              // Action buttons footer
-              _buildActionFooter(severity, status, role),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -2543,8 +2603,81 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
     );
   }
 
-  Widget _buildActionFooter(String severity, String status, String role) {
+  Widget _buildActionFooter(String status, String role) {
     final isOpen = status == 'open' || status == 'investigating';
+    final isStationCommander = role == 'station_commander';
+
+    final actionButtons = <Widget>[];
+
+    if (isOpen && isStationCommander) {
+      actionButtons.addAll([
+        OutlinedButton.icon(
+          onPressed:
+              _isProcessing ? null : () => _performAction('false_positive'),
+          icon: const Icon(Icons.cancel_outlined, size: 18),
+          label: const Text('False Positive'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF78909C),
+            side: const BorderSide(color: Color(0xFF37404F)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        ElevatedButton.icon(
+          onPressed:
+              _isProcessing ? null : () => _performAction('acceptable_change'),
+          icon: const Icon(Icons.rule, size: 18),
+          label: const Text('Acceptable Change'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF42A5F5),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        ElevatedButton.icon(
+          onPressed: _isProcessing ? null : () => _performAction('resolve'),
+          icon: const Icon(Icons.check_circle, size: 18),
+          label: const Text('Resolve'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF3CCB7F),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+      ]);
+    }
+
+    actionButtons.add(
+      OutlinedButton.icon(
+        onPressed: _isProcessing ? null : () => _performAction('hide'),
+        icon: const Icon(Icons.visibility_off_outlined, size: 18),
+        label: const Text('Delete From Dashboard'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFFB0BEC5),
+          side: const BorderSide(color: Color(0xFF37404F)),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    );
+
+    if (_isProcessing) {
+      actionButtons.add(
+        const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            color: Color(0xFF1E88E5),
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -2552,80 +2685,61 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
         color: Color(0xFF1A1F2E),
         border: Border(top: BorderSide(color: Color(0xFF37404F), width: 1)),
       ),
-      child: Row(
-        children: [
-          // Close button
-          OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB0BEC5),
-              side: const BorderSide(color: Color(0xFF37404F)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Close'),
-          ),
-          const Spacer(),
-          if (isOpen) ...[
-            // False Positive button - available for all open anomalies
-            OutlinedButton.icon(
-              onPressed:
-                  _isProcessing ? null : () => _performAction('false_positive'),
-              icon: const Icon(Icons.cancel_outlined, size: 18),
-              label: const Text('False Positive'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF78909C),
-                side: const BorderSide(color: Color(0xFF37404F)),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Investigation button
-            if (status == 'open')
-              ElevatedButton.icon(
-                onPressed:
-                    _isProcessing ? null : () => _performAction('investigate'),
-                icon: const Icon(Icons.search, size: 18),
-                label: const Text('Start Investigation'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFCA28),
-                  foregroundColor: const Color(0xFF1A1F2E),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 900;
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFB0BEC5),
+                    side: const BorderSide(color: Color(0xFF37404F)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Close'),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.end,
+                  children: actionButtons,
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFB0BEC5),
+                  side: const BorderSide(color: Color(0xFF37404F)),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
                 ),
+                child: const Text('Close'),
               ),
-            if (status == 'open') const SizedBox(width: 12),
-            // Resolve button
-            ElevatedButton.icon(
-              onPressed: _isProcessing ? null : () => _performAction('resolve'),
-              icon: const Icon(Icons.check_circle, size: 18),
-              label: const Text('Resolve'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3CCB7F),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+              const Spacer(),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                alignment: WrapAlignment.end,
+                children: actionButtons,
               ),
-            ),
-          ],
-          if (_isProcessing) ...[
-            const SizedBox(width: 12),
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                  color: Color(0xFF1E88E5), strokeWidth: 2),
-            ),
-          ],
-        ],
+            ],
+          );
+        },
       ),
     );
   }

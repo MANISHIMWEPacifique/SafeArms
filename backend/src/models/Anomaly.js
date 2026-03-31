@@ -2,6 +2,34 @@ const { query } = require('../config/database');
 const { parseDecimalFields } = require('../utils/helpers');
 
 const ANOMALY_DECIMAL_FIELDS = ['anomaly_score', 'confidence_level', 'avg_score'];
+const toBoolean = (value) => value === true || value === 'true';
+
+const createInvestigationRecord = async ({
+    anomalyId,
+    userId,
+    findings,
+    actionTaken,
+    outcome = 'needs_further_review'
+}) => {
+    const idResult = await query(`
+        SELECT COALESCE(MAX(CAST(SUBSTRING(investigation_id FROM 5) AS INTEGER)), 0) as max_num
+        FROM anomaly_investigations WHERE investigation_id ~ '^INV-[0-9]+$'
+    `);
+    const nextNum = parseInt(idResult.rows[0].max_num) + 1;
+    const investigationId = `INV-${String(nextNum).padStart(3, '0')}`;
+
+    await query(`
+        INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_id, findings, action_taken, outcome)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    `, [investigationId, anomalyId, userId, findings, actionTaken, outcome]);
+};
+
+const createAnomalyAuditLog = async ({ userId, anomalyId, actionType, payload = {} }) => {
+    await query(`
+        INSERT INTO audit_logs (user_id, action_type, table_name, record_id, new_values)
+        VALUES ($1, $2, 'anomalies', $3, $4)
+    `, [userId, actionType, anomalyId, JSON.stringify(payload)]);
+};
 
 /**
  * Anomaly Model - EVENT-BASED Anomaly Records
@@ -39,7 +67,17 @@ const Anomaly = {
     },
 
     async findAll(filters = {}) {
-        const { severity, status, unit_id, anomaly_type, is_mandatory_review, limit = 100, offset = 0 } = filters;
+        const {
+            severity,
+            status,
+            unit_id,
+            anomaly_type,
+            is_mandatory_review,
+            include_removed,
+            limit = 100,
+            offset = 0
+        } = filters;
+        const includeRemoved = toBoolean(include_removed);
         let where = 'WHERE 1=1';
         let params = [];
         let pCount = 0;
@@ -72,6 +110,10 @@ const Anomaly = {
             pCount++;
             where += ` AND a.is_mandatory_review = $${pCount}`;
             params.push(is_mandatory_review);
+        }
+
+        if (!includeRemoved) {
+            where += ` AND COALESCE(a.removed_from_dashboard, false) = false`;
         }
 
         pCount++;
@@ -134,6 +176,7 @@ const Anomaly = {
     },
 
     async investigate(anomalyId, userId, notes) {
+        const investigationNotes = notes || 'Investigation started';
         const anomalyResult = await query(`
             UPDATE anomalies
             SET status = 'investigating',
@@ -146,27 +189,30 @@ const Anomaly = {
                 updated_at = CURRENT_TIMESTAMP
             WHERE anomaly_id = $1
             RETURNING *
-        `, [anomalyId, userId, notes || 'Investigation started']);
+        `, [anomalyId, userId, investigationNotes]);
 
         if (anomalyResult.rows.length === 0) return null;
 
-        // Create investigation record
-        const idResult = await query(`
-            SELECT COALESCE(MAX(CAST(SUBSTRING(investigation_id FROM 5) AS INTEGER)), 0) as max_num
-            FROM anomaly_investigations WHERE investigation_id ~ '^INV-[0-9]+$'
-        `);
-        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
-        const investigationId = `INV-${String(nextNum).padStart(3, '0')}`;
+        await createInvestigationRecord({
+            anomalyId,
+            userId,
+            findings: investigationNotes,
+            actionTaken: 'Investigation initiated',
+            outcome: 'needs_further_review'
+        });
 
-        await query(`
-            INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_id, findings, action_taken, outcome)
-            VALUES ($1, $2, $3, $4, 'Investigation initiated', 'needs_further_review')
-        `, [investigationId, anomalyId, userId, notes || 'Investigation started']);
+        await createAnomalyAuditLog({
+            userId,
+            anomalyId,
+            actionType: 'ANOMALY_INVESTIGATE',
+            payload: { notes: investigationNotes }
+        });
 
         return parseDecimalFields(anomalyResult.rows[0], ANOMALY_DECIMAL_FIELDS);
     },
 
     async resolve(anomalyId, userId, notes) {
+        const investigationNotes = notes || 'Resolved';
         const result = await query(`
             UPDATE anomalies
             SET status = 'resolved',
@@ -180,27 +226,30 @@ const Anomaly = {
                 updated_at = CURRENT_TIMESTAMP
             WHERE anomaly_id = $1
             RETURNING *
-        `, [anomalyId, userId, notes || 'Resolved']);
+        `, [anomalyId, userId, investigationNotes]);
 
         if (result.rows.length === 0) return null;
 
-        // Create investigation record for resolution
-        const idResult = await query(`
-            SELECT COALESCE(MAX(CAST(SUBSTRING(investigation_id FROM 5) AS INTEGER)), 0) as max_num
-            FROM anomaly_investigations WHERE investigation_id ~ '^INV-[0-9]+$'
-        `);
-        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
-        const investigationId = `INV-${String(nextNum).padStart(3, '0')}`;
+        await createInvestigationRecord({
+            anomalyId,
+            userId,
+            findings: investigationNotes,
+            actionTaken: 'Anomaly resolved',
+            outcome: 'confirmed'
+        });
 
-        await query(`
-            INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_id, findings, action_taken, outcome)
-            VALUES ($1, $2, $3, $4, 'Anomaly resolved', 'confirmed')
-        `, [investigationId, anomalyId, userId, notes || 'Resolved']);
+        await createAnomalyAuditLog({
+            userId,
+            anomalyId,
+            actionType: 'ANOMALY_RESOLVE',
+            payload: { notes: investigationNotes }
+        });
 
         return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
     },
 
     async markFalsePositive(anomalyId, userId, notes) {
+        const investigationNotes = notes || 'Marked as false positive';
         const result = await query(`
             UPDATE anomalies
             SET status = 'false_positive',
@@ -214,22 +263,61 @@ const Anomaly = {
                 updated_at = CURRENT_TIMESTAMP
             WHERE anomaly_id = $1
             RETURNING *
-        `, [anomalyId, userId, notes || 'Marked as false positive']);
+        `, [anomalyId, userId, investigationNotes]);
 
         if (result.rows.length === 0) return null;
 
-        // Create investigation record for false positive
-        const idResult = await query(`
-            SELECT COALESCE(MAX(CAST(SUBSTRING(investigation_id FROM 5) AS INTEGER)), 0) as max_num
-            FROM anomaly_investigations WHERE investigation_id ~ '^INV-[0-9]+$'
-        `);
-        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
-        const investigationId = `INV-${String(nextNum).padStart(3, '0')}`;
+        await createInvestigationRecord({
+            anomalyId,
+            userId,
+            findings: investigationNotes,
+            actionTaken: 'Marked as false positive',
+            outcome: 'false_positive'
+        });
 
-        await query(`
-            INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_id, findings, action_taken, outcome)
-            VALUES ($1, $2, $3, $4, 'Marked as false positive', 'false_positive')
-        `, [investigationId, anomalyId, userId, notes || 'Marked as false positive']);
+        await createAnomalyAuditLog({
+            userId,
+            anomalyId,
+            actionType: 'ANOMALY_FALSE_POSITIVE',
+            payload: { notes: investigationNotes }
+        });
+
+        return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
+    },
+
+    async markAcceptableChange(anomalyId, userId, notes) {
+        const investigationNotes = notes || 'Marked as acceptable change';
+        const result = await query(`
+            UPDATE anomalies
+            SET status = 'acceptable_change',
+                investigated_by = COALESCE(investigated_by, $2),
+                investigation_notes = CASE
+                    WHEN investigation_notes IS NOT NULL AND investigation_notes != ''
+                    THEN investigation_notes || E'\n' || $3
+                    ELSE $3
+                END,
+                resolution_date = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE anomaly_id = $1
+            RETURNING *
+        `, [anomalyId, userId, investigationNotes]);
+
+        if (result.rows.length === 0) return null;
+
+        await createInvestigationRecord({
+            anomalyId,
+            userId,
+            findings: investigationNotes,
+            actionTaken: 'Marked as acceptable operational change',
+            outcome: 'confirmed'
+        });
+
+        await createAnomalyAuditLog({
+            userId,
+            anomalyId,
+            actionType: 'ANOMALY_ACCEPTABLE_CHANGE',
+            payload: { notes: investigationNotes }
+        });
 
         return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
     },
@@ -242,6 +330,7 @@ const Anomaly = {
         COUNT(*) FILTER (WHERE is_mandatory_review = true) as mandatory_reviews
       FROM anomalies
       WHERE unit_id = $1
+            AND COALESCE(removed_from_dashboard, false) = false
       AND detected_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
       GROUP BY severity
     `, [unitId]);
@@ -349,10 +438,15 @@ const Anomaly = {
      * Get summary of anomaly types for dashboard
      */
     async getTypeSummary(filters = {}) {
-        const { unit_id, days = 30 } = filters;
+        const { unit_id, include_removed, days = 30 } = filters;
+        const includeRemoved = toBoolean(include_removed);
         let where = `WHERE a.detected_at >= CURRENT_TIMESTAMP - INTERVAL '1 day' * $1`;
         let params = [parseInt(days)];
         let pCount = 1;
+
+        if (!includeRemoved) {
+            where += ` AND COALESCE(a.removed_from_dashboard, false) = false`;
+        }
 
         if (unit_id) {
             pCount++;
@@ -395,27 +489,88 @@ const Anomaly = {
 
         if (result.rows.length === 0) return null;
 
-        // Create investigation record for the explanation
-        const idResult = await query(`
-            SELECT COALESCE(MAX(CAST(SUBSTRING(investigation_id FROM 5) AS INTEGER)), 0) as max_num
-            FROM anomaly_investigations WHERE investigation_id ~ '^INV-[0-9]+$'
-        `);
-        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
-        const investigationId = `INV-${String(nextNum).padStart(3, '0')}`;
+        await createInvestigationRecord({
+            anomalyId,
+            userId,
+            findings: message,
+            actionTaken: 'Explanation submitted for critical anomaly',
+            outcome: 'needs_further_review'
+        });
 
-        await query(`
-            INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_id, findings, action_taken, outcome)
-            VALUES ($1, $2, $3, $4, 'Explanation submitted for critical anomaly', 'needs_further_review')
-        `, [investigationId, anomalyId, userId, message]);
+        await createAnomalyAuditLog({
+            userId,
+            anomalyId,
+            actionType: 'ANOMALY_EXPLANATION',
+            payload: { message }
+        });
 
         return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
+    },
+
+    async removeFromDashboard(anomalyId, userId, reason) {
+        const result = await query(`
+            UPDATE anomalies
+            SET removed_from_dashboard = true,
+                removed_from_dashboard_at = CURRENT_TIMESTAMP,
+                removed_from_dashboard_by = $2,
+                removed_from_dashboard_reason = $3,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE anomaly_id = $1
+            RETURNING anomaly_id, removed_from_dashboard, removed_from_dashboard_at,
+                      removed_from_dashboard_by, removed_from_dashboard_reason
+        `, [anomalyId, userId, reason || 'Deleted from dashboard']);
+
+        if (result.rows.length === 0) return null;
+
+        await createAnomalyAuditLog({
+            userId,
+            anomalyId,
+            actionType: 'ANOMALY_DASHBOARD_DELETE',
+            payload: { reason: reason || 'Deleted from dashboard' }
+        });
+
+        return result.rows[0];
+    },
+
+    async restoreToDashboard(anomalyId, userId) {
+        const result = await query(`
+            UPDATE anomalies
+            SET removed_from_dashboard = false,
+                removed_from_dashboard_at = NULL,
+                removed_from_dashboard_by = NULL,
+                removed_from_dashboard_reason = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE anomaly_id = $1
+            RETURNING anomaly_id, removed_from_dashboard
+        `, [anomalyId]);
+
+        if (result.rows.length === 0) return null;
+
+        await createAnomalyAuditLog({
+            userId,
+            anomalyId,
+            actionType: 'ANOMALY_DASHBOARD_RESTORE',
+            payload: {}
+        });
+
+        return result.rows[0];
     },
 
     /**
      * Search anomalies for investigation - filter by unit and time interval
      */
     async searchForInvestigation(filters = {}) {
-        const { unit_id, start_date, end_date, severity, status, limit = 100, offset = 0 } = filters;
+        const {
+            unit_id,
+            start_date,
+            end_date,
+            severity,
+            status,
+            include_removed,
+            limit = 100,
+            offset = 0
+        } = filters;
+        const includeRemoved = toBoolean(include_removed);
         let where = 'WHERE 1=1';
         let params = [];
         let pCount = 0;
@@ -448,6 +603,10 @@ const Anomaly = {
             pCount++;
             where += ` AND a.status = $${pCount}`;
             params.push(status);
+        }
+
+        if (!includeRemoved) {
+            where += ` AND COALESCE(a.removed_from_dashboard, false) = false`;
         }
 
         pCount++;

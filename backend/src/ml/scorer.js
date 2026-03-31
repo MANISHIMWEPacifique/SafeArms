@@ -163,17 +163,8 @@ const calculateRuleBasedScore = (features) => {
         flagCount++;
     }
 
-    // Night issue (medium weight)
-    if (features.is_night_issue) {
-        score += 0.3;
-        flagCount++;
-    }
-
-    // Weekend issue (low weight)
-    if (features.is_weekend_issue) {
-        score += 0.2;
-        flagCount++;
-    }
+    // Off-hours activity is operationally normal in 24/7 security context.
+    // Keep these features for analytics, but do not score them as anomalies.
 
     // Cross-unit movement in officer history (medium weight)
     if (features.cross_unit_movement_flag) {
@@ -283,10 +274,6 @@ const determineAnomalyType = (features, kmeansResult, statisticalResult, rulesRe
         return 'cross_unit_anomaly';
     }
 
-    if (features.is_night_issue && features.is_weekend_issue) {
-        return 'off_hours_activity';
-    }
-
     if (kmeansResult?.is_anomaly) {
         return 'cluster_outlier';
     }
@@ -344,14 +331,7 @@ const calculateFeatureImportance = (features, kmeansResult, statisticalResult) =
         importance.cluster_distance = Math.min(kmeansResult.distance / 3.0, 1.0);
     }
 
-    // Temporal anomalies
-    if (features.is_night_issue) {
-        importance.night_issue = 0.6;
-    }
-
-    if (features.is_weekend_issue) {
-        importance.weekend_issue = 0.4;
-    }
+    // Off-hours is no longer considered an anomaly signal.
 
     // Cross-unit movement in history
     if (features.cross_unit_movement_flag) {
@@ -412,14 +392,8 @@ const buildContributingFactors = (features, kmeansResult, statisticalResult, rul
         factors.high_ballistic_access = `Ballistic profile accessed ${features.ballistic_accesses_24h} times in last 24 hours`;
     }
 
-    if (features.is_night_issue) {
-        factors.night_issue = `Custody issued during night hours (${features.issue_hour}:00)`;
-    }
-
-    if (features.is_weekend_issue) {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        factors.weekend_issue = `Issued on ${days[features.issue_day_of_week]}`;
-    }
+    // Off-hours details are intentionally omitted from anomaly factors because
+    // 24/7 security operations can legitimately occur at any time.
 
     if (features.cross_unit_movement_flag) {
         factors.cross_unit_history = `Officer has history of receiving firearms from other units`;

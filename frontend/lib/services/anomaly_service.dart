@@ -11,6 +11,7 @@ class AnomalyService {
     int? offset,
     String? severity,
     String? status,
+    bool includeRemoved = false,
   }) async {
     try {
       Map<String, String> queryParams = {};
@@ -18,6 +19,7 @@ class AnomalyService {
       if (offset != null) queryParams['offset'] = offset.toString();
       if (severity != null) queryParams['severity'] = severity;
       if (status != null) queryParams['status'] = status;
+      if (includeRemoved) queryParams['include_removed'] = 'true';
 
       final uri = Uri.parse(ApiConfig.anomaliesUrl).replace(
           queryParameters: queryParams.isNotEmpty ? queryParams : null);
@@ -34,11 +36,13 @@ class AnomalyService {
     String unitId, {
     int? limit,
     int? offset,
+    bool includeRemoved = false,
   }) async {
     try {
       Map<String, String> queryParams = {};
       if (limit != null) queryParams['limit'] = limit.toString();
       if (offset != null) queryParams['offset'] = offset.toString();
+      if (includeRemoved) queryParams['include_removed'] = 'true';
 
       final uri = Uri.parse('${ApiConfig.anomaliesUrl}/unit/$unitId').replace(
           queryParameters: queryParams.isNotEmpty ? queryParams : null);
@@ -114,6 +118,58 @@ class AnomalyService {
     }
   }
 
+  // Mark anomaly as acceptable operational change
+  Future<Map<String, dynamic>> markAcceptableChange(
+    String id, {
+    String? notes,
+  }) async {
+    try {
+      final data = await ApiClient.post(
+        '${ApiConfig.anomaliesUrl}/$id/acceptable-change',
+        body: {'notes': notes ?? ''},
+      );
+      return data['data'];
+    } catch (e) {
+      throw Exception('Error marking acceptable change: $e');
+    }
+  }
+
+  // Delete anomaly from dashboard views (record retained in system).
+  Future<Map<String, dynamic>> deleteFromDashboard(
+    String id, {
+    String? reason,
+  }) async {
+    try {
+      final data = await ApiClient.post(
+        '${ApiConfig.anomaliesUrl}/$id/delete-from-dashboard',
+        body: {'reason': reason ?? 'Deleted from dashboard'},
+      );
+      return data['data'];
+    } catch (e) {
+      throw Exception('Error deleting anomaly from dashboard: $e');
+    }
+  }
+
+  // Restore anomaly into dashboard views.
+  Future<Map<String, dynamic>> restoreToDashboard(String id) async {
+    try {
+      final data =
+          await ApiClient.delete('${ApiConfig.anomaliesUrl}/$id/delete-from-dashboard');
+      return data['data'];
+    } catch (e) {
+      throw Exception('Error restoring anomaly to dashboard: $e');
+    }
+  }
+
+  // Backward-compatible aliases.
+  Future<Map<String, dynamic>> hideFromDashboard(
+    String id, {
+    String? reason,
+  }) => deleteFromDashboard(id, reason: reason);
+
+  Future<Map<String, dynamic>> unhideFromDashboard(String id) =>
+      restoreToDashboard(id);
+
   // Submit explanation for critical anomaly
   Future<Map<String, dynamic>> submitExplanation(
     String id, {
@@ -139,6 +195,7 @@ class AnomalyService {
     String? status,
     int? limit,
     int? offset,
+    bool includeRemoved = true,
   }) async {
     try {
       Map<String, String> queryParams = {};
@@ -149,6 +206,7 @@ class AnomalyService {
       if (status != null) queryParams['status'] = status;
       if (limit != null) queryParams['limit'] = limit.toString();
       if (offset != null) queryParams['offset'] = offset.toString();
+      if (includeRemoved) queryParams['include_removed'] = 'true';
 
       final uri = Uri.parse('${ApiConfig.anomaliesUrl}/investigation/search')
           .replace(

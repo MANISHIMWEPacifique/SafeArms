@@ -1,5 +1,9 @@
 const cron = require('node-cron');
-const { trainModel, checkRetrainingNeeded } = require('../ml/modelTrainer');
+const {
+    trainModel,
+    checkRetrainingNeeded,
+    getMinTrainingSamples
+} = require('../ml/modelTrainer');
 const { query } = require('../config/database');
 const logger = require('../utils/logger');
 
@@ -10,24 +14,77 @@ const logger = require('../utils/logger');
 
 /**
  * Run model training
- * @returns {Promise<void>}
+ * @param {Object} options
+ * @param {boolean} options.force - Force retraining even when checks say not needed
+ * @param {string} options.trigger - Trigger source label (scheduled/manual)
+ * @returns {Promise<Object>} Training outcome
  */
-const runModelTraining = async () => {
+let latestTrainingRun = {
+    status: 'idle',
+    trigger: null,
+    started_at: null,
+    finished_at: null,
+    reason: null,
+    error: null,
+    model_id: null,
+    training_samples: null,
+    silhouette_score: null,
+    outlier_threshold: null
+};
+
+const runModelTraining = async (options = {}) => {
+    const { force = false, trigger = 'scheduled' } = options;
+    const startedAt = new Date().toISOString();
+
+    latestTrainingRun = {
+        status: 'running',
+        trigger,
+        started_at: startedAt,
+        finished_at: null,
+        reason: null,
+        error: null,
+        model_id: null,
+        training_samples: null,
+        silhouette_score: null,
+        outlier_threshold: null
+    };
+
     try {
         logger.info('=== Model Training Job Started ===');
+        logger.info(`Training trigger: ${trigger}, force: ${force}`);
 
         // Check if retraining is needed
-        const check = await checkRetrainingNeeded();
+        let check = { needed: true, reason: 'Forced retraining' };
+        if (!force) {
+            check = await checkRetrainingNeeded();
+        }
 
         logger.info(`Retraining check: ${check.needed ? 'NEEDED' : 'NOT NEEDED'} - ${check.reason}`);
 
         if (!check.needed) {
             logger.info('Model training skipped - not needed at this time');
-            return;
+            const skippedResult = {
+                success: true,
+                status: 'skipped',
+                trigger,
+                force,
+                reason: check.reason,
+                started_at: startedAt,
+                finished_at: new Date().toISOString()
+            };
+
+            latestTrainingRun = {
+                ...latestTrainingRun,
+                status: 'skipped',
+                reason: check.reason,
+                finished_at: skippedResult.finished_at
+            };
+
+            return skippedResult;
         }
 
         // Train new model
-        const result = await trainModel();
+        const result = await trainModel({ minSamples: getMinTrainingSamples() });
 
         logger.info(`[OK] Model training completed successfully`);
         logger.info(`Model ID: ${result.model_id}`);
@@ -35,9 +92,55 @@ const runModelTraining = async () => {
         logger.info(`Silhouette score: ${result.silhouette_score?.toFixed(4)}`);
         logger.info(`Outlier threshold: ${result.outlier_threshold?.toFixed(4)}`);
 
+        const completedResult = {
+            success: true,
+            status: 'completed',
+            trigger,
+            force,
+            reason: check.reason,
+            model_id: result.model_id,
+            training_samples: result.training_samples,
+            silhouette_score: result.silhouette_score,
+            outlier_threshold: result.outlier_threshold,
+            started_at: startedAt,
+            finished_at: new Date().toISOString()
+        };
+
+        latestTrainingRun = {
+            ...latestTrainingRun,
+            status: 'completed',
+            reason: check.reason,
+            model_id: result.model_id,
+            training_samples: result.training_samples,
+            silhouette_score: result.silhouette_score,
+            outlier_threshold: result.outlier_threshold,
+            finished_at: completedResult.finished_at
+        };
+
+        return completedResult;
+
     } catch (error) {
         logger.error('[ERROR] Model training job failed:', error);
+
+        const failedResult = {
+            success: false,
+            status: 'failed',
+            trigger,
+            force,
+            error: error.message,
+            started_at: startedAt,
+            finished_at: new Date().toISOString()
+        };
+
+        latestTrainingRun = {
+            ...latestTrainingRun,
+            status: 'failed',
+            error: error.message,
+            finished_at: failedResult.finished_at
+        };
+
         // Don't throw - job failure shouldn't crash the server
+        return failedResult;
     } finally {
         logger.info('=== Model Training Job Finished ===');
     }
@@ -69,11 +172,28 @@ const scheduleModelTraining = () => {
  * Run model training manually (for testing or admin trigger)
  * @returns {Promise<Object>}
  */
-const triggerManualTraining = async () => {
-    logger.info('Manual model training triggered');
-    await runModelTraining();
-    return { success: true, message: 'Model training completed' };
+const triggerManualTraining = async ({ force = false, wait = true } = {}) => {
+    logger.info(`Manual model training triggered (force=${force}, wait=${wait})`);
+
+    if (!wait) {
+        runModelTraining({ force, trigger: 'manual' }).catch((error) => {
+            logger.error('Background manual model training failed:', error);
+        });
+
+        return {
+            success: true,
+            status: 'started',
+            trigger: 'manual',
+            force,
+            started_at: new Date().toISOString(),
+            message: 'Model training started in background'
+        };
+    }
+
+    return runModelTraining({ force, trigger: 'manual' });
 };
+
+const getLatestTrainingRun = () => latestTrainingRun;
 
 /**
  * Bootstrap training data if insufficient samples exist.
@@ -92,14 +212,15 @@ const triggerManualTraining = async () => {
  */
 const bootstrapIfNeeded = async () => {
     try {
+        const minimumSamples = getMinTrainingSamples();
         const countResult = await query(`
             SELECT COUNT(*) as count FROM ml_training_features
             WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
         `, [], { query_timeout: 120000 });
         const sampleCount = parseInt(countResult.rows[0].count);
 
-        if (sampleCount >= 50) {
-            logger.info(`Bootstrap: ${sampleCount} training features found, sufficient`);
+        if (sampleCount >= minimumSamples) {
+            logger.info(`Bootstrap: ${sampleCount} training features found (minimum ${minimumSamples}), sufficient`);
         } else {
             logger.info(`Bootstrap: Only ${sampleCount} training features found. Extracting from existing custody records...`);
 
@@ -199,5 +320,6 @@ module.exports = {
     scheduleModelTraining,
     runModelTraining,
     triggerManualTraining,
+    getLatestTrainingRun,
     bootstrapIfNeeded
 };

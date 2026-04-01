@@ -20,6 +20,8 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const isObject = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const normalizeRequiredText = (value) => String(value || '').trim();
+
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 const normalizePlatform = (platform) => {
@@ -178,6 +180,76 @@ const assertStationCommanderUnitAccess = (requestingUser, unitId) => {
     }
 };
 
+const clearDeviceReferences = async (deviceKey) => {
+    await query(
+        `UPDATE officer_verification_requests
+         SET decided_device_key = NULL,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE decided_device_key = $1`,
+        [deviceKey]
+    );
+
+    await query(
+        `UPDATE officer_verification_requests
+         SET metadata = (COALESCE(metadata, '{}'::jsonb) - 'target_device_key')
+                        || jsonb_build_object('request_target_mode', 'officer_any_active_device'),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE decision = 'pending'
+           AND consumed_at IS NULL
+           AND COALESCE(metadata ->> 'target_device_key', '') = $1`,
+        [deviceKey]
+    );
+};
+
+const hardDeleteOfficerDeviceRow = async ({ deviceRow, actorUserId, reason }) => {
+    await recordVerificationEvent({
+        deviceKey: deviceRow.device_key,
+        officerId: deviceRow.officer_id,
+        unitId: deviceRow.unit_id,
+        eventType: 'DEVICE_REVOKED',
+        eventStatus: 'revoked',
+        reason: reason || 'Device enrollment removed',
+        metadata: {
+            hard_deleted: true,
+            removed_device_key: deviceRow.device_key
+        },
+        actorUserId: actorUserId || null
+    });
+
+    await clearDeviceReferences(deviceRow.device_key);
+
+    const deleteResult = await query(
+        `DELETE FROM officer_devices
+         WHERE device_key = $1
+         RETURNING *`,
+        [deviceRow.device_key]
+    );
+
+    return deleteResult.rows[0] || null;
+};
+
+const enforceSingleActiveDeviceForOfficer = async ({ officerId, keepDeviceKey, actorUserId }) => {
+    const staleDeviceResult = await query(
+        `SELECT *
+         FROM officer_devices
+         WHERE officer_id = $1
+           AND is_revoked = false
+           AND device_key <> $2
+         ORDER BY created_at DESC`,
+        [officerId, keepDeviceKey]
+    );
+
+    for (const staleDevice of staleDeviceResult.rows) {
+        await hardDeleteOfficerDeviceRow({
+            deviceRow: staleDevice,
+            actorUserId,
+            reason: `Superseded by active device ${keepDeviceKey}`
+        });
+    }
+
+    return staleDeviceResult.rowCount;
+};
+
 const authenticateOfficerDevice = async ({ officerId, deviceKey, deviceToken }) => {
     if (!officerId || !deviceKey || !deviceToken) {
         throw new AppError('officer_id, device_key, and device_token are required', 400);
@@ -187,19 +259,38 @@ const authenticateOfficerDevice = async ({ officerId, deviceKey, deviceToken }) 
         `SELECT *
          FROM officer_devices
          WHERE device_key = $1
-           AND officer_id = $2
-           AND is_revoked = false`,
-        [deviceKey, officerId]
+         LIMIT 1`,
+        [deviceKey]
     );
 
     if (result.rows.length === 0) {
-        throw new AppError('Invalid officer device credentials', 401);
+        throw new AppError(
+            'Device enrollment not found. Re-enroll this phone from Station Commander dashboard.',
+            401
+        );
     }
 
     const device = result.rows[0];
+    if (device.officer_id !== officerId) {
+        throw new AppError(
+            'This device is enrolled for a different officer. Check Connection Setup credentials.',
+            401
+        );
+    }
+
+    if (device.is_revoked) {
+        throw new AppError(
+            'This device is no longer active. Re-enroll the phone from Station Commander dashboard.',
+            401
+        );
+    }
+
     const incomingHash = hashToken(deviceToken);
     if (incomingHash !== device.token_hash) {
-        throw new AppError('Invalid officer device credentials', 401);
+        throw new AppError(
+            'Device token is invalid or outdated. Update Connection Setup with latest credentials.',
+            401
+        );
     }
 
     await query(
@@ -250,30 +341,41 @@ const registerOfficerDevice = async ({
         throw new AppError('officer_id is required', 400);
     }
 
+    const normalizedDeviceName = normalizeRequiredText(deviceName);
+    if (normalizedDeviceName.length < 3) {
+        throw new AppError('device_name is required and must be at least 3 characters', 400);
+    }
+
+    const normalizedFingerprint = normalizeRequiredText(deviceFingerprint);
+    if (normalizedFingerprint.length < 6) {
+        throw new AppError('device_fingerprint is required and must be at least 6 characters', 400);
+    }
+
+    const normalizedAppVersion = normalizeRequiredText(appVersion) || null;
+
     const officer = await getOfficerOrThrow(officerId);
     assertStationCommanderUnitAccess(requestingUser, officer.unit_id);
 
     const normalizedPlatform = normalizePlatform(platform);
     const safeMetadata = isObject(metadata) ? metadata : {};
 
-    const existingDeviceResult = deviceFingerprint
-        ? await query(
-            `SELECT *
-             FROM officer_devices
-             WHERE officer_id = $1
-               AND device_fingerprint = $2
-               AND is_revoked = false
-             ORDER BY created_at DESC
-             LIMIT 1`,
-            [officerId, deviceFingerprint]
-        )
-        : { rows: [] };
+    const existingDeviceResult = await query(
+        `SELECT *
+         FROM officer_devices
+         WHERE officer_id = $1
+           AND device_fingerprint = $2
+           AND is_revoked = false
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [officerId, normalizedFingerprint]
+    );
 
     const plainToken = generateDeviceToken();
     const tokenHash = hashToken(plainToken);
 
     if (existingDeviceResult.rows.length > 0) {
         const existing = existingDeviceResult.rows[0];
+        const effectiveAppVersion = normalizedAppVersion || existing.app_version;
         const updateResult = await query(
             `UPDATE officer_devices
              SET platform = $1,
@@ -287,8 +389,8 @@ const registerOfficerDevice = async ({
              RETURNING *`,
             [
                 normalizedPlatform,
-                deviceName || existing.device_name,
-                appVersion || existing.app_version,
+                normalizedDeviceName,
+                effectiveAppVersion,
                 tokenHash,
                 JSON.stringify(safeMetadata),
                 existing.device_key
@@ -305,8 +407,14 @@ const registerOfficerDevice = async ({
             metadata: {
                 reused_existing_device: true,
                 platform: normalizedPlatform,
-                app_version: appVersion || existing.app_version
+                app_version: effectiveAppVersion
             },
+            actorUserId: enrolledBy || null
+        });
+
+        const removedPreviousDevices = await enforceSingleActiveDeviceForOfficer({
+            officerId: officer.officer_id,
+            keepDeviceKey: existing.device_key,
             actorUserId: enrolledBy || null
         });
 
@@ -318,7 +426,8 @@ const registerOfficerDevice = async ({
                 full_name: officer.full_name,
                 unit_id: officer.unit_id
             },
-            reused_existing_device: true
+            reused_existing_device: true,
+            removed_previous_active_devices: removedPreviousDevices
         };
     }
 
@@ -344,9 +453,9 @@ const registerOfficerDevice = async ({
             officer.officer_id,
             officer.unit_id,
             normalizedPlatform,
-            deviceName || null,
-            deviceFingerprint || null,
-            appVersion || null,
+            normalizedDeviceName,
+            normalizedFingerprint,
+            normalizedAppVersion,
             tokenHash,
             JSON.stringify(safeMetadata),
             enrolledBy || null
@@ -363,8 +472,14 @@ const registerOfficerDevice = async ({
         metadata: {
             reused_existing_device: false,
             platform: normalizedPlatform,
-            app_version: appVersion || null
+            app_version: normalizedAppVersion
         },
+        actorUserId: enrolledBy || null
+    });
+
+    const removedPreviousDevices = await enforceSingleActiveDeviceForOfficer({
+        officerId: officer.officer_id,
+        keepDeviceKey: deviceKey,
         actorUserId: enrolledBy || null
     });
 
@@ -376,11 +491,12 @@ const registerOfficerDevice = async ({
             full_name: officer.full_name,
             unit_id: officer.unit_id
         },
-        reused_existing_device: false
+        reused_existing_device: false,
+        removed_previous_active_devices: removedPreviousDevices
     };
 };
 
-const listOfficerDevices = async ({ officerId, requestingUser }) => {
+const listOfficerDevices = async ({ officerId, requestingUser, includeRevoked = false }) => {
     if (!officerId) {
         throw new AppError('officer_id is required', 400);
     }
@@ -392,14 +508,15 @@ const listOfficerDevices = async ({ officerId, requestingUser }) => {
         `SELECT *
          FROM officer_devices
          WHERE officer_id = $1
+           AND ($2::BOOLEAN = true OR is_revoked = false)
          ORDER BY is_revoked ASC, created_at DESC`,
-        [officerId]
+        [officerId, includeRevoked]
     );
 
     return result.rows.map((row) => sanitizeDevice(row));
 };
 
-const revokeOfficerDevice = async ({ deviceKey, revokedBy, requestingUser }) => {
+const removeOfficerDevice = async ({ deviceKey, removedBy, requestingUser }) => {
     if (!deviceKey) {
         throw new AppError('device_key is required', 400);
     }
@@ -418,32 +535,25 @@ const revokeOfficerDevice = async ({ deviceKey, revokedBy, requestingUser }) => 
     const existing = lookupResult.rows[0];
     assertStationCommanderUnitAccess(requestingUser, existing.unit_id);
 
-    if (existing.is_revoked) {
-        return sanitizeDevice(existing);
-    }
-
-    const result = await query(
-        `UPDATE officer_devices
-         SET is_revoked = true,
-             revoked_at = CURRENT_TIMESTAMP,
-             revoked_by = $1,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE device_key = $2
-         RETURNING *`,
-        [revokedBy || null, deviceKey]
-    );
-
-    await recordVerificationEvent({
-        deviceKey,
-        officerId: existing.officer_id,
-        unitId: existing.unit_id,
-        eventType: 'DEVICE_REVOKED',
-        eventStatus: 'revoked',
-        reason: 'Device revoked by commander/admin',
-        actorUserId: revokedBy || null
+    const deleted = await hardDeleteOfficerDeviceRow({
+        deviceRow: existing,
+        actorUserId: removedBy || null,
+        reason: 'Device removed by commander/admin'
     });
 
-    return sanitizeDevice(result.rows[0]);
+    if (!deleted) {
+        throw new AppError('Device not found', 404);
+    }
+
+    return sanitizeDevice(deleted);
+};
+
+const revokeOfficerDevice = async ({ deviceKey, revokedBy, requestingUser }) => {
+    return removeOfficerDevice({
+        deviceKey,
+        removedBy: revokedBy,
+        requestingUser
+    });
 };
 
 const reassignOfficerDevice = async ({ deviceKey, officerId, reassignedBy, requestingUser }) => {
@@ -640,10 +750,24 @@ const createCustodyAssignmentVerificationRequest = async ({
         );
     }
 
-    const scopedDeviceKey = await resolveTargetDeviceKey({
+    let scopedDeviceKey = await resolveTargetDeviceKey({
         officerId: custody.officer_id,
         deviceKey: targetDeviceKey
     });
+
+    if (!scopedDeviceKey) {
+        const defaultDeviceResult = await query(
+            `SELECT device_key
+             FROM officer_devices
+             WHERE officer_id = $1
+               AND is_revoked = false
+             ORDER BY COALESCE(last_seen_at, enrolled_at, created_at) DESC, created_at DESC
+             LIMIT 1`,
+            [custody.officer_id]
+        );
+
+        scopedDeviceKey = defaultDeviceResult.rows[0]?.device_key || null;
+    }
 
     await expireStaleRequests(custodyId);
 
@@ -1202,6 +1326,7 @@ module.exports = {
     recordVerificationEvent,
     registerOfficerDevice,
     listOfficerDevices,
+    removeOfficerDevice,
     revokeOfficerDevice,
     reassignOfficerDevice,
     expireStaleRequests,

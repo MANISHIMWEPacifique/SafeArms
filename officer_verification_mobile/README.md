@@ -6,23 +6,42 @@ Standalone Flutter mobile app for officer-side custody verification in SafeArms.
 
 - This is not the full SafeArms mobile app.
 - Focus is custody assignment verification flow.
-- Supports demo mode and live backend mode.
+- Defaults to live backend mode for standalone officer use.
+- Supports optional demo mode for UI/testing only.
 
 ## Live Mode Requirements
 
 1. Backend is running and reachable from the phone network.
 2. Database migrations are applied in order: 013 -> 014 -> 015.
 3. Officer has an active enrolled device from commander enrollment.
-4. App is built with live dart defines:
-   - SAFEARMS_USE_MOCK_FLOW=false
-   - SAFEARMS_API_BASE_URL
-   - SAFEARMS_OFFICER_ID
-   - SAFEARMS_DEVICE_KEY
-   - SAFEARMS_DEVICE_TOKEN
+4. App credentials are provided either by:
+  - In-app Connection Setup screen (recommended for standalone deployment), or
+  - Build-time dart defines.
 
 Important:
 - For physical phones, do not use 10.0.2.2.
 - Use a LAN or public backend URL, for example: http://192.168.1.50:5000/api
+
+## Standalone Setup On Device (No PC Connection Required)
+
+1. Install the app APK on the officer phone.
+2. Open app -> PIN screen -> Connection Setup.
+3. Enter:
+  - API Base URL (LAN/public URL reachable from that phone)
+  - Officer ID
+  - Device Key
+  - Device Token
+4. Save and continue.
+
+These values are stored on-device and used at runtime, so the app can run independently after installation.
+
+## Optional Demo Mode
+
+If you want non-production mock flow for UI demo/testing:
+
+```bash
+flutter run --dart-define=SAFEARMS_USE_MOCK_FLOW=true
+```
 
 ## Development Run
 

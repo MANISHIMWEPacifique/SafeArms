@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'connection_setup_screen.dart';
 
 class PinEntryScreen extends StatefulWidget {
   const PinEntryScreen({
@@ -148,6 +149,21 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ConnectionSetupScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.settings, size: 16),
+              label: const Text('Connection Setup'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.accentBlue,
+              ),
             ),
             const SizedBox(height: 48),
           ],

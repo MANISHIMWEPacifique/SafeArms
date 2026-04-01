@@ -35,9 +35,16 @@ class OfficerVerificationService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getOfficerDevices(String officerId) async {
+  Future<List<Map<String, dynamic>>> getOfficerDevices(
+    String officerId, {
+    bool includeRevoked = false,
+  }) async {
     try {
-      final response = await ApiClient.get('$_baseUrl/devices/officer/$officerId');
+      final response = await ApiClient.get(
+        includeRevoked
+            ? '$_baseUrl/devices/officer/$officerId?include_revoked=true'
+            : '$_baseUrl/devices/officer/$officerId',
+      );
       final rows = response['data'];
       if (rows is! List) {
         return <Map<String, dynamic>>[];
@@ -52,17 +59,18 @@ class OfficerVerificationService {
     }
   }
 
-  Future<Map<String, dynamic>> revokeOfficerDevice(String deviceKey) async {
+  Future<Map<String, dynamic>> removeOfficerDevice(String deviceKey) async {
     try {
-      final response = await ApiClient.patch(
-        '$_baseUrl/devices/$deviceKey/revoke',
-        body: <String, dynamic>{},
-      );
+      final response = await ApiClient.delete('$_baseUrl/devices/$deviceKey');
 
       return Map<String, dynamic>.from(
           response['data'] as Map<String, dynamic>? ?? <String, dynamic>{});
     } catch (e) {
-      throw Exception('Error revoking device: $e');
+      throw Exception('Error removing device: $e');
     }
+  }
+
+  Future<Map<String, dynamic>> revokeOfficerDevice(String deviceKey) async {
+    return removeOfficerDevice(deviceKey);
   }
 }

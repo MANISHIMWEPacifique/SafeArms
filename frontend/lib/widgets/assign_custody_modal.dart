@@ -37,7 +37,6 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
   // State
   List<FirearmModel> _availableFirearms = [];
   List<OfficerModel> _officers = [];
-  List<Map<String, dynamic>> _officerDevices = [];
   bool _isLoading = true;
   bool _isSubmitting = false;
   bool _isLoadingOfficerDevices = false;
@@ -46,6 +45,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
   String? _selectedFirearmId;
   String? _selectedOfficerId;
   String? _selectedVerificationDeviceKey;
+  String? _resolvedVerificationDeviceLabel;
   String _custodyType = 'permanent';
   String? _selectedDurationType;
   final TextEditingController _reasonController = TextEditingController();
@@ -62,7 +62,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
     setState(() {
       _selectedOfficerId = officerId;
       _selectedVerificationDeviceKey = null;
-      _officerDevices = [];
+      _resolvedVerificationDeviceLabel = null;
     });
 
     if (officerId == null || officerId.isEmpty) {
@@ -81,11 +81,21 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
         return;
       }
 
-      final activeDevices =
-          devices.where((device) => device['is_revoked'] != true).toList();
+      final selectedDevice = devices.isNotEmpty ? devices.first : null;
+      final selectedDeviceKey = selectedDevice?['device_key']?.toString();
+      final selectedDeviceName =
+          selectedDevice?['device_name']?.toString().trim() ?? '';
+      final selectedDevicePlatform =
+          selectedDevice?['platform']?.toString().toUpperCase() ?? 'UNKNOWN';
+      final resolvedLabel = selectedDeviceKey == null
+          ? null
+          : selectedDeviceName.isNotEmpty
+              ? '$selectedDeviceName ($selectedDevicePlatform)'
+              : selectedDeviceKey;
 
       setState(() {
-        _officerDevices = activeDevices;
+        _selectedVerificationDeviceKey = selectedDeviceKey;
+        _resolvedVerificationDeviceLabel = resolvedLabel;
         _isLoadingOfficerDevices = false;
       });
     } catch (_) {
@@ -94,8 +104,8 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       }
 
       setState(() {
-        _officerDevices = [];
         _selectedVerificationDeviceKey = null;
+        _resolvedVerificationDeviceLabel = null;
         _isLoadingOfficerDevices = false;
       });
     }
@@ -196,7 +206,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               verificationId.isEmpty
                   ? 'Custody assigned. Officer verification request created.'
                   : targetDeviceKey.isEmpty
-                      ? 'Custody assigned. Verification $verificationId created (code: $challengeCode).'
+                      ? 'Custody assigned. Verification $verificationId created and sent to officer mobile device (code: $challengeCode).'
                       : 'Custody assigned. Verification $verificationId created for device $targetDeviceKey.',
             ),
             backgroundColor: const Color(0xFF3CCB7F),
@@ -269,7 +279,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
                               const SizedBox(height: 24),
                               _buildOfficerSelection(),
                               const SizedBox(height: 24),
-                              _buildVerificationTargetSelection(),
+                              _buildVerificationDeliveryStatus(),
                               const SizedBox(height: 24),
                               _buildCustodyTypeSelection(),
                               const SizedBox(height: 24),
@@ -449,12 +459,12 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
     );
   }
 
-  Widget _buildVerificationTargetSelection() {
+  Widget _buildVerificationDeliveryStatus() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Verification Target Device (Optional)',
+          'Verification Delivery',
           style: TextStyle(
             color: Color(0xFFB0BEC5),
             fontSize: 16,
@@ -463,7 +473,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Select one enrolled phone to receive this request. Leave empty to allow any active enrolled device.',
+          'Automatically uses the officer active enrolled phone.',
           style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
         ),
         const SizedBox(height: 12),
@@ -497,48 +507,51 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
                 ),
                 SizedBox(width: 10),
                 Text(
-                  'Loading enrolled devices...',
+                  'Resolving enrolled device...',
                   style: TextStyle(color: Color(0xFF78909C)),
                 ),
               ],
             ),
           )
-        else if (_officerDevices.isEmpty)
+        else if (_selectedVerificationDeviceKey == null)
           Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFF59E0B)),
+            ),
+            child: const Text(
+              'No active enrolled device found for this officer. Custody assignment can continue, but mobile verification request may not be delivered.',
+              style: TextStyle(color: Color(0xFFFFC857)),
+            ),
+          )
+        else
+          Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFF2A3040),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFF37404F)),
             ),
-            child: const Text(
-              'No active enrolled devices found for this officer.',
-              style: TextStyle(color: Color(0xFF78909C)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _resolvedVerificationDeviceLabel ?? 'Enrolled device',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Device key: ${_selectedVerificationDeviceKey!}',
+                  style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                ),
+              ],
             ),
-          )
-        else
-          SearchableDropdown<String>(
-            items: _officerDevices.map((device) {
-              final deviceKey = device['device_key']?.toString() ?? '';
-              final deviceName = device['device_name']?.toString().trim() ?? '';
-              final platform =
-                  device['platform']?.toString().toUpperCase() ?? 'UNKNOWN';
-              final label =
-                  deviceName.isNotEmpty ? '$deviceName ($platform)' : deviceKey;
-
-              return SearchableDropdownItem<String>(
-                value: deviceKey,
-                label: label,
-                subtitle: 'Key: $deviceKey',
-                icon: Icons.phone_android,
-              );
-            }).toList(),
-            value: _selectedVerificationDeviceKey,
-            hintText: 'Leave empty to allow any active device',
-            prefixIcon: Icons.phone_android,
-            onChanged: (value) {
-              setState(() => _selectedVerificationDeviceKey = value);
-            },
           ),
       ],
     );

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'config/api_config.dart';
 import 'screens/verification_flow_screen.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ApiConfig.initialize();
   runApp(const OfficerVerificationApp());
 }
 

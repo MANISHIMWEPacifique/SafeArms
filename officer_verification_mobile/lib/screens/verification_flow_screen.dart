@@ -4,6 +4,7 @@ import '../config/api_config.dart';
 import '../models/approval_request.dart';
 import '../services/verification_api_service.dart';
 import '../theme/app_colors.dart';
+import 'connection_setup_screen.dart';
 import 'decision_confirmation_screen.dart';
 import 'incoming_request_screen.dart';
 import 'pin_entry_screen.dart';
@@ -14,8 +15,6 @@ enum _FlowStage { splash, pin, incoming, confirm, success }
 
 class VerificationFlowScreen extends StatefulWidget {
   const VerificationFlowScreen({super.key});
-
-  
 
   @override
   State<VerificationFlowScreen> createState() => _VerificationFlowScreenState();
@@ -64,7 +63,7 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
         _isLoadingPending = false;
         _request = null;
         _pendingError =
-            'Missing SAFEARMS_OFFICER_ID / SAFEARMS_DEVICE_KEY / SAFEARMS_DEVICE_TOKEN.';
+            'Missing device credentials. Open Connection Setup and save Officer ID, Device Key, and Device Token.';
       });
       return;
     }
@@ -77,9 +76,9 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
 
     try {
       final requests = await _apiService.fetchPendingRequests(
-        officerId: ApiConfig.officerId,
-        deviceKey: ApiConfig.deviceKey,
-        deviceToken: ApiConfig.deviceToken,
+        officerId: ApiConfig.effectiveOfficerId,
+        deviceKey: ApiConfig.effectiveDeviceKey,
+        deviceToken: ApiConfig.effectiveDeviceToken,
       );
 
       if (!mounted) {
@@ -116,11 +115,13 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
       } else {
         await _apiService.submitDecision(
           verificationId: request.requestId,
-          officerId: ApiConfig.officerId,
-          deviceKey: ApiConfig.deviceKey,
-          deviceToken: ApiConfig.deviceToken,
+          officerId: ApiConfig.effectiveOfficerId,
+          deviceKey: ApiConfig.effectiveDeviceKey,
+          deviceToken: ApiConfig.effectiveDeviceToken,
           challengeCode: request.challengeCode,
-          decision: _decision == VerificationDecision.approve ? 'approve' : 'reject',
+          decision: _decision == VerificationDecision.approve
+              ? 'approve'
+              : 'reject',
           reason: reason,
         );
       }
@@ -161,6 +162,16 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
     await _loadPendingRequest();
   }
 
+  Future<void> _openConnectionSetup() async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const ConnectionSetupScreen()),
+    );
+
+    if (updated == true && mounted && _stage == _FlowStage.incoming) {
+      await _loadPendingRequest();
+    }
+  }
+
   Widget _buildIncomingState(BuildContext context) {
     if (_isLoadingPending) {
       return _buildStateCard(
@@ -174,10 +185,21 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
       return _buildStateCard(
         title: 'Unable to load requests',
         subtitle: _pendingError!,
-        child: FilledButton.icon(
-          onPressed: _loadPendingRequest,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Retry'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FilledButton.icon(
+              onPressed: _loadPendingRequest,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _openConnectionSetup,
+              icon: const Icon(Icons.settings),
+              label: const Text('Connection Setup'),
+            ),
+          ],
         ),
       );
     }
@@ -185,11 +207,23 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
     if (_request == null) {
       return _buildStateCard(
         title: 'No pending request',
-        subtitle: 'There is no active custody verification request for this officer.',
-        child: FilledButton.icon(
-          onPressed: _loadPendingRequest,
-          icon: const Icon(Icons.sync),
-          label: const Text('Check Again'),
+        subtitle:
+            'No active custody verification request was found for this officer/device. If custody was just assigned, tap Check Again or verify Connection Setup credentials.',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FilledButton.icon(
+              onPressed: _loadPendingRequest,
+              icon: const Icon(Icons.sync),
+              label: const Text('Check Again'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _openConnectionSetup,
+              icon: const Icon(Icons.settings),
+              label: const Text('Connection Setup'),
+            ),
+          ],
         ),
       );
     }
@@ -283,9 +317,7 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
         );
         break;
       case _FlowStage.pin:
-        body = PinEntryScreen(
-          onVerified: _handlePinVerified,
-        );
+        body = PinEntryScreen(onVerified: _handlePinVerified);
         break;
       case _FlowStage.incoming:
         body = _buildIncomingState(context);

@@ -42,8 +42,6 @@ class _OfficerDeviceEnrollmentModalState
   @override
   void initState() {
     super.initState();
-    _deviceNameController.text = '${widget.officer.fullName} Phone';
-    _appVersionController.text = '1.0.0';
     _loadDevices();
   }
 
@@ -62,8 +60,8 @@ class _OfficerDeviceEnrollmentModalState
     });
 
     try {
-      final devices =
-          await _verificationService.getOfficerDevices(widget.officer.officerId);
+      final devices = await _verificationService
+          .getOfficerDevices(widget.officer.officerId);
       if (!mounted) return;
 
       setState(() {
@@ -108,9 +106,14 @@ class _OfficerDeviceEnrollmentModalState
         _latestEnrollment = result;
         _isRegistering = false;
         final reused = result['reused_existing_device'] == true;
-        _successMessage = reused
+        final removedPreviousDevices =
+          (result['removed_previous_active_devices'] as num?)?.toInt() ?? 0;
+        final baseMessage = reused
             ? 'Existing device was found and token has been rotated.'
             : 'Device enrolled successfully. Share credentials with the officer.';
+        _successMessage = removedPreviousDevices > 0
+          ? '$baseMessage $removedPreviousDevices previous active device(s) were removed.'
+          : baseMessage;
       });
 
       await _loadDevices();
@@ -123,18 +126,18 @@ class _OfficerDeviceEnrollmentModalState
     }
   }
 
-  Future<void> _revokeDevice(String deviceKey) async {
-    final shouldRevoke = await showDialog<bool>(
+  Future<void> _removeDevice(String deviceKey) async {
+    final shouldRemove = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF252A3A),
           title: const Text(
-            'Revoke Device?',
+            'Remove Device?',
             style: TextStyle(color: Colors.white),
           ),
           content: Text(
-            'The officer will no longer receive verification requests on this device.',
+            'This permanently removes this enrolled phone from the officer profile.',
             style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
           ),
           actions: [
@@ -148,14 +151,14 @@ class _OfficerDeviceEnrollmentModalState
                 backgroundColor: const Color(0xFFE85C5C),
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Revoke'),
+              child: const Text('Remove'),
             ),
           ],
         );
       },
     );
 
-    if (shouldRevoke != true) {
+    if (shouldRemove != true) {
       return;
     }
 
@@ -165,11 +168,11 @@ class _OfficerDeviceEnrollmentModalState
     });
 
     try {
-      await _verificationService.revokeOfficerDevice(deviceKey);
+      await _verificationService.removeOfficerDevice(deviceKey);
       if (!mounted) return;
 
       setState(() {
-        _successMessage = 'Device revoked successfully.';
+        _successMessage = 'Device removed successfully.';
       });
 
       await _loadDevices();
@@ -240,7 +243,7 @@ class _OfficerDeviceEnrollmentModalState
               border: Border.all(color: const Color(0xFF1E88E5)),
             ),
             child: const Text(
-              'Register a phone for this officer. After enrollment, share the generated device key and token to configure the officer mobile app.',
+              'Register a real phone for this officer. Use a real device name and fingerprint (Android ID, managed asset ID, or approved device identifier).',
               style: TextStyle(color: Colors.white, fontSize: 13),
             ),
           ),
@@ -282,6 +285,16 @@ class _OfficerDeviceEnrollmentModalState
                         controller: _deviceNameController,
                         style: const TextStyle(color: Colors.white),
                         decoration: _inputDecoration('Device Name'),
+                        validator: (value) {
+                          final normalized = value?.trim() ?? '';
+                          if (normalized.isEmpty) {
+                            return 'Device name is required';
+                          }
+                          if (normalized.length < 3) {
+                            return 'Use at least 3 characters';
+                          }
+                          return null;
+                        },
                       ),
                     ),
                   ],
@@ -293,7 +306,20 @@ class _OfficerDeviceEnrollmentModalState
                       child: TextFormField(
                         controller: _deviceFingerprintController,
                         style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration('Device Fingerprint (optional)'),
+                        decoration: _inputDecoration(
+                          'Device Fingerprint',
+                          hint: 'Required: real device identifier',
+                        ),
+                        validator: (value) {
+                          final normalized = value?.trim() ?? '';
+                          if (normalized.isEmpty) {
+                            return 'Device fingerprint is required';
+                          }
+                          if (normalized.length < 6) {
+                            return 'Use at least 6 characters';
+                          }
+                          return null;
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -301,7 +327,10 @@ class _OfficerDeviceEnrollmentModalState
                       child: TextFormField(
                         controller: _appVersionController,
                         style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration('App Version'),
+                        decoration: _inputDecoration(
+                          'App Version',
+                          hint: 'Optional (for example, 1.0.0)',
+                        ),
                       ),
                     ),
                   ],
@@ -472,7 +501,6 @@ class _OfficerDeviceEnrollmentModalState
     final deviceName = device['device_name']?.toString().trim();
     final platform = device['platform']?.toString().toUpperCase() ?? 'UNKNOWN';
     final appVersion = device['app_version']?.toString().trim();
-    final isRevoked = device['is_revoked'] == true;
     final enrolledAt = _formatDate(device['enrolled_at']);
     final lastSeen = _formatDate(device['last_seen_at']);
 
@@ -502,19 +530,16 @@ class _OfficerDeviceEnrollmentModalState
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isRevoked
-                      ? const Color(0xFFE85C5C).withValues(alpha: 0.2)
-                      : const Color(0xFF3CCB7F).withValues(alpha: 0.2),
+                  color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  isRevoked ? 'Revoked' : 'Active',
+                child: const Text(
+                  'Active',
                   style: TextStyle(
-                    color: isRevoked
-                        ? const Color(0xFFE85C5C)
-                        : const Color(0xFF3CCB7F),
+                    color: Color(0xFF3CCB7F),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -524,23 +549,32 @@ class _OfficerDeviceEnrollmentModalState
           ),
           const SizedBox(height: 8),
           _buildDetailLine('Device Key', deviceKey),
+          _buildDetailLine(
+            'Fingerprint',
+            (device['device_fingerprint']?.toString().trim().isNotEmpty ??
+                    false)
+                ? device['device_fingerprint'].toString()
+                : 'N/A',
+          ),
           _buildDetailLine('Platform', platform),
-          _buildDetailLine('App Version',
-              (appVersion != null && appVersion.isNotEmpty) ? appVersion : 'N/A'),
+          _buildDetailLine(
+              'App Version',
+              (appVersion != null && appVersion.isNotEmpty)
+                  ? appVersion
+                  : 'N/A'),
           _buildDetailLine('Enrolled', enrolledAt),
           _buildDetailLine('Last Seen', lastSeen),
-          if (!isRevoked)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () => _revokeDevice(deviceKey),
-                icon: const Icon(Icons.block, size: 16),
-                label: const Text('Revoke'),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFFE85C5C),
-                ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => _removeDevice(deviceKey),
+              icon: const Icon(Icons.delete_outline, size: 16),
+              label: const Text('Remove'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFE85C5C),
               ),
             ),
+          ),
         ],
       ),
     );
@@ -569,9 +603,11 @@ class _OfficerDeviceEnrollmentModalState
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, {String? hint}) {
     return InputDecoration(
       labelText: label,
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
       labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
       filled: true,
       fillColor: const Color(0xFF1A1F2E),

@@ -7,6 +7,7 @@ const { triggerManualVerificationOps } = require('../jobs/officerVerification.jo
 const {
     registerOfficerDevice,
     listOfficerDevices,
+    removeOfficerDevice,
     revokeOfficerDevice,
     reassignOfficerDevice,
     createCustodyAssignmentVerificationRequest,
@@ -32,7 +33,7 @@ router.post('/devices/register', authenticate, requireCommander, asyncHandler(as
         requestingUser: req.user
     });
 
-    res.status(201).json({
+    res.status(result.reused_existing_device ? 200 : 201).json({
         success: true,
         message: 'Officer device enrolled successfully',
         data: result
@@ -42,10 +43,25 @@ router.post('/devices/register', authenticate, requireCommander, asyncHandler(as
 router.get('/devices/officer/:officer_id', authenticate, requireCommander, asyncHandler(async (req, res) => {
     const devices = await listOfficerDevices({
         officerId: req.params.officer_id,
+        includeRevoked: req.query.include_revoked === 'true',
         requestingUser: req.user
     });
 
     res.json({ success: true, data: devices });
+}));
+
+router.delete('/devices/:device_key', authenticate, requireCommander, asyncHandler(async (req, res) => {
+    const device = await removeOfficerDevice({
+        deviceKey: req.params.device_key,
+        removedBy: req.user.user_id,
+        requestingUser: req.user
+    });
+
+    res.json({
+        success: true,
+        message: 'Officer device removed successfully',
+        data: device
+    });
 }));
 
 router.patch('/devices/:device_key/revoke', authenticate, requireCommander, asyncHandler(async (req, res) => {

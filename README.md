@@ -86,6 +86,12 @@ flutter pub get
 flutter run -d chrome
 ```
 
+## Stable API Deployment
+
+For a fixed public API URL using Render (backend) + Supabase (database), follow:
+
+- `DEPLOYMENT_RENDER_SUPABASE.md`
+
 ## Default Credentials
 - **Username:** admin
 - **Password:** Admin@123

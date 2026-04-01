@@ -70,6 +70,12 @@ The backend API runs on `http://localhost:3000`
 
 Update `lib/config/api_config.dart` with the correct API endpoint.
 
+For production builds with a fixed hosted API URL:
+
+```bash
+flutter build web --dart-define=API_BASE_URL=https://your-service.onrender.com
+```
+
 ## License
 
 Rwanda National Police - Final Year Project

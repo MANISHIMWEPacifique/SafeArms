@@ -53,6 +53,39 @@ npm run dev
 npm start
 ```
 
+## Stable Deployment (Render + Supabase)
+
+For a fixed public API URL that does not change between local restarts:
+
+1. Deploy backend to Render using `render.yaml` (repo root) or manual settings:
+	- Root Directory: `backend`
+	- Build Command: `npm ci`
+	- Start Command: `npm start`
+	- Health Check: `/health`
+2. Configure Render environment variables:
+	- `NODE_ENV=production`
+	- `DATABASE_URL=<supabase-connection-string>`
+	- `JWT_SECRET=<strong-secret>`
+	- `CORS_ORIGIN=<frontend-origin>`
+	- `API_BASE_URL=<render-or-custom-domain>`
+3. Verify deployment with smoke check:
+
+```bash
+npm run deploy:smoke -- --base-url https://your-service.onrender.com
+```
+
+Optional officer route verification:
+
+```bash
+npm run deploy:smoke -- \
+  --base-url https://your-service.onrender.com \
+  --officer-id OFF-001 \
+  --device-key DVK-XXXX \
+  --device-token YOUR_DEVICE_TOKEN
+```
+
+See `../DEPLOYMENT_RENDER_SUPABASE.md` for the full rollout guide.
+
 ## API Structure
 
 - `POST /api/auth/login` - Login

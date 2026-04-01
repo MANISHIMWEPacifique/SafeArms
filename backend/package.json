@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "deploy:smoke": "node src/scripts/deploySmokeCheck.js",
     "seed": "node src/scripts/seedDatabase.js",
     "seed:training": "node src/scripts/runTrainingWorkflowSeed.js all",
     "seed:training:baseline": "node src/scripts/runTrainingWorkflowSeed.js baseline",

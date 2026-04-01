@@ -20,7 +20,7 @@ Standalone Flutter mobile app for officer-side custody verification in SafeArms.
 
 Important:
 - For physical phones, do not use 10.0.2.2.
-- Use a LAN or public backend URL, for example: http://192.168.1.50:5000/api
+- Use a LAN or public backend URL, for example: https://your-service.onrender.com/api
 
 ## Standalone Setup On Device (No PC Connection Required)
 
@@ -80,7 +80,7 @@ cd officer_verification_mobile
 flutter pub get
 flutter build apk --release \
   --dart-define=SAFEARMS_USE_MOCK_FLOW=false \
-  --dart-define=SAFEARMS_API_BASE_URL=http://192.168.1.50:5000/api \
+  --dart-define=SAFEARMS_API_BASE_URL=https://your-service.onrender.com/api \
   --dart-define=SAFEARMS_OFFICER_ID=OFF-001 \
   --dart-define=SAFEARMS_DEVICE_KEY=DVK-XXXX \
   --dart-define=SAFEARMS_DEVICE_TOKEN=YOUR_DEVICE_TOKEN
@@ -91,11 +91,13 @@ PowerShell one-command alternative:
 ```powershell
 cd officer_verification_mobile
 .\scripts\build_live_release.ps1 `
-  -ApiBaseUrl "http://192.168.1.50:5000/api" `
+  -ApiBaseUrl "https://your-service.onrender.com/api" `
   -OfficerId "OFF-001" `
   -DeviceKey "DVK-XXXX" `
   -DeviceToken "YOUR_DEVICE_TOKEN"
 ```
+
+The script validates the API URL, normalizes the `/api` suffix, and writes a SHA256 checksum file for the upload-ready APK.
 
 APK output:
 - build/app/outputs/flutter-apk/app-release.apk

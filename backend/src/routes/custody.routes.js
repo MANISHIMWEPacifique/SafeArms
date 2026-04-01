@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { assignCustody, returnCustody, getActiveCustody, getUnitCustody, getFirearmCustodyHistory, getOfficerCustodyHistory } = require('../services/custody.service');
+const {
+    createCustodyAssignmentVerificationRequest
+} = require('../services/officerVerification.service');
 const CustodyRecord = require('../models/CustodyRecord');
 const { authenticate } = require('../middleware/authentication');
 const { 
@@ -204,12 +207,72 @@ router.post('/assign', authenticate, requireCommander, logCustodyAssignment, asy
     }
     
     const custodyRecord = await assignCustody({ ...req.body, issued_by: req.user.user_id });
-    res.status(201).json({ success: true, data: custodyRecord, message: 'Custody assigned successfully' });
+
+    let verification = null;
+    try {
+        const verificationRequest = await createCustodyAssignmentVerificationRequest({
+            custodyId: custodyRecord.custody_id,
+            requestedBy: req.user.user_id,
+            requestingUser: req.user,
+            ttlMinutes: req.body.verification_ttl_minutes,
+            targetDeviceKey: req.body.verification_device_key
+        });
+
+        const requestMetadata =
+            verificationRequest.metadata && typeof verificationRequest.metadata === 'object'
+                ? verificationRequest.metadata
+                : {};
+
+        verification = {
+            created: true,
+            verification_id: verificationRequest.verification_id,
+            challenge_code: verificationRequest.challenge_code,
+            expires_at: verificationRequest.expires_at,
+            is_existing: verificationRequest.is_existing,
+            target_device_key: requestMetadata.target_device_key || null
+        };
+    } catch (verificationError) {
+        logger.warn(
+            `Unable to create assignment verification for custody ${custodyRecord.custody_id}: ${verificationError.message}`
+        );
+        verification = {
+            created: false,
+            message: verificationError.message
+        };
+    }
+
+    res.status(201).json({
+        success: true,
+        data: custodyRecord,
+        verification,
+        message: 'Custody assigned successfully'
+    });
 }));
 
 // Return custody - restricted to unit access
 router.post('/:id/return', authenticate, requireCommander, logCustodyReturn, asyncHandler(async (req, res) => {
+    const custodyLookup = await query(
+        `SELECT custody_id, officer_id, unit_id, returned_at
+         FROM custody_records
+         WHERE custody_id = $1`,
+        [req.params.id]
+    );
+
+    if (custodyLookup.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Custody record not found' });
+    }
+
+    const custody = custodyLookup.rows[0];
+
+    if (req.user.role === 'station_commander' && req.user.unit_id !== custody.unit_id) {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied. You can only return custody records for your unit.'
+        });
+    }
+
     const custodyRecord = await returnCustody(req.params.id, { ...req.body, returned_to: req.user.user_id });
+
     res.json({ success: true, data: custodyRecord, message: 'Custody returned successfully' });
 }));
 

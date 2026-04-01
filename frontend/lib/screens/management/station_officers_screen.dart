@@ -11,6 +11,7 @@ import '../../widgets/station_add_officer_modal.dart';
 import '../../widgets/station_edit_officer_modal.dart';
 import '../../widgets/officer_detail_modal.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
+import '../../widgets/officer_device_enrollment_modal.dart';
 
 class StationOfficersScreen extends StatefulWidget {
   const StationOfficersScreen({super.key});
@@ -24,6 +25,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
   bool _showAddModal = false;
   OfficerModel? _selectedOfficerForDetail;
   OfficerModel? _selectedOfficerForEdit;
+  OfficerModel? _selectedOfficerForDeviceEnrollment;
   final Set<String> _selectedOfficers = {};
 
   @override
@@ -115,6 +117,14 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
                 setState(() => _selectedOfficerForEdit = null);
                 _loadUnitOfficers();
               },
+            ),
+
+          // Device Enrollment Modal
+          if (_selectedOfficerForDeviceEnrollment != null)
+            OfficerDeviceEnrollmentModal(
+              officer: _selectedOfficerForDeviceEnrollment!,
+              onClose: () =>
+                  setState(() => _selectedOfficerForDeviceEnrollment = null),
             ),
         ],
       ),
@@ -651,6 +661,17 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
                 icon: const Icon(Icons.edit, size: 18),
                 color: const Color(0xFFFFC857),
                 tooltip: 'Edit',
+              ),
+              IconButton(
+                onPressed: officer.isActive
+                    ? () => setState(
+                        () => _selectedOfficerForDeviceEnrollment = officer)
+                    : null,
+                icon: const Icon(Icons.phone_android, size: 18),
+                color: const Color(0xFF3CCB7F),
+                tooltip: officer.isActive
+                    ? 'Manage Mobile Device'
+                    : 'Activate officer to manage device',
               ),
               IconButton(
                 onPressed: () => _confirmDeleteOfficer(officer),

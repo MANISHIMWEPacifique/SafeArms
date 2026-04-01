@@ -87,7 +87,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
       _maxOtpAttemptsValue = sp.maxOtpAttempts.toDouble();
       _minPasswordLengthValue = sp.minPasswordLength.toDouble();
       _sessionTimeoutValue = sp.sessionTimeout.toDouble();
-      return;
     }
 
     if (!_otpDragging) {

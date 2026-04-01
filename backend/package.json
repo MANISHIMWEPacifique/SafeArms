@@ -15,6 +15,7 @@
     "seed:training:generate": "node src/scripts/generateTrainingData.js all",
     "seed:training:generate:baseline": "node src/scripts/generateTrainingData.js baseline",
     "seed:training:generate:anomalies": "node src/scripts/generateTrainingData.js anomalies",
+    "mobile:seed-demo": "node src/scripts/setupOfficerMobileDemo.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

@@ -45,6 +45,7 @@ class CustodyService {
     DateTime? expectedReturnDate,
     String? durationType,
     String? notes,
+    String? verificationDeviceKey,
   }) async {
     try {
       final data = await ApiClient.post(
@@ -57,9 +58,12 @@ class CustodyService {
           'expected_return_date': expectedReturnDate?.toIso8601String(),
           'duration_type': durationType,
           'notes': notes,
+          if (verificationDeviceKey != null &&
+              verificationDeviceKey.trim().isNotEmpty)
+            'verification_device_key': verificationDeviceKey.trim(),
         },
       );
-      return data['data'];
+      return Map<String, dynamic>.from(data);
     } catch (e) {
       throw Exception('Error assigning custody: $e');
     }

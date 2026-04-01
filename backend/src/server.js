@@ -15,6 +15,7 @@ const logger = require('./utils/logger');
 const { scheduleModelTraining } = require('./jobs/modelTraining.job');
 const { scheduleViewRefresh } = require('./jobs/viewRefresh.job');
 const { scheduleOverdueDetection } = require('./jobs/overdueDetection.job');
+const { scheduleOfficerVerificationOps } = require('./jobs/officerVerification.job');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -29,6 +30,7 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 const ballisticRoutes = require('./routes/ballistic.routes');
 const reportsRoutes = require('./routes/reports.routes');
 const settingsRoutes = require('./routes/settings.routes');
+const officerVerificationRoutes = require('./routes/officerVerification.routes');
 
 // Initialize Express app
 const app = express();
@@ -94,7 +96,8 @@ app.get('/api', (req, res) => {
             approvals: '/api/approvals',
             dashboard: '/api/dashboard',
             ballisticProfiles: '/api/ballistic-profiles',
-            reports: '/api/reports'
+            reports: '/api/reports',
+            officerVerification: '/api/officer-verification'
         }
     });
 });
@@ -112,6 +115,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ballistic-profiles', ballisticRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/officer-verification', officerVerificationRoutes);
 app.use('/api/audit-logs', settingsRoutes);  // For /api/audit-logs endpoint
 app.use('/api/system', settingsRoutes);       // For /api/system/health endpoint
 app.use('/api/ml', settingsRoutes);           // For /api/ml/config and /api/ml/train endpoints
@@ -175,6 +179,7 @@ const waitForDatabase = async () => {
             scheduleModelTraining();
             scheduleViewRefresh();
             scheduleOverdueDetection();
+            scheduleOfficerVerificationOps();
             console.log('[OK] Background jobs scheduled');
         } catch (error) {
             console.error('[WARN] Failed to schedule background jobs:', error.message);

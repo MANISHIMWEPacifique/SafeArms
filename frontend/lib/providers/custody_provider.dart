@@ -120,7 +120,7 @@ class CustodyProvider with ChangeNotifier {
   }
 
   // Assign custody
-  Future<bool> assignCustody({
+  Future<Map<String, dynamic>?> assignCustody({
     required String firearmId,
     required String officerId,
     required String custodyType,
@@ -128,13 +128,14 @@ class CustodyProvider with ChangeNotifier {
     DateTime? expectedReturnDate,
     String? durationType,
     String? notes,
+    String? verificationDeviceKey,
   }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _custodyService.assignCustody(
+      final result = await _custodyService.assignCustody(
         firearmId: firearmId,
         officerId: officerId,
         custodyType: custodyType,
@@ -142,6 +143,7 @@ class CustodyProvider with ChangeNotifier {
         expectedReturnDate: expectedReturnDate,
         durationType: durationType,
         notes: notes,
+        verificationDeviceKey: verificationDeviceKey,
       );
 
       _isLoading = false;
@@ -150,12 +152,12 @@ class CustodyProvider with ChangeNotifier {
       // Reload all data in parallel for faster refresh
       await Future.wait([loadCustody(), loadStats(), loadAnomalyStatus()]);
 
-      return true;
+      return result;
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
       notifyListeners();
-      return false;
+      return null;
     }
   }
 

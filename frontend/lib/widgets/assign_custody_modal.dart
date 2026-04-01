@@ -8,6 +8,7 @@ import '../providers/custody_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/firearm_service.dart';
 import '../services/officer_service.dart';
+import '../services/officer_verification_service.dart';
 import '../models/firearm_model.dart';
 import '../models/officer_model.dart';
 import 'searchable_dropdown.dart';
@@ -30,16 +31,21 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
   final _formKey = GlobalKey<FormState>();
   final FirearmService _firearmService = FirearmService();
   final OfficerService _officerService = OfficerService();
+  final OfficerVerificationService _verificationService =
+      OfficerVerificationService();
 
   // State
   List<FirearmModel> _availableFirearms = [];
   List<OfficerModel> _officers = [];
+  List<Map<String, dynamic>> _officerDevices = [];
   bool _isLoading = true;
   bool _isSubmitting = false;
+  bool _isLoadingOfficerDevices = false;
 
   // Form state
   String? _selectedFirearmId;
   String? _selectedOfficerId;
+  String? _selectedVerificationDeviceKey;
   String _custodyType = 'permanent';
   String? _selectedDurationType;
   final TextEditingController _reasonController = TextEditingController();
@@ -50,6 +56,49 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  void _onOfficerChanged(String? officerId) {
+    setState(() {
+      _selectedOfficerId = officerId;
+      _selectedVerificationDeviceKey = null;
+      _officerDevices = [];
+    });
+
+    if (officerId == null || officerId.isEmpty) {
+      return;
+    }
+
+    _loadOfficerDevices(officerId);
+  }
+
+  Future<void> _loadOfficerDevices(String officerId) async {
+    setState(() => _isLoadingOfficerDevices = true);
+
+    try {
+      final devices = await _verificationService.getOfficerDevices(officerId);
+      if (!mounted || _selectedOfficerId != officerId) {
+        return;
+      }
+
+      final activeDevices =
+          devices.where((device) => device['is_revoked'] != true).toList();
+
+      setState(() {
+        _officerDevices = activeDevices;
+        _isLoadingOfficerDevices = false;
+      });
+    } catch (_) {
+      if (!mounted || _selectedOfficerId != officerId) {
+        return;
+      }
+
+      setState(() {
+        _officerDevices = [];
+        _selectedVerificationDeviceKey = null;
+        _isLoadingOfficerDevices = false;
+      });
+    }
   }
 
   @override
@@ -112,7 +161,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
     setState(() => _isSubmitting = true);
 
     final custodyProvider = context.read<CustodyProvider>();
-    final success = await custodyProvider.assignCustody(
+    final result = await custodyProvider.assignCustody(
       firearmId: _selectedFirearmId!,
       officerId: _selectedOfficerId!,
       custodyType: _custodyType,
@@ -120,20 +169,51 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       expectedReturnDate: _expectedReturnDate,
       durationType: _custodyType == 'temporary' ? _selectedDurationType : null,
       notes: _notesController.text.trim(),
+      verificationDeviceKey: _selectedVerificationDeviceKey,
     );
 
     setState(() => _isSubmitting = false);
 
     if (!mounted) return;
 
-    if (success) {
+    if (result != null) {
+      final verificationRaw = result['verification'];
+      final verification = verificationRaw is Map
+          ? Map<String, dynamic>.from(verificationRaw)
+          : <String, dynamic>{};
+      final verificationCreated = verification['created'] == true;
+
+      if (verificationCreated) {
+        final verificationId =
+            verification['verification_id']?.toString() ?? '';
+        final challengeCode = verification['challenge_code']?.toString() ?? '';
+        final targetDeviceKey =
+            verification['target_device_key']?.toString().trim() ?? '';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              verificationId.isEmpty
+                  ? 'Custody assigned. Officer verification request created.'
+                  : targetDeviceKey.isEmpty
+                      ? 'Custody assigned. Verification $verificationId created (code: $challengeCode).'
+                      : 'Custody assigned. Verification $verificationId created for device $targetDeviceKey.',
+            ),
+            backgroundColor: const Color(0xFF3CCB7F),
+          ),
+        );
+      } else {
+        final verificationMessage = verification['message']?.toString() ??
+            'Mobile verification request was not created.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Custody assigned. $verificationMessage'),
+            backgroundColor: const Color(0xFFF59E0B),
+          ),
+        );
+      }
+
       widget.onSuccess();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Custody assigned successfully'),
-          backgroundColor: Color(0xFF3CCB7F),
-        ),
-      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -188,6 +268,8 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
                               _buildFirearmSelection(),
                               const SizedBox(height: 24),
                               _buildOfficerSelection(),
+                              const SizedBox(height: 24),
+                              _buildVerificationTargetSelection(),
                               const SizedBox(height: 24),
                               _buildCustodyTypeSelection(),
                               const SizedBox(height: 24),
@@ -360,8 +442,103 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
             value: _selectedOfficerId,
             hintText: 'Search by name, rank, or officer number...',
             prefixIcon: Icons.person_search,
-            onChanged: (value) => setState(() => _selectedOfficerId = value),
+            onChanged: _onOfficerChanged,
             validator: (v) => v == null ? 'Please select an officer' : null,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildVerificationTargetSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Verification Target Device (Optional)',
+          style: TextStyle(
+            color: Color(0xFFB0BEC5),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Select one enrolled phone to receive this request. Leave empty to allow any active enrolled device.',
+          style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        if (_selectedOfficerId == null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A3040),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF37404F)),
+            ),
+            child: const Text(
+              'Select an officer first.',
+              style: TextStyle(color: Color(0xFF78909C)),
+            ),
+          )
+        else if (_isLoadingOfficerDevices)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A3040),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF37404F)),
+            ),
+            child: const Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Loading enrolled devices...',
+                  style: TextStyle(color: Color(0xFF78909C)),
+                ),
+              ],
+            ),
+          )
+        else if (_officerDevices.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A3040),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF37404F)),
+            ),
+            child: const Text(
+              'No active enrolled devices found for this officer.',
+              style: TextStyle(color: Color(0xFF78909C)),
+            ),
+          )
+        else
+          SearchableDropdown<String>(
+            items: _officerDevices.map((device) {
+              final deviceKey = device['device_key']?.toString() ?? '';
+              final deviceName = device['device_name']?.toString().trim() ?? '';
+              final platform =
+                  device['platform']?.toString().toUpperCase() ?? 'UNKNOWN';
+              final label =
+                  deviceName.isNotEmpty ? '$deviceName ($platform)' : deviceKey;
+
+              return SearchableDropdownItem<String>(
+                value: deviceKey,
+                label: label,
+                subtitle: 'Key: $deviceKey',
+                icon: Icons.phone_android,
+              );
+            }).toList(),
+            value: _selectedVerificationDeviceKey,
+            hintText: 'Leave empty to allow any active device',
+            prefixIcon: Icons.phone_android,
+            onChanged: (value) {
+              setState(() => _selectedVerificationDeviceKey = value);
+            },
           ),
       ],
     );

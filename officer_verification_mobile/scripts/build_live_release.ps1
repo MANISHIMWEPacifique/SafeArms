@@ -9,7 +9,9 @@ param(
     [string]$DeviceKey,
 
     [Parameter(Mandatory = $true)]
-    [string]$DeviceToken
+    [string]$DeviceToken,
+
+    [string]$DiscoveryUrl = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -41,18 +43,38 @@ if (-not $normalizedApiBaseUrl.EndsWith('/api')) {
     $normalizedApiBaseUrl = "$normalizedApiBaseUrl/api"
 }
 
+$normalizedDiscoveryUrl = $DiscoveryUrl.Trim()
+if (-not [string]::IsNullOrWhiteSpace($normalizedDiscoveryUrl)) {
+    try {
+        $parsedDiscoveryUri = [System.Uri]::new($normalizedDiscoveryUrl)
+    } catch {
+        throw "DiscoveryUrl must be a valid absolute URL. Received: $DiscoveryUrl"
+    }
+
+    if (-not $parsedDiscoveryUri.IsAbsoluteUri -or ($parsedDiscoveryUri.Scheme -ne 'https' -and $parsedDiscoveryUri.Scheme -ne 'http')) {
+        throw "DiscoveryUrl must start with http:// or https://. Received: $DiscoveryUrl"
+    }
+}
+
 $projectRoot = Join-Path $PSScriptRoot ".."
 Push-Location $projectRoot
 
 try {
     flutter pub get
 
-    flutter build apk --release `
-        --dart-define=SAFEARMS_USE_MOCK_FLOW=false `
-        --dart-define=SAFEARMS_API_BASE_URL=$normalizedApiBaseUrl `
-        --dart-define=SAFEARMS_OFFICER_ID=$OfficerId `
-        --dart-define=SAFEARMS_DEVICE_KEY=$DeviceKey `
-        --dart-define=SAFEARMS_DEVICE_TOKEN=$DeviceToken
+    $dartDefines = @(
+        "--dart-define=SAFEARMS_USE_MOCK_FLOW=false",
+        "--dart-define=SAFEARMS_API_BASE_URL=$normalizedApiBaseUrl",
+        "--dart-define=SAFEARMS_OFFICER_ID=$OfficerId",
+        "--dart-define=SAFEARMS_DEVICE_KEY=$DeviceKey",
+        "--dart-define=SAFEARMS_DEVICE_TOKEN=$DeviceToken"
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($normalizedDiscoveryUrl)) {
+        $dartDefines += "--dart-define=SAFEARMS_DISCOVERY_URL=$normalizedDiscoveryUrl"
+    }
+
+    flutter build apk --release @dartDefines
 
     $builtApkPath = Join-Path $projectRoot "build/app/outputs/flutter-apk/app-release.apk"
     if (-not (Test-Path $builtApkPath)) {
@@ -74,6 +96,9 @@ try {
     Write-Host "Upload-ready APK: $releaseApkPath"
     Write-Host "Checksum file: $hashFilePath"
     Write-Host "Using API base URL: $normalizedApiBaseUrl"
+    if (-not [string]::IsNullOrWhiteSpace($normalizedDiscoveryUrl)) {
+        Write-Host "Using discovery URL: $normalizedDiscoveryUrl"
+    }
 }
 finally {
     Pop-Location

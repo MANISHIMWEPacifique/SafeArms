@@ -31,6 +31,7 @@ const ballisticRoutes = require('./routes/ballistic.routes');
 const reportsRoutes = require('./routes/reports.routes');
 const settingsRoutes = require('./routes/settings.routes');
 const officerVerificationRoutes = require('./routes/officerVerification.routes');
+const deviceEnrollmentRoutes = require('./routes/deviceEnrollment.routes');
 
 // Initialize Express app
 const app = express();
@@ -116,6 +117,7 @@ app.use('/api/ballistic-profiles', ballisticRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/officer-verification', officerVerificationRoutes);
+app.use('/api/enrollment', deviceEnrollmentRoutes);
 app.use('/api/audit-logs', settingsRoutes);  // For /api/audit-logs endpoint
 app.use('/api/system', settingsRoutes);       // For /api/system/health endpoint
 app.use('/api/ml', settingsRoutes);           // For /api/ml/config and /api/ml/train endpoints
@@ -236,7 +238,24 @@ function setupShutdown(server, bootstrapTimer) {
     process.on('SIGINT', () => shutdown('SIGINT'));
 
     process.on('unhandledRejection', (reason, promise) => {
-        logger.error('Unhandled Rejection at:', { promise, reason: reason?.toString() });
+        const reasonDetails = reason instanceof Error
+            ? {
+                name: reason.name,
+                message: reason.message,
+                stack: reason.stack
+            }
+            : {
+                value: reason,
+                text: String(reason)
+            };
+
+        logger.error('Unhandled Rejection at:', {
+            promise,
+            reason: reason?.toString(),
+            reasonDetails,
+            promiseConstructor: promise?.constructor?.name,
+            globalPromiseType: typeof Promise
+        });
     });
 
     process.on('uncaughtException', (error) => {

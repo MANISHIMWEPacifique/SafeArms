@@ -96,7 +96,9 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
 
       setState(() {
         _isLoadingPending = false;
-        _pendingError = error.toString();
+        _pendingError = error is VerificationApiException
+            ? error.message
+            : 'Unable to load requests right now. Retry or open Connection Setup.';
       });
     }
   }
@@ -136,7 +138,11 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
         ..showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text(error.toString()),
+            content: Text(
+              error is VerificationApiException
+                  ? error.message
+                  : 'Unable to submit decision. Please retry.',
+            ),
           ),
         );
       return;
@@ -173,10 +179,13 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
   }
 
   Widget _buildIncomingState(BuildContext context) {
+    final endpointDetails = _buildEndpointDetails();
+
     if (_isLoadingPending) {
       return _buildStateCard(
         title: 'Checking requests',
         subtitle: 'Fetching pending verification requests from SafeArms API.',
+        details: endpointDetails,
         child: const CircularProgressIndicator(color: AppColors.accentBlue),
       );
     }
@@ -185,6 +194,7 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
       return _buildStateCard(
         title: 'Unable to load requests',
         subtitle: _pendingError!,
+        details: endpointDetails,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -197,7 +207,7 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
             OutlinedButton.icon(
               onPressed: _openConnectionSetup,
               icon: const Icon(Icons.settings),
-              label: const Text('Connection Setup'),
+              label: const Text('Edit Connection'),
             ),
           ],
         ),
@@ -209,6 +219,7 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
         title: 'No pending request',
         subtitle:
             'No active custody verification request was found for this officer/device. If custody was just assigned, tap Check Again or verify Connection Setup credentials.',
+        details: endpointDetails,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -259,6 +270,7 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
   Widget _buildStateCard({
     required String title,
     required String subtitle,
+    String? details,
     required Widget child,
   }) {
     return ColoredBox(
@@ -294,6 +306,18 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
                     fontSize: 14,
                   ),
                 ),
+                if (details != null && details.trim().isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    details,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 child,
               ],
@@ -302,6 +326,45 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
         ),
       ),
     );
+  }
+
+  String _buildEndpointDetails() {
+    final resolved = ApiConfig.resolvedBaseUrl;
+    final lines = <String>[
+      'Endpoint source: ${resolved.sourceLabel}',
+      ApiConfig.normalizedBaseUrl,
+    ];
+
+    final discoverySync = _formatTimestamp(ApiConfig.discoveryLastSyncAt);
+    if (discoverySync != null) {
+      lines.add('Discovery sync: $discoverySync');
+    }
+
+    final discoveryError = ApiConfig.discoveryLastError.trim();
+    if (discoveryError.isNotEmpty) {
+      lines.add('Discovery issue: $discoveryError');
+    }
+
+    return lines.join('\n');
+  }
+
+  String? _formatTimestamp(String rawTimestamp) {
+    final normalized = rawTimestamp.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    final parsed = DateTime.tryParse(normalized);
+    if (parsed == null) {
+      return normalized;
+    }
+
+    final local = parsed.toLocal();
+    return '${local.year.toString().padLeft(4, '0')}-'
+        '${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')} '
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
   }
 
   @override

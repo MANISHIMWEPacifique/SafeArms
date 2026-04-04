@@ -513,6 +513,8 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          _buildVerificationIndicator(custody),
           const Spacer(),
 
           // Action buttons
@@ -622,6 +624,91 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVerificationIndicator(Map<String, dynamic> custody) {
+    final verificationStatus =
+        (custody['verification_status'] ?? 'not_requested').toString().toLowerCase();
+    final verificationId = custody['verification_id']?.toString().trim() ?? '';
+    final decidedDeviceKey =
+        custody['verification_decided_device_key']?.toString().trim() ?? '';
+
+    String label;
+    Color color;
+    IconData icon;
+
+    switch (verificationStatus) {
+      case 'approved':
+        label = 'Verified';
+        color = const Color(0xFF3CCB7F);
+        icon = Icons.verified_rounded;
+        break;
+      case 'pending':
+        label = 'Verification Pending';
+        color = const Color(0xFFFFC857);
+        icon = Icons.pending_actions_rounded;
+        break;
+      case 'rejected':
+      case 'cancelled':
+      case 'expired':
+        label = 'Verification ${verificationStatus.toUpperCase()}';
+        color = const Color(0xFFE85C5C);
+        icon = Icons.gpp_bad_rounded;
+        break;
+      default:
+        label = 'Verification Not Requested';
+        color = const Color(0xFF78909C);
+        icon = Icons.shield_outlined;
+    }
+
+    final signature = verificationStatus == 'approved'
+        ? [verificationId, decidedDeviceKey]
+            .where((part) => part.isNotEmpty)
+            .join('  •  ')
+        : verificationId;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 14),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (signature.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              signature,
+              style: TextStyle(
+                color: color.withValues(alpha: 0.9),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );

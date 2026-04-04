@@ -1,0 +1,7 @@
+{
+  "api_base_url": "https://your-service.onrender.com/api",
+  "version": "2026.04.04.1",
+  "updated_at": "2026-04-04T20:00:00Z",
+  "backup_api_base_url": "https://your-backup-service.onrender.com/api",
+  "notes": "Primary SafeArms officer verification API"
+}

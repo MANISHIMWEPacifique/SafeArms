@@ -4,6 +4,21 @@ import 'api_client.dart';
 class OfficerVerificationService {
   String get _baseUrl => '${ApiConfig.apiBase}/officer-verification';
 
+  Future<Map<String, dynamic>> generateEnrollmentPin(String officerId, String unitId) async {
+    final response = await ApiClient.post(
+      '${ApiConfig.apiBase}/enrollment/generate-pin',
+      body: {
+        'officer_id': officerId,
+        'unit_id': unitId,
+      },
+    );
+
+    if (response['success'] == true && response['data'] != null) {
+      return response['data'] as Map<String, dynamic>;
+    }
+    throw Exception('Failed to parse pin response format.');
+  }
+
   Future<Map<String, dynamic>> registerOfficerDevice({
     required String officerId,
     required String platform,

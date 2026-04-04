@@ -9,6 +9,42 @@ Standalone Flutter mobile app for officer-side custody verification in SafeArms.
 - Defaults to live backend mode for standalone officer use.
 - Supports optional demo mode for UI/testing only.
 
+## Runtime URL Discovery (Option 6)
+
+This app supports runtime backend URL discovery so backend URL changes do not require reinstalling every phone.
+
+How it works:
+1. App loads local configuration on startup.
+2. App fetches discovery JSON from a stable discovery URL.
+3. If discovery contains a newer backend URL, app updates the active API URL automatically.
+4. If API calls fail with network errors, app retries once after a fresh discovery pull.
+5. Connection Setup remains available for emergency manual recovery.
+
+Current URL resolution order:
+1. Discovered URL (if newer than manual override)
+2. Manual override URL
+3. Last known good URL
+4. Build-time default URL
+
+Discovery URL is provided at build time via:
+- `SAFEARMS_DISCOVERY_URL`
+
+Discovery JSON contract:
+
+```json
+{
+  "api_base_url": "https://your-service.onrender.com/api",
+  "version": "2026.04.04.1",
+  "updated_at": "2026-04-04T20:00:00Z",
+  "backup_api_base_url": "https://your-backup-service.onrender.com/api",
+  "notes": "Primary SafeArms officer verification API"
+}
+```
+
+Important:
+- Discovery host must be stable and separate from your backend host.
+- If discovery is not configured in a build, app still works with manual/build defaults.
+
 ## Live Mode Requirements
 
 1. Backend is running and reachable from the phone network.
@@ -81,6 +117,7 @@ flutter pub get
 flutter build apk --release \
   --dart-define=SAFEARMS_USE_MOCK_FLOW=false \
   --dart-define=SAFEARMS_API_BASE_URL=https://your-service.onrender.com/api \
+  --dart-define=SAFEARMS_DISCOVERY_URL=https://raw.githubusercontent.com/<org>/<repo>/main/discovery/officer_mobile_discovery.json \
   --dart-define=SAFEARMS_OFFICER_ID=OFF-001 \
   --dart-define=SAFEARMS_DEVICE_KEY=DVK-XXXX \
   --dart-define=SAFEARMS_DEVICE_TOKEN=YOUR_DEVICE_TOKEN
@@ -92,12 +129,19 @@ PowerShell one-command alternative:
 cd officer_verification_mobile
 .\scripts\build_live_release.ps1 `
   -ApiBaseUrl "https://your-service.onrender.com/api" `
+  -DiscoveryUrl "https://raw.githubusercontent.com/<org>/<repo>/main/discovery/officer_mobile_discovery.json" `
   -OfficerId "OFF-001" `
   -DeviceKey "DVK-XXXX" `
   -DeviceToken "YOUR_DEVICE_TOKEN"
 ```
 
 The script validates the API URL, normalizes the `/api` suffix, and writes a SHA256 checksum file for the upload-ready APK.
+
+## Operator Notes
+
+- In Connection Setup, use `Test Connection` before saving to validate reachability.
+- Discovery status is shown in Connection Setup (last sync, discovered URL, and last discovery issue).
+- `Use Build Defaults` clears runtime overrides and cached discovery values.
 
 APK output:
 - build/app/outputs/flutter-apk/app-release.apk

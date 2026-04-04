@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io';
 
 import '../config/api_config.dart';
+import '../services/verification_api_service.dart';
 import '../theme/app_colors.dart';
 
 class ConnectionSetupScreen extends StatefulWidget {
@@ -13,225 +16,291 @@ class ConnectionSetupScreen extends StatefulWidget {
 class _ConnectionSetupScreenState extends State<ConnectionSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _apiBaseUrlController;
-  late final TextEditingController _officerIdController;
-  late final TextEditingController _deviceKeyController;
-  late final TextEditingController _deviceTokenController;
-  bool _isSaving = false;
+  late final TextEditingController _pinController;
+  late final VerificationApiService _apiService;
+
+  bool _isExchanging = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    _apiService = VerificationApiService();
     _apiBaseUrlController = TextEditingController(
       text: ApiConfig.effectiveBaseUrl,
     );
-    _officerIdController = TextEditingController(
-      text: ApiConfig.effectiveOfficerId,
-    );
-    _deviceKeyController = TextEditingController(
-      text: ApiConfig.effectiveDeviceKey,
-    );
-    _deviceTokenController = TextEditingController(
-      text: ApiConfig.effectiveDeviceToken,
-    );
+    _pinController = TextEditingController();
   }
 
   @override
   void dispose() {
+    _apiService.dispose();
     _apiBaseUrlController.dispose();
-    _officerIdController.dispose();
-    _deviceKeyController.dispose();
-    _deviceTokenController.dispose();
+    _pinController.dispose();
     super.dispose();
   }
 
-  Future<void> _save() async {
+  String _normalizeApiBaseUrl(String value) {
+    final normalized = ApiConfig.normalizeBaseUrlInput(value);
+    if (normalized.endsWith('/api')) {
+      return normalized;
+    }
+    return '$normalized/api';
+  }
+
+  Future<Map<String, String>> _getDeviceInfo() async {
+    final deviceInfo = DeviceInfoPlugin();
+    String deviceName = 'Unknown Device';
+    String deviceFingerprint = 'unknown_fingerprint';
+    String platform = 'unknown';
+
+    if (Platform.isAndroid) {
+      final androidInfo = await deviceInfo.androidInfo;
+      deviceName = '${androidInfo.brand} ${androidInfo.model}';
+      deviceFingerprint = androidInfo.id;
+      platform = 'android';
+    } else if (Platform.isIOS) {
+      final iosInfo = await deviceInfo.iosInfo;
+      deviceName = iosInfo.name;
+      deviceFingerprint = iosInfo.identifierForVendor ?? 'unknown_ios_id';
+      platform = 'ios';
+    }
+
+    return {
+      'device_name': deviceName,
+      'device_fingerprint': deviceFingerprint,
+      'platform': platform,
+      'app_version': '1.0.0', // Could be fetched via package_info_plus
+    };
+  }
+
+  Future<void> _exchangePin() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    setState(() => _isSaving = true);
+    setState(() {
+      _isExchanging = true;
+      _errorMessage = null;
+    });
 
     try {
-      await ApiConfig.saveRuntimeConfig(
-        baseUrl: _apiBaseUrlController.text,
-        officerId: _officerIdController.text,
-        deviceKey: _deviceKeyController.text,
-        deviceToken: _deviceTokenController.text,
+      final normalizedApiBaseUrl = _normalizeApiBaseUrl(
+        _apiBaseUrlController.text,
+      );
+      
+      final deviceData = await _getDeviceInfo();
+
+      final result = await _apiService.exchangePin(
+        baseUrl: normalizedApiBaseUrl,
+        pin: _pinController.text,
+        deviceFingerprint: deviceData['device_fingerprint']!,
+        deviceName: deviceData['device_name']!,
+        platform: deviceData['platform']!,
+        appVersion: deviceData['app_version']!,
       );
 
-      if (!mounted) {
-        return;
-      }
+      await ApiConfig.saveRuntimeConfig(
+        baseUrl: normalizedApiBaseUrl,
+        officerId: result['officer_id'].toString(),
+        deviceKey: result['device_key'].toString(),
+        deviceToken: result['device_token'].toString(),
+      );
+
+      if (!mounted) return;
 
       Navigator.of(context).pop(true);
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = error.toString().replaceAll('Exception: ', '');
+      });
     } finally {
       if (mounted) {
-        setState(() => _isSaving = false);
+        setState(() => _isExchanging = false);
       }
     }
-  }
-
-  Future<void> _useBuildDefaults() async {
-    setState(() => _isSaving = true);
-
-    try {
-      await ApiConfig.clearRuntimeConfig();
-
-      _apiBaseUrlController.text = ApiConfig.baseUrl;
-      _officerIdController.text = ApiConfig.officerId;
-      _deviceKeyController.text = ApiConfig.deviceKey;
-      _deviceTokenController.text = ApiConfig.deviceToken;
-
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          const SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text(
-              'Runtime overrides cleared. Build-time values restored.',
-            ),
-          ),
-        );
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
-    }
-  }
-
-  String? _requiredValidator(String? value, String field) {
-    if (value == null || value.trim().isEmpty) {
-      return '$field is required';
-    }
-    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        title: const Text('Device Enrollment'),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'Connection Setup',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(24.0),
+            children: [
+              const Icon(Icons.phonelink_setup, size: 64, color: AppColors.accentBlue),
+              const SizedBox(height: 24),
+              const Text(
+                'Enroll this Device',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Enter the 6-digit PIN generated by your commander to securely link this phone to your officer profile.',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+
+              if (_errorMessage != null) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.border),
+                    color: Colors.red.withValues(alpha: 0.1),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              TextFormField(
+                controller: _apiBaseUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'API Base URL',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.cloud_queue),
+                ),
+                style: const TextStyle(color: AppColors.textPrimary),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'API Base URL is required';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+
+              TextFormField(
+                controller: _pinController,
+                decoration: const InputDecoration(
+                  labelText: '6-Digit Enrollment PIN',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.pin),
+                ),
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  letterSpacing: 8,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'PIN is required';
+                  }
+                  if (value.length != 6) {
+                    return 'PIN must be 6 digits';
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 32),
+
+              ElevatedButton(
+                onPressed: _isExchanging ? null : _exchangePin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accentBlue,
+                  foregroundColor: AppColors.background,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: _isExchanging
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.background,
+                        ),
+                      )
+                    : const Text(
+                        'ENROLL DEVICE',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+              ),
+
+              if (ApiConfig.hasDeviceCredentials) ...[
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () async {
+                    if (_apiBaseUrlController.text.trim().isEmpty) return;
+                    
+                    final inputUrl = _apiBaseUrlController.text;
+                    // basic normalization
+                    var normalized = ApiConfig.normalizeBaseUrlInput(inputUrl.trim());
+                    if (normalized.endsWith('/')) {
+                      normalized = normalized.substring(0, normalized.length - 1);
+                    }
+                    if (!normalized.endsWith('/api')) {
+                      normalized = '$normalized/api';
+                    }
+                    
+                    // Keep existing token/IDs, just change the URL
+                    await ApiConfig.saveRuntimeConfig(
+                      baseUrl: normalized,
+                      officerId: ApiConfig.effectiveOfficerId,
+                      deviceKey: ApiConfig.effectiveDeviceKey,
+                      deviceToken: ApiConfig.effectiveDeviceToken,
+                    );
+
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Server URL Updated!')),
+                    );
+                    Navigator.of(context).pop(true);
+                  },
                   child: const Text(
-                    'Standalone mode requires a reachable backend URL (LAN or public). Example LAN URL: http://192.168.1.10:3000/api',
+                    'Update Server URL Only',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
+                      color: AppColors.accentBlue, 
+                      fontWeight: FontWeight.bold
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _apiBaseUrlController,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: _inputDecoration('API Base URL'),
-                  validator: (value) =>
-                      _requiredValidator(value, 'API Base URL'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _officerIdController,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: _inputDecoration('Officer ID'),
-                  validator: (value) => _requiredValidator(value, 'Officer ID'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _deviceKeyController,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: _inputDecoration('Device Key'),
-                  validator: (value) => _requiredValidator(value, 'Device Key'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _deviceTokenController,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: _inputDecoration('Device Token'),
-                  validator: (value) =>
-                      _requiredValidator(value, 'Device Token'),
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: _isSaving ? null : _useBuildDefaults,
-                  icon: const Icon(Icons.restore),
-                  label: const Text('Use Build Defaults'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
-                    side: const BorderSide(color: AppColors.border),
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
-                  onPressed: _isSaving ? null : _save,
-                  icon: _isSaving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(_isSaving ? 'Saving...' : 'Save and Continue'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    backgroundColor: AppColors.accentBlue,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
               ],
-            ),
+            ],
           ),
         ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textSecondary),
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.border),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.accentBlue),
       ),
     );
   }

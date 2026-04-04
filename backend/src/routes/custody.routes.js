@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { assignCustody, returnCustody, getActiveCustody, getUnitCustody, getFirearmCustodyHistory, getOfficerCustodyHistory } = require('../services/custody.service');
 const {
-    createCustodyAssignmentVerificationRequest
+    createCustodyAssignmentVerificationRequest,
+    markVerificationConsumed
 } = require('../services/officerVerification.service');
 const CustodyRecord = require('../models/CustodyRecord');
 const { authenticate } = require('../middleware/authentication');
@@ -116,11 +117,31 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
                f.serial_number as firearm_serial, f.manufacturer, f.model,
                o.full_name as officer_name, o.rank,
                u.unit_name,
-               cr.issued_at as assigned_date
+               cr.issued_at as assigned_date,
+               COALESCE(vr_latest.decision, 'not_requested') as verification_status,
+               COALESCE(vr_latest.decision = 'approved', false) as is_verified,
+               vr_latest.verification_id,
+               vr_latest.decision as verification_decision,
+               vr_latest.decided_at as verification_decided_at,
+               vr_latest.decided_device_key as verification_decided_device_key,
+               vr_latest.consumed_at as verification_consumed_at,
+               vr_latest.created_at as verification_requested_at
         FROM custody_records cr
         JOIN firearms f ON cr.firearm_id = f.firearm_id
         JOIN officers o ON cr.officer_id = o.officer_id
         JOIN units u ON cr.unit_id = u.unit_id
+        LEFT JOIN LATERAL (
+            SELECT vr.verification_id,
+                   vr.decision,
+                   vr.decided_at,
+                   vr.decided_device_key,
+                   vr.consumed_at,
+                   vr.created_at
+            FROM officer_verification_requests vr
+            WHERE vr.custody_id = cr.custody_id
+            ORDER BY vr.created_at DESC
+            LIMIT 1
+        ) vr_latest ON true
         ${whereClause}
         ORDER BY cr.issued_at DESC
         LIMIT $${pCount}
@@ -271,9 +292,66 @@ router.post('/:id/return', authenticate, requireCommander, logCustodyReturn, asy
         });
     }
 
-    const custodyRecord = await returnCustody(req.params.id, { ...req.body, returned_to: req.user.user_id });
+    const requestedVerificationId = String(req.body.verification_id || '').trim();
 
-    res.json({ success: true, data: custodyRecord, message: 'Custody returned successfully' });
+    const custodyRecord = await returnCustody(req.params.id, {
+        ...req.body,
+        returned_to: req.user.user_id
+    });
+
+    let verificationConsumed = null;
+    let verificationWarning = null;
+    let verificationIdToConsume = requestedVerificationId;
+
+    if (!verificationIdToConsume) {
+        const approvedVerificationResult = await query(
+            `SELECT verification_id
+             FROM officer_verification_requests
+             WHERE custody_id = $1
+               AND decision = 'approved'
+               AND consumed_at IS NULL
+             ORDER BY COALESCE(decided_at, updated_at, created_at) DESC
+             LIMIT 1`,
+            [custody.custody_id]
+        );
+
+        verificationIdToConsume =
+            approvedVerificationResult.rows[0]?.verification_id || '';
+    }
+
+    if (verificationIdToConsume) {
+        try {
+            verificationConsumed = await markVerificationConsumed({
+                verificationId: verificationIdToConsume,
+                custodyId: custody.custody_id,
+                consumedBy: req.user.user_id
+            });
+        } catch (verificationError) {
+            if (requestedVerificationId) {
+                throw verificationError;
+            }
+
+            verificationWarning =
+                'Custody return completed, but approved verification could not be marked as consumed automatically.';
+            logger.warn(
+                `Custody ${custody.custody_id} returned without verification consumption: ${verificationError.message}`
+            );
+        }
+    }
+
+    res.json({
+        success: true,
+        data: custodyRecord,
+        verification: {
+            consumed: verificationConsumed !== null,
+            verification_id:
+                verificationConsumed?.verification_id ||
+                verificationIdToConsume ||
+                null,
+            warning: verificationWarning
+        },
+        message: 'Custody returned successfully'
+    });
 }));
 
 // Get custody by unit - for Station Commanders

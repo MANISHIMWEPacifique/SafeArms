@@ -234,16 +234,20 @@ const enforceSingleActiveDeviceForOfficer = async ({ officerId, keepDeviceKey, a
          FROM officer_devices
          WHERE officer_id = $1
            AND is_revoked = false
-           AND device_key <> $2
+           AND ($2::TEXT IS NULL OR device_key <> $2)
          ORDER BY created_at DESC`,
-        [officerId, keepDeviceKey]
+        [officerId, keepDeviceKey || null]
     );
+
+    const replacementLabel = keepDeviceKey
+        ? `Superseded by active device ${keepDeviceKey}`
+        : 'Superseded by a new active device enrollment';
 
     for (const staleDevice of staleDeviceResult.rows) {
         await hardDeleteOfficerDeviceRow({
             deviceRow: staleDevice,
             actorUserId,
-            reason: `Superseded by active device ${keepDeviceKey}`
+            reason: replacementLabel
         });
     }
 
@@ -431,6 +435,12 @@ const registerOfficerDevice = async ({
         };
     }
 
+    const removedPreviousDevices = await enforceSingleActiveDeviceForOfficer({
+        officerId: officer.officer_id,
+        keepDeviceKey: null,
+        actorUserId: enrolledBy || null
+    });
+
     const deviceKey = generateDeviceKey();
 
     const result = await query(
@@ -474,12 +484,6 @@ const registerOfficerDevice = async ({
             platform: normalizedPlatform,
             app_version: normalizedAppVersion
         },
-        actorUserId: enrolledBy || null
-    });
-
-    const removedPreviousDevices = await enforceSingleActiveDeviceForOfficer({
-        officerId: officer.officer_id,
-        keepDeviceKey: deviceKey,
         actorUserId: enrolledBy || null
     });
 

@@ -384,11 +384,31 @@ const getActiveCustody = async (filters = {}) => {
         o.officer_number,
         o.rank,
         u.unit_name,
-        CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as status
+        CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as status,
+        COALESCE(vr_latest.decision, 'not_requested') as verification_status,
+        COALESCE(vr_latest.decision = 'approved', false) as is_verified,
+        vr_latest.verification_id,
+        vr_latest.decision as verification_decision,
+        vr_latest.decided_at as verification_decided_at,
+        vr_latest.decided_device_key as verification_decided_device_key,
+        vr_latest.consumed_at as verification_consumed_at,
+        vr_latest.created_at as verification_requested_at
        FROM custody_records cr
        JOIN firearms f ON cr.firearm_id = f.firearm_id
        JOIN officers o ON cr.officer_id = o.officer_id
        JOIN units u ON cr.unit_id = u.unit_id
+       LEFT JOIN LATERAL (
+        SELECT vr.verification_id,
+               vr.decision,
+               vr.decided_at,
+               vr.decided_device_key,
+               vr.consumed_at,
+               vr.created_at
+        FROM officer_verification_requests vr
+        WHERE vr.custody_id = cr.custody_id
+        ORDER BY vr.created_at DESC
+        LIMIT 1
+       ) vr_latest ON true
        ${whereClause}
        ORDER BY cr.issued_at DESC
        LIMIT ${limitParam} OFFSET ${offsetParam}`,
@@ -484,11 +504,31 @@ const getUnitCustody = async (unitId, options = {}) => {
         o.officer_number,
         o.rank,
         u.unit_name,
-        CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as status
+        CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as status,
+        COALESCE(vr_latest.decision, 'not_requested') as verification_status,
+        COALESCE(vr_latest.decision = 'approved', false) as is_verified,
+        vr_latest.verification_id,
+        vr_latest.decision as verification_decision,
+        vr_latest.decided_at as verification_decided_at,
+        vr_latest.decided_device_key as verification_decided_device_key,
+        vr_latest.consumed_at as verification_consumed_at,
+        vr_latest.created_at as verification_requested_at
        FROM custody_records cr
        JOIN firearms f ON cr.firearm_id = f.firearm_id
        JOIN officers o ON cr.officer_id = o.officer_id
        JOIN units u ON cr.unit_id = u.unit_id
+       LEFT JOIN LATERAL (
+        SELECT vr.verification_id,
+               vr.decision,
+               vr.decided_at,
+               vr.decided_device_key,
+               vr.consumed_at,
+               vr.created_at
+        FROM officer_verification_requests vr
+        WHERE vr.custody_id = cr.custody_id
+        ORDER BY vr.created_at DESC
+        LIMIT 1
+       ) vr_latest ON true
        ${whereClause}
        ORDER BY cr.issued_at DESC
        LIMIT ${limitParam} OFFSET ${offsetParam}`,

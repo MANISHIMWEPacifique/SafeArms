@@ -75,6 +75,7 @@ Build mobile release with stable API URL:
 cd officer_verification_mobile
 .\scripts\build_live_release.ps1 `
   -ApiBaseUrl "https://YOUR-RENDER-SERVICE.onrender.com/api" `
+  -DiscoveryUrl "https://raw.githubusercontent.com/<org>/<config-repo>/main/discovery/officer_mobile_discovery.json" `
   -OfficerId "OFF-001" `
   -DeviceKey "DVK-XXXX" `
   -DeviceToken "YOUR_DEVICE_TOKEN"
@@ -82,9 +83,33 @@ cd officer_verification_mobile
 
 The script now:
 - Validates API URL format.
+- Validates discovery URL format when provided.
 - Normalizes `/api` suffix.
 - Produces release artifacts in `officer_verification_mobile/release/`.
 - Generates `SHA256SUMS.txt` for integrity verification.
+
+## 5.1 Runtime Discovery Operations (Recommended)
+
+Use a stable discovery URL that is hosted separately from the backend URL (for example, a dedicated config repo JSON raw URL).
+
+Example discovery JSON:
+
+```json
+{
+  "api_base_url": "https://YOUR-RENDER-SERVICE.onrender.com/api",
+  "version": "2026.04.04.1",
+  "updated_at": "2026-04-04T20:00:00Z"
+}
+```
+
+Operational flow when backend URL changes:
+1. Update only discovery JSON with the new `api_base_url`, `version`, and `updated_at`.
+2. Officers reopen app or hit a network failure path.
+3. App refreshes discovery and switches to the updated backend URL automatically.
+
+Important:
+- Do not host discovery JSON inside the same backend service that may change URL.
+- Keep Connection Setup available as emergency manual override.
 
 ## 6. Optional Firebase App Distribution
 

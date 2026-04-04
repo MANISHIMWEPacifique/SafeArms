@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../models/officer_model.dart';
 import '../services/officer_verification_service.dart';
@@ -24,605 +23,205 @@ class _OfficerDeviceEnrollmentModalState
     extends State<OfficerDeviceEnrollmentModal> {
   final OfficerVerificationService _verificationService =
       OfficerVerificationService();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _deviceNameController = TextEditingController();
-  final TextEditingController _deviceFingerprintController =
-      TextEditingController();
-  final TextEditingController _appVersionController = TextEditingController();
-
-  String _platform = 'android';
-  bool _isLoadingDevices = false;
-  bool _isRegistering = false;
+  String? _pin;
+//  DateTime? _expiresAt; // left unused for now
+  bool _isGenerating = false;
   String? _errorMessage;
-  String? _successMessage;
-  List<Map<String, dynamic>> _devices = <Map<String, dynamic>>[];
-  Map<String, dynamic>? _latestEnrollment;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadDevices();
-  }
 
   @override
   void dispose() {
-    _deviceNameController.dispose();
-    _deviceFingerprintController.dispose();
-    _appVersionController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadDevices() async {
+  Future<void> _generatePin() async {
     setState(() {
-      _isLoadingDevices = true;
+      _isGenerating = true;
       _errorMessage = null;
+      _pin = null;
+//      _expiresAt = null;
     });
 
     try {
-      final devices = await _verificationService
-          .getOfficerDevices(widget.officer.officerId);
-      if (!mounted) return;
-
-      setState(() {
-        _devices = devices;
-        _isLoadingDevices = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingDevices = false;
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
-      });
-    }
-  }
-
-  Future<void> _registerDevice() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    setState(() {
-      _isRegistering = true;
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
-    try {
-      final result = await _verificationService.registerOfficerDevice(
-        officerId: widget.officer.officerId,
-        platform: _platform,
-        deviceName: _deviceNameController.text,
-        deviceFingerprint: _deviceFingerprintController.text,
-        appVersion: _appVersionController.text,
-        metadata: <String, dynamic>{
-          'registration_source': 'station_commander_dashboard',
-        },
+      final response = await _verificationService.generateEnrollmentPin(
+        widget.officer.officerId,
+        widget.officer.unitId,
       );
 
       if (!mounted) return;
 
       setState(() {
-        _latestEnrollment = result;
-        _isRegistering = false;
-        final reused = result['reused_existing_device'] == true;
-        final removedPreviousDevices =
-          (result['removed_previous_active_devices'] as num?)?.toInt() ?? 0;
-        final baseMessage = reused
-            ? 'Existing device was found and token has been rotated.'
-            : 'Device enrolled successfully. Share credentials with the officer.';
-        _successMessage = removedPreviousDevices > 0
-          ? '$baseMessage $removedPreviousDevices previous active device(s) were removed.'
-          : baseMessage;
+        _pin = response['pin'] as String;
+//        _expiresAt = DateTime.tryParse(response['expires_at'] as String);
+        _isGenerating = false;
       });
-
-      await _loadDevices();
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _isRegistering = false;
+        _isGenerating = false;
         _errorMessage = e.toString().replaceAll('Exception: ', '');
       });
     }
-  }
-
-  Future<void> _removeDevice(String deviceKey) async {
-    final shouldRemove = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF252A3A),
-          title: const Text(
-            'Remove Device?',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: Text(
-            'This permanently removes this enrolled phone from the officer profile.',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE85C5C),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Remove'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldRemove != true) {
-      return;
-    }
-
-    setState(() {
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
-    try {
-      await _verificationService.removeOfficerDevice(deviceKey);
-      if (!mounted) return;
-
-      setState(() {
-        _successMessage = 'Device removed successfully.';
-      });
-
-      await _loadDevices();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
-      });
-    }
-  }
-
-  Future<void> _copyValue(String label, String value) async {
-    await Clipboard.setData(ClipboardData(text: value));
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('$label copied to clipboard'),
-          backgroundColor: const Color(0xFF3CCB7F),
-        ),
-      );
-  }
-
-  String _formatDate(dynamic value) {
-    final raw = value?.toString();
-    if (raw == null || raw.isEmpty) {
-      return 'N/A';
-    }
-
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) {
-      return raw;
-    }
-
-    final local = parsed.toLocal();
-
-    String two(int n) => n.toString().padLeft(2, '0');
-
-    return '${local.year}-${two(local.month)}-${two(local.day)} ${two(local.hour)}:${two(local.minute)}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final latestDevice = _latestEnrollment?['device'] is Map
-        ? Map<String, dynamic>.from(_latestEnrollment!['device'] as Map)
-        : <String, dynamic>{};
-    final latestDeviceKey = latestDevice['device_key']?.toString() ?? '';
-    final latestToken = _latestEnrollment?['device_token']?.toString() ?? '';
-
     return BaseModalWidget(
-      width: 860,
-      headerTitle: 'Officer Device Enrollment',
-      headerSubtitle:
-          '${widget.officer.fullName} (${widget.officer.officerNumber})',
-      headerIcon: Icons.phone_android,
-      headerIconColor: const Color(0xFF1E88E5),
+      headerTitle: 'Enroll Officer Device',
+      headerIcon: Icons.phonelink_setup,
+      width: 500,
+      body: _buildContent(),
       onClose: widget.onClose,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    );
+  }
+
+  Widget _buildContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildOfficerHeader(),
+        const SizedBox(height: 24),
+        if (_errorMessage != null)
           Container(
             padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E88E5).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF1E88E5)),
+              color: Colors.red.withValues(alpha: 0.1),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(4),
             ),
-            child: const Text(
-              'Register a real phone for this officer. Use a real device name and fingerprint (Android ID, managed asset ID, or approved device identifier).',
-              style: TextStyle(color: Colors.white, fontSize: 13),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (_errorMessage != null) ...[
-            _buildStatusBanner(_errorMessage!, const Color(0xFFE85C5C)),
-            const SizedBox(height: 12),
-          ],
-          if (_successMessage != null) ...[
-            _buildStatusBanner(_successMessage!, const Color(0xFF3CCB7F)),
-            const SizedBox(height: 12),
-          ],
-          Form(
-            key: _formKey,
-            child: Column(
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _platform,
-                        decoration: _inputDecoration('Platform'),
-                        items: const [
-                          DropdownMenuItem(
-                              value: 'android', child: Text('Android')),
-                          DropdownMenuItem(value: 'ios', child: Text('iOS')),
-                        ],
-                        dropdownColor: const Color(0xFF252A3A),
-                        style: const TextStyle(color: Colors.white),
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setState(() => _platform = value);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _deviceNameController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration('Device Name'),
-                        validator: (value) {
-                          final normalized = value?.trim() ?? '';
-                          if (normalized.isEmpty) {
-                            return 'Device name is required';
-                          }
-                          if (normalized.length < 3) {
-                            return 'Use at least 3 characters';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _deviceFingerprintController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration(
-                          'Device Fingerprint',
-                          hint: 'Required: real device identifier',
-                        ),
-                        validator: (value) {
-                          final normalized = value?.trim() ?? '';
-                          if (normalized.isEmpty) {
-                            return 'Device fingerprint is required';
-                          }
-                          if (normalized.length < 6) {
-                            return 'Use at least 6 characters';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _appVersionController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration(
-                          'App Version',
-                          hint: 'Optional (for example, 1.0.0)',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton.icon(
-                    onPressed: _isRegistering ? null : _registerDevice,
-                    icon: _isRegistering
-                        ? const SizedBox(
-                            height: 16,
-                            width: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.link),
-                    label: Text(
-                      _isRegistering ? 'Registering...' : 'Register Device',
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E88E5),
-                      foregroundColor: Colors.white,
-                    ),
+                const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
                   ),
                 ),
               ],
             ),
           ),
-          if (latestDeviceKey.isNotEmpty || latestToken.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            _buildLatestCredentialsCard(
-              deviceKey: latestDeviceKey,
-              token: latestToken,
+        
+        Text(
+          'Generate a secure 6-digit PIN to enroll the officer\'s mobile app.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 14,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+
+        if (_pin != null) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2D324A),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.3)),
             ),
-          ],
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              const Text(
-                'Registered Devices',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+            child: Column(
+              children: [
+                const Text(
+                  'ENROLLMENT PIN',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _pin!,
+                  style: const TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 8,
+                    color: Color(0xFF00E5FF),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Enter this PIN in the SafeArms Mobile App.\nExpires in 15 minutes.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        if (_pin == null)
+          Center(
+            child: ElevatedButton(
+              onPressed: _isGenerating ? null : _generatePin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00E5FF),
+                foregroundColor: const Color(0xFF1E2336),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: _isLoadingDevices ? null : _loadDevices,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Refresh'),
-              ),
-            ],
-          ),
-          if (_isLoadingDevices)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
-              ),
-            )
-          else if (_devices.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1F2E),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF37404F)),
-              ),
-              child: Text(
-                'No devices enrolled yet for this officer.',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.75)),
-              ),
-            )
-          else
-            Column(
-              children: _devices
-                  .map((device) => _buildDeviceTile(device))
-                  .toList(growable: false),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusBanner(String message, Color color) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color),
-      ),
-      child: Text(
-        message,
-        style: TextStyle(color: color, fontSize: 13),
-      ),
-    );
-  }
-
-  Widget _buildLatestCredentialsCard({
-    required String deviceKey,
-    required String token,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF3CCB7F).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF3CCB7F)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Latest Device Credentials',
-            style: TextStyle(
-              color: Color(0xFF3CCB7F),
-              fontWeight: FontWeight.w700,
+              child: _isGenerating
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E2336)),
+                      ),
+                    )
+                  : const Text('GENERATE NEW PIN'),
             ),
           ),
-          const SizedBox(height: 8),
-          _buildCredentialRow('Device Key', deviceKey),
-          const SizedBox(height: 8),
-          _buildCredentialRow('Device Token', token),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCredentialRow(String label, String value) {
-    final hasValue = value.trim().isNotEmpty;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 110,
-          child: Text(
-            label,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
-          ),
-        ),
-        Expanded(
-          child: SelectableText(
-            hasValue ? value : 'N/A',
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-        IconButton(
-          onPressed: hasValue ? () => _copyValue(label, value) : null,
-          icon: const Icon(Icons.copy, size: 16),
-          tooltip: 'Copy $label',
-          color: const Color(0xFF3CCB7F),
-        ),
       ],
     );
   }
 
-  Widget _buildDeviceTile(Map<String, dynamic> device) {
-    final deviceKey = device['device_key']?.toString() ?? 'N/A';
-    final deviceName = device['device_name']?.toString().trim();
-    final platform = device['platform']?.toString().toUpperCase() ?? 'UNKNOWN';
-    final appVersion = device['app_version']?.toString().trim();
-    final enrolledAt = _formatDate(device['enrolled_at']);
-    final lastSeen = _formatDate(device['last_seen_at']);
-
+  Widget _buildOfficerHeader() {
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1F2E),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF37404F)),
+        color: const Color(0xFF2D324A),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(4),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  (deviceName != null && deviceName.isNotEmpty)
-                      ? deviceName
-                      : 'Unnamed Device',
+          const Icon(Icons.person, color: Color(0xFF00E5FF), size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.officer.fullName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Active',
+                Text(
+                  widget.officer.officerNumber,
                   style: TextStyle(
-                    color: Color(0xFF3CCB7F),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildDetailLine('Device Key', deviceKey),
-          _buildDetailLine(
-            'Fingerprint',
-            (device['device_fingerprint']?.toString().trim().isNotEmpty ??
-                    false)
-                ? device['device_fingerprint'].toString()
-                : 'N/A',
-          ),
-          _buildDetailLine('Platform', platform),
-          _buildDetailLine(
-              'App Version',
-              (appVersion != null && appVersion.isNotEmpty)
-                  ? appVersion
-                  : 'N/A'),
-          _buildDetailLine('Enrolled', enrolledAt),
-          _buildDetailLine('Last Seen', lastSeen),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => _removeDevice(deviceKey),
-              icon: const Icon(Icons.delete_outline, size: 16),
-              label: const Text('Remove'),
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFE85C5C),
-              ),
+              ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDetailLine(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 95,
-            child: Text(
-              '$label:',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String label, {String? hint}) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
-      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
-      filled: true,
-      fillColor: const Color(0xFF1A1F2E),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFF37404F)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFF37404F)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFF1E88E5)),
       ),
     );
   }

@@ -75,6 +75,14 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen> {
   }
 
   Future<void> _exchangePin() async {
+    if (ApiConfig.hasDeviceCredentials) {
+      setState(() {
+        _errorMessage =
+            'This phone is already enrolled. Remove the active enrollment from the web dashboard before enrolling again.';
+      });
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -123,6 +131,44 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen> {
     }
   }
 
+  Future<void> _clearLocalEnrollmentCredentials() async {
+    final shouldClear = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Clear local enrollment credentials?'),
+            content: const Text(
+              'This only clears saved credentials on this phone. You must remove the active enrollment from the web dashboard before enrolling again.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Clear'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!shouldClear) return;
+
+    await ApiConfig.clearDeviceCredentials();
+
+    if (!mounted) return;
+
+    setState(() {
+      _pinController.clear();
+      _errorMessage = null;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Local enrollment credentials cleared.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,6 +205,33 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
+
+              if (ApiConfig.hasDeviceCredentials) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.35),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'This phone is already enrolled. Re-enrollment is blocked until the current device is removed from the web dashboard.',
+                          style: TextStyle(color: Colors.orange),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               if (_errorMessage != null) ...[
                 Container(
@@ -231,7 +304,9 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen> {
               const SizedBox(height: 32),
 
               ElevatedButton(
-                onPressed: _isExchanging ? null : _exchangePin,
+                onPressed: _isExchanging || ApiConfig.hasDeviceCredentials
+                    ? null
+                    : _exchangePin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentBlue,
                   foregroundColor: AppColors.background,
@@ -261,6 +336,15 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen> {
 
               if (ApiConfig.hasDeviceCredentials) ...[
                 const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: _clearLocalEnrollmentCredentials,
+                  icon: const Icon(Icons.clear_all, size: 16),
+                  label: const Text('Clear Local Enrollment Credentials'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 TextButton(
                   onPressed: () async {
                     if (_apiBaseUrlController.text.trim().isEmpty) return;

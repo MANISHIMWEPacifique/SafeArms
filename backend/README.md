@@ -53,9 +53,11 @@ npm run dev
 npm start
 ```
 
-## Stable Deployment (Render + Supabase)
+## Optional Hosted Deployment (Render + Supabase)
 
-For a fixed public API URL that does not change between local restarts:
+Current development can run backend locally while PostgreSQL is hosted on Supabase.
+
+If you need a fixed public API URL that does not change between local restarts:
 
 1. Deploy backend to Render using `render.yaml` (repo root) or manual settings:
 	- Root Directory: `backend`
@@ -67,7 +69,7 @@ For a fixed public API URL that does not change between local restarts:
 	- `DATABASE_URL=<supabase-connection-string>`
 	- `JWT_SECRET=<strong-secret>`
 	- `CORS_ORIGIN=<frontend-origin>`
-	- `API_BASE_URL=<render-or-custom-domain>`
+	- `API_BASE_URL=<hosted-backend-domain>`
 3. Verify deployment with smoke check:
 
 ```bash
@@ -88,11 +90,21 @@ See `../DEPLOYMENT_RENDER_SUPABASE.md` for the full rollout guide.
 
 ## API Structure
 
-- `POST /api/auth/login` - Login
-- `POST /api/auth/verify-otp` - Verify email OTP
-- `GET /api/firearms` - List firearms
-- `POST /api/custody/assign` - Assign custody
-- `GET /api/anomalies` - List anomalies
+- `/api/auth` - Authentication and OTP routes
+- `/api/users` - User management
+- `/api/units` - Unit management
+- `/api/officers` - Officer registry
+- `/api/firearms` - Firearm registry
+- `/api/custody` - Custody assignment and return
+- `/api/anomalies` - Anomaly monitoring
+- `/api/approvals` - Workflow approvals
+- `/api/dashboard` - Dashboard data
+- `/api/ballistic-profiles` - Ballistic profiles
+- `/api/reports` - Reporting and exports
+- `/api/settings` - System settings
+- `/api/officer-verification` - Officer verification workflows
+- `/api/enrollment` - Device enrollment PIN exchange
+- `/health` - Service health endpoint
 
 ## ML Anomaly Detection
 

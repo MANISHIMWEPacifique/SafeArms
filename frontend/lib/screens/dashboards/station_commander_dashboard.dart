@@ -652,12 +652,13 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
     // Add custody events
     for (var event in custodyEvents) {
+      final eventMap = event is Map<String, dynamic>
+          ? event
+          : Map<String, dynamic>.from(event as Map);
       displayList.add({
         'type': 'custody',
-        'data': event is Map<String, dynamic>
-            ? event
-            : Map<String, dynamic>.from(event as Map),
-        'timestamp': event['issued_at'] ?? event['checked_out_at'] ?? '',
+        'data': eventMap,
+        'timestamp': eventMap['returned_at'] ?? eventMap['issued_at'] ?? '',
       });
     }
 
@@ -675,8 +676,13 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
     // Sort by timestamp descending (most recent first)
     displayList.sort((a, b) {
-      final aTime = a['timestamp']?.toString() ?? '';
-      final bTime = b['timestamp']?.toString() ?? '';
+      final aTime = _parseTimestamp(a['timestamp']);
+      final bTime = _parseTimestamp(b['timestamp']);
+
+      if (aTime == null && bTime == null) return 0;
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+
       return bTime.compareTo(aTime);
     });
 
@@ -843,14 +849,40 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
       ),
       trailing: Text(
         _formatTimeAgo(isAssigned
-            ? (activity['issued_at'] ?? activity['checked_out_at'])
+            ? activity['issued_at']
             : (activity['returned_at'] ?? activity['issued_at'])),
         style: const TextStyle(color: Color(0xFF78909C), fontSize: 11),
       ),
     );
   }
 
-  String _formatTimeAgo(String? timestamp) => DateFormatter.timeAgo(timestamp);
+  DateTime? _parseTimestamp(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value.isUtc ? value.toLocal() : value;
+
+    final dateStr = value.toString().trim();
+    if (dateStr.isEmpty) return null;
+
+    final parsed = DateTime.tryParse(dateStr);
+    if (parsed == null) return null;
+
+    return parsed.isUtc ? parsed.toLocal() : parsed;
+  }
+
+  String _formatTimeAgo(dynamic timestamp) {
+    final parsed = _parseTimestamp(timestamp);
+    if (parsed == null) return 'N/A';
+
+    final now = DateTime.now();
+    final diff = now.difference(parsed);
+
+    // Guard against server/client clock drift causing future values to show "Just now".
+    if (diff.inSeconds < -60) {
+      return DateFormatter.formatDateTime(parsed.toIso8601String());
+    }
+
+    return DateFormatter.timeAgo(parsed.toIso8601String());
+  }
 }
 
 class _NavItem {

@@ -12,6 +12,7 @@ import '../../widgets/station_edit_officer_modal.dart';
 import '../../widgets/officer_detail_modal.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
 import '../../widgets/officer_device_enrollment_modal.dart';
+import '../../services/officer_verification_service.dart';
 
 class StationOfficersScreen extends StatefulWidget {
   const StationOfficersScreen({super.key});
@@ -22,11 +23,14 @@ class StationOfficersScreen extends StatefulWidget {
 
 class _StationOfficersScreenState extends State<StationOfficersScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final OfficerVerificationService _verificationService =
+      OfficerVerificationService();
   bool _showAddModal = false;
   OfficerModel? _selectedOfficerForDetail;
   OfficerModel? _selectedOfficerForEdit;
   OfficerModel? _selectedOfficerForDeviceEnrollment;
   final Set<String> _selectedOfficers = {};
+  Map<String, bool> _officerHasActiveDevice = {};
 
   @override
   void initState() {
@@ -44,7 +48,66 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     if (unitId != null) {
       await officerProvider.loadUnitOfficers(unitId);
       await officerProvider.loadStats(unitId: unitId);
+      await _loadOfficerDeviceStates(officerProvider.officers);
+    } else if (mounted) {
+      setState(() {
+        _officerHasActiveDevice = {};
+      });
     }
+  }
+
+  Future<void> _loadOfficerDeviceStates(List<OfficerModel> officers) async {
+    final statusMap = <String, bool>{};
+
+    await Future.wait(
+      officers.map((officer) async {
+        try {
+          final devices = await _verificationService.getOfficerDevices(
+            officer.officerId,
+          );
+          statusMap[officer.officerId] = devices.isNotEmpty;
+        } catch (_) {
+          statusMap[officer.officerId] = false;
+        }
+      }),
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _officerHasActiveDevice = statusMap;
+    });
+  }
+
+  void _closeEnrollmentModalAndRefresh() {
+    setState(() => _selectedOfficerForDeviceEnrollment = null);
+    _loadUnitOfficers();
+  }
+
+  void _handleEnrollmentStateChanged() {
+    _loadUnitOfficers();
+  }
+
+  Widget _buildDeviceStatusChip(OfficerModel officer) {
+    final hasDevice = _officerHasActiveDevice[officer.officerId] == true;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: hasDevice
+            ? const Color(0xFF00E5FF).withValues(alpha: 0.15)
+            : const Color(0xFF78909C).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        hasDevice ? 'Enrolled' : 'Not Enrolled',
+        style: TextStyle(
+          color: hasDevice ? const Color(0xFF00E5FF) : const Color(0xFFB0BEC5),
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 
   @override
@@ -59,6 +122,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     final authProvider = context.watch<AuthProvider>();
     final unitName =
         authProvider.currentUser?['unit_name']?.toString() ?? 'Your Unit';
+    final isMobile = MediaQuery.of(context).size.width < 900;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
@@ -66,23 +130,23 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
         children: [
           Column(
             children: [
-              _buildTopNavBar(context, officerProvider, unitName),
+              _buildTopNavBar(context, officerProvider, unitName, isMobile),
               Expanded(
                 child: SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.all(32.0),
+                    padding: EdgeInsets.all(isMobile ? 16.0 : 32.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildStatsRow(officerProvider),
+                        _buildStatsRow(officerProvider, isMobile),
                         const SizedBox(height: 24),
-                        _buildFilterBar(officerProvider),
+                        _buildFilterBar(officerProvider, isMobile),
                         const SizedBox(height: 24),
                         if (_selectedOfficers.isNotEmpty)
-                          _buildBulkActionsBar(),
+                          _buildBulkActionsBar(isMobile),
                         if (_selectedOfficers.isNotEmpty)
                           const SizedBox(height: 16),
-                        _buildOfficersTable(officerProvider),
+                        _buildOfficersTable(officerProvider, isMobile),
                       ],
                     ),
                   ),
@@ -123,16 +187,112 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
           if (_selectedOfficerForDeviceEnrollment != null)
             OfficerDeviceEnrollmentModal(
               officer: _selectedOfficerForDeviceEnrollment!,
-              onClose: () =>
-                  setState(() => _selectedOfficerForDeviceEnrollment = null),
+              onClose: _closeEnrollmentModalAndRefresh,
+              onDeviceStateChanged: _handleEnrollmentStateChanged,
             ),
         ],
       ),
     );
   }
 
-  Widget _buildTopNavBar(
-      BuildContext context, OfficerProvider provider, String unitName) {
+  Widget _buildTopNavBar(BuildContext context, OfficerProvider provider,
+      String unitName, bool isMobile) {
+    if (isMobile) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF252A3A),
+          border:
+              Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'Officers Registry',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                    border:
+                        Border.all(color: const Color(0xFF1E88E5), width: 1),
+                  ),
+                  child: Text(
+                    unitName,
+                    style: const TextStyle(
+                      color: Color(0xFF1E88E5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _searchController,
+              onChanged: (value) => provider.setSearchQuery(value),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Search officers...',
+                hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
+                prefixIcon: Icon(Icons.search,
+                    color: Colors.white.withValues(alpha: 0.5), size: 20),
+                filled: true,
+                fillColor: const Color(0xFF1A1F2E),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF37404F), width: 1),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF37404F), width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF1E88E5), width: 1),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => setState(() => _showAddModal = true),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Officer',
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E88E5),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       height: 70,
       decoration: const BoxDecoration(
@@ -222,7 +382,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     );
   }
 
-  Widget _buildStatsRow(OfficerProvider provider) {
+  Widget _buildStatsRow(OfficerProvider provider, bool isMobile) {
     final stats = provider.stats;
     final total = (stats['total'] ?? provider.officers.length).toString();
     final active =
@@ -231,6 +391,30 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     final inactive = (stats['inactive'] ??
             provider.officers.where((o) => !o.isActive).length)
         .toString();
+
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              _buildStatCard('Total Officers', total, Icons.people,
+                  const Color(0xFF1E88E5)),
+              const SizedBox(width: 16),
+              _buildStatCard('Active', active, Icons.check_circle,
+                  const Color(0xFF3CCB7F)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildStatCard('Inactive', inactive, Icons.pause_circle,
+                  const Color(0xFFFFC857)),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ],
+      );
+    }
 
     return Row(
       children: [
@@ -293,7 +477,57 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     );
   }
 
-  Widget _buildFilterBar(OfficerProvider provider) {
+  Widget _buildFilterBar(OfficerProvider provider, bool isMobile) {
+    if (isMobile) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF252A3A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF37404F)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Filters:',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildFilterChip(
+                  'All',
+                  provider.activeFilter == 'all',
+                  () => provider.setActiveFilter('all'),
+                ),
+                _buildFilterChip(
+                  'Active',
+                  provider.activeFilter == 'active',
+                  () => provider.setActiveFilter('active'),
+                ),
+                _buildFilterChip(
+                  'Inactive',
+                  provider.activeFilter == 'inactive',
+                  () => provider.setActiveFilter('inactive'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: _buildRankTextField(provider),
+            ),
+          ],
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -424,37 +658,44 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     }
   }
 
-  Widget _buildBulkActionsBar() {
+  Widget _buildBulkActionsBar(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(
         color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF1E88E5)),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             '${_selectedOfficers.length} selected',
-            style: const TextStyle(
-              color: Color(0xFF1E88E5),
-              fontSize: 14,
+            style: TextStyle(
+              color: const Color(0xFF1E88E5),
+              fontSize: isMobile ? 13 : 14,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const Spacer(),
+          if (!isMobile) const Spacer(),
           TextButton.icon(
             onPressed: () => setState(() => _selectedOfficers.clear()),
-            icon: const Icon(Icons.clear, size: 16),
-            label: const Text('Clear Selection'),
-            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            icon: Icon(Icons.clear, size: isMobile ? 14 : 16),
+            label:
+                Text('Clear', style: TextStyle(fontSize: isMobile ? 13 : 14)),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              padding: isMobile ? EdgeInsets.zero : null,
+              minimumSize: isMobile ? Size.zero : null,
+              tapTargetSize: isMobile ? MaterialTapTargetSize.shrinkWrap : null,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildOfficersTable(OfficerProvider provider) {
+  Widget _buildOfficersTable(OfficerProvider provider, bool isMobile) {
     if (provider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
@@ -513,6 +754,20 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
       );
     }
 
+    if (isMobile) {
+      return ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: officers.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final officer = officers[index];
+          final isSelected = _selectedOfficers.contains(officer.officerId);
+          return _buildMobileOfficerCard(officer, isSelected);
+        },
+      );
+    }
+
     return SizedBox(
       width: double.infinity,
       child: Container(
@@ -523,36 +778,225 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: DataTable(
-            columnSpacing: 32,
-            headingRowColor: WidgetStateProperty.all(const Color(0xFF1A1F2E)),
-            dataRowColor: WidgetStateProperty.all(const Color(0xFF252A3A)),
-            columns: const [
-              DataColumn(
-                  label: Text('Officer',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w600))),
-              DataColumn(
-                  label: Text('Rank',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w600))),
-              DataColumn(
-                  label: Text('Phone',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w600))),
-              DataColumn(
-                  label: Text('Status',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w600))),
-              DataColumn(
-                  label: Text('Actions',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w600))),
-            ],
-            rows: officers.map((officer) => _buildOfficerRow(officer)).toList(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: DataTable(
+                    columnSpacing: 32,
+                    headingRowColor:
+                        WidgetStateProperty.all(const Color(0xFF1A1F2E)),
+                    dataRowColor:
+                        WidgetStateProperty.all(const Color(0xFF252A3A)),
+                    columns: const [
+                      DataColumn(
+                          label: Text('Officer',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600))),
+                      DataColumn(
+                          label: Text('Rank',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600))),
+                      DataColumn(
+                          label: Text('Phone',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600))),
+                      DataColumn(
+                          label: Text('Status',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600))),
+                      DataColumn(
+                          label: Text('Device',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600))),
+                      DataColumn(
+                          label: Text('Actions',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600))),
+                    ],
+                    rows: officers
+                        .map((officer) => _buildOfficerRow(officer))
+                        .toList(),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMobileOfficerCard(OfficerModel officer, bool isSelected) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isSelected
+            ? const Color(0xFF1E88E5).withValues(alpha: 0.1)
+            : const Color(0xFF252A3A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? const Color(0xFF1E88E5) : const Color(0xFF37404F),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            onTap: () {
+              setState(() {
+                if (isSelected) {
+                  _selectedOfficers.remove(officer.officerId);
+                } else {
+                  _selectedOfficers.add(officer.officerId);
+                }
+              });
+            },
+            leading: CircleAvatar(
+              radius: 16,
+              backgroundColor: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+              child: Text(
+                officer.fullName.isNotEmpty
+                    ? officer.fullName[0].toUpperCase()
+                    : '?',
+                style: const TextStyle(
+                  color: Color(0xFF1E88E5),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            title: Text(
+              officer.fullName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            subtitle: Text(
+              officer.officerNumber,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 12,
+              ),
+            ),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: officer.isActive
+                    ? const Color(0xFF3CCB7F).withValues(alpha: 0.15)
+                    : const Color(0xFFE85C5C).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                officer.isActive ? 'Active' : 'Inactive',
+                style: TextStyle(
+                  color: officer.isActive
+                      ? const Color(0xFF3CCB7F)
+                      : const Color(0xFFE85C5C),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFF37404F)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                _buildInfoItem('Rank', officer.rank),
+                _buildInfoItem('Phone', officer.phoneNumber ?? 'N/A'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Device',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    _buildDeviceStatusChip(officer),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFF37404F)),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: () =>
+                      setState(() => _selectedOfficerForDetail = officer),
+                  icon: const Icon(Icons.visibility, size: 20),
+                  color: const Color(0xFF1E88E5),
+                  tooltip: 'View Details',
+                ),
+                IconButton(
+                  onPressed: () =>
+                      setState(() => _selectedOfficerForEdit = officer),
+                  icon: const Icon(Icons.edit, size: 20),
+                  color: const Color(0xFFFFC857),
+                  tooltip: 'Edit',
+                ),
+                IconButton(
+                  onPressed: officer.isActive
+                      ? () => setState(
+                          () => _selectedOfficerForDeviceEnrollment = officer)
+                      : null,
+                  icon: const Icon(Icons.phone_android, size: 20),
+                  color: const Color(0xFF3CCB7F),
+                  tooltip: officer.isActive
+                      ? 'Manage Mobile Device'
+                      : 'Activate officer to manage device',
+                ),
+                IconButton(
+                  onPressed: () => _confirmDeleteOfficer(officer),
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  color: const Color(0xFFE85C5C),
+                  tooltip: 'Deactivate',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+          ),
+        ),
+      ],
     );
   }
 
@@ -644,6 +1088,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
             ),
           ),
         ),
+        DataCell(_buildDeviceStatusChip(officer)),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,

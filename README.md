@@ -66,7 +66,7 @@ GRANT ALL PRIVILEGES ON DATABASE safearms TO safearms_user;
 
 # Import schema and seed data
 psql -U safearms_user -d safearms -f database/schema.sql
-psql -U safearms_user -d safearms -f database/seed_data.sql
+psql -U safearms_user -d safearms -f database/seed_data_new.sql
 ```
 
 ### 2. Backend Setup
@@ -86,9 +86,11 @@ flutter pub get
 flutter run -d chrome
 ```
 
-## Stable API Deployment
+## Optional Hosted API Deployment
 
-For a fixed public API URL using Render (backend) + Supabase (database), follow:
+Current setup can run with backend on localhost and PostgreSQL hosted on Supabase.
+
+If you want a fixed public backend URL, follow the optional Render + Supabase guide:
 
 - `DEPLOYMENT_RENDER_SUPABASE.md`
 
@@ -189,7 +191,7 @@ safearms/
 
 ## Environment Variables
 
-Create `.env` file in root and backend directory:
+Create `.env` file in backend directory:
 
 ```env
 # Database
@@ -253,10 +255,14 @@ ML_CRITICAL_THRESHOLD=0.85
 
 ## Testing
 
-### Backend Tests
+### Backend Validation
+
+No automated backend test suite is currently configured in package.json.
+
+Use smoke check for endpoint-level validation:
 ```bash
 cd backend
-npm test
+npm run deploy:smoke -- --base-url http://localhost:3000
 ```
 
 ### API Testing

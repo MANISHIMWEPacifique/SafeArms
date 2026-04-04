@@ -170,7 +170,8 @@ CREATE TABLE custody_records (
     custody_type VARCHAR(50) NOT NULL CHECK (custody_type IN ('permanent', 'temporary', 'personal_long_term')),
     issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     issued_by VARCHAR(20) NOT NULL REFERENCES users(user_id),
-    expected_return_date DATE,
+    expected_return_date TIMESTAMP,
+    duration_type VARCHAR(20) CHECK (duration_type IN ('6_hours', '8_hours', '12_hours', '1_day')),
     returned_at TIMESTAMP,
     returned_to VARCHAR(20) REFERENCES users(user_id),
     return_condition VARCHAR(50) CHECK (return_condition IN ('good', 'fair', 'needs_maintenance', 'damaged')),
@@ -437,6 +438,9 @@ CREATE INDEX idx_custody_unit ON custody_records(unit_id);
 CREATE INDEX idx_custody_issued_at ON custody_records(issued_at);
 CREATE INDEX idx_custody_returned_at ON custody_records(returned_at);
 CREATE INDEX idx_custody_firearm_time ON custody_records(firearm_id, issued_at DESC);
+CREATE INDEX idx_custody_duration_type ON custody_records(duration_type) WHERE duration_type IS NOT NULL;
+CREATE INDEX idx_custody_overdue_check ON custody_records(expected_return_date, returned_at)
+WHERE returned_at IS NULL AND expected_return_date IS NOT NULL;
 
 -- Anomalies
 CREATE INDEX idx_anomalies_firearm ON anomalies(firearm_id);

@@ -350,7 +350,7 @@ const registerOfficerDevice = async ({
         throw new AppError('device_name is required and must be at least 3 characters', 400);
     }
 
-    const normalizedFingerprint = normalizeRequiredText(deviceFingerprint);
+    const normalizedFingerprint = normalizeRequiredText(deviceFingerprint).toLowerCase();
     if (normalizedFingerprint.length < 6) {
         throw new AppError('device_fingerprint is required and must be at least 6 characters', 400);
     }
@@ -363,114 +363,93 @@ const registerOfficerDevice = async ({
     const normalizedPlatform = normalizePlatform(platform);
     const safeMetadata = isObject(metadata) ? metadata : {};
 
-    const existingDeviceResult = await query(
-        `SELECT *
+    const activeOfficerDeviceResult = await query(
+        `SELECT device_key
          FROM officer_devices
          WHERE officer_id = $1
-           AND device_fingerprint = $2
            AND is_revoked = false
-         ORDER BY created_at DESC
+         ORDER BY COALESCE(last_seen_at, enrolled_at, created_at) DESC, created_at DESC
          LIMIT 1`,
-        [officerId, normalizedFingerprint]
+        [officerId]
     );
+
+    if (activeOfficerDeviceResult.rows.length > 0) {
+        throw new AppError(
+            'Officer already has an active enrolled device. Remove it before enrolling a new one.',
+            409
+        );
+    }
+
+    const activeFingerprintResult = await query(
+        `SELECT device_key, officer_id
+         FROM officer_devices
+         WHERE device_fingerprint = $1
+           AND is_revoked = false
+         LIMIT 1`,
+        [normalizedFingerprint]
+    );
+
+    if (activeFingerprintResult.rows.length > 0) {
+        throw new AppError(
+            'This mobile device is already enrolled to another officer. Remove that enrollment first.',
+            409
+        );
+    }
 
     const plainToken = generateDeviceToken();
     const tokenHash = hashToken(plainToken);
 
-    if (existingDeviceResult.rows.length > 0) {
-        const existing = existingDeviceResult.rows[0];
-        const effectiveAppVersion = normalizedAppVersion || existing.app_version;
-        const updateResult = await query(
-            `UPDATE officer_devices
-             SET platform = $1,
-                 device_name = $2,
-                 app_version = $3,
-                 token_hash = $4,
-                 metadata = $5::jsonb,
-                 updated_at = CURRENT_TIMESTAMP,
-                 last_seen_at = CURRENT_TIMESTAMP
-             WHERE device_key = $6
-             RETURNING *`,
-            [
-                normalizedPlatform,
-                normalizedDeviceName,
-                effectiveAppVersion,
-                tokenHash,
-                JSON.stringify(safeMetadata),
-                existing.device_key
-            ]
-        );
-
-        await recordVerificationEvent({
-            deviceKey: existing.device_key,
-            officerId: officer.officer_id,
-            unitId: officer.unit_id,
-            eventType: 'DEVICE_REGISTERED',
-            eventStatus: 'active',
-            reason: 'Existing device credentials rotated',
-            metadata: {
-                reused_existing_device: true,
-                platform: normalizedPlatform,
-                app_version: effectiveAppVersion
-            },
-            actorUserId: enrolledBy || null
-        });
-
-        const removedPreviousDevices = await enforceSingleActiveDeviceForOfficer({
-            officerId: officer.officer_id,
-            keepDeviceKey: existing.device_key,
-            actorUserId: enrolledBy || null
-        });
-
-        return {
-            device: sanitizeDevice(updateResult.rows[0]),
-            device_token: plainToken,
-            officer: {
-                officer_id: officer.officer_id,
-                full_name: officer.full_name,
-                unit_id: officer.unit_id
-            },
-            reused_existing_device: true,
-            removed_previous_active_devices: removedPreviousDevices
-        };
-    }
-
-    const removedPreviousDevices = await enforceSingleActiveDeviceForOfficer({
-        officerId: officer.officer_id,
-        keepDeviceKey: null,
-        actorUserId: enrolledBy || null
-    });
-
     const deviceKey = generateDeviceKey();
 
-    const result = await query(
-        `INSERT INTO officer_devices (
-            device_key,
-            officer_id,
-            unit_id,
-            platform,
-            device_name,
-            device_fingerprint,
-            app_version,
-            token_hash,
-            metadata,
-            enrolled_by
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
-         RETURNING *`,
-        [
-            deviceKey,
-            officer.officer_id,
-            officer.unit_id,
-            normalizedPlatform,
-            normalizedDeviceName,
-            normalizedFingerprint,
-            normalizedAppVersion,
-            tokenHash,
-            JSON.stringify(safeMetadata),
-            enrolledBy || null
-        ]
-    );
+    let result;
+    try {
+        result = await query(
+            `INSERT INTO officer_devices (
+                device_key,
+                officer_id,
+                unit_id,
+                platform,
+                device_name,
+                device_fingerprint,
+                app_version,
+                token_hash,
+                metadata,
+                enrolled_by
+             )
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
+             RETURNING *`,
+            [
+                deviceKey,
+                officer.officer_id,
+                officer.unit_id,
+                normalizedPlatform,
+                normalizedDeviceName,
+                normalizedFingerprint,
+                normalizedAppVersion,
+                tokenHash,
+                JSON.stringify(safeMetadata),
+                enrolledBy || null
+            ]
+        );
+    } catch (error) {
+        if (error.code === '23505') {
+            if (String(error.constraint || '').includes('idx_officer_devices_one_active_per_officer')) {
+                throw new AppError(
+                    'Officer already has an active enrolled device. Remove it before enrolling a new one.',
+                    409
+                );
+            }
+
+            if (String(error.constraint || '').includes('idx_officer_devices_one_active_fingerprint')) {
+                throw new AppError(
+                    'This mobile device is already enrolled to another officer. Remove that enrollment first.',
+                    409
+                );
+            }
+        }
+
+        throw error;
+    }
 
     await recordVerificationEvent({
         deviceKey,
@@ -496,7 +475,7 @@ const registerOfficerDevice = async ({
             unit_id: officer.unit_id
         },
         reused_existing_device: false,
-        removed_previous_active_devices: removedPreviousDevices
+        removed_previous_active_devices: 0
     };
 };
 
@@ -739,17 +718,25 @@ const createCustodyAssignmentVerificationRequest = async ({
     }
 
     const activeDeviceResult = await query(
-        `SELECT COUNT(*)::INT AS total
+        `SELECT device_key
          FROM officer_devices
          WHERE officer_id = $1
-           AND is_revoked = false`,
+           AND is_revoked = false
+         ORDER BY COALESCE(last_seen_at, enrolled_at, created_at) DESC, created_at DESC`,
         [custody.officer_id]
     );
 
-    const activeDevices = activeDeviceResult.rows[0]?.total || 0;
-    if (activeDevices < 1) {
+    const activeDevices = activeDeviceResult.rows;
+    if (activeDevices.length < 1) {
         throw new AppError(
             'Officer has no active mobile device enrollment for verification',
+            409
+        );
+    }
+
+    if (activeDevices.length > 1) {
+        throw new AppError(
+            'Officer has multiple active enrolled devices. Remove extra devices before assigning custody verification.',
             409
         );
     }
@@ -760,17 +747,7 @@ const createCustodyAssignmentVerificationRequest = async ({
     });
 
     if (!scopedDeviceKey) {
-        const defaultDeviceResult = await query(
-            `SELECT device_key
-             FROM officer_devices
-             WHERE officer_id = $1
-               AND is_revoked = false
-             ORDER BY COALESCE(last_seen_at, enrolled_at, created_at) DESC, created_at DESC
-             LIMIT 1`,
-            [custody.officer_id]
-        );
-
-        scopedDeviceKey = defaultDeviceResult.rows[0]?.device_key || null;
+        scopedDeviceKey = activeDevices[0]?.device_key || null;
     }
 
     await expireStaleRequests(custodyId);

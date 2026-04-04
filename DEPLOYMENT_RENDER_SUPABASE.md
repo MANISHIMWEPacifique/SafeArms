@@ -1,6 +1,8 @@
-# SafeArms Stable API Deployment (Render + Supabase)
+# SafeArms Optional Stable API Deployment (Render + Supabase)
 
-This guide deploys the existing SafeArms backend to Render with a fixed HTTPS URL and keeps Supabase as the PostgreSQL database.
+This guide is optional. It deploys the SafeArms backend to Render with a fixed HTTPS URL while keeping Supabase as PostgreSQL.
+
+If you are not deploying backend yet, you can run backend locally and still use Supabase for the database.
 
 ## Why This Stack
 
@@ -29,7 +31,7 @@ Set these values in Render service environment:
 - `DATABASE_URL=<supabase-connection-string>`
 - `JWT_SECRET=<strong-random-secret-min-32-chars>`
 - `CORS_ORIGIN=<frontend-url-or-comma-list>`
-- `API_BASE_URL=<your-render-or-custom-domain>`
+- `API_BASE_URL=<your-hosted-backend-domain>`
 - `DB_TIMEZONE=Africa/Kigali`
 
 Notes:
@@ -74,7 +76,7 @@ Build mobile release with stable API URL:
 ```powershell
 cd officer_verification_mobile
 .\scripts\build_live_release.ps1 `
-  -ApiBaseUrl "https://YOUR-RENDER-SERVICE.onrender.com/api" `
+  -ApiBaseUrl "https://your-hosted-backend-domain/api" `
   -DiscoveryUrl "https://raw.githubusercontent.com/<org>/<config-repo>/main/discovery/officer_mobile_discovery.json" `
   -OfficerId "OFF-001" `
   -DeviceKey "DVK-XXXX" `
@@ -96,7 +98,7 @@ Example discovery JSON:
 
 ```json
 {
-  "api_base_url": "https://YOUR-RENDER-SERVICE.onrender.com/api",
+  "api_base_url": "https://your-hosted-backend-domain/api",
   "version": "2026.04.04.1",
   "updated_at": "2026-04-04T20:00:00Z"
 }
@@ -115,7 +117,7 @@ Important:
 
 Use Firebase App Distribution only to deliver the APK to testers/operators.
 
-- Backend hosting remains Render.
+- Backend hosting remains whichever provider you deploy to (Render is one option in this guide).
 - Database remains Supabase.
 
 ## 7. Operational Notes

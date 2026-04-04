@@ -274,6 +274,17 @@ class ApiConfig {
     _runtimeDeviceToken = '';
   }
 
+  static Future<void> clearDeviceCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefOfficerId);
+    await prefs.remove(_prefDeviceKey);
+    await prefs.remove(_prefDeviceToken);
+
+    _runtimeOfficerId = '';
+    _runtimeDeviceKey = '';
+    _runtimeDeviceToken = '';
+  }
+
   static ResolvedApiBaseUrl get resolvedBaseUrl {
     final normalizedManual = _normalizeStoredBaseUrl(_manualBaseUrl);
     final normalizedDiscovered = _normalizeStoredBaseUrl(_discoveredBaseUrl);

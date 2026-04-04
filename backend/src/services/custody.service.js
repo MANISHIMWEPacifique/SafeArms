@@ -26,6 +26,70 @@ const DURATION_TYPE_HOURS = {
     '1_day': 24
 };
 
+const ANOMALY_RETRY_DELAYS_MS = [0, 1500, 5000];
+
+const normalizeExpectedReturnDate = (value) => {
+    if (!value) {
+        return null;
+    }
+
+    const parsed = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        throw new Error('Invalid expected_return_date value');
+    }
+
+    return parsed.toISOString();
+};
+
+const generateCustodyId = async (client) => {
+    // Transaction-scoped advisory lock prevents duplicate MAX+1 IDs under concurrent requests.
+    await client.query(`SELECT pg_advisory_xact_lock(947211)`);
+
+    const idResult = await client.query(`
+        SELECT 'CUS-' || LPAD(
+            CAST(
+                COALESCE(MAX(CAST(SUBSTRING(custody_id FROM 5) AS INTEGER)), 0) + 1
+                AS TEXT
+            ),
+            3,
+            '0'
+        ) AS next_id
+        FROM custody_records
+        WHERE custody_id ~ '^CUS-[0-9]+$'
+    `);
+
+    return idResult.rows[0].next_id;
+};
+
+const runAnomalyTaskWithRetries = (label, taskFactory) => {
+    const tryAttempt = (attemptIndex) => {
+        const run = async () => {
+            try {
+                await taskFactory();
+            } catch (error) {
+                const currentAttempt = attemptIndex + 1;
+                const maxAttempts = ANOMALY_RETRY_DELAYS_MS.length;
+
+                logger.error(`${label} failed on attempt ${currentAttempt}/${maxAttempts}:`, error);
+
+                if (attemptIndex + 1 < maxAttempts) {
+                    const delay = ANOMALY_RETRY_DELAYS_MS[attemptIndex + 1];
+                    setTimeout(() => tryAttempt(attemptIndex + 1), delay);
+                }
+            }
+        };
+
+        if (attemptIndex === 0) {
+            setImmediate(run);
+            return;
+        }
+
+        run();
+    };
+
+    tryAttempt(0);
+};
+
 const assignCustody = async (custodyData) => {
     const {
         firearm_id,
@@ -79,12 +143,10 @@ const assignCustody = async (custodyData) => {
             const crossUnitCheck = await CustodyRecord.detectCrossUnitTransfer(firearm_id, unit_id);
             const isCrossUnitTransfer = crossUnitCheck.isCrossUnit;
 
-            // Generate custody ID (only consider numeric suffixes to avoid CAST errors)
-            const idResult = await client.query(`SELECT 'CUS-' || LPAD(CAST(COALESCE(MAX(CAST(SUBSTRING(custody_id FROM 5) AS INTEGER)), 0) + 1 AS TEXT), 3, '0') as next_id FROM custody_records WHERE custody_id ~ '^CUS-[0-9]+$'`);
-            const custodyId = idResult.rows[0].next_id;
+            const custodyId = await generateCustodyId(client);
 
             // Compute expected_return_date from duration_type for temporary custody
-            let computedExpectedReturn = expected_return_date || null;
+            let computedExpectedReturn = normalizeExpectedReturnDate(expected_return_date);
             const validDurationType = (custody_type === 'temporary' && duration_type && DURATION_TYPE_HOURS[duration_type]) ? duration_type : null;
 
             if (custody_type === 'temporary' && validDurationType && !computedExpectedReturn) {
@@ -150,14 +212,13 @@ const assignCustody = async (custodyData) => {
 
             // Trigger anomaly detection asynchronously (don't block)
             // Cross-unit transfers are flagged as potential anomalies
-            setImmediate(() => {
-                detectAnomaly({ 
-                    ...custodyRecord, 
-                    is_cross_unit_transfer: isCrossUnitTransfer 
-                }).catch(err => {
-                    logger.error('Anomaly detection error:', err);
-                });
-            });
+            runAnomalyTaskWithRetries(
+                `Anomaly detection for custody ${custodyRecord.custody_id}`,
+                () => detectAnomaly({
+                    ...custodyRecord,
+                    is_cross_unit_transfer: isCrossUnitTransfer
+                })
+            );
 
             return {
                 ...custodyRecord,
@@ -244,15 +305,14 @@ const returnCustody = async (custodyId, returnData) => {
                     const { classifyOverdueSeverity } = require('../jobs/overdueDetection.job');
                     const severity = classifyOverdueSeverity(hoursOverdue);
 
-                    setImmediate(() => {
-                        recordOverdueAnomaly(
+                    runAnomalyTaskWithRetries(
+                        `Overdue anomaly detection for custody ${custody.custody_id}`,
+                        () => recordOverdueAnomaly(
                             { ...custody, ...updatedRecord },
                             hoursOverdue,
                             severity
-                        ).catch(err => {
-                            logger.error('Overdue return anomaly detection error:', err);
-                        });
-                    });
+                        )
+                    );
                 }
             }
 

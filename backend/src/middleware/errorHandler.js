@@ -54,6 +54,17 @@ const getStatusCodeFromMessage = (message) => {
         return 409;
     }
 
+    // 429 Too Many Requests
+    if (msg.includes('too many attempts') ||
+        msg.includes('too many requests')) {
+        return 429;
+    }
+
+    // 503 Service Unavailable
+    if (msg.includes('unable to deliver otp')) {
+        return 503;
+    }
+
     // 400 Bad Request
     if (msg.includes('is required') ||
         msg.includes('missing required') ||

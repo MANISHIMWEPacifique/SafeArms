@@ -13,24 +13,73 @@ const { isValidPassword } = require('../utils/validators');
  */
 const rateLimitStore = new Map();
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX = 10; // max attempts per window
+const RATE_LIMIT_MAX_PER_IP = 60; // higher cap for NAT/shared networks
+const RATE_LIMIT_MAX_PER_ACCOUNT = 10; // strict cap for username-targeted brute force
 
-const authRateLimit = (req, res, next) => {
-    const key = req.ip || req.connection?.remoteAddress || 'unknown';
-    const now = Date.now();
+const sanitizeRateLimitToken = (value, fallback = 'anonymous') => {
+    if (typeof value !== 'string') {
+        return fallback;
+    }
+
+    const trimmed = value.trim().toLowerCase();
+    if (!trimmed) {
+        return fallback;
+    }
+
+    return trimmed;
+};
+
+const registerAttempt = (key, now, maxAttempts) => {
     const record = rateLimitStore.get(key);
 
     if (record && now - record.start < RATE_LIMIT_WINDOW_MS) {
-        record.count++;
-        if (record.count > RATE_LIMIT_MAX) {
-            return res.status(429).json({
-                success: false,
-                message: 'Too many attempts. Please try again later.',
-                retry_after_seconds: Math.ceil((RATE_LIMIT_WINDOW_MS - (now - record.start)) / 1000)
-            });
+        record.count += 1;
+        if (record.count > maxAttempts) {
+            return {
+                limited: true,
+                retryAfterSeconds: Math.ceil((RATE_LIMIT_WINDOW_MS - (now - record.start)) / 1000)
+            };
         }
-    } else {
-        rateLimitStore.set(key, { start: now, count: 1 });
+
+        return { limited: false };
+    }
+
+    rateLimitStore.set(key, { start: now, count: 1 });
+    return { limited: false };
+};
+
+const authRateLimit = (req, res, next) => {
+    const now = Date.now();
+    const ip = sanitizeRateLimitToken(req.ip || req.connection?.remoteAddress, 'unknown_ip');
+    const username = sanitizeRateLimitToken(req.body?.username);
+    const endpoint = sanitizeRateLimitToken(req.path || req.originalUrl, 'auth');
+
+    const ipLimit = registerAttempt(
+        `ip:${endpoint}:${ip}`,
+        now,
+        RATE_LIMIT_MAX_PER_IP
+    );
+
+    if (ipLimit.limited) {
+        return res.status(429).json({
+            success: false,
+            message: 'Too many attempts from this network. Please try again later.',
+            retry_after_seconds: ipLimit.retryAfterSeconds
+        });
+    }
+
+    const accountLimit = registerAttempt(
+        `account:${endpoint}:${username}`,
+        now,
+        RATE_LIMIT_MAX_PER_ACCOUNT
+    );
+
+    if (accountLimit.limited) {
+        return res.status(429).json({
+            success: false,
+            message: 'Too many attempts for this account. Please try again later.',
+            retry_after_seconds: accountLimit.retryAfterSeconds
+        });
     }
 
     // Clean up old entries periodically

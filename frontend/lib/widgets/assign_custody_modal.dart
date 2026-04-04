@@ -40,6 +40,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   bool _isLoadingOfficerDevices = false;
+  bool _hasMultipleActiveDevices = false;
 
   // Form state
   String? _selectedFirearmId;
@@ -63,6 +64,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       _selectedOfficerId = officerId;
       _selectedVerificationDeviceKey = null;
       _resolvedVerificationDeviceLabel = null;
+      _hasMultipleActiveDevices = false;
     });
 
     if (officerId == null || officerId.isEmpty) {
@@ -81,21 +83,27 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
         return;
       }
 
-      final selectedDevice = devices.isNotEmpty ? devices.first : null;
+      final hasMultipleActiveDevices = devices.length > 1;
+      final selectedDevice = hasMultipleActiveDevices
+          ? null
+          : (devices.isNotEmpty ? devices.first : null);
       final selectedDeviceKey = selectedDevice?['device_key']?.toString();
       final selectedDeviceName =
           selectedDevice?['device_name']?.toString().trim() ?? '';
       final selectedDevicePlatform =
           selectedDevice?['platform']?.toString().toUpperCase() ?? 'UNKNOWN';
-      final resolvedLabel = selectedDeviceKey == null
-          ? null
-          : selectedDeviceName.isNotEmpty
-              ? '$selectedDeviceName ($selectedDevicePlatform)'
-              : selectedDeviceKey;
+      final resolvedLabel = hasMultipleActiveDevices
+          ? 'Multiple active devices detected. Remove extra devices before assignment.'
+          : selectedDeviceKey == null
+              ? null
+              : selectedDeviceName.isNotEmpty
+                  ? '$selectedDeviceName ($selectedDevicePlatform)'
+                  : selectedDeviceKey;
 
       setState(() {
         _selectedVerificationDeviceKey = selectedDeviceKey;
         _resolvedVerificationDeviceLabel = resolvedLabel;
+        _hasMultipleActiveDevices = hasMultipleActiveDevices;
         _isLoadingOfficerDevices = false;
       });
     } catch (_) {
@@ -106,6 +114,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       setState(() {
         _selectedVerificationDeviceKey = null;
         _resolvedVerificationDeviceLabel = null;
+        _hasMultipleActiveDevices = false;
         _isLoadingOfficerDevices = false;
       });
     }
@@ -162,6 +171,18 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a firearm and officer'),
+          backgroundColor: Color(0xFFE85C5C),
+        ),
+      );
+      return;
+    }
+
+    if (_hasMultipleActiveDevices) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Officer has multiple active devices. Remove extra enrollments before assigning custody.',
+          ),
           backgroundColor: Color(0xFFE85C5C),
         ),
       );

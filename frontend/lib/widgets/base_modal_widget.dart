@@ -28,7 +28,9 @@ class BaseModalWidget extends StatelessWidget {
       color: Colors.black.withValues(alpha: 0.5),
       child: Center(
         child: Container(
-          width: width,
+          width: MediaQuery.of(context).size.width > width
+              ? width
+              : MediaQuery.of(context).size.width * 0.9,
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.9,
           ),

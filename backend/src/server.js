@@ -36,6 +36,73 @@ const deviceEnrollmentRoutes = require('./routes/deviceEnrollment.routes');
 // Initialize Express app
 const app = express();
 
+const toBoundedInt = (value, { min, max, fallback }) => {
+    const numeric = Number.parseInt(Array.isArray(value) ? value[0] : value, 10);
+    if (!Number.isFinite(numeric)) {
+        return fallback;
+    }
+
+    return Math.min(max, Math.max(min, numeric));
+};
+
+const enforcePaginationGuards = (req, res, next) => {
+    const queryParams = req.query && typeof req.query === 'object' ? req.query : {};
+    req.query = queryParams;
+
+    const maxPageSize = Number.isFinite(SERVER_CONFIG.pagination?.maxPageSize)
+        ? SERVER_CONFIG.pagination.maxPageSize
+        : 100;
+    const defaultPageSize = Number.isFinite(SERVER_CONFIG.pagination?.defaultPageSize)
+        ? SERVER_CONFIG.pagination.defaultPageSize
+        : 20;
+
+    const normalizeIfPresent = (key, bounds) => {
+        if (!Object.prototype.hasOwnProperty.call(queryParams, key)) {
+            return;
+        }
+
+        queryParams[key] = String(toBoundedInt(queryParams[key], bounds));
+    };
+
+    normalizeIfPresent('limit', {
+        min: 1,
+        max: maxPageSize,
+        fallback: defaultPageSize
+    });
+
+    normalizeIfPresent('timeline_limit', {
+        min: 1,
+        max: maxPageSize,
+        fallback: defaultPageSize
+    });
+
+    normalizeIfPresent('page_size', {
+        min: 1,
+        max: maxPageSize,
+        fallback: defaultPageSize
+    });
+
+    normalizeIfPresent('pageSize', {
+        min: 1,
+        max: maxPageSize,
+        fallback: defaultPageSize
+    });
+
+    normalizeIfPresent('page', {
+        min: 1,
+        max: 100000,
+        fallback: 1
+    });
+
+    normalizeIfPresent('offset', {
+        min: 0,
+        max: 1000000,
+        fallback: 0
+    });
+
+    next();
+};
+
 // Security middleware
 app.use(helmet());
 app.use(cors(SERVER_CONFIG.cors));
@@ -54,6 +121,7 @@ if (SERVER_CONFIG.nodeEnv === 'development') {
 // Body parsing middleware
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(enforcePaginationGuards);
 
 // Static firearm image uploads
 const firearmUploadsDir = path.join(__dirname, '../uploads/firearms');

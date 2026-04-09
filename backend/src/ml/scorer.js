@@ -1,5 +1,51 @@
 const logger = require('../utils/logger');
 
+const DEFAULT_SCORING_THRESHOLDS = Object.freeze({
+    anomaly_trigger_threshold: 0.35,
+    anomaly_medium_threshold: 0.50,
+    anomaly_high_threshold: 0.70,
+    anomaly_critical_threshold: 0.85,
+    anomaly_critical_min_confidence: 0.60
+});
+
+const toFiniteNumber = (value, fallback) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+        const parsed = Number.parseFloat(value);
+        if (Number.isFinite(parsed)) {
+            return parsed;
+        }
+    }
+
+    return fallback;
+};
+
+const normalizeScoringThresholds = (thresholds = {}) => ({
+    anomaly_trigger_threshold: toFiniteNumber(
+        thresholds.anomaly_trigger_threshold,
+        DEFAULT_SCORING_THRESHOLDS.anomaly_trigger_threshold
+    ),
+    anomaly_medium_threshold: toFiniteNumber(
+        thresholds.anomaly_medium_threshold,
+        DEFAULT_SCORING_THRESHOLDS.anomaly_medium_threshold
+    ),
+    anomaly_high_threshold: toFiniteNumber(
+        thresholds.anomaly_high_threshold,
+        DEFAULT_SCORING_THRESHOLDS.anomaly_high_threshold
+    ),
+    anomaly_critical_threshold: toFiniteNumber(
+        thresholds.anomaly_critical_threshold,
+        DEFAULT_SCORING_THRESHOLDS.anomaly_critical_threshold
+    ),
+    anomaly_critical_min_confidence: toFiniteNumber(
+        thresholds.anomaly_critical_min_confidence,
+        DEFAULT_SCORING_THRESHOLDS.anomaly_critical_min_confidence
+    )
+});
+
 /**
  * Ensemble Anomaly Scorer for EVENT-Based Detection
  * 
@@ -31,9 +77,17 @@ const logger = require('../utils/logger');
  * @param {boolean} hasModel - Whether a trained K-Means model is active
  * @returns {Object} Final anomaly verdict
  */
-const calculateEnsembleScore = (kmeansResult, statisticalResult, features, rulesResult = null, hasModel = false) => {
+const calculateEnsembleScore = (
+    kmeansResult,
+    statisticalResult,
+    features,
+    rulesResult = null,
+    hasModel = false,
+    options = {}
+) => {
     try {
         const isCrossUnitTransfer = features.is_cross_unit_transfer === true;
+        const scoringThresholds = normalizeScoringThresholds(options.thresholds || {});
 
         // ── Adaptive weighting based on model availability ──
         const weights = hasModel
@@ -71,7 +125,7 @@ const calculateEnsembleScore = (kmeansResult, statisticalResult, features, rules
         const confidence = detectorAgreement / 4.0;
 
         // Classify severity (review urgency, NOT wrongdoing indication)
-        const severity = classifySeverity(ensembleScore, confidence, features);
+        const severity = classifySeverity(ensembleScore, confidence, features, scoringThresholds);
 
         // Determine anomaly type
         const anomalyType = determineAnomalyType(features, kmeansResult, statisticalResult, rulesResult);
@@ -83,7 +137,7 @@ const calculateEnsembleScore = (kmeansResult, statisticalResult, features, rules
         const contributingFactors = buildContributingFactors(features, kmeansResult, statisticalResult, rulesResult);
 
         // DECISION: Anomaly if ensemble score exceeds threshold
-        const isAnomaly = ensembleScore > 0.35;
+        const isAnomaly = ensembleScore >= scoringThresholds.anomaly_trigger_threshold;
 
         return {
             is_anomaly: isAnomaly,
@@ -91,7 +145,8 @@ const calculateEnsembleScore = (kmeansResult, statisticalResult, features, rules
             confidence,
             severity,
             anomaly_type: anomalyType,
-            is_mandatory_review: confidence >= 0.6 && severity !== 'low',
+            is_mandatory_review:
+                confidence >= scoringThresholds.anomaly_critical_min_confidence && severity !== 'low',
             feature_importance: featureImportance,
             contributing_factors: contributingFactors,
             rules_triggered: rulesResult?.rules_triggered || [],
@@ -208,13 +263,26 @@ const calculateRuleBasedScore = (features) => {
  * @param {Object} features
  * @returns {string}
  */
-const classifySeverity = (score, confidence, features = {}) => {
+const classifySeverity = (score, confidence, features = {}, thresholds = DEFAULT_SCORING_THRESHOLDS) => {
     // Ballistic access timing issues elevate urgency
     const hasBallisticTimingConcern = (features.ballistic_access_timing_score || 0) > 0.6;
+    const normalizedThresholds = normalizeScoringThresholds(thresholds);
 
-    if (score >= 0.85 && confidence >= 0.6) return 'critical';
-    if (score >= 0.70 || hasBallisticTimingConcern) return 'high';
-    if (score >= 0.50) return 'medium';
+    if (
+        score >= normalizedThresholds.anomaly_critical_threshold &&
+        confidence >= normalizedThresholds.anomaly_critical_min_confidence
+    ) {
+        return 'critical';
+    }
+
+    if (score >= normalizedThresholds.anomaly_high_threshold || hasBallisticTimingConcern) {
+        return 'high';
+    }
+
+    if (score >= normalizedThresholds.anomaly_medium_threshold) {
+        return 'medium';
+    }
+
     return 'low';
 };
 
@@ -425,6 +493,8 @@ const buildContributingFactors = (features, kmeansResult, statisticalResult, rul
 };
 
 module.exports = {
+    DEFAULT_SCORING_THRESHOLDS,
+    normalizeScoringThresholds,
     calculateEnsembleScore,
     calculateRuleBasedScore,
     classifySeverity,

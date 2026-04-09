@@ -2,13 +2,71 @@ const { query } = require('../config/database');
 const { extractAllFeatures } = require('./featureExtractor');
 const { predictKMeans } = require('./kmeans');
 const { detectStatisticalOutliers } = require('./statistical');
-const { calculateEnsembleScore } = require('./scorer');
+const {
+    calculateEnsembleScore,
+    DEFAULT_SCORING_THRESHOLDS,
+    normalizeScoringThresholds
+} = require('./scorer');
 const { evaluateRules } = require('./rulesEngine');
 const { sendAnomalyAlert } = require('../services/email.service');
+const { getSystemSettings } = require('../services/systemSettings.service');
 const logger = require('../utils/logger');
 const { parseDecimalFields } = require('../utils/helpers');
 
 const ANOMALY_DECIMAL_FIELDS = ['anomaly_score', 'confidence_level'];
+const SCORING_THRESHOLD_SETTING_KEYS = [
+    'anomaly_trigger_threshold',
+    'anomaly_medium_threshold',
+    'anomaly_high_threshold',
+    'anomaly_critical_threshold',
+    'anomaly_critical_min_confidence'
+];
+
+const toOptionalNumber = (value) => {
+    if (value === undefined || value === null) {
+        return null;
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+        const parsed = Number.parseFloat(value);
+        if (Number.isFinite(parsed)) {
+            return parsed;
+        }
+    }
+
+    return null;
+};
+
+const loadScoringThresholds = async () => {
+    try {
+        const settings = await getSystemSettings(SCORING_THRESHOLD_SETTING_KEYS);
+
+        return normalizeScoringThresholds({
+            anomaly_trigger_threshold:
+                toOptionalNumber(settings.anomaly_trigger_threshold) ??
+                DEFAULT_SCORING_THRESHOLDS.anomaly_trigger_threshold,
+            anomaly_medium_threshold:
+                toOptionalNumber(settings.anomaly_medium_threshold) ??
+                DEFAULT_SCORING_THRESHOLDS.anomaly_medium_threshold,
+            anomaly_high_threshold:
+                toOptionalNumber(settings.anomaly_high_threshold) ??
+                DEFAULT_SCORING_THRESHOLDS.anomaly_high_threshold,
+            anomaly_critical_threshold:
+                toOptionalNumber(settings.anomaly_critical_threshold) ??
+                DEFAULT_SCORING_THRESHOLDS.anomaly_critical_threshold,
+            anomaly_critical_min_confidence:
+                toOptionalNumber(settings.anomaly_critical_min_confidence) ??
+                DEFAULT_SCORING_THRESHOLDS.anomaly_critical_min_confidence
+        });
+    } catch (error) {
+        logger.warn(`Unable to load anomaly scoring thresholds from system settings: ${error.message}`);
+        return DEFAULT_SCORING_THRESHOLDS;
+    }
+};
 
 /**
  * Main Anomaly Detector - EVENT-BASED Detection System
@@ -79,12 +137,20 @@ const detectAnomaly = async (custodyRecord) => {
         // Step 5: Run statistical outlier detection
         const statisticalResult = await detectStatisticalOutliers(features);
 
-        // Step 6: Calculate ensemble score (adaptive weights based on model availability)
+        // Step 6: Load scoring thresholds from system settings (cached)
+        const scoringThresholds = await loadScoringThresholds();
+
+        // Step 7: Calculate ensemble score (adaptive weights based on model availability)
         const ensembleResult = calculateEnsembleScore(
-            kmeansResult, statisticalResult, features, rulesResult, hasModel
+            kmeansResult,
+            statisticalResult,
+            features,
+            rulesResult,
+            hasModel,
+            { thresholds: scoringThresholds }
         );
 
-        // Step 7: If anomaly detected, create anomaly record
+        // Step 8: If anomaly detected, create anomaly record
         if (ensembleResult.is_anomaly) {
             const anomalyRecord = await recordAnomaly(custodyRecord, features, ensembleResult, model?.model_id);
 

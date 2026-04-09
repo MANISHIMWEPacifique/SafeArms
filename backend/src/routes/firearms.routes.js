@@ -95,7 +95,7 @@ router.get('/search', authenticate, asyncHandler(async (req, res) => {
     let params = [`%${q}%`, `%${q}%`, `%${q}%`];
     
     // Station commanders can only search within their unit
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         unitFilter = 'AND f.assigned_unit_id = $4';
         params.push(userUnitId);
     }
@@ -119,7 +119,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     
     // SECURITY: Station commanders are ALWAYS filtered to their unit
     // They cannot override this by passing assigned_unit_id in query params
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         // Force their unit_id - ignore any manually passed unit filter
         queryParams.assigned_unit_id = userUnitId;
         // Log attempted bypass for security audit
@@ -140,7 +140,7 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
     // SECURITY: Station commanders are ALWAYS limited to their unit's stats
     // They cannot override this by passing unit_id in query params
     let queryUnitId = unit_id;
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         queryUnitId = userUnitId; // Force their unit - ignore any passed unit_id
         if (unit_id && unit_id !== userUnitId) {
             logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query stats for unit ${unit_id} (assigned: ${userUnitId})`);
@@ -219,7 +219,7 @@ router.get('/unit/:unit_id', authenticate, asyncHandler(async (req, res) => {
     const requestedUnitId = req.params.unit_id;
     
     // Station commanders can only access their own unit's firearms
-    if (role === 'station_commander' && requestedUnitId !== userUnitId) {
+    if (role === ROLES.STATION_COMMANDER && requestedUnitId !== userUnitId) {
         return res.status(403).json({ 
             success: false, 
             message: 'Access denied: You can only view firearms from your unit' 
@@ -278,7 +278,7 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
     }
     
     // Station commanders can only view firearms in their unit
-    if (role === 'station_commander' && firearm.assigned_unit_id !== userUnitId) {
+    if (role === ROLES.STATION_COMMANDER && firearm.assigned_unit_id !== userUnitId) {
         return res.status(403).json({ 
             success: false, 
             message: 'Access denied: You can only view firearms assigned to your unit' 
@@ -397,7 +397,7 @@ router.put('/:id', authenticate, requireCommander, requireUnitAccess, logUpdate,
     const { role, unit_id: userUnitId } = req.user;
     
     // Station commanders can only update firearms in their own unit
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         const existingFirearm = await Firearm.findById(req.params.id);
         if (!existingFirearm) {
             return res.status(404).json({ success: false, message: 'Firearm not found' });
@@ -533,7 +533,7 @@ router.get('/:id/full-history', authenticate, asyncHandler(async (req, res) => {
     }
 
     // RBAC: Station commanders can only access their unit's firearms
-    if (role === 'station_commander' && firearm.assigned_unit_id !== userUnitId) {
+    if (role === ROLES.STATION_COMMANDER && firearm.assigned_unit_id !== userUnitId) {
         return res.status(403).json({
             success: false,
             message: 'Access denied. You can only view history for firearms assigned to your unit.'
@@ -541,7 +541,7 @@ router.get('/:id/full-history', authenticate, asyncHandler(async (req, res) => {
     }
 
     // SECURITY: Station commanders CANNOT access ballistic data
-    const canAccessBallisticData = role !== 'station_commander';
+    const canAccessBallisticData = role !== ROLES.STATION_COMMANDER;
     
     // Only fetch ballistic profile if user has access
     let ballisticProfile = null;
@@ -582,7 +582,7 @@ router.get('/:id/full-history', authenticate, asyncHandler(async (req, res) => {
         unifiedTimeline = await CustodyRecord.getUnifiedTimeline(firearmId, { limit: parseInt(timeline_limit) });
         
         // If station commander, filter out ballistic events from timeline
-        if (role === 'station_commander' && unifiedTimeline) {
+        if (role === ROLES.STATION_COMMANDER && unifiedTimeline) {
             unifiedTimeline = unifiedTimeline.filter(event => 
                 !['ballistic_access', 'ballistic_profile_created'].includes(event.event_type)
             );
@@ -696,7 +696,7 @@ router.get('/:id/cross-unit-transfers', authenticate, asyncHandler(async (req, r
     }
 
     // RBAC: Station commanders limited to their unit
-    if (role === 'station_commander' && firearm.assigned_unit_id !== userUnitId) {
+    if (role === ROLES.STATION_COMMANDER && firearm.assigned_unit_id !== userUnitId) {
         return res.status(403).json({
             success: false,
             message: 'Access denied. You can only view transfers for firearms assigned to your unit.'

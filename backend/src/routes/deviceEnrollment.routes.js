@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { query } = require('../config/database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { authenticate } = require('../middleware/authentication');
-const { requireCommander } = require('../middleware/authorization');
+const { requireCommander, ROLES } = require('../middleware/authorization');
 const logger = require('../utils/logger');
 const { registerOfficerDevice } = require('../services/officerVerification.service');
 
@@ -79,7 +79,7 @@ router.post('/generate-pin', authenticate, requireCommander, asyncHandler(async 
         throw new AppError('Officer does not belong to the provided unit', 409);
     }
 
-    if (req.user.role === 'station_commander' && req.user.unit_id !== officer.unit_id) {
+    if (req.user.role === ROLES.STATION_COMMANDER && req.user.unit_id !== officer.unit_id) {
         throw new AppError('Access denied. You can only enroll officers in your unit.', 403);
     }
 
@@ -182,7 +182,7 @@ router.post('/exchange-pin', asyncHandler(async (req, res) => {
             deviceFingerprint,
             appVersion,
             enrolledBy: createdBy || null,
-            requestingUser: { role: 'admin', unit_id: unitId } // Bypass checks as we've already proven commander intent via PIN
+            requestingUser: { role: ROLES.ADMIN, unit_id: unitId } // Bypass checks as we've already proven commander intent via PIN
         });
     } catch (error) {
         try {

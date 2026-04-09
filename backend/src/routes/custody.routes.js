@@ -72,7 +72,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     let pCount = 0;
     
     // Station commanders can only see their unit's records
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         pCount++;
         whereClause += ` AND cr.unit_id = $${pCount}`;
         params.push(userUnitId);
@@ -158,7 +158,7 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
     let params = [];
     
     // Station commanders only see their unit's stats
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         whereClause = 'WHERE unit_id = $1';
         params.push(userUnitId);
     }
@@ -185,7 +185,7 @@ router.get('/anomalies/today', authenticate, asyncHandler(async (req, res) => {
     let params = [];
     
     // Station commanders only see their unit's anomalies
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         whereClause += ' AND a.unit_id = $1';
         params.push(userUnitId);
     }
@@ -211,7 +211,7 @@ router.post('/assign', authenticate, requireCommander, logCustodyAssignment, asy
     
     // SECURITY: Station commanders can only assign custody within their unit
     // They cannot override this by passing a different unit_id
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         // Force their unit_id - ignore any manually passed value
         if (req.body.unit_id && req.body.unit_id !== userUnitId) {
             logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted custody assign in unit ${req.body.unit_id} (assigned: ${userUnitId})`);
@@ -285,7 +285,7 @@ router.post('/:id/return', authenticate, requireCommander, logCustodyReturn, asy
 
     const custody = custodyLookup.rows[0];
 
-    if (req.user.role === 'station_commander' && req.user.unit_id !== custody.unit_id) {
+    if (req.user.role === ROLES.STATION_COMMANDER && req.user.unit_id !== custody.unit_id) {
         return res.status(403).json({
             success: false,
             message: 'Access denied. You can only return custody records for your unit.'
@@ -360,7 +360,7 @@ router.get('/unit/:unit_id', authenticate, asyncHandler(async (req, res) => {
     const requestedUnitId = req.params.unit_id;
     
     // Station commanders can only view their unit's custody records
-    if (role === 'station_commander' && requestedUnitId !== userUnitId) {
+    if (role === ROLES.STATION_COMMANDER && requestedUnitId !== userUnitId) {
         return res.status(403).json({
             success: false,
             message: 'Access denied. You can only view custody records for your unit.'
@@ -377,7 +377,7 @@ router.get('/active', authenticate, asyncHandler(async (req, res) => {
     
     // SECURITY: Station commanders only see their unit's records
     // They cannot override this by passing a different unit_id
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         if (req.query.unit_id && req.query.unit_id !== userUnitId) {
             logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query active custody for unit ${req.query.unit_id} (assigned: ${userUnitId})`);
         }
@@ -392,7 +392,7 @@ router.get('/firearm/:firearm_id/history', authenticate, asyncHandler(async (req
     const { role, unit_id: userUnitId } = req.user;
     
     // SECURITY: Station commanders can only access custody history for firearms in their unit
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         const firearmResult = await query('SELECT assigned_unit_id FROM firearms WHERE firearm_id = $1', [req.params.firearm_id]);
         if (firearmResult.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Firearm not found' });
@@ -413,7 +413,7 @@ router.get('/officer/:officer_id/history', authenticate, asyncHandler(async (req
     const { role, unit_id: userUnitId } = req.user;
     
     // SECURITY: Station commanders can only access custody history for officers in their unit
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         const officerResult = await query('SELECT unit_id FROM officers WHERE officer_id = $1', [req.params.officer_id]);
         if (officerResult.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Officer not found' });
@@ -445,7 +445,7 @@ router.get('/firearm/:firearm_id/timeline', authenticate, asyncHandler(async (re
     const firearmId = req.params.firearm_id;
 
     // RBAC check for station commanders
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         const firearmResult = await query('SELECT assigned_unit_id FROM firearms WHERE firearm_id = $1', [firearmId]);
         if (firearmResult.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Firearm not found' });
@@ -491,7 +491,7 @@ router.get('/firearm/:firearm_id/unified-timeline', authenticate, asyncHandler(a
     const { categories, limit = 100 } = req.query;
 
     // RBAC check for station commanders
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         const firearmResult = await query('SELECT assigned_unit_id FROM firearms WHERE firearm_id = $1', [firearmId]);
         if (firearmResult.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Firearm not found' });
@@ -508,7 +508,7 @@ router.get('/firearm/:firearm_id/unified-timeline', authenticate, asyncHandler(a
     let categoryFilter = categories ? categories.split(',').map(c => c.trim()) : null;
     
     // SECURITY: Station commanders can only see CUSTODY category, not BALLISTIC_ACCESS
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         categoryFilter = ['CUSTODY']; // Force custody-only for station commanders
     }
 
@@ -518,7 +518,7 @@ router.get('/firearm/:firearm_id/unified-timeline', authenticate, asyncHandler(a
     });
 
     // Extra safety: filter out any ballistic events for station commanders
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         timeline = timeline.filter(event => 
             !['ballistic_access', 'ballistic_profile_created', 'BALLISTIC_ACCESS'].includes(event.event_type) &&
             event.event_category !== 'BALLISTIC_ACCESS'
@@ -533,7 +533,7 @@ router.get('/firearm/:firearm_id/unified-timeline', authenticate, asyncHandler(a
             filters_applied: {
                 categories: categoryFilter,
                 limit: parseInt(limit),
-                ballistic_events_filtered: role === 'station_commander'
+                ballistic_events_filtered: role === ROLES.STATION_COMMANDER
             },
             timeline
         }
@@ -546,7 +546,7 @@ router.get('/firearm/:firearm_id/unified-timeline', authenticate, asyncHandler(a
  * Returns all cross-unit transfers within a date range
  * For HQ and admin monitoring of firearm movements
  */
-router.get('/cross-unit-report', authenticate, requireRole(['hq_firearm_commander', 'admin']), asyncHandler(async (req, res) => {
+router.get('/cross-unit-report', authenticate, requireRole([ROLES.HQ_COMMANDER, ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const { start_date, end_date, limit = 100 } = req.query;
 
     let whereClause = `WHERE prev_unit.unit_id IS NOT NULL 

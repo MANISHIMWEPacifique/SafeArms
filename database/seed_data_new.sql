@@ -29,6 +29,18 @@ DELETE FROM ballistic_profiles;
 DELETE FROM firearms;
 DELETE FROM officers;
 DELETE FROM audit_logs;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'system_settings'
+  ) THEN
+    DELETE FROM system_settings;
+  END IF;
+END $$;
+
 DELETE FROM users;
 DELETE FROM units;
 
@@ -73,6 +85,62 @@ INSERT INTO users (user_id, username, password_hash, full_name, email, phone_num
   -- Investigators
   ('USR-008', 'investigator',       '$2b$10$Po3Mpvy/QohmUMEDfk5Pm.ILpAgPpzkh9t35LNP1G7/P2f6rUDDQi', 'IP Kamanzi Eric',        'kamanzi.eric@rnp.gov.rw',       '+250788000007', 'investigator',          'UNIT-HQ',  true, true, true, false),
   ('USR-009', 'investigator2',      '$2b$10$Po3Mpvy/QohmUMEDfk5Pm.ILpAgPpzkh9t35LNP1G7/P2f6rUDDQi', 'IP Ingabire Alice',      'ingabire.alice@rnp.gov.rw',     '+250788000008', 'investigator',          'UNIT-HQ',  true, true, true, false);
+
+  -- ============================================
+  -- 2.5 SYSTEM SETTINGS (current runtime defaults)
+  -- ============================================
+  DO $$
+  BEGIN
+    IF EXISTS (
+      SELECT 1
+      FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = 'system_settings'
+    ) THEN
+      INSERT INTO system_settings (setting_key, setting_value, description)
+      VALUES
+        ('platform_name', '"SafeArms"'::jsonb, 'Name of the platform'),
+        ('organization', '"Rwanda National Police"'::jsonb, 'Organization name'),
+        ('timezone', '"Africa/Kigali"'::jsonb, 'System timezone'),
+        ('date_format', '"DD/MM/YYYY"'::jsonb, 'Date format'),
+        ('time_format', '"24-hour"'::jsonb, 'Time format'),
+        ('items_per_page', '10'::jsonb, 'Items per page'),
+        ('session_timeout', '30'::jsonb, 'Session timeout in minutes'),
+        ('concurrent_sessions', 'false'::jsonb, 'Allow concurrent user sessions'),
+        ('remember_me_duration', '7'::jsonb, 'Remember-me duration in days'),
+        ('two_factor_required', 'false'::jsonb, 'Global two-factor authentication requirement'),
+        ('enforce_2fa', 'false'::jsonb, 'Legacy two-factor setting key for frontend compatibility'),
+        ('password_expiry_days', '90'::jsonb, 'Password expiry interval in days'),
+        ('min_password_length', '8'::jsonb, 'Minimum password length'),
+        ('max_login_attempts', '5'::jsonb, 'Maximum login attempts before lockout'),
+        ('lockout_duration', '15'::jsonb, 'Lockout duration in minutes'),
+        ('max_otp_attempts', '5'::jsonb, 'Maximum OTP attempts before lockout'),
+        ('otp_validity_minutes', '15'::jsonb, 'OTP validity in minutes'),
+        ('auth_rate_limit_window_minutes', '15'::jsonb, 'Rolling window in minutes for auth endpoint rate limiting'),
+        ('auth_rate_limit_max_per_ip', '60'::jsonb, 'Maximum auth requests per IP in each auth rate-limit window'),
+        ('auth_rate_limit_max_per_account', '10'::jsonb, 'Maximum auth requests per username/account in each auth rate-limit window'),
+        ('audit_retention_days', '365'::jsonb, 'Audit retention window in days'),
+        ('backup_frequency', '"daily"'::jsonb, 'Backup frequency'),
+        ('anomaly_threshold', '0.70'::jsonb, 'Legacy anomaly threshold for frontend compatibility'),
+        ('critical_threshold', '0.85'::jsonb, 'Legacy critical anomaly threshold for frontend compatibility'),
+        ('anomaly_trigger_threshold', '0.35'::jsonb, 'Minimum ensemble score required to record an anomaly event'),
+        ('anomaly_medium_threshold', '0.50'::jsonb, 'Minimum score mapped to medium review urgency'),
+        ('anomaly_high_threshold', '0.70'::jsonb, 'Minimum score mapped to high review urgency'),
+        ('anomaly_critical_threshold', '0.85'::jsonb, 'Minimum score mapped to critical review urgency when confidence gate also passes'),
+        ('anomaly_critical_min_confidence', '0.60'::jsonb, 'Minimum detector confidence required for critical severity'),
+        ('auto_refresh_enabled', 'true'::jsonb, 'Auto refresh enabled'),
+        ('auto_refresh_interval', '60'::jsonb, 'Auto refresh interval in seconds'),
+        ('notification_email', 'true'::jsonb, 'Enable email notifications'),
+        ('notification_sms', 'false'::jsonb, 'Enable SMS notifications'),
+        ('notify_critical_anomalies', 'true'::jsonb, 'Notify critical anomalies'),
+        ('notify_pending_approvals', 'true'::jsonb, 'Notify pending approvals'),
+        ('notify_custody_changes', 'true'::jsonb, 'Notify custody changes')
+      ON CONFLICT (setting_key) DO UPDATE
+      SET setting_value = EXCLUDED.setting_value,
+        description = EXCLUDED.description,
+        updated_at = CURRENT_TIMESTAMP,
+        updated_by = NULL;
+    END IF;
+  END $$;
 
 -- ============================================
 -- 3. OFFICERS (20 officers across 4 stations + HQ)

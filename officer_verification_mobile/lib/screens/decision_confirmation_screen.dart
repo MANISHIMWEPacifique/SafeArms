@@ -164,6 +164,7 @@ class _DecisionConfirmationScreenState
                   controller: _notesController,
                   maxLines: 3,
                   maxLength: 200,
+                  cursorColor: AppColors.textPrimary,
                   style: const TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(
                     hintText: 'Optional note',

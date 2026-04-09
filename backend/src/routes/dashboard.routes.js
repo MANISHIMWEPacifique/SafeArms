@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../config/database');
 const { authenticate } = require('../middleware/authentication');
+const { ROLES } = require('../middleware/authorization');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 const parsedDashboardBatchSize = parseInt(process.env.DASHBOARD_QUERY_BATCH_SIZE || '10', 10);
@@ -27,7 +28,7 @@ const executeQueryMapInBatches = async (queries, batchSize = DASHBOARD_QUERY_BAT
 
 router.get('/', authenticate, asyncHandler(async (req, res) => {
     const { role, unit_id } = req.user;
-    const isStationCmd = role === 'station_commander';
+    const isStationCmd = role === ROLES.STATION_COMMANDER;
     const unitParams = isStationCmd ? [unit_id] : [];
 
     // ── Build all queries up-front, then run in ONE Promise.all ──
@@ -51,7 +52,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         ${isStationCmd ? 'AND unit_id = $1' : ''}
     `, unitParams);
 
-    if (role === 'admin') {
+    if (role === ROLES.ADMIN) {
         queries.anomaliesStats = async () => ({ rows: [] });
     } else {
         queries.anomaliesStats = () => query(`
@@ -129,7 +130,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     `, unitParams);
 
     // Role-specific queries
-    if (role === 'hq_firearm_commander' || role === 'admin') {
+    if (role === ROLES.HQ_COMMANDER || role === ROLES.ADMIN) {
         queries.pendingApprovals = () => query(`
             SELECT 
                 (SELECT COUNT(*) FROM loss_reports WHERE status = 'pending') as loss_reports,
@@ -138,7 +139,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         `);
     }
 
-    if (role === 'admin') {
+    if (role === ROLES.ADMIN) {
         queries.usersCount = () => query(`SELECT COUNT(*) as total FROM users WHERE is_active = true`);
         queries.activeUnits = () => query(`SELECT COUNT(*) as total FROM units WHERE is_active = true`);
         queries.roleActivity = () => query(`
@@ -154,7 +155,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         `);
     }
 
-    if (role === 'hq_firearm_commander') {
+    if (role === ROLES.HQ_COMMANDER) {
         queries.activeUnits = () => query(`SELECT COUNT(*) as total FROM units WHERE is_active = true`);
     }
 
@@ -165,7 +166,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         );
     }
 
-    if (role === 'investigator') {
+    if (role === ROLES.INVESTIGATOR) {
         queries.ballisticCount = () => query(`SELECT COUNT(*) as total FROM ballistic_profiles`);
         queries.totalCustody = () => query(`SELECT COUNT(*) as total FROM custody_records`);
         queries.lossReportStats = () => query(`
@@ -242,7 +243,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     if (r.roleActivity) dashboardData.role_activity = r.roleActivity.rows;
     if (r.officersCount) dashboardData.officers_count = parseInt(r.officersCount.rows[0].total);
 
-    if (role === 'investigator') {
+    if (role === ROLES.INVESTIGATOR) {
         dashboardData.ballistic_profiles_count = parseInt(r.ballisticCount.rows[0].total);
         dashboardData.total_custody_traces = parseInt(r.totalCustody.rows[0].total);
         dashboardData.loss_reports_summary = r.lossReportStats.rows[0];

@@ -161,6 +161,23 @@ class ApiConfig {
     _runtimeDeviceToken = normalizedDeviceToken;
   }
 
+  static Future<void> saveManualBaseUrl(String baseUrl) async {
+    final normalizedBase = normalizeBaseUrlInput(baseUrl);
+    if (!isValidHttpUrl(normalizedBase)) {
+      throw const FormatException(
+        'API Base URL must be a valid absolute URL using http:// or https://.',
+      );
+    }
+
+    final manualUpdatedAt = _nowIsoString();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefManualBaseUrl, normalizedBase);
+    await prefs.setString(_prefManualBaseUrlUpdatedAt, manualUpdatedAt);
+
+    _manualBaseUrl = normalizedBase;
+    _manualBaseUrlUpdatedAt = manualUpdatedAt;
+  }
+
   static Future<bool> saveDiscoveredConfig({
     required String baseUrl,
     required String version,

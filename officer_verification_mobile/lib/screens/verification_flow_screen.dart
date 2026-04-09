@@ -63,7 +63,7 @@ class _VerificationFlowScreenState extends State<VerificationFlowScreen> {
         _isLoadingPending = false;
         _request = null;
         _pendingError =
-            'Missing device credentials. Open Connection Setup and save Officer ID, Device Key, and Device Token.';
+            'This phone is not enrolled yet. Open Connection Setup, confirm API URL, then enroll using a 6-digit commander PIN.';
       });
       return;
     }

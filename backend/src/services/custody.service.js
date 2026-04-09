@@ -105,9 +105,12 @@ const assignCustody = async (custodyData) => {
 
     try {
         return await withTransaction(async (client) => {
-            // Check if firearm is available
+            // Lock firearm row so concurrent assignments cannot pass availability checks simultaneously.
             const firearmCheck = await client.query(
-                'SELECT current_status, assigned_unit_id FROM firearms WHERE firearm_id = $1',
+                `SELECT current_status, assigned_unit_id
+                 FROM firearms
+                 WHERE firearm_id = $1
+                 FOR UPDATE`,
                 [firearm_id]
             );
 

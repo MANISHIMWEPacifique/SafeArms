@@ -27,6 +27,7 @@ DROP TABLE IF EXISTS custody_records CASCADE;
 DROP TABLE IF EXISTS ballistic_profiles CASCADE;
 DROP TABLE IF EXISTS firearms CASCADE;
 DROP TABLE IF EXISTS officers CASCADE;
+DROP TABLE IF EXISTS system_settings CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS units CASCADE;
 
@@ -88,6 +89,15 @@ CREATE TABLE users (
     created_by VARCHAR(20) REFERENCES users(user_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- System Settings Table
+CREATE TABLE system_settings (
+    setting_key VARCHAR(100) PRIMARY KEY,
+    setting_value JSONB NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(20) REFERENCES users(user_id)
 );
 
 ALTER TABLE units

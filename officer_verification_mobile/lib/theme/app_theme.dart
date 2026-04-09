@@ -56,10 +56,20 @@ class AppTheme {
         ),
       ),
       dividerColor: AppColors.border,
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: AppColors.textPrimary,
+        selectionColor: Color(0x663B82F6),
+        selectionHandleColor: AppColors.accentBlue,
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceAlt,
         hintStyle: const TextStyle(color: AppColors.textMuted),
+        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        floatingLabelStyle: const TextStyle(color: AppColors.textPrimary),
+        prefixIconColor: AppColors.textSecondary,
+        suffixIconColor: AppColors.textSecondary,
+        counterStyle: const TextStyle(color: AppColors.textSecondary),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.border),

@@ -222,7 +222,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
 
         // ===== ANOMALY SUMMARY =====
         case 'anomaly_summary': {
-            if (userRole === 'admin') {
+            if (userRole === ROLES.ADMIN) {
                 return res.status(403).json({
                     success: false,
                     message: 'Access denied. Admin role cannot access anomaly summary reports.'
@@ -269,7 +269,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
 
         // ===== USER ACTIVITY (Admin only) =====
         case 'user_activity': {
-            if (userRole !== 'admin') {
+            if (userRole !== ROLES.ADMIN) {
                 return res.status(403).json({ success: false, message: 'Admin access required' });
             }
 
@@ -305,7 +305,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
 
         // ===== SYSTEM AUDIT LOG (Admin only) =====
         case 'audit_log': {
-            if (userRole !== 'admin') {
+            if (userRole !== ROLES.ADMIN) {
                 return res.status(403).json({ success: false, message: 'Admin access required' });
             }
 
@@ -561,7 +561,7 @@ router.post('/loss', authenticate, requireCommander, logLossReport, asyncHandler
 }));
 
 // Update loss report status
-router.patch('/loss/:id/status', authenticate, requireRole(['hq_firearm_commander', 'admin']), asyncHandler(async (req, res) => {
+router.patch('/loss/:id/status', authenticate, requireRole([ROLES.HQ_COMMANDER, ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const { status, review_notes } = req.body;
     if (!['approved', 'rejected', 'under_investigation'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Invalid status' });
@@ -616,7 +616,7 @@ router.post('/destruction', authenticate, requireCommander, logCreate, asyncHand
 }));
 
 // Update destruction request status
-router.patch('/destruction/:id/status', authenticate, requireRole(['hq_firearm_commander', 'admin']), asyncHandler(async (req, res) => {
+router.patch('/destruction/:id/status', authenticate, requireRole([ROLES.HQ_COMMANDER, ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const { status, review_notes } = req.body;
     if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Invalid status' });
@@ -669,7 +669,7 @@ router.post('/procurement', authenticate, requireCommander, logCreate, asyncHand
 }));
 
 // Update procurement request status
-router.patch('/procurement/:id/status', authenticate, requireRole(['hq_firearm_commander', 'admin']), asyncHandler(async (req, res) => {
+router.patch('/procurement/:id/status', authenticate, requireRole([ROLES.HQ_COMMANDER, ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const { status, review_notes } = req.body;
     if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Invalid status' });

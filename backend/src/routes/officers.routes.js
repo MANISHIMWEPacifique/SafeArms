@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Officer = require('../models/Officer');
 const { authenticate } = require('../middleware/authentication');
-const { requireCommander, requireUnitAccess } = require('../middleware/authorization');
+const { requireCommander, requireUnitAccess, ROLES } = require('../middleware/authorization');
 const { logCreate, logUpdate, logDelete } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
@@ -15,7 +15,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     // SECURITY: Station commanders are ALWAYS filtered to their unit
     // They cannot override this by passing unit_id in query params
     let queryUnitId = unit_id;
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         queryUnitId = userUnitId; // Force their unit - ignore any passed unit_id
         if (unit_id && unit_id !== userUnitId) {
             logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query officers for unit ${unit_id} (assigned: ${userUnitId})`);
@@ -39,7 +39,7 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
     // SECURITY: Station commanders can only see their unit's stats
     // They cannot override this
     const options = {};
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         options.unit_id = userUnitId;
         if (req.query.unit_id && req.query.unit_id !== userUnitId) {
             logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted to query officer stats for unit ${req.query.unit_id} (assigned: ${userUnitId})`);
@@ -56,7 +56,7 @@ router.get('/unit/:unit_id', authenticate, asyncHandler(async (req, res) => {
     const requestedUnitId = req.params.unit_id;
     
     // Station commanders can only access their own unit's officers
-    if (role === 'station_commander' && requestedUnitId !== userUnitId) {
+    if (role === ROLES.STATION_COMMANDER && requestedUnitId !== userUnitId) {
         return res.status(403).json({ 
             success: false, 
             message: 'Access denied: You can only view officers from your unit' 
@@ -80,7 +80,7 @@ router.get('/search', authenticate, asyncHandler(async (req, res) => {
     let params = [`%${q}%`, `%${q}%`];
     
     // Station commanders can only search within their unit
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         unitFilter = 'AND o.unit_id = $3';
         params.push(userUnitId);
     }
@@ -107,7 +107,7 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
     }
     
     // Station commanders can only view officers in their unit
-    if (role === 'station_commander' && officer.unit_id !== userUnitId) {
+    if (role === ROLES.STATION_COMMANDER && officer.unit_id !== userUnitId) {
         return res.status(403).json({ 
             success: false, 
             message: 'Access denied: You can only view officers from your unit' 
@@ -122,7 +122,7 @@ router.post('/', authenticate, requireCommander, requireUnitAccess, logCreate, a
     let officerData = { ...req.body };
     
     // Station commanders can only add officers to their own unit
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         officerData.unit_id = userUnitId;
     }
     
@@ -134,7 +134,7 @@ router.put('/:id', authenticate, requireCommander, requireUnitAccess, logUpdate,
     const { role, unit_id: userUnitId } = req.user;
     
     // Station commanders can only update officers in their own unit
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         const existingOfficer = await Officer.findById(req.params.id);
         if (!existingOfficer) {
             return res.status(404).json({ success: false, message: 'Officer not found' });
@@ -164,7 +164,7 @@ router.delete('/:id', authenticate, requireCommander, requireUnitAccess, logDele
     }
     
     // Station commanders can only delete officers in their unit
-    if (role === 'station_commander' && existingOfficer.unit_id !== userUnitId) {
+    if (role === ROLES.STATION_COMMANDER && existingOfficer.unit_id !== userUnitId) {
         return res.status(403).json({ 
             success: false, 
             message: 'Access denied: You can only delete officers in your unit' 

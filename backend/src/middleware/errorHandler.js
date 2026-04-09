@@ -1,4 +1,8 @@
 const logger = require('../utils/logger');
+const {
+    hasTransientDatabaseMessage,
+    isTransientDatabaseError
+} = require('../utils/dbErrors');
 
 /**
  * Custom application error class with HTTP status code
@@ -18,6 +22,11 @@ class AppError extends Error {
 const getStatusCodeFromMessage = (message) => {
     if (!message) return 500;
     const msg = message.toLowerCase();
+
+    // 503 Service Unavailable (transient infra/database issues)
+    if (hasTransientDatabaseMessage(msg) || msg.includes('enotfound')) {
+        return 503;
+    }
 
     // 401 Unauthorized
     if (msg.includes('invalid username or password') ||
@@ -128,6 +137,12 @@ const errorHandler = (err, req, res, next) => {
         // PostgreSQL not null violation
         statusCode = 400;
         message = 'Missing required field.';
+    }
+
+    if (isTransientDatabaseError(err)) {
+        statusCode = 503;
+        message = 'Database service is temporarily unavailable. Please retry shortly.';
+        res.set('Retry-After', '2');
     }
 
     // Send error response

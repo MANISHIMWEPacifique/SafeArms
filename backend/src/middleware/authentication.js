@@ -1,7 +1,8 @@
 const { verifyToken } = require('../config/auth');
 const { query } = require('../config/database');
+const { ROLES } = require('./authorization');
 
-const STATION_COMMANDER_ROLE = 'station_commander';
+const STATION_COMMANDER_ROLE = ROLES.STATION_COMMANDER;
 const PENDING_ASSIGNMENT_ALLOWED_PATHS = [
     '/api/auth/confirm-unit',
     '/api/auth/change-password',

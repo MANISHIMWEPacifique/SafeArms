@@ -8,7 +8,71 @@ const { triggerManualTraining, getLatestTrainingRun } = require('../jobs/modelTr
 const { getMinTrainingSamples } = require('../ml/modelTrainer');
 const { triggerManualOverdueScan } = require('../jobs/overdueDetection.job');
 const { generateTrainingDataBatch } = require('../services/trainingDataGenerator.service');
+const { mergeSystemSettingsCache } = require('../services/systemSettings.service');
 const logger = require('../utils/logger');
+
+const DEFAULT_SETTINGS = {
+    platform_name: 'SafeArms',
+    organization: 'Rwanda National Police',
+    timezone: 'Africa/Kigali',
+    date_format: 'DD/MM/YYYY',
+    time_format: '24-hour',
+    session_timeout: 30,
+    concurrent_sessions: false,
+    remember_me_duration: 7,
+    two_factor_required: false,
+    password_expiry_days: 90,
+    min_password_length: 8,
+    max_login_attempts: 5,
+    lockout_duration: 15,
+    auth_rate_limit_window_minutes: 15,
+    auth_rate_limit_max_per_ip: 60,
+    auth_rate_limit_max_per_account: 10,
+    audit_retention_days: 365,
+    backup_frequency: 'daily',
+    anomaly_threshold: 0.70,
+    critical_threshold: 0.85,
+    anomaly_trigger_threshold: 0.35,
+    anomaly_medium_threshold: 0.50,
+    anomaly_high_threshold: 0.70,
+    anomaly_critical_threshold: 0.85,
+    anomaly_critical_min_confidence: 0.60,
+    notification_email: true,
+    notification_sms: false
+};
+
+const parsePositiveInt = (value, fallback) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const SETTINGS_CACHE_TTL_MS = parsePositiveInt(process.env.SETTINGS_CACHE_TTL_MS, 30000);
+
+const settingsCache = {
+    data: null,
+    cachedAt: 0
+};
+
+const getDefaultSettings = () => ({ ...DEFAULT_SETTINGS });
+
+const getCachedSettings = () => {
+    if (!settingsCache.data) {
+        return null;
+    }
+
+    if (Date.now() - settingsCache.cachedAt > SETTINGS_CACHE_TTL_MS) {
+        settingsCache.data = null;
+        settingsCache.cachedAt = 0;
+        return null;
+    }
+
+    return settingsCache.data;
+};
+
+const setCachedSettings = (settings) => {
+    settingsCache.data = settings;
+    settingsCache.cachedAt = Date.now();
+};
 
 // Get audit logs - mounted at /api/audit-logs
 router.get('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
@@ -61,6 +125,14 @@ router.get('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
     
     // Otherwise, return system settings from database table
     try {
+        const cachedSettings = getCachedSettings();
+        if (cachedSettings) {
+            return res.json({
+                success: true,
+                data: cachedSettings
+            });
+        }
+
         const result = await query('SELECT setting_key, setting_value FROM system_settings');
         
         const settings = {};
@@ -70,29 +142,17 @@ router.get('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
 
         // If the table is empty for some reason, provide fallbacks
         if (Object.keys(settings).length === 0) {
+            const defaultSettings = getDefaultSettings();
+            setCachedSettings(defaultSettings);
+            mergeSystemSettingsCache(defaultSettings);
             return res.json({
                 success: true,
-                data: {
-                    platform_name: 'SafeArms',
-                    organization: 'Rwanda National Police',
-                    timezone: 'Africa/Kigali',
-                    date_format: 'DD/MM/YYYY',
-                    time_format: '24-hour',
-                    session_timeout: 30,
-                    concurrent_sessions: false,
-                    remember_me_duration: 7,
-                    two_factor_required: false,
-                    password_expiry_days: 90,
-                    min_password_length: 8,
-                    max_login_attempts: 5,
-                    lockout_duration: 15,
-                    audit_retention_days: 365,
-                    backup_frequency: 'daily',
-                    notification_email: true,
-                    notification_sms: false
-                }
+                data: defaultSettings
             });
         }
+
+        setCachedSettings(settings);
+        mergeSystemSettingsCache(settings);
 
         res.json({
             success: true,
@@ -100,28 +160,22 @@ router.get('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
         });
     } catch (e) {
         logger.error('Error fetching settings:', e);
+
+        const cachedSettings = getCachedSettings();
+        if (cachedSettings) {
+            return res.json({
+                success: true,
+                data: cachedSettings
+            });
+        }
+
         // Fallback if table doesn't exist yet
+        const defaultSettings = getDefaultSettings();
+        setCachedSettings(defaultSettings);
+        mergeSystemSettingsCache(defaultSettings);
         res.json({
             success: true,
-            data: {
-                platform_name: 'SafeArms',
-                organization: 'Rwanda National Police',
-                timezone: 'Africa/Kigali',
-                date_format: 'DD/MM/YYYY',
-                time_format: '24-hour',
-                session_timeout: 30,
-                concurrent_sessions: false,
-                remember_me_duration: 7,
-                two_factor_required: false,
-                password_expiry_days: 90,
-                min_password_length: 8,
-                max_login_attempts: 5,
-                lockout_duration: 15,
-                audit_retention_days: 365,
-                backup_frequency: 'daily',
-                notification_email: true,
-                notification_sms: false
-            }
+            data: defaultSettings
         });
     }
 }));
@@ -158,6 +212,13 @@ router.put('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
         INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
         VALUES ($1, 'UPDATE', 'system_settings', $2, $3)
     `, [req.user.user_id, JSON.stringify(sanitizedSettings), req.ip]);
+
+    const currentSettings = getCachedSettings() || getDefaultSettings();
+    setCachedSettings({
+        ...currentSettings,
+        ...sanitizedSettings
+    });
+    mergeSystemSettingsCache(sanitizedSettings);
     
     res.json({
         success: true,

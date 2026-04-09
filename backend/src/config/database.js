@@ -1,4 +1,38 @@
 const { Pool } = require('pg');
+const { isTransientDatabaseError } = require('../utils/dbErrors');
+
+const parsePositiveInt = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const DB_CONNECTION_TIMEOUT_MS = parsePositiveInt(process.env.DB_CONNECTION_TIMEOUT_MS, 15000);
+const DB_STATEMENT_TIMEOUT_MS = parsePositiveInt(process.env.DB_STATEMENT_TIMEOUT_MS, 60000);
+const DB_QUERY_TIMEOUT_MS = parsePositiveInt(process.env.DB_QUERY_TIMEOUT_MS, 60000);
+const DB_SLOW_QUERY_LOG_MS = parsePositiveInt(process.env.DB_SLOW_QUERY_LOG_MS, 1000);
+const DB_TRANSIENT_MAX_RETRIES = parsePositiveInt(process.env.DB_TRANSIENT_MAX_RETRIES, 2);
+const DB_TRANSIENT_RETRY_DELAY_MS = parsePositiveInt(process.env.DB_TRANSIENT_RETRY_DELAY_MS, 250);
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const normalizeRetryCount = (value, fallback) => {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+};
+
+const isReadOnlyQuery = (queryText = '') => {
+  const normalized = String(queryText).trim().toLowerCase();
+  if (!/^(select|with)\b/.test(normalized)) {
+    return false;
+  }
+  if (/\b(insert|update|delete|merge|create|alter|drop|truncate)\b/.test(normalized)) {
+    return false;
+  }
+  return !/\bfor\s+update\b/.test(normalized);
+};
 
 // PostgreSQL connection pool configuration
 // Use connection string if provided, otherwise use individual params
@@ -21,9 +55,9 @@ const pool = new Pool({
   max: 15,                         // 15 connections is plenty for a single Node process
   min: 2,                          // Keep 2 connections warm
   idleTimeoutMillis: 30000,        // Release idle connections after 30s
-  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS || '20000', 10), // Wait up to 20s for a connection
-  statement_timeout: parseInt(process.env.DB_STATEMENT_TIMEOUT_MS || '30000', 10),         // Kill queries running longer than 30s
-  query_timeout: parseInt(process.env.DB_QUERY_TIMEOUT_MS || '30000', 10),                 // Query timeout 30s
+  connectionTimeoutMillis: DB_CONNECTION_TIMEOUT_MS, // Wait for an available connection before failing
+  statement_timeout: DB_STATEMENT_TIMEOUT_MS,        // Server-side limit per SQL statement
+  query_timeout: DB_QUERY_TIMEOUT_MS,                // Client-side query timeout
   keepalive: true,                 // Enable TCP keepalive
   keepaliveInitialDelayMillis: 10000, // Start keepalive after 10s idle
   allowExitOnIdle: false,          // Don't let pool close when idle
@@ -41,7 +75,7 @@ pool.on('connect', (client) => {
   client.query(`SET TIME ZONE '${escapedTz}'`).catch((err) => {
     console.warn(`[WARN] Failed to set DB timezone to ${safeTz}: ${err.message}`);
   });
-  client.query("SET statement_timeout = '30s'").catch(() => {});
+  client.query(`SET statement_timeout = ${DB_STATEMENT_TIMEOUT_MS}`).catch(() => {});
   if (!connectionLogged) {
     console.log(`[OK] PostgreSQL database connected successfully (timezone: ${safeTz})`);
     connectionLogged = true;
@@ -63,26 +97,57 @@ const query = async (text, params, options = {}) => {
   if (isShuttingDown) {
     throw new Error('Database pool is shutting down, query rejected');
   }
-  const start = Date.now();
-  try {
-    const queryConfig =
-      typeof text === 'object' && text !== null
-        ? { ...text, ...options }
-        : { text, values: params, ...options };
 
-    const res = await pool.query(queryConfig);
-    const duration = Date.now() - start;
-    // Only log slow queries (>500ms) to reduce console noise
-    if (duration > 500) {
-      const preview = typeof text === 'string'
-        ? text.substring(0, 80)
-        : (text?.text || '').substring(0, 80);
-      console.log('[WARN] Slow query', { text: preview, duration, rows: res.rowCount });
+  const start = Date.now();
+
+  const { retryTransient, maxRetries, ...pgOptions } = options || {};
+
+  const queryConfig =
+    typeof text === 'object' && text !== null
+      ? { ...text, ...pgOptions }
+      : { text, values: params, ...pgOptions };
+
+  const queryText = typeof queryConfig.text === 'string' ? queryConfig.text : '';
+  const allowTransientRetry =
+    retryTransient === true ||
+    (retryTransient !== false && isReadOnlyQuery(queryText));
+  const retryLimit = allowTransientRetry
+    ? normalizeRetryCount(maxRetries, DB_TRANSIENT_MAX_RETRIES)
+    : 0;
+
+  let attempt = 0;
+
+  while (true) {
+    try {
+      const res = await pool.query(queryConfig);
+      const duration = Date.now() - start;
+      if (duration > DB_SLOW_QUERY_LOG_MS) {
+        console.log('[WARN] Slow query', {
+          text: queryText.substring(0, 80),
+          duration,
+          rows: res.rowCount,
+          attempts: attempt + 1
+        });
+      }
+      return res;
+    } catch (error) {
+      const shouldRetry =
+        attempt < retryLimit &&
+        isTransientDatabaseError(error) &&
+        !isShuttingDown;
+
+      if (!shouldRetry) {
+        console.error('Database query error:', error);
+        throw error;
+      }
+
+      attempt += 1;
+      const backoffMs = DB_TRANSIENT_RETRY_DELAY_MS * attempt;
+      console.warn(
+        `[WARN] Transient database error on attempt ${attempt}/${retryLimit + 1}: ${error.message}. Retrying in ${backoffMs}ms...`
+      );
+      await sleep(backoffMs);
     }
-    return res;
-  } catch (error) {
-    console.error('Database query error:', error);
-    throw error;
   }
 };
 

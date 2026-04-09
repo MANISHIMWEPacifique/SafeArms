@@ -50,7 +50,7 @@ router.get('/', authenticate, requireAnomalyAccess, asyncHandler(async (req, res
     const { role, unit_id } = req.user;
     const filters = parseListFilters(req);
 
-    if (role === 'station_commander') {
+    if (role === ROLES.STATION_COMMANDER) {
         const anomalies = await getUnitAnomalies(unit_id, filters);
         return res.json({ success: true, data: anomalies });
     }
@@ -66,7 +66,7 @@ router.get('/investigation/search', authenticate, requireAnomalyAccess, asyncHan
         ? true
         : req.query.include_removed === 'true';
 
-    const effectiveUnitId = req.user.role === 'station_commander' ? req.user.unit_id : unit_id;
+    const effectiveUnitId = req.user.role === ROLES.STATION_COMMANDER ? req.user.unit_id : unit_id;
 
     const results = await Anomaly.searchForInvestigation({
         unit_id: effectiveUnitId,
@@ -82,7 +82,7 @@ router.get('/investigation/search', authenticate, requireAnomalyAccess, asyncHan
 }));
 
 router.get('/unit/:unit_id', authenticate, requireCommander, asyncHandler(async (req, res) => {
-    if (req.user.role === 'station_commander' && req.user.unit_id !== req.params.unit_id) {
+    if (req.user.role === ROLES.STATION_COMMANDER && req.user.unit_id !== req.params.unit_id) {
         return res.status(403).json({
             success: false,
             message: 'Access denied. You can only view anomalies for your assigned unit.'
@@ -94,7 +94,7 @@ router.get('/unit/:unit_id', authenticate, requireCommander, asyncHandler(async 
 }));
 
 router.get('/unit/:unit_id/stats', authenticate, requireCommander, asyncHandler(async (req, res) => {
-    if (req.user.role === 'station_commander' && req.user.unit_id !== req.params.unit_id) {
+    if (req.user.role === ROLES.STATION_COMMANDER && req.user.unit_id !== req.params.unit_id) {
         return res.status(403).json({
             success: false,
             message: 'Access denied. You can only view stats for your assigned unit.'

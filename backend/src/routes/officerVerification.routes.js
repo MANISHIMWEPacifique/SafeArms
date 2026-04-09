@@ -1,7 +1,7 @@
 const express = require('express');
 
 const { authenticate } = require('../middleware/authentication');
-const { requireCommander, requireRole } = require('../middleware/authorization');
+const { requireCommander, requireRole, ROLES } = require('../middleware/authorization');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { triggerManualVerificationOps } = require('../jobs/officerVerification.job');
 const {
@@ -78,7 +78,7 @@ router.patch('/devices/:device_key/revoke', authenticate, requireCommander, asyn
     });
 }));
 
-router.patch('/devices/:device_key/reassign', authenticate, requireRole(['hq_firearm_commander', 'station_commander', 'admin']), asyncHandler(async (req, res) => {
+router.patch('/devices/:device_key/reassign', authenticate, requireRole([ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER, ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const device = await reassignOfficerDevice({
         deviceKey: req.params.device_key,
         officerId: req.body.officer_id,
@@ -115,7 +115,7 @@ router.post('/requests/custody/:custody_id', authenticate, requireCommander, asy
 router.get('/requests/:verification_id/status', authenticate, requireCommander, asyncHandler(async (req, res) => {
     const status = await getVerificationStatus({ verificationId: req.params.verification_id });
 
-    if (req.user.role === 'station_commander' && req.user.unit_id !== status.unit_id) {
+    if (req.user.role === ROLES.STATION_COMMANDER && req.user.unit_id !== status.unit_id) {
         return res.status(403).json({
             success: false,
             message: 'Access denied. You can only view verification requests for your unit.'
@@ -125,11 +125,11 @@ router.get('/requests/:verification_id/status', authenticate, requireCommander, 
     res.json({ success: true, data: status });
 }));
 
-router.get('/ops/metrics', authenticate, requireRole(['hq_firearm_commander', 'station_commander', 'admin']), asyncHandler(async (req, res) => {
+router.get('/ops/metrics', authenticate, requireRole([ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER, ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const days = req.query.days;
     let unitId = req.query.unit_id || null;
 
-    if (req.user.role === 'station_commander') {
+    if (req.user.role === ROLES.STATION_COMMANDER) {
         unitId = req.user.unit_id;
     }
 
@@ -137,12 +137,12 @@ router.get('/ops/metrics', authenticate, requireRole(['hq_firearm_commander', 's
     res.json({ success: true, data: metrics });
 }));
 
-router.get('/ops/incident-summary', authenticate, requireRole(['hq_firearm_commander', 'station_commander', 'admin']), asyncHandler(async (req, res) => {
+router.get('/ops/incident-summary', authenticate, requireRole([ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER, ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const summary = await getIncidentFallbackSummary({ days: req.query.days });
     res.json({ success: true, data: summary });
 }));
 
-router.post('/ops/run-maintenance', authenticate, requireRole(['hq_firearm_commander', 'admin']), asyncHandler(async (req, res) => {
+router.post('/ops/run-maintenance', authenticate, requireRole([ROLES.HQ_COMMANDER, ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const result = await triggerManualVerificationOps();
     res.json(result);
 }));

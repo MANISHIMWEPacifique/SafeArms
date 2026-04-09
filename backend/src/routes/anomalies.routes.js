@@ -6,9 +6,9 @@ const { authenticate } = require('../middleware/authentication');
 const { requireCommander, requireRole, ROLES } = require('../middleware/authorization');
 const { asyncHandler } = require('../middleware/errorHandler');
 
-// All roles that can view anomalies
+// Roles that can view anomalies (admin excluded: training-only policy)
 const requireAnomalyAccess = requireRole([
-    ROLES.ADMIN, ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER, ROLES.INVESTIGATOR
+    ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER, ROLES.INVESTIGATOR
 ]);
 
 // Only station commanders can make anomaly decisions.

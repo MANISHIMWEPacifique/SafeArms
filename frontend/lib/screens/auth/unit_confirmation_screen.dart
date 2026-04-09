@@ -128,7 +128,7 @@ class _UnitConfirmationScreenState extends State<UnitConfirmationScreen> {
                 const SizedBox(height: 24),
 
                 // Assigned Unit Card
-                _buildUnitCard(),
+                _buildUnitCard(user),
                 const SizedBox(height: 24),
 
                 // Info Message
@@ -199,7 +199,9 @@ class _UnitConfirmationScreenState extends State<UnitConfirmationScreen> {
     );
   }
 
-  Widget _buildUnitCard() {
+  Widget _buildUnitCard(Map<String, dynamic>? user) {
+    final assignedUnitId = user?['unit_id']?.toString() ?? 'Not Assigned';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -239,18 +241,18 @@ class _UnitConfirmationScreenState extends State<UnitConfirmationScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Nyamirambo Police Station',
-            style: TextStyle(
+          Text(
+            assignedUnitId,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 12),
-          _buildUnitDetail(Icons.category, 'Police Station'),
+          _buildUnitDetail(Icons.badge_outlined, 'Assigned Unit ID'),
           const SizedBox(height: 8),
-          _buildUnitDetail(Icons.location_on, 'Nyamirambo, Kigali'),
+          _buildUnitDetail(Icons.info_outline, 'Assigned by administrator'),
         ],
       ),
     );

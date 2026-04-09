@@ -49,6 +49,18 @@ class _StationCustodyManagementScreenState
     }
   }
 
+  Future<void> _refreshDashboardAfterCustodyChange() async {
+    if (!mounted) return;
+
+    final dashboardProvider = context.read<DashboardProvider>();
+
+    await dashboardProvider.loadDashboardStats(force: true);
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    if (!mounted) return;
+    await dashboardProvider.loadDashboardStats(force: true);
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -93,11 +105,13 @@ class _StationCustodyManagementScreenState
           if (_showAssignModal)
             AssignCustodyModal(
               onClose: () => setState(() => _showAssignModal = false),
-              onSuccess: () {
+              onSuccess: () async {
                 setState(() => _showAssignModal = false);
-                _loadUnitCustody();
-                // Refresh dashboard stats so active custody count updates
-                context.read<DashboardProvider>().loadDashboardStats();
+                await Future.wait([
+                  _loadUnitCustody(),
+                  // Retry once to handle stale reads from transient caches.
+                  _refreshDashboardAfterCustodyChange(),
+                ]);
               },
             ),
 
@@ -108,14 +122,16 @@ class _StationCustodyManagementScreenState
                 _showReturnModal = false;
                 _selectedCustodyForReturn = null;
               }),
-              onSuccess: () {
+              onSuccess: () async {
                 setState(() {
                   _showReturnModal = false;
                   _selectedCustodyForReturn = null;
                 });
-                _loadUnitCustody();
-                // Refresh dashboard stats so active custody count and recent activity update
-                context.read<DashboardProvider>().loadDashboardStats();
+                await Future.wait([
+                  _loadUnitCustody(),
+                  // Retry once to handle stale reads from transient caches.
+                  _refreshDashboardAfterCustodyChange(),
+                ]);
               },
             ),
         ],

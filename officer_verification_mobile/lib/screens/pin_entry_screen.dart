@@ -61,19 +61,21 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
     );
   }
 
-  Widget _buildKey(String value) {
+  Widget _buildKey(String value, {required double keySize}) {
+    final textSize = (keySize * 0.35).clamp(22.0, 28.0);
+
     return SizedBox(
-      width: 80,
-      height: 80,
+      width: keySize,
+      height: keySize,
       child: InkWell(
-        borderRadius: BorderRadius.circular(40),
+        borderRadius: BorderRadius.circular(keySize / 2),
         onTap: () => _onNumberTap(value),
         child: Center(
           child: Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textPrimary,
-              fontSize: 28,
+              fontSize: textSize,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -87,86 +89,133 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 60),
-            const Icon(Icons.security, color: AppColors.accentBlue, size: 56),
-            const SizedBox(height: 16),
-            const Text(
-              'SafeArms',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Text(
-              'Rwanda National Police',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            ),
-            const SizedBox(height: 60),
-            const Text(
-              'Enter PIN to confirm identity',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
-            ),
-            const SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _pinLength,
-                (index) => _buildDot(index < _pin.length),
-              ),
-            ),
-            const Spacer(),
-            for (final row in const [
-              ['1', '2', '3'],
-              ['4', '5', '6'],
-              ['7', '8', '9'],
-            ]) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: row.map(_buildKey).toList(),
-              ),
-              const SizedBox(height: 10),
-            ],
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                const SizedBox(width: 80, height: 80),
-                _buildKey('0'),
-                SizedBox(
-                  width: 80,
-                  height: 80,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(40),
-                    onTap: _onDeleteTap,
-                    child: const Center(
-                      child: Icon(
-                        Icons.backspace_outlined,
-                        color: AppColors.textSecondary,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompactHeight = constraints.maxHeight < 700;
+            final isVeryCompactHeight = constraints.maxHeight < 620;
+
+            final baseKeySize = ((constraints.maxWidth - 64) / 3).clamp(
+              56.0,
+              80.0,
+            );
+            final keySize = isVeryCompactHeight
+                ? baseKeySize.clamp(52.0, 64.0)
+                : (isCompactHeight
+                      ? baseKeySize.clamp(56.0, 72.0)
+                      : baseKeySize);
+
+            final topSpacing = isVeryCompactHeight
+                ? 16.0
+                : (isCompactHeight ? 24.0 : 60.0);
+            final sectionSpacing = isCompactHeight ? 28.0 : 60.0;
+            final promptSpacing = isCompactHeight ? 20.0 : 30.0;
+            final keypadSpacing = isCompactHeight ? 18.0 : 26.0;
+            final rowSpacing = isCompactHeight ? 6.0 : 10.0;
+            final bottomSpacing = isCompactHeight ? 20.0 : 48.0;
+
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      SizedBox(height: topSpacing),
+                      Icon(
+                        Icons.security,
+                        color: AppColors.accentBlue,
+                        size: isCompactHeight ? 48 : 56,
                       ),
-                    ),
+                      SizedBox(height: isCompactHeight ? 12 : 16),
+                      Text(
+                        'SafeArms',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: isCompactHeight ? 24 : 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Rwanda National Police',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: isCompactHeight ? 13 : 14,
+                        ),
+                      ),
+                      SizedBox(height: sectionSpacing),
+                      Text(
+                        'Enter PIN to confirm identity',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: isCompactHeight ? 15 : 16,
+                        ),
+                      ),
+                      SizedBox(height: promptSpacing),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          _pinLength,
+                          (index) => _buildDot(index < _pin.length),
+                        ),
+                      ),
+                      SizedBox(height: keypadSpacing),
+                      for (final row in const [
+                        ['1', '2', '3'],
+                        ['4', '5', '6'],
+                        ['7', '8', '9'],
+                      ]) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            for (final value in row)
+                              _buildKey(value, keySize: keySize),
+                          ],
+                        ),
+                        SizedBox(height: rowSpacing),
+                      ],
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          SizedBox(width: keySize, height: keySize),
+                          _buildKey('0', keySize: keySize),
+                          SizedBox(
+                            width: keySize,
+                            height: keySize,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(keySize / 2),
+                              onTap: _onDeleteTap,
+                              child: const Center(
+                                child: Icon(
+                                  Icons.backspace_outlined,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: isCompactHeight ? 4 : 8),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ConnectionSetupScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.settings, size: 16),
+                        label: const Text('Connection Setup'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.accentBlue,
+                        ),
+                      ),
+                      SizedBox(height: bottomSpacing),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ConnectionSetupScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.settings, size: 16),
-              label: const Text('Connection Setup'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.accentBlue,
               ),
-            ),
-            const SizedBox(height: 48),
-          ],
+            );
+          },
         ),
       ),
     );

@@ -14,6 +14,11 @@ class SettingsService {
       }
       final data = await ApiClient.get('${ApiConfig.apiBase}/settings');
       return data['data'] ?? {};
+    } on ApiException catch (e) {
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        return {}; // Expected for users without settings permissions.
+      }
+      throw Exception('Error fetching settings: $e');
     } catch (e) {
       throw Exception('Error fetching settings: $e');
     }

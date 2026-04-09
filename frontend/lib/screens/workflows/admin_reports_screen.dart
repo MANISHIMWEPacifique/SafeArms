@@ -8,7 +8,7 @@ import '../../utils/pdf_report_generator.dart';
 import '../../widgets/empty_state_widget.dart';
 
 /// System Admin – Audit, Compliance & System Oversight Reports
-/// Report types: User Activity Audit, System Audit Log, Anomaly Detection Summary
+/// Report types: User Activity Audit, System Audit Log
 class AdminReportsScreen extends StatefulWidget {
   const AdminReportsScreen({super.key});
 
@@ -36,7 +36,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   final List<Map<String, String>> _reportTypes = [
     {'value': 'user_activity', 'label': 'User Activity Audit'},
     {'value': 'audit_log', 'label': 'System Audit Trail'},
-    {'value': 'anomaly_summary', 'label': 'Anomaly Detection Summary'},
   ];
 
   final List<Map<String, String>> _roles = [
@@ -239,8 +238,8 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 320),
             transitionBuilder: (child, animation) => FadeTransition(
-              opacity: CurvedAnimation(
-                  parent: animation, curve: Curves.easeOut),
+              opacity:
+                  CurvedAnimation(parent: animation, curve: Curves.easeOut),
               child: child,
             ),
             child: (_reportGenerated && !_isLoading)
@@ -676,8 +675,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           if (_selectedReportType == 'user_activity')
             _buildUserActivityReport(),
           if (_selectedReportType == 'audit_log') _buildAuditLogReport(),
-          if (_selectedReportType == 'anomaly_summary')
-            _buildAnomalySummaryReport(),
         ],
       ),
     );
@@ -808,62 +805,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   }
 
   // ==============================
-  // ANOMALY SYSTEM SUMMARY
-  // ==============================
-  Widget _buildAnomalySummaryReport() {
-    final anomalies =
-        List<Map<String, dynamic>>.from(_reportData['anomalies'] ?? []);
-    final summary = Map<String, dynamic>.from(_reportData['summary'] ?? {});
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Summary cards
-        Row(
-          children: [
-            _buildSummaryCard(
-                'Total Anomalies', summary['total']?.toString() ?? '0'),
-            const SizedBox(width: 12),
-            _buildSummaryCard(
-                'Reviewed', summary['reviewed']?.toString() ?? '0'),
-            const SizedBox(width: 12),
-            _buildSummaryCard('Pending', summary['pending']?.toString() ?? '0'),
-            const SizedBox(width: 12),
-            _buildSummaryCard(
-                'High Severity', summary['high']?.toString() ?? '0'),
-          ],
-        ),
-        const SizedBox(height: 24),
-
-        if (anomalies.isEmpty)
-          _buildEmptyState('No anomalies found for the selected filters.')
-        else ...[
-          _buildSectionTitle('Anomaly Details'),
-          const SizedBox(height: 12),
-          _buildDataTable(
-            columns: const [
-              'Anomaly ID',
-              'Unit',
-              'Severity',
-              'Status',
-              'Date Detected'
-            ],
-            rows: anomalies
-                .map((a) => [
-                      a['anomaly_id']?.toString() ?? '',
-                      a['unit_name']?.toString() ?? '',
-                      a['severity']?.toString() ?? '',
-                      a['status']?.toString() ?? '',
-                      _fmtDate(a['detected_at']?.toString()),
-                    ])
-                .toList(),
-          ),
-        ],
-      ],
-    );
-  }
-
-  // ==============================
   // SHARED WIDGETS
   // ==============================
 
@@ -878,36 +819,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     );
   }
 
-  Widget _buildSummaryCard(String label, String value) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1F2E),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFF37404F)),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildDataTable({
     required List<String> columns,
     required List<List<String>> rows,
@@ -915,10 +826,9 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final estimatedTableWidth = columns.length * 170.0;
-        final tableWidth =
-            estimatedTableWidth > constraints.maxWidth
-                ? estimatedTableWidth
-                : constraints.maxWidth;
+        final tableWidth = estimatedTableWidth > constraints.maxWidth
+            ? estimatedTableWidth
+            : constraints.maxWidth;
 
         return Container(
           decoration: BoxDecoration(
@@ -933,8 +843,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               child: DataTable(
                 headingRowColor:
                     WidgetStateProperty.all(const Color(0xFF252A3A)),
-                dataRowColor:
-                    WidgetStateProperty.all(const Color(0xFF1A1F2E)),
+                dataRowColor: WidgetStateProperty.all(const Color(0xFF1A1F2E)),
                 headingRowHeight: 44,
                 dataRowMinHeight: 40,
                 dataRowMaxHeight: 44,
@@ -993,15 +902,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         return 'Investigator';
       default:
         return role.replaceAll('_', ' ');
-    }
-  }
-
-  String _fmtDate(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return '–';
-    try {
-      return DateFormat('MMM d, yyyy').format(DateTime.parse(dateStr));
-    } catch (_) {
-      return dateStr;
     }
   }
 

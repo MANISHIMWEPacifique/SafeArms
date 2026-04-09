@@ -113,20 +113,11 @@ router.post('/', authenticate, requireAdmin, logCreate, asyncHandler(async (req,
         return res.status(400).json({ success: false, message: 'Invalid role' });
     }
 
-    if (role === 'station_commander') {
-        if (!unit_id) {
-            return res.status(400).json({
-                success: false,
-                message: 'Unit assignment is required for station_commander role'
-            });
-        }
-
-        if (!isValidEntityId(unit_id, 'UNIT')) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid unit_id format. Expected format: UNIT-XXX'
-            });
-        }
+    if (unit_id && !isValidEntityId(unit_id, 'UNIT')) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid unit_id format. Expected format: UNIT-XXX'
+        });
     }
 
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);

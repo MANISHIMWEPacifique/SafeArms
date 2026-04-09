@@ -27,8 +27,17 @@ class AuthProvider with ChangeNotifier {
   int get otpExpiresIn => _otpExpiresIn;
   String? get userRole => _currentUser?['role'];
   String? get userName => _currentUser?['full_name'];
+  bool get hasAssignedUnit {
+    final unitId = _currentUser?['unit_id']?.toString();
+    return unitId != null && unitId.isNotEmpty;
+  }
+
+  bool get isStationCommanderPendingUnitAssignment =>
+      _currentUser?['role'] == 'station_commander' && !hasAssignedUnit;
+
   bool get requiresUnitConfirmation =>
       _currentUser?['role'] == 'station_commander' &&
+      hasAssignedUnit &&
       _currentUser?['unit_confirmed'] == false;
 
   bool get requiresPasswordChange =>
@@ -163,7 +172,7 @@ class AuthProvider with ChangeNotifier {
   /// Confirm unit assignment
   Future<bool> confirmUnit() async {
     final unitId = _currentUser?['unit_id']?.toString();
-    if (unitId == null) {
+    if (unitId == null || unitId.isEmpty) {
       _errorMessage = 'No unit assigned';
       notifyListeners();
       return false;

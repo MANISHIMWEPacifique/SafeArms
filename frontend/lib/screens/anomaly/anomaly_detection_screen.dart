@@ -32,6 +32,11 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.currentUser?['role'] == 'admin') {
+        return;
+      }
+
       _loadAnomalies();
       if (_autoRefresh) {
         _startAutoRefresh();
@@ -77,6 +82,58 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final role = authProvider.currentUser?['role'];
+
+    if (role == 'admin') {
+      return Scaffold(
+        backgroundColor: const Color(0xFF1A1F2E),
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: Container(
+                margin: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF252A3A),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF37404F)),
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      color: Color(0xFF78909C),
+                      size: 48,
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Access restricted for admin role',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'Admin accounts are training-only for anomaly domain. Use System Settings to run model training and review ML status.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFB0BEC5),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final isInvestigator = role == 'investigator';
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= _anomalyDesktopBreakpoint;
@@ -97,8 +154,8 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 260),
                 transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: CurvedAnimation(
-                      parent: animation, curve: Curves.easeOut),
+                  opacity:
+                      CurvedAnimation(parent: animation, curve: Curves.easeOut),
                   child: child,
                 ),
                 child: _activeView == 'monitoring'
@@ -425,10 +482,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                 {'value': 'investigating', 'label': 'Investigating'},
                 {'value': 'resolved', 'label': 'Resolved'},
                 {'value': 'false_positive', 'label': 'False Positive'},
-                {
-                  'value': 'acceptable_change',
-                  'label': 'Acceptable Change'
-                },
+                {'value': 'acceptable_change', 'label': 'Acceptable Change'},
               ],
               onChanged: (value) {
                 setState(() => _selectedStatus = value!);
@@ -840,147 +894,148 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
         ),
         child: Row(
           children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              '#${anomaly['anomaly_id']?.toString() ?? 'N/A'}',
-              style: const TextStyle(
-                color: Color(0xFF1E88E5),
-                fontSize: 13,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              _formatAnomalyType(anomaly['anomaly_type'] ?? 'Unknown'),
-              style: const TextStyle(
-                color: Color(0xFFB0BEC5),
-                fontSize: 13,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: severityColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: severityColor.withValues(alpha: 0.3)),
-              ),
+            Expanded(
+              flex: 2,
               child: Text(
-                severity.toUpperCase(),
-                style: TextStyle(
-                  color: severityColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                '#${anomaly['anomaly_id']?.toString() ?? 'N/A'}',
+                style: const TextStyle(
+                  color: Color(0xFF1E88E5),
+                  fontSize: 13,
+                  fontFamily: 'monospace',
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
-          ),
-          if (!isMobileTable)
+            Expanded(
+              flex: 2,
+              child: Text(
+                _formatAnomalyType(anomaly['anomaly_type'] ?? 'Unknown'),
+                style: const TextStyle(
+                  color: Color(0xFFB0BEC5),
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             Expanded(
               flex: 1,
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF37404F),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: score,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: severityColor,
-                          borderRadius: BorderRadius.circular(3),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: severityColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border:
+                      Border.all(color: severityColor.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  severity.toUpperCase(),
+                  style: TextStyle(
+                    color: severityColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            if (!isMobileTable)
+              Expanded(
+                flex: 1,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF37404F),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: score,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: severityColor,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    (score * 100).toStringAsFixed(0),
-                    style: TextStyle(
-                      color: severityColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(width: 8),
+                    Text(
+                      (score * 100).toStringAsFixed(0),
+                      style: TextStyle(
+                        color: severityColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+                  ],
+                ),
+              ),
+            if (!isMobileTable)
+              Expanded(
+                flex: 2,
+                child: Text(
+                  anomaly['serial_number'] ?? 'N/A',
+                  style: const TextStyle(
+                    color: Color(0xFFB0BEC5),
+                    fontSize: 13,
                   ),
-                ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          if (!isMobileTable)
+            if (!isMobileTable)
+              Expanded(
+                flex: 2,
+                child: Text(
+                  anomaly['officer_name'] ?? 'N/A',
+                  style: const TextStyle(
+                    color: Color(0xFFB0BEC5),
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            if (isDesktopTable)
+              Expanded(
+                flex: 2,
+                child: Text(
+                  anomaly['unit_name'] ?? 'N/A',
+                  style: const TextStyle(
+                    color: Color(0xFFB0BEC5),
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             Expanded(
               flex: 2,
               child: Text(
-                anomaly['serial_number'] ?? 'N/A',
+                _formatDateTime(anomaly['detected_at']),
                 style: const TextStyle(
-                  color: Color(0xFFB0BEC5),
-                  fontSize: 13,
+                  color: Color(0xFF78909C),
+                  fontSize: 12,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
-          if (!isMobileTable)
-            Expanded(
-              flex: 2,
-              child: Text(
-                anomaly['officer_name'] ?? 'N/A',
-                style: const TextStyle(
-                  color: Color(0xFFB0BEC5),
-                  fontSize: 13,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            if (!isMobileTable)
+              Expanded(
+                flex: 1,
+                child: _buildStatusBadge(status),
               ),
-            ),
-          if (isDesktopTable)
-            Expanded(
-              flex: 2,
-              child: Text(
-                anomaly['unit_name'] ?? 'N/A',
-                style: const TextStyle(
-                  color: Color(0xFFB0BEC5),
-                  fontSize: 13,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              _formatDateTime(anomaly['detected_at']),
-              style: const TextStyle(
-                color: Color(0xFF78909C),
-                fontSize: 12,
-              ),
-            ),
-          ),
-          if (!isMobileTable)
             Expanded(
               flex: 1,
-              child: _buildStatusBadge(status),
+              child: IconButton(
+                icon: const Icon(Icons.info_outline, size: 18),
+                color: const Color(0xFF1E88E5),
+                onPressed: () => _showAnomalyDetails(anomaly),
+                tooltip: 'View Details',
+              ),
             ),
-          Expanded(
-            flex: 1,
-            child: IconButton(
-              icon: const Icon(Icons.info_outline, size: 18),
-              color: const Color(0xFF1E88E5),
-              onPressed: () => _showAnomalyDetails(anomaly),
-              tooltip: 'View Details',
-            ),
-          ),
           ],
         ),
       ),
@@ -2061,7 +2116,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-              // Header - Officer details form style
+                  // Header - Officer details form style
                   _buildModalHeader(severity, severityColor, severityIcon),
                   Flexible(
                     child: SingleChildScrollView(
@@ -2069,114 +2124,116 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                      // Severity Banner
-                      _buildSeverityBanner(severity, severityColor),
-                      const SizedBox(height: 24),
+                          // Severity Banner
+                          _buildSeverityBanner(severity, severityColor),
+                          const SizedBox(height: 24),
 
-                      // Critical anomaly explanation requirement
-                      if (isCritical &&
-                          isOpen &&
-                          !hasExplanation &&
-                          role == 'station_commander') ...[
-                        _buildExplanationRequired(role),
-                        const SizedBox(height: 24)
-                      ],
+                          // Critical anomaly explanation requirement
+                          if (isCritical &&
+                              isOpen &&
+                              !hasExplanation &&
+                              role == 'station_commander') ...[
+                            _buildExplanationRequired(role),
+                            const SizedBox(height: 24)
+                          ],
 
-                      // Existing explanation display
-                      if (hasExplanation) ...[
-                        _buildExplanationDisplay(),
-                        const SizedBox(height: 24)
-                      ],
+                          // Existing explanation display
+                          if (hasExplanation) ...[
+                            _buildExplanationDisplay(),
+                            const SizedBox(height: 24)
+                          ],
 
-                      // False positive ML training info
-                      if (isOpen && role == 'station_commander') ...[
-                        _buildFalsePositiveInfo(),
-                        const SizedBox(height: 24)
-                      ],
+                          // False positive ML training info
+                          if (isOpen && role == 'station_commander') ...[
+                            _buildFalsePositiveInfo(),
+                            const SizedBox(height: 24)
+                          ],
 
-                      // Detection Information
-                      _buildSectionHeader('Detection Information'),
-                      const SizedBox(height: 12),
-                      _buildInfoCard([
-                        _buildInfoRow(
-                            'Type',
-                            _formatAnomalyType(
-                                widget.anomaly['anomaly_type'] ?? 'N/A')),
-                        _buildInfoRow('Severity', severity.toUpperCase()),
-                        _buildInfoRow('Score',
-                            '${((double.tryParse(widget.anomaly['anomaly_score']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
-                        _buildInfoRow('Detection Method',
-                            widget.anomaly['detection_method'] ?? 'N/A'),
-                        _buildInfoRow('Confidence',
-                            '${((double.tryParse(widget.anomaly['confidence_level']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
-                        _buildInfoRow('Detected At',
-                            _formatDateTimeFull(widget.anomaly['detected_at'])),
-                      ]),
-                      const SizedBox(height: 24),
+                          // Detection Information
+                          _buildSectionHeader('Detection Information'),
+                          const SizedBox(height: 12),
+                          _buildInfoCard([
+                            _buildInfoRow(
+                                'Type',
+                                _formatAnomalyType(
+                                    widget.anomaly['anomaly_type'] ?? 'N/A')),
+                            _buildInfoRow('Severity', severity.toUpperCase()),
+                            _buildInfoRow('Score',
+                                '${((double.tryParse(widget.anomaly['anomaly_score']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
+                            _buildInfoRow('Detection Method',
+                                widget.anomaly['detection_method'] ?? 'N/A'),
+                            _buildInfoRow('Confidence',
+                                '${((double.tryParse(widget.anomaly['confidence_level']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
+                            _buildInfoRow(
+                                'Detected At',
+                                _formatDateTimeFull(
+                                    widget.anomaly['detected_at'])),
+                          ]),
+                          const SizedBox(height: 24),
 
-                      // Custody Information
-                      _buildSectionHeader('Custody Information'),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildInfoCard([
-                              _buildInfoRow('Firearm',
-                                  widget.anomaly['serial_number'] ?? 'N/A'),
-                              _buildInfoRow('Officer',
-                                  widget.anomaly['officer_name'] ?? 'N/A'),
-                            ]),
+                          // Custody Information
+                          _buildSectionHeader('Custody Information'),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildInfoCard([
+                                  _buildInfoRow('Firearm',
+                                      widget.anomaly['serial_number'] ?? 'N/A'),
+                                  _buildInfoRow('Officer',
+                                      widget.anomaly['officer_name'] ?? 'N/A'),
+                                ]),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildInfoCard([
+                                  _buildInfoRow('Unit',
+                                      widget.anomaly['unit_name'] ?? 'N/A'),
+                                  _buildInfoRow('Custody Type',
+                                      widget.anomaly['custody_type'] ?? 'N/A'),
+                                ]),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildInfoCard([
-                              _buildInfoRow(
-                                  'Unit', widget.anomaly['unit_name'] ?? 'N/A'),
-                              _buildInfoRow('Custody Type',
-                                  widget.anomaly['custody_type'] ?? 'N/A'),
-                            ]),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                      // Contributing Factors
-                      if (contributingFactors != null &&
-                          contributingFactors.isNotEmpty) ...[
-                        _buildSectionHeader('Contributing Factors'),
-                        const SizedBox(height: 12),
-                        _buildContributingFactors(contributingFactors),
-                        const SizedBox(height: 24),
-                      ],
+                          // Contributing Factors
+                          if (contributingFactors != null &&
+                              contributingFactors.isNotEmpty) ...[
+                            _buildSectionHeader('Contributing Factors'),
+                            const SizedBox(height: 12),
+                            _buildContributingFactors(contributingFactors),
+                            const SizedBox(height: 24),
+                          ],
 
-                      // Feature Importance
-                      if (featureImportance != null &&
-                          featureImportance.isNotEmpty) ...[
-                        _buildSectionHeader('Feature Importance'),
-                        const SizedBox(height: 12),
-                        _buildFeatureImportance(featureImportance),
-                        const SizedBox(height: 24),
-                      ],
+                          // Feature Importance
+                          if (featureImportance != null &&
+                              featureImportance.isNotEmpty) ...[
+                            _buildSectionHeader('Feature Importance'),
+                            const SizedBox(height: 12),
+                            _buildFeatureImportance(featureImportance),
+                            const SizedBox(height: 24),
+                          ],
 
-                      // Investigation Status
-                      _buildSectionHeader('Investigation Status'),
-                      const SizedBox(height: 12),
-                      _buildInvestigationSection(),
-                      const SizedBox(height: 24),
+                          // Investigation Status
+                          _buildSectionHeader('Investigation Status'),
+                          const SizedBox(height: 12),
+                          _buildInvestigationSection(),
+                          const SizedBox(height: 24),
 
-                      // Notes input (for actionable statuses)
-                      if (isOpen) ...[
-                        _buildSectionHeader('Investigation Notes'),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _notesController,
-                          maxLines: 3,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 13),
-                          decoration: _inputDecoration(
-                              'Enter investigation notes...', Icons.notes),
-                        ),
-                      ],
+                          // Notes input (for actionable statuses)
+                          if (isOpen) ...[
+                            _buildSectionHeader('Investigation Notes'),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _notesController,
+                              maxLines: 3,
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 13),
+                              decoration: _inputDecoration(
+                                  'Enter investigation notes...', Icons.notes),
+                            ),
+                          ],
                         ],
                       ),
                     ),

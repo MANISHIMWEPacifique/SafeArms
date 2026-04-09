@@ -51,18 +51,23 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         ${isStationCmd ? 'AND unit_id = $1' : ''}
     `, unitParams);
 
-    queries.anomaliesStats = () => query(`
+    if (role === 'admin') {
+        queries.anomaliesStats = async () => ({ rows: [] });
+    } else {
+        queries.anomaliesStats = () => query(`
         SELECT severity, COUNT(*) as count
         FROM anomalies
         WHERE detected_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
         ${isStationCmd ? 'AND unit_id = $1' : ''}
         GROUP BY severity
     `, unitParams);
+    }
 
     queries.recentCustody = () => query(`
         SELECT 
             cr.custody_id, cr.issued_at, cr.returned_at,
             cr.assignment_reason, cr.custody_type,
+            COALESCE(cr.returned_at, cr.issued_at) as activity_at,
             o.full_name as officer_name,
             f.serial_number, f.firearm_type,
             u.unit_name,
@@ -71,8 +76,10 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         JOIN officers o ON cr.officer_id = o.officer_id
         JOIN firearms f ON cr.firearm_id = f.firearm_id
         LEFT JOIN units u ON cr.unit_id = u.unit_id
-        ${isStationCmd ? 'WHERE cr.unit_id = $1' : ''}
-        ORDER BY cr.issued_at DESC
+        ${isStationCmd
+            ? 'WHERE cr.unit_id = $1 AND COALESCE(cr.returned_at, cr.issued_at) <= CURRENT_TIMESTAMP'
+            : 'WHERE COALESCE(cr.returned_at, cr.issued_at) <= CURRENT_TIMESTAMP'}
+        ORDER BY COALESCE(cr.returned_at, cr.issued_at) DESC
         LIMIT 10
     `, unitParams);
 
@@ -89,7 +96,34 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         FROM audit_logs al
         LEFT JOIN users u ON al.user_id = u.user_id
         WHERE al.success = true
-        ${isStationCmd ? "AND (u.unit_id = $1 OR al.new_values->>'actor_unit_id' = $1)" : ''}
+        AND al.created_at <= CURRENT_TIMESTAMP
+        ${isStationCmd ? `AND (
+            u.unit_id = $1
+            OR al.new_values->>'actor_unit_id' = $1
+            OR al.new_values->>'unit_id' = $1
+            OR al.new_values->'body'->>'unit_id' = $1
+            OR al.new_values->>'to_unit_id' = $1
+            OR al.new_values->>'from_unit_id' = $1
+            OR al.new_values->'body'->>'to_unit_id' = $1
+            OR al.new_values->'body'->>'from_unit_id' = $1
+            OR (
+                (
+                    al.table_name IN ('custody', 'custody_records')
+                    OR al.action_type IN ('CUSTODY_ASSIGNED', 'CUSTODY_RETURNED', 'CROSS_UNIT_TRANSFER')
+                )
+                AND EXISTS (
+                    SELECT 1
+                    FROM custody_records cr
+                    WHERE cr.unit_id = $1
+                      AND (
+                          cr.custody_id = al.record_id
+                          OR cr.firearm_id = al.record_id
+                          OR cr.custody_id = COALESCE(al.new_values->>'record_id', al.new_values->'body'->>'custody_id')
+                          OR cr.firearm_id = COALESCE(al.new_values->>'firearm_id', al.new_values->'body'->>'firearm_id')
+                      )
+                )
+            )
+        )` : ''}
         ORDER BY al.created_at DESC
         LIMIT 10
     `, unitParams);
@@ -170,6 +204,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
             SELECT 
                 cr.custody_id, cr.custody_type, cr.issued_at,
                 cr.returned_at, cr.assignment_reason,
+                COALESCE(cr.returned_at, cr.issued_at) as activity_at,
                 f.serial_number, f.manufacturer, f.model,
                 f.firearm_type, f.caliber,
                 o.full_name as officer_name, o.rank as officer_rank,
@@ -179,7 +214,8 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
             JOIN firearms f ON cr.firearm_id = f.firearm_id
             JOIN officers o ON cr.officer_id = o.officer_id
             LEFT JOIN units u ON cr.unit_id = u.unit_id
-            ORDER BY cr.issued_at DESC
+            WHERE COALESCE(cr.returned_at, cr.issued_at) <= CURRENT_TIMESTAMP
+            ORDER BY COALESCE(cr.returned_at, cr.issued_at) DESC
             LIMIT 15
         `);
     }

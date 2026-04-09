@@ -222,6 +222,13 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
 
         // ===== ANOMALY SUMMARY =====
         case 'anomaly_summary': {
+            if (userRole === 'admin') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. Admin role cannot access anomaly summary reports.'
+                });
+            }
+
             let aFilter = 'WHERE 1=1';
             const aParams = [...dateParams];
             let aIdx = paramIdx;

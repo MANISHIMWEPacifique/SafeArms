@@ -1,20 +1,15 @@
 // Admin Dashboard
 // Dashboard for admin role
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/date_formatter.dart';
 import '../../providers/dashboard_provider.dart';
-import '../../providers/anomaly_provider.dart';
-import '../../providers/settings_provider.dart';
 import '../../widgets/responsive_dashboard_scaffold.dart';
 import '../auth/login_screen.dart';
 import '../management/user_management_screen.dart';
 import '../settings/system_settings_screen.dart';
-import '../anomaly/anomaly_detection_screen.dart';
 import '../management/units_management_screen.dart';
 import '../workflows/admin_reports_screen.dart';
 import '../../widgets/user_avatar.dart';
@@ -46,28 +41,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
       context,
       listen: false,
     );
-    final anomalyProvider = Provider.of<AnomalyProvider>(
-      context,
-      listen: false,
-    );
-    final settingsProvider = Provider.of<SettingsProvider>(
-      context,
-      listen: false,
-    );
 
     // Load core stats first for faster first paint.
     await dashboardProvider.loadDashboardStats();
-
-    if (!mounted) return;
-
-    // Fetch secondary data in background.
-    unawaited(
-      anomalyProvider.loadAnomalies(
-        limit: settingsProvider.itemsPerPage > 0
-            ? settingsProvider.itemsPerPage
-            : 10,
-      ),
-    );
   }
 
   final List<_NavItem> _navItems = [
@@ -76,7 +52,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _NavItem(icon: Icons.group_outlined, label: 'Users'),
     _NavItem(icon: Icons.settings_outlined, label: 'System Settings'),
     _NavItem(icon: Icons.analytics_outlined, label: 'Reports'),
-    _NavItem(icon: Icons.report_problem_outlined, label: 'Anomaly Summary'),
   ];
 
   void _handleLogout() async {
@@ -405,9 +380,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       case 4:
         // System Audit & Compliance Reports
         return const AdminReportsScreen();
-      case 5:
-        // Anomaly Summary
-        return const AnomalyDetectionScreen();
       default:
         return _buildDashboardContent();
     }
@@ -433,10 +405,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
               // Charts Section
               _buildChartsSection(),
-              const SizedBox(height: 32),
-
-              // Anomaly Table
-              _buildAnomalyTable(),
             ],
           ),
         );
@@ -449,21 +417,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       builder: (context, dashboardProvider, _) {
         final totalUsers = dashboardProvider.totalUsersCount;
         final activeUnits = dashboardProvider.activeUnitsCount;
-        final anomaliesData = dashboardProvider.anomaliesStats;
-
-        int totalAnomalies = 0, critical = 0, high = 0;
-        if (anomaliesData != null) {
-          for (var item in anomaliesData) {
-            final count = int.tryParse(item['count']?.toString() ?? '0') ?? 0;
-            final severity = item['severity']?.toString().toLowerCase() ?? '';
-            totalAnomalies += count;
-            if (severity == 'critical') {
-              critical = count;
-            } else if (severity == 'high') {
-              high = count;
-            }
-          }
-        }
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -499,16 +452,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 showUpArrow: false,
                 isLoading: false,
               ),
-              _buildStatCard(
-                icon: Icons.warning_amber,
-                iconColor: const Color(0xFF1E88E5),
-                number: totalAnomalies.toString(),
-                label: 'Anomalies (30 days)',
-                trend: '$critical critical, $high high',
-                trendColor: const Color(0xFFE85C5C),
-                showUpArrow: false,
-                isLoading: dashboardProvider.isLoading,
-              ),
             ];
 
             if (isNarrow) {
@@ -522,13 +465,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: cards[2]),
-                      const SizedBox(width: 16),
-                      Expanded(child: cards[3]),
-                    ],
-                  ),
+                  cards[2],
                 ],
               );
             }
@@ -540,8 +477,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Expanded(child: cards[1]),
                 const SizedBox(width: 16),
                 Expanded(child: cards[2]),
-                const SizedBox(width: 16),
-                Expanded(child: cards[3]),
               ],
             );
           },
@@ -785,341 +720,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAnomalyTable() {
-    return Consumer<AnomalyProvider>(
-      builder: (context, anomalyProvider, child) {
-        final anomalies = anomalyProvider.anomalies;
-        final isLoading = anomalyProvider.isLoading;
-        final error = anomalyProvider.error;
-
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A3040),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'ML Anomaly Detection Summary',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Top anomalies requiring attention',
-                        style:
-                            TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                      ),
-                    ],
-                  ),
-                  TextButton.icon(
-                    onPressed: () => setState(() => _selectedIndex = 5),
-                    icon: const Icon(Icons.arrow_forward, size: 16),
-                    label: const Text('View All'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF1E88E5),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (isLoading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
-                  ),
-                )
-              else if (error != null)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: Color(0xFFE85C5C), size: 48),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Failed to load anomalies',
-                          style: TextStyle(color: Color(0xFFE85C5C)),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: _loadDashboardData,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else if (anomalies.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Column(
-                      children: [
-                        Icon(Icons.check_circle_outline,
-                            color: Color(0xFF3CCB7F), size: 48),
-                        SizedBox(height: 16),
-                        Text(
-                          'No anomalies detected',
-                          style:
-                              TextStyle(color: Color(0xFF3CCB7F), fontSize: 16),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'All custody transactions are within normal patterns',
-                          style:
-                              TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minWidth: MediaQuery.of(context).size.width > 1200
-                          ? MediaQuery.of(context).size.width - 300
-                          : 700,
-                    ),
-                    child: Table(
-                      columnWidths: const {
-                        0: FlexColumnWidth(1.5),
-                        1: FlexColumnWidth(2),
-                        2: FlexColumnWidth(1.5),
-                        3: FlexColumnWidth(2),
-                        4: FlexColumnWidth(1.5),
-                        5: FlexColumnWidth(1.5),
-                        6: FlexColumnWidth(1.5),
-                      },
-                      children: [
-                        // Header Row
-                        TableRow(
-                          decoration:
-                              const BoxDecoration(color: Color(0xFF252A3A)),
-                          children: [
-                            _buildTableHeader('ANOMALY ID'),
-                            _buildTableHeader('TYPE'),
-                            _buildTableHeader('SEVERITY'),
-                            _buildTableHeader('UNIT'),
-                            _buildTableHeader('DETECTED'),
-                            _buildTableHeader('STATUS'),
-                            _buildTableHeader('ACTION'),
-                          ],
-                        ),
-                        // Data Rows from provider (show top 5)
-                        ...anomalies.take(5).map((anomaly) {
-                          return _buildAnomalyRow(
-                            _formatAnomalyId(anomaly['anomaly_id']),
-                            _formatAnomalyType(anomaly['anomaly_type']),
-                            (anomaly['severity'] ?? 'low')
-                                .toString()
-                                .toUpperCase(),
-                            _getSeverityColor(anomaly['severity']),
-                            anomaly['unit_name'] ?? 'Unknown Unit',
-                            _formatDetectedDate(anomaly['detected_at']),
-                            _formatStatus(anomaly['status']),
-                            _getStatusColor(anomaly['status']),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  String _formatAnomalyId(dynamic id) {
-    if (id == null) return 'N/A';
-    final idStr = id.toString();
-    if (idStr.length > 8) {
-      return 'A-${idStr.substring(0, 8).toUpperCase()}';
-    }
-    return 'A-$idStr';
-  }
-
-  String _formatAnomalyType(dynamic type) {
-    if (type == null) return 'Unknown';
-    return type.toString().replaceAll('_', ' ').split(' ').map((word) {
-      if (word.isEmpty) return word;
-      return word[0].toUpperCase() + word.substring(1);
-    }).join(' ');
-  }
-
-  String _formatDetectedDate(dynamic date) {
-    if (date == null) return 'N/A';
-    try {
-      final DateTime parsed =
-          date is DateTime ? date : DateTime.parse(date.toString());
-      return '${_getMonthName(parsed.month)} ${parsed.day}, ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return date.toString();
-    }
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return months[month - 1];
-  }
-
-  String _formatStatus(dynamic status) {
-    if (status == null) return 'Open';
-    return status.toString().replaceAll('_', ' ').split(' ').map((word) {
-      if (word.isEmpty) return word;
-      return word[0].toUpperCase() + word.substring(1);
-    }).join(' ');
-  }
-
-  Color _getSeverityColor(dynamic severity) {
-    switch (severity?.toString().toLowerCase()) {
-      case 'critical':
-        return const Color(0xFFEF5350);
-      case 'high':
-        return const Color(0xFFFF7043);
-      case 'medium':
-        return const Color(0xFFFFC857);
-      case 'low':
-        return const Color(0xFF42A5F5);
-      default:
-        return const Color(0xFF78909C);
-    }
-  }
-
-  Color _getStatusColor(dynamic status) {
-    switch (status?.toString().toLowerCase()) {
-      case 'resolved':
-        return const Color(0xFF3CCB7F);
-      case 'investigating':
-        return const Color(0xFF42A5F5);
-      case 'false_positive':
-        return const Color(0xFF78909C);
-      case 'open':
-      case 'detected':
-      default:
-        return const Color(0xFFFFC857);
-    }
-  }
-
-  Widget _buildTableHeader(String text) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Color(0xFFB0BEC5),
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  TableRow _buildAnomalyRow(
-    String id,
-    String type,
-    String severity,
-    Color severityColor,
-    String unit,
-    String detected,
-    String status,
-    Color statusColor,
-  ) {
-    return TableRow(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
-      ),
-      children: [
-        _buildTableCell(id),
-        _buildTableCell(type),
-        _buildTableBadge(severity, severityColor),
-        _buildTableCell(unit),
-        _buildTableCell(detected),
-        _buildTableBadge(status, statusColor),
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: TextButton(
-            onPressed: () => setState(() => _selectedIndex = 5),
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text(
-              'View Details',
-              style: TextStyle(color: Color(0xFF64B5F6), fontSize: 14),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTableCell(String text) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Text(
-        text,
-        style: const TextStyle(color: Colors.white, fontSize: 14),
-      ),
-    );
-  }
-
-  Widget _buildTableBadge(String text, Color color) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: color == const Color(0xFFFFC857)
-                ? const Color(0xFF1A1F2E)
-                : Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
-        ),
       ),
     );
   }

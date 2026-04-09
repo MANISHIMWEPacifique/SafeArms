@@ -1,6 +1,7 @@
 const { query, withTransaction } = require('../config/database');
 
 const ELIGIBLE_COMMANDER_ROLES = ['station_commander', 'hq_firearm_commander'];
+const STATION_COMMANDER_ROLE = 'station_commander';
 
 const normalizeCommanderUserId = (commanderUserId) => {
     if (commanderUserId === undefined) return undefined;
@@ -20,8 +21,38 @@ const isMissingCommanderUserIdColumnError = (error) => {
     return error && error.code === '42703' && typeof error.message === 'string' && error.message.includes('commander_user_id');
 };
 
+const syncStationCommanderForUnit = async (executeQuery, { unitId, previousCommanderUserId, nextCommanderUserId }) => {
+    if (previousCommanderUserId && previousCommanderUserId !== nextCommanderUserId) {
+        await executeQuery(
+            `UPDATE users
+             SET unit_id = NULL,
+                 unit_confirmed = false,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE user_id = $1
+               AND role = $2
+               AND unit_id = $3`,
+            [previousCommanderUserId, STATION_COMMANDER_ROLE, unitId]
+        );
+    }
+
+    if (!nextCommanderUserId) {
+        return;
+    }
+
+    await executeQuery(
+        `UPDATE users
+         SET unit_id = $1,
+             unit_confirmed = false,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = $2
+           AND role = $3`,
+        [unitId, nextCommanderUserId, STATION_COMMANDER_ROLE]
+    );
+};
+
 const Unit = {
-    async resolveCommanderFields(commanderUserId, fallbackCommanderName = null) {
+    async resolveCommanderFields(commanderUserId, fallbackCommanderName = null, dbClient = null) {
+        const executeQuery = dbClient ? dbClient.query.bind(dbClient) : query;
         const normalizedCommanderUserId = normalizeCommanderUserId(commanderUserId);
 
         if (normalizedCommanderUserId === undefined) {
@@ -38,7 +69,7 @@ const Unit = {
             };
         }
 
-        const commanderResult = await query(
+            const commanderResult = await executeQuery(
             `SELECT user_id, full_name
              FROM users
              WHERE user_id = $1
@@ -238,75 +269,134 @@ const Unit = {
     async create(unitData) {
         const { unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, commander_user_id, is_active } = unitData;
 
-        // Generate unit_id
-        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(unit_id FROM 6) AS INTEGER)), 0) as max_num FROM units WHERE unit_id ~ '^UNIT-[0-9]+$'`);
-        const count = parseInt(idResult.rows[0].max_num) + 1;
-        const unit_id = `UNIT-${String(count).padStart(3, '0')}`;
+        const createdUnitId = await withTransaction(async (client) => {
+            // Generate unit_id
+            const idResult = await client.query(`SELECT COALESCE(MAX(CAST(SUBSTRING(unit_id FROM 6) AS INTEGER)), 0) as max_num FROM units WHERE unit_id ~ '^UNIT-[0-9]+$'`);
+            const count = parseInt(idResult.rows[0].max_num) + 1;
+            const unit_id = `UNIT-${String(count).padStart(3, '0')}`;
 
-        // Map unit_type to valid CHECK constraint values
-        const validTypes = ['headquarters', 'district', 'station', 'specialized'];
-        let mappedType = unit_type;
-        if (!validTypes.includes(unit_type)) {
-            if (unit_type === 'training_school' || unit_type === 'special_unit') mappedType = 'specialized';
-            else mappedType = 'station';
-        }
+            // Map unit_type to valid CHECK constraint values
+            const validTypes = ['headquarters', 'district', 'station', 'specialized'];
+            let mappedType = unit_type;
+            if (!validTypes.includes(unit_type)) {
+                if (unit_type === 'training_school' || unit_type === 'special_unit') mappedType = 'specialized';
+                else mappedType = 'station';
+            }
 
-        const commanderFields = await this.resolveCommanderFields(commander_user_id, commander_name || null);
+            const commanderFields = await this.resolveCommanderFields(
+                commander_user_id,
+                commander_name || null,
+                client
+            );
 
-        await query(
-            `INSERT INTO units (unit_id, unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, commander_user_id, is_active)
+            await client.query(
+                `INSERT INTO units (unit_id, unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, commander_user_id, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-            [
-                unit_id,
-                unit_name,
-                mappedType,
-                location,
-                province,
-                district,
-                contact_phone,
-                contact_email,
-                commanderFields.commander_name,
-                commanderFields.commander_user_id ?? null,
-                is_active !== undefined ? is_active : true
-            ]
-        );
+                [
+                    unit_id,
+                    unit_name,
+                    mappedType,
+                    location,
+                    province,
+                    district,
+                    contact_phone,
+                    contact_email,
+                    commanderFields.commander_name,
+                    commanderFields.commander_user_id ?? null,
+                    is_active !== undefined ? is_active : true
+                ]
+            );
 
-        return await this.findById(unit_id);
+            await syncStationCommanderForUnit(client.query.bind(client), {
+                unitId: unit_id,
+                previousCommanderUserId: null,
+                nextCommanderUserId: commanderFields.commander_user_id ?? null
+            });
+
+            return unit_id;
+        });
+
+        return await this.findById(createdUnitId);
     },
 
     async update(unitId, updates) {
+        const normalizedUpdates = { ...updates };
+
         // Map unit_type to valid CHECK constraint values
-        if (updates.unit_type) {
+        if (normalizedUpdates.unit_type) {
             const validTypes = ['headquarters', 'district', 'station', 'specialized'];
-            if (!validTypes.includes(updates.unit_type)) {
-                if (updates.unit_type === 'training_school' || updates.unit_type === 'special_unit') {
-                    updates.unit_type = 'specialized';
+            if (!validTypes.includes(normalizedUpdates.unit_type)) {
+                if (normalizedUpdates.unit_type === 'training_school' || normalizedUpdates.unit_type === 'special_unit') {
+                    normalizedUpdates.unit_type = 'specialized';
                 } else {
-                    updates.unit_type = 'station';
+                    normalizedUpdates.unit_type = 'station';
                 }
             }
         }
 
-        if (Object.prototype.hasOwnProperty.call(updates, 'commander_user_id')) {
-            const commanderFields = await this.resolveCommanderFields(
-                updates.commander_user_id,
-                updates.commander_name || null
-            );
+        const hasCommanderAssignmentUpdate = Object.prototype.hasOwnProperty.call(normalizedUpdates, 'commander_user_id');
 
-            updates.commander_user_id = commanderFields.commander_user_id;
-            updates.commander_name = commanderFields.commander_name;
+        const updated = await withTransaction(async (client) => {
+            let previousCommanderUserId = null;
+
+            if (hasCommanderAssignmentUpdate) {
+                const existingResult = await client.query(
+                    'SELECT commander_user_id FROM units WHERE unit_id = $1',
+                    [unitId]
+                );
+
+                if (!existingResult.rows[0]) {
+                    return false;
+                }
+
+                previousCommanderUserId = existingResult.rows[0].commander_user_id;
+
+                const commanderFields = await this.resolveCommanderFields(
+                    normalizedUpdates.commander_user_id,
+                    normalizedUpdates.commander_name || null,
+                    client
+                );
+
+                normalizedUpdates.commander_user_id = commanderFields.commander_user_id;
+                normalizedUpdates.commander_name = commanderFields.commander_name;
+            }
+
+            const fields = Object.keys(normalizedUpdates).map((key, idx) => `${key} = $${idx + 2}`);
+            if (fields.length > 0) {
+                const values = [unitId, ...Object.values(normalizedUpdates)];
+                const result = await client.query(
+                    `UPDATE units SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE unit_id = $1 RETURNING unit_id`,
+                    values
+                );
+
+                if (!result.rows[0]) {
+                    return false;
+                }
+            } else {
+                const existingResult = await client.query(
+                    'SELECT unit_id FROM units WHERE unit_id = $1',
+                    [unitId]
+                );
+
+                if (!existingResult.rows[0]) {
+                    return false;
+                }
+            }
+
+            if (hasCommanderAssignmentUpdate) {
+                await syncStationCommanderForUnit(client.query.bind(client), {
+                    unitId,
+                    previousCommanderUserId,
+                    nextCommanderUserId: normalizedUpdates.commander_user_id ?? null
+                });
+            }
+
+            return true;
+        });
+
+        if (!updated) {
+            return null;
         }
-
-        const fields = Object.keys(updates).map((key, idx) => `${key} = $${idx + 2}`);
-        if (fields.length === 0) {
-            return await this.findById(unitId);
-        }
-
-        const values = [unitId, ...Object.values(updates)];
-        await query(
-            `UPDATE units SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE unit_id = $1 RETURNING *`,
-            values
-        );
 
         return await this.findById(unitId);
     },

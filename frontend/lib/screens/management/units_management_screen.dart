@@ -1023,10 +1023,23 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                                   'commander_user_id': selectedCommanderUserId,
                                   'is_active': isActive,
                                 });
+                                UserModel? selectedCommander;
+                                for (final commander in commanderOptions) {
+                                  if (commander.userId == selectedCommanderUserId) {
+                                    selectedCommander = commander;
+                                    break;
+                                  }
+                                }
+                                final stationCommanderBound =
+                                    selectedCommander?.role ==
+                                        'station_commander';
+
                                 scaffoldMessenger.showSnackBar(
                                   SnackBar(
                                     content: Text(success
-                                        ? 'Unit created successfully'
+                                        ? stationCommanderBound
+                                            ? 'Unit created and selected Station Commander was assigned to this unit.'
+                                            : 'Unit created successfully'
                                         : 'Failed to create unit'),
                                     backgroundColor: success
                                         ? const Color(0xFF3CCB7F)
@@ -1307,10 +1320,23 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                                     'is_active': isActive,
                                   },
                                 );
+                                UserModel? selectedCommander;
+                                for (final commander in commanderOptions) {
+                                  if (commander.userId == selectedCommanderUserId) {
+                                    selectedCommander = commander;
+                                    break;
+                                  }
+                                }
+                                final stationCommanderBound =
+                                    selectedCommander?.role ==
+                                        'station_commander';
+
                                 scaffoldMessenger.showSnackBar(
                                   SnackBar(
                                     content: Text(success
-                                        ? 'Unit updated successfully'
+                                        ? stationCommanderBound
+                                            ? 'Unit updated and selected Station Commander is now assigned to this unit.'
+                                            : 'Unit updated successfully'
                                         : 'Failed to update unit'),
                                     backgroundColor: success
                                         ? const Color(0xFF3CCB7F)
@@ -1511,6 +1537,14 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF1E88E5))),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Selecting a Station Commander also assigns that user to this unit.',
+          style: TextStyle(
+            color: Color(0xFF78909C),
+            fontSize: 12,
           ),
         ),
         if (hasLegacyValue) ...[

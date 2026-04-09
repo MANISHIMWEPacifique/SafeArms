@@ -9,6 +9,8 @@ import '../../providers/auth_provider.dart';
 import '../../utils/app_transitions.dart';
 import 'login_screen.dart';
 import 'change_password_screen.dart';
+import 'pending_unit_assignment_screen.dart';
+import 'unit_confirmation_screen.dart';
 import '../dashboards/admin_dashboard.dart';
 import '../dashboards/hq_commander_dashboard.dart';
 import '../dashboards/station_commander_dashboard.dart';
@@ -140,7 +142,13 @@ class _OtpScreenState extends State<OtpScreen> {
           screen = const HqCommanderDashboard();
           break;
         case 'station_commander':
-          screen = const StationCommanderDashboard();
+          if (authProvider.isStationCommanderPendingUnitAssignment) {
+            screen = const PendingUnitAssignmentScreen();
+          } else if (authProvider.requiresUnitConfirmation) {
+            screen = const UnitConfirmationScreen();
+          } else {
+            screen = const StationCommanderDashboard();
+          }
           break;
         case 'investigator':
           screen = const InvestigatorDashboard();

@@ -21,6 +21,7 @@ import '../anomaly/anomaly_detection_screen.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/responsive_dashboard_scaffold.dart';
 import '../../widgets/user_avatar.dart';
+import '../../utils/pdf_report_generator.dart';
 
 class InvestigatorDashboard extends StatefulWidget {
   const InvestigatorDashboard({super.key});
@@ -1775,10 +1776,77 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
       );
     }
 
-    return CustodyTimelineWidget(
-      timeline: _custodyTimelineData,
-      summary: _custodyTimelineSummary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustodyTimelineWidget(
+          timeline: _custodyTimelineData,
+          summary: _custodyTimelineSummary,
+        ),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _exportCustodyPdf,
+              icon: const Icon(Icons.picture_as_pdf, size: 18),
+              label: const Text('Export PDF'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFF1E88E5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
+  }
+
+  Future<void> _exportCustodyPdf() async {
+    if (_custodyTimelineData.isEmpty || _selectedFirearmForTimeline == null) return;
+
+    try {
+      final firearmStr = '${_selectedFirearmForTimeline!.serialNumber} — ${_selectedFirearmForTimeline!.manufacturer} ${_selectedFirearmForTimeline!.model}';
+
+      final custodyData = _custodyTimelineData.map((record) => {
+        'serial_number': _selectedFirearmForTimeline!.serialNumber,
+        'officer_name': record['officer_name'] ?? record['officer_id'] ?? 'Unknown',
+        'unit_name': record['unit_name'] ?? 'Unknown',
+        'issued_at': record['issued_at'] ?? '',
+        'returned_at': record['returned_at'] ?? 'Pending',
+        'duration': record['duration'] ?? '-',
+      }).toList();
+
+      final reportData = {
+        'firearms': [
+          {'serial_number': firearmStr}
+        ],
+        'custody_records': custodyData,
+        'anomalies': [],
+      };
+
+      await PdfReportGenerator.generate(
+        reportTitle: 'Custody Chain of Evidence',
+        reportType: 'firearm_history',
+        reportData: reportData,
+        metadata: {
+          'Firearm': firearmStr,
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export timeline PDF: $e'),
+            backgroundColor: const Color(0xFFEF5350),
+          ),
+        );
+      }
+    }
   }
 
   Color _getFirearmStatusColor(String status) {

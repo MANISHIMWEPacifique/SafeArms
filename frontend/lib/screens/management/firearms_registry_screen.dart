@@ -719,7 +719,9 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
         LayoutBuilder(
           builder: (context, constraints) {
             int crossAxisCount;
-            if (constraints.maxWidth >= 1000) {
+            if (constraints.maxWidth >= 1200) {
+              crossAxisCount = 4;
+            } else if (constraints.maxWidth >= 900) {
               crossAxisCount = 3;
             } else if (constraints.maxWidth >= 600) {
               crossAxisCount = 2;
@@ -733,7 +735,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 0.58,
+                childAspectRatio: constraints.maxWidth < 600 ? 0.88 : 0.83,
               ),
               itemCount: firearms.length,
               itemBuilder: (context, index) =>
@@ -759,7 +761,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
           border: Border.all(color: const Color(0xFF37404F)),
           borderRadius: BorderRadius.circular(12),
         ),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -772,29 +774,29 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 _buildRegistrationLevelBadge(firearm.registrationLevel),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             // Firearm icon
             Center(
               child: Container(
-                width: 140,
-                height: 140,
+                width: 110,
+                height: 110,
                 decoration: const BoxDecoration(
                   color: Color(0xFF252A3A),
                   shape: BoxShape.circle,
                 ),
                 child: _buildFirearmIndicator(firearm,
-                    size: 72, fit: BoxFit.cover),
+                    size: 60, fit: BoxFit.cover),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             // Firearm details
             Text(
               '${firearm.manufacturer} ${firearm.model}',
               style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -833,20 +835,19 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 ),
               ],
             ),
-            const Divider(color: Color(0xFF37404F), height: 32),
+            const Divider(color: Color(0xFF37404F), height: 16),
 
             // Specifications
             _buildSpecRow('Type', _formatFirearmType(firearm.firearmType)),
             _buildSpecRow('Caliber', firearm.caliber ?? 'N/A'),
             _buildSpecRow('Year', firearm.manufactureYear?.toString() ?? 'N/A'),
-            _buildSpecRow('Acquired', _formatDate(firearm.acquisitionDate)),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Assignment section
             if (firearm.assignedUnitId != null)
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF252A3A),
                   borderRadius: BorderRadius.circular(8),
@@ -854,8 +855,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 child: Row(
                   children: [
                     const Icon(Icons.business,
-                        color: Color(0xFF42A5F5), size: 16),
-                    const SizedBox(width: 8),
+                        color: Color(0xFF42A5F5), size: 14),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -863,13 +864,13 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                           const Text(
                             'Assigned Unit',
                             style: TextStyle(
-                                color: Color(0xFF78909C), fontSize: 11),
+                                color: Color(0xFF78909C), fontSize: 10),
                           ),
                           Text(
                             firearm.unitDisplayName,
                             style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -879,6 +880,10 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                   ],
                 ),
               ),
+            if (firearm.assignedUnitId == null)
+              Container(height: 38), // placeholder to keep card height consistent
+
+            const Spacer(),
 
             // Action buttons
             Row(
@@ -1648,24 +1653,6 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
         .split('_')
         .map((word) => word[0].toUpperCase() + word.substring(1))
         .join(' ');
-  }
-
-  String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }
 

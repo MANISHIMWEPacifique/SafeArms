@@ -943,25 +943,26 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                 flex: 1,
                 child: Row(
                   children: [
-                    Container(
-                      width: 40,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF37404F),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      child: FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: score,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: severityColor,
-                            borderRadius: BorderRadius.circular(3),
+                    Expanded(
+                      child: Container(
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF37404F),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: score,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: severityColor,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
                       (score * 100).toStringAsFixed(0),
                       style: TextStyle(
@@ -1599,22 +1600,36 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
 
         final results = provider.investigationResults;
         if (results.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.search_off,
-                    color: const Color(0xFF78909C).withValues(alpha: 0.5),
-                    size: 64),
-                const SizedBox(height: 16),
-                const Text('No results',
-                    style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 18)),
-                const SizedBox(height: 8),
-                const Text(
-                    'Use the filters above to search for anomalies related to your investigation',
-                    style: TextStyle(color: Color(0xFF78909C), fontSize: 14)),
-              ],
-            ),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.search_off,
+                            color:
+                                const Color(0xFF78909C).withValues(alpha: 0.5),
+                            size: 64),
+                        const SizedBox(height: 16),
+                        const Text('No results',
+                            style: TextStyle(
+                                color: Color(0xFFB0BEC5), fontSize: 18)),
+                        const SizedBox(height: 8),
+                        const Text(
+                            'Use the filters above to search for anomalies related to your investigation',
+                            style:
+                                TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                            textAlign: TextAlign.center),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           );
         }
 
@@ -1659,185 +1674,198 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                     final tableWidth = constraints.maxWidth < 900
                         ? 900.0
                         : constraints.maxWidth;
+                    final tableBodyHeight =
+                        constraints.maxHeight > 52 ? constraints.maxHeight - 52 : 0.0;
 
                     return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: tableWidth,
-                        child: Column(
-                          children: [
-                            // Table header
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                    bottom: BorderSide(
-                                        color: Color(0xFF37404F), width: 1)),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: tableWidth,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Table header
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 10),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                      bottom: BorderSide(
+                                          color: Color(0xFF37404F), width: 1)),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Expanded(
+                                        flex: 2,
+                                        child: Text('ID',
+                                            style: TextStyle(
+                                                color: Color(0xFF78909C),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600))),
+                                    Expanded(
+                                        flex: 2,
+                                        child: Text('Type',
+                                            style: TextStyle(
+                                                color: Color(0xFF78909C),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600))),
+                                    Expanded(
+                                        flex: 1,
+                                        child: Text('Severity',
+                                            style: TextStyle(
+                                                color: Color(0xFF78909C),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600))),
+                                    Expanded(
+                                        flex: 2,
+                                        child: Text('Officer',
+                                            style: TextStyle(
+                                                color: Color(0xFF78909C),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600))),
+                                    Expanded(
+                                        flex: 2,
+                                        child: Text('Unit',
+                                            style: TextStyle(
+                                                color: Color(0xFF78909C),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600))),
+                                    Expanded(
+                                        flex: 2,
+                                        child: Text('Detected',
+                                            style: TextStyle(
+                                                color: Color(0xFF78909C),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600))),
+                                    Expanded(
+                                        flex: 1,
+                                        child: Text('Status',
+                                            style: TextStyle(
+                                                color: Color(0xFF78909C),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600))),
+                                    Expanded(
+                                        flex: 1,
+                                        child: Text('Actions',
+                                            style: TextStyle(
+                                                color: Color(0xFF78909C),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600))),
+                                  ],
+                                ),
                               ),
-                              child: const Row(
-                                children: [
-                                  Expanded(
-                                      flex: 2,
-                                      child: Text('ID',
-                                          style: TextStyle(
-                                              color: Color(0xFF78909C),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600))),
-                                  Expanded(
-                                      flex: 2,
-                                      child: Text('Type',
-                                          style: TextStyle(
-                                              color: Color(0xFF78909C),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600))),
-                                  Expanded(
-                                      flex: 1,
-                                      child: Text('Severity',
-                                          style: TextStyle(
-                                              color: Color(0xFF78909C),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600))),
-                                  Expanded(
-                                      flex: 2,
-                                      child: Text('Officer',
-                                          style: TextStyle(
-                                              color: Color(0xFF78909C),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600))),
-                                  Expanded(
-                                      flex: 2,
-                                      child: Text('Unit',
-                                          style: TextStyle(
-                                              color: Color(0xFF78909C),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600))),
-                                  Expanded(
-                                      flex: 2,
-                                      child: Text('Detected',
-                                          style: TextStyle(
-                                              color: Color(0xFF78909C),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600))),
-                                  Expanded(
-                                      flex: 1,
-                                      child: Text('Status',
-                                          style: TextStyle(
-                                              color: Color(0xFF78909C),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600))),
-                                  Expanded(
-                                      flex: 1,
-                                      child: Text('Actions',
-                                          style: TextStyle(
-                                              color: Color(0xFF78909C),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600))),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: results.length,
-                                itemBuilder: (context, index) {
-                                  final anomaly = results[index];
-                                  final severity =
-                                      anomaly['severity'] ?? 'medium';
-                                  final status = anomaly['status'] ?? 'open';
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: index % 2 == 0
-                                          ? const Color(0xFF2A3040)
-                                          : const Color(0xFF252A3A),
-                                      border: const Border(
-                                          bottom: BorderSide(
-                                              color: Color(0xFF37404F),
-                                              width: 1)),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          flex: 2,
-                                          child: Text(
-                                              '#${anomaly['anomaly_id'] ?? 'N/A'}',
-                                              style: const TextStyle(
-                                                  color: Color(0xFF1E88E5),
-                                                  fontSize: 13,
-                                                  fontFamily: 'monospace')),
+                              if (tableBodyHeight <= 0)
+                                const SizedBox.shrink()
+                              else
+                                SizedBox(
+                                  height: tableBodyHeight,
+                                  child: ListView.builder(
+                                    itemCount: results.length,
+                                    itemBuilder: (context, index) {
+                                      final anomaly = results[index];
+                                      final severity =
+                                          anomaly['severity'] ?? 'medium';
+                                      final status = anomaly['status'] ?? 'open';
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: index % 2 == 0
+                                              ? const Color(0xFF2A3040)
+                                              : const Color(0xFF252A3A),
+                                          border: const Border(
+                                              bottom: BorderSide(
+                                                  color: Color(0xFF37404F),
+                                                  width: 1)),
                                         ),
-                                        Expanded(
-                                          flex: 2,
-                                          child: Text(
-                                              _formatAnomalyType(
-                                                  anomaly['anomaly_type'] ??
-                                                      ''),
-                                              style: const TextStyle(
-                                                  color: Color(0xFFB0BEC5),
-                                                  fontSize: 13)),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                  '#${anomaly['anomaly_id'] ?? 'N/A'}',
+                                                  style: const TextStyle(
+                                                      color: Color(0xFF1E88E5),
+                                                      fontSize: 13,
+                                                      fontFamily:
+                                                          'monospace')),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                  _formatAnomalyType(
+                                                      anomaly['anomaly_type'] ??
+                                                          ''),
+                                                  style: const TextStyle(
+                                                      color: Color(0xFFB0BEC5),
+                                                      fontSize: 13)),
+                                            ),
+                                            Expanded(
+                                                flex: 1,
+                                                child: _buildSeverityBadge(
+                                                    severity)),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                  anomaly['officer_name'] ??
+                                                      'N/A',
+                                                  style: const TextStyle(
+                                                      color: Color(0xFFB0BEC5),
+                                                      fontSize: 13)),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                  anomaly['unit_name'] ??
+                                                      'N/A',
+                                                  style: const TextStyle(
+                                                      color: Color(0xFFB0BEC5),
+                                                      fontSize: 13)),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                  _formatDateTime(
+                                                      anomaly['detected_at']),
+                                                  style: const TextStyle(
+                                                      color: Color(0xFF78909C),
+                                                      fontSize: 12)),
+                                            ),
+                                            Expanded(
+                                                flex: 1,
+                                                child: _buildStatusBadgeStatic(
+                                                    status)),
+                                            Expanded(
+                                              flex: 1,
+                                              child: IconButton(
+                                                icon: const Icon(
+                                                    Icons.info_outline,
+                                                    size: 18),
+                                                color: const Color(0xFF1E88E5),
+                                                onPressed: () {
+                                                  showDialog(
+                                                    context: context,
+                                                    barrierColor: Colors.black
+                                                        .withValues(alpha: 0.5),
+                                                    builder: (_) =>
+                                                        _AnomalyDetailModal(
+                                                            anomaly: anomaly,
+                                                            onActionComplete:
+                                                                () {}),
+                                                  );
+                                                },
+                                                tooltip: 'View Details',
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        Expanded(
-                                            flex: 1,
-                                            child:
-                                                _buildSeverityBadge(severity)),
-                                        Expanded(
-                                          flex: 2,
-                                          child: Text(
-                                              anomaly['officer_name'] ?? 'N/A',
-                                              style: const TextStyle(
-                                                  color: Color(0xFFB0BEC5),
-                                                  fontSize: 13)),
-                                        ),
-                                        Expanded(
-                                          flex: 2,
-                                          child: Text(
-                                              anomaly['unit_name'] ?? 'N/A',
-                                              style: const TextStyle(
-                                                  color: Color(0xFFB0BEC5),
-                                                  fontSize: 13)),
-                                        ),
-                                        Expanded(
-                                          flex: 2,
-                                          child: Text(
-                                              _formatDateTime(
-                                                  anomaly['detected_at']),
-                                              style: const TextStyle(
-                                                  color: Color(0xFF78909C),
-                                                  fontSize: 12)),
-                                        ),
-                                        Expanded(
-                                            flex: 1,
-                                            child: _buildStatusBadgeStatic(
-                                                status)),
-                                        Expanded(
-                                          flex: 1,
-                                          child: IconButton(
-                                            icon: const Icon(Icons.info_outline,
-                                                size: 18),
-                                            color: const Color(0xFF1E88E5),
-                                            onPressed: () {
-                                              showDialog(
-                                                context: context,
-                                                barrierColor: Colors.black
-                                                    .withValues(alpha: 0.5),
-                                                builder: (_) =>
-                                                    _AnomalyDetailModal(
-                                                        anomaly: anomaly,
-                                                        onActionComplete:
-                                                            () {}),
-                                              );
-                                            },
-                                            tooltip: 'View Details',
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     );

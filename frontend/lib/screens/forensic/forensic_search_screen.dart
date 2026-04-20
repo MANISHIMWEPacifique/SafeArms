@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/ballistic_profile_provider.dart';
 import '../../services/forensic_traceability_service.dart';
+import '../../utils/pdf_report_generator.dart';
 import '../../widgets/custody_timeline_widget.dart';
 
 class ForensicSearchScreen extends StatefulWidget {
@@ -95,6 +96,85 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       _totalPages = 0;
       _incidentDateController.clear();
     });
+  }
+
+  Future<void> _exportPdf() async {
+    if (_searchResults.isEmpty) return;
+    
+    try {
+      final metadata = <String, String>{};
+      if (_incidentDateController.text.isNotEmpty) metadata['Incident Date'] = _incidentDateController.text;
+      if (_generalSearchController.text.isNotEmpty) metadata['General Search'] = _generalSearchController.text;
+      if (_caliberController.text.isNotEmpty) metadata['Caliber'] = _caliberController.text;
+      if (_firingPinController.text.isNotEmpty) metadata['Firing Pin'] = _firingPinController.text;
+      if (_riflingController.text.isNotEmpty) metadata['Rifling'] = _riflingController.text;
+      if (_chamberFeedController.text.isNotEmpty) metadata['Chamber Feed'] = _chamberFeedController.text;
+      if (_breechFaceController.text.isNotEmpty) metadata['Breech Face'] = _breechFaceController.text;
+      if (_testLocationController.text.isNotEmpty) metadata['Test Location'] = _testLocationController.text;
+
+      await PdfReportGenerator.generate(
+        reportTitle: 'Forensic Investigation Search Results',
+        reportType: 'ballistic_summary',
+        reportData: {'profiles': _searchResults},
+        metadata: metadata,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export PDF: $e'),
+            backgroundColor: const Color(0xFFEF5350),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportCustodyPdf() async {
+    if (_selectedFirearmId == null || _custodyTimeline.isEmpty) return;
+
+    try {
+      final metadata = <String, String>{
+        'Firearm': _selectedFirearmLabel ?? 'Unknown',
+      };
+      if (_incidentDateController.text.isNotEmpty) {
+        metadata['Incident Date'] = _incidentDateController.text;
+      }
+
+      await PdfReportGenerator.generate(
+        reportTitle: 'Firearm Custody Timeline',
+        reportType: 'firearm_history',
+        reportData: {
+          'firearms': [
+            {
+              'serial_number': _selectedFirearmLabel,
+            }
+          ],
+          'custody_records': _custodyTimeline.map((record) => {
+            'serial_number': _selectedFirearmLabel,
+            'officer_name': record['officer_name'] ?? record['officer_id'] ?? '',
+            'officer_rank': record['officer_rank'] ?? '',
+            'unit_name': record['unit_name'] ?? '',
+            'issued_at': record['issued_at'],
+            'returned_at': record['returned_at'],
+            'duration': record['duration'] ?? '-',
+            'custody_type': record['custody_type'] ?? '',
+          }).toList(),
+          'anomalies': [],
+          'ballistic_profile': null,
+        },
+        metadata: metadata,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export PDF: $e'),
+            backgroundColor: const Color(0xFFEF5350),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _performSearch({int page = 1}) async {
@@ -275,9 +355,9 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Text(
+                Text(
                   'INVESTIGATION SEARCH CRITERIA',
                   style: TextStyle(
                     color: Color(0xFFCFD8DC),
@@ -285,14 +365,6 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.0,
                   ),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: _hasAnyFilter ? _clearAllFilters : null,
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFE57373),
-                  ),
-                  child: const Text('Clear all filters'),
                 ),
               ],
             ),
@@ -358,46 +430,85 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     SizedBox(
                       width: fieldWidth,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           const Text(
                             ' ',
-                            style: TextStyle(
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(fontSize: 14),
                           ),
                           const SizedBox(height: 6),
                           SizedBox(
                             height: 44,
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _isSearching ? null : _performSearch,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1E88E5),
-                                disabledBackgroundColor: const Color(0xFF1E88E5)
-                                    .withValues(alpha: 0.5),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: _isSearching
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: _hasAnyFilter ? _clearAllFilters : null,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFFCFD8DC),
+                                      side: const BorderSide(color: Color(0xFF455A64)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
-                                    )
-                                  : const Text(
-                                      'Search',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
                                     ),
+                                    child: const Text('Clear All', overflow: TextOverflow.ellipsis),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _searchResults.isNotEmpty ? _exportPdf : null,
+                                    icon: const Icon(Icons.picture_as_pdf, size: 18),
+                                    label: const Text('Export PDF', overflow: TextOverflow.ellipsis),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      side: BorderSide(
+                                          color: _searchResults.isNotEmpty
+                                              ? const Color(0xFF1E88E5)
+                                              : const Color(0xFF455A64)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _isSearching ? null : _performSearch,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1E88E5),
+                                      disabledBackgroundColor:
+                                          const Color(0xFF1E88E5).withValues(alpha: 0.5),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    ),
+                                    child: _isSearching
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Search',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -1362,11 +1473,35 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       );
     }
 
-    return CustodyTimelineWidget(
-      timeline: _custodyTimeline,
-      incidentDate: _incidentDateController.text.isNotEmpty
-          ? _incidentDateController.text
-          : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustodyTimelineWidget(
+          timeline: _custodyTimeline,
+          incidentDate: _incidentDateController.text.isNotEmpty
+              ? _incidentDateController.text
+              : null,
+        ),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _exportCustodyPdf,
+              icon: const Icon(Icons.picture_as_pdf, size: 18),
+              label: const Text('Export PDF'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFF1E88E5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

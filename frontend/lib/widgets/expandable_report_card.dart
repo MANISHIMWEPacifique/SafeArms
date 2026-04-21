@@ -103,13 +103,16 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A2233),
-        title: const Text('Confirm Deletion', style: TextStyle(color: _primaryText)),
-        content: Text('Are you sure you want to delete report ${widget.reportId}?',
+        title: const Text('Confirm Deletion',
+            style: TextStyle(color: _primaryText)),
+        content: Text(
+            'Are you sure you want to delete report ${widget.reportId}?',
             style: const TextStyle(color: _secondaryText)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: _secondaryText)),
+            child:
+                const Text('Cancel', style: TextStyle(color: _secondaryText)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: _dangerRed),
@@ -126,9 +129,12 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
 
   Color _getStatusColor() {
     switch (_currentStatus) {
-      case 'approved': return _approvedGreen;
-      case 'rejected': return _dangerRed;
-      default: return _amberWarn;
+      case 'approved':
+        return _approvedGreen;
+      case 'rejected':
+        return _dangerRed;
+      default:
+        return _amberWarn;
     }
   }
 
@@ -163,10 +169,12 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
           borderRadius: BorderRadius.circular(7),
           child: Container(
             decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: widget.severityColor, width: 4)),
+              border: Border(
+                  left: BorderSide(color: widget.severityColor, width: 4)),
             ),
             child: Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              data:
+                  Theme.of(context).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
                 controller: _expansionController,
                 onExpansionChanged: (expanded) {
@@ -174,7 +182,8 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
                 },
                 tilePadding: const EdgeInsets.all(16),
                 title: _buildPreview(),
-                trailing: const SizedBox.shrink(), // Custom trailing placed in header
+                trailing:
+                    const SizedBox.shrink(), // Custom trailing placed in header
                 children: [
                   Container(
                     width: double.infinity,
@@ -229,7 +238,8 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     curve: Curves.easeOut,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: _getStatusColor().withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
@@ -252,7 +262,9 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
                 ),
                 const SizedBox(width: 12),
                 Icon(
-                  _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  _isExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                   color: _mutedText,
                 ),
               ],
@@ -268,15 +280,28 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(widget.primaryCodeLabel.toUpperCase(),
-                      style: const TextStyle(color: _mutedText, fontSize: 10, fontWeight: FontWeight.bold)),
+                      style: const TextStyle(
+                          color: _mutedText,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
                   Text(widget.primaryCodeValue,
-                      style: const TextStyle(fontFamily: 'DM Mono', color: _accentBlue, fontSize: 13, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontFamily: 'DM Mono',
+                          color: _accentBlue,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500)),
                   if (widget.location != null) ...[
                     const SizedBox(height: 12),
-                    const Text('LOCATION', style: TextStyle(color: _mutedText, fontSize: 10, fontWeight: FontWeight.bold)),
+                    const Text('LOCATION',
+                        style: TextStyle(
+                            color: _mutedText,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text(widget.location!, style: const TextStyle(color: _primaryText, fontSize: 14)),
+                    Text(widget.location!,
+                        style:
+                            const TextStyle(color: _primaryText, fontSize: 14)),
                   ],
                 ],
               ),
@@ -285,15 +310,26 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('DATE REPORTED', style: TextStyle(color: _mutedText, fontSize: 10, fontWeight: FontWeight.bold)),
+                  const Text('DATE REPORTED',
+                      style: TextStyle(
+                          color: _mutedText,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
                   Text(DateFormat('MMM dd, yyyy').format(widget.dateReported),
-                      style: const TextStyle(color: _primaryText, fontSize: 14)),
+                      style:
+                          const TextStyle(color: _primaryText, fontSize: 14)),
                   if (widget.reportingUnit != null) ...[
                     const SizedBox(height: 12),
-                    const Text('REPORTING UNIT', style: TextStyle(color: _mutedText, fontSize: 10, fontWeight: FontWeight.bold)),
+                    const Text('REPORTING UNIT',
+                        style: TextStyle(
+                            color: _mutedText,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text(widget.reportingUnit!, style: const TextStyle(color: _primaryText, fontSize: 14)),
+                    Text(widget.reportingUnit!,
+                        style:
+                            const TextStyle(color: _primaryText, fontSize: 14)),
                   ],
                 ],
               ),
@@ -301,7 +337,9 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
           ],
         ),
         const SizedBox(height: 16),
-        Text(widget.circumstancesLabel.toUpperCase(), style: const TextStyle(color: _mutedText, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(widget.circumstancesLabel.toUpperCase(),
+            style: const TextStyle(
+                color: _mutedText, fontSize: 10, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         Text(
           widget.circumstances,
@@ -335,7 +373,8 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
                 backgroundColor: _accentBlueDim,
                 foregroundColor: _accentBlue,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6)),
                 side: const BorderSide(color: _accentBlue, width: 1),
               ),
               child: AnimatedSwitcher(

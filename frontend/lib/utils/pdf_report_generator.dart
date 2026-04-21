@@ -244,6 +244,34 @@ class PdfReportGenerator {
       ));
     }
 
+    // Custody Timeline
+    if (custody.isNotEmpty) {
+      widgets.add(pw.SizedBox(height: 16));
+      widgets.add(_sectionTitle('Custody Timeline'));
+      widgets.add(_table(
+        headers: [
+          'Serial Number',
+          'Officer',
+          'Unit',
+          'Issued',
+          'Returned',
+          'Duration'
+        ],
+        rows: custody
+            .map((c) => [
+                  c['serial_number']?.toString() ?? '',
+                  c['officer_name']?.toString() ??
+                      c['officer_id']?.toString() ??
+                      '',
+                  c['unit_name']?.toString() ?? '',
+                  _fmtDate(c['issued_at']?.toString()),
+                  _fmtDate(c['returned_at']?.toString()),
+                  c['duration']?.toString() ?? '–',
+                ])
+            .toList(),
+      ));
+    }
+
     // Anomalies
     if (anomalies.isNotEmpty) {
       widgets.add(pw.SizedBox(height: 16));

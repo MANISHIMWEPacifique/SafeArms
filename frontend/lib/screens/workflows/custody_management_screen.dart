@@ -631,7 +631,9 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
 
   Widget _buildVerificationIndicator(Map<String, dynamic> custody) {
     final verificationStatus =
-        (custody['verification_status'] ?? 'not_requested').toString().toLowerCase();
+        (custody['verification_status'] ?? 'not_requested')
+            .toString()
+            .toLowerCase();
     final verificationId = custody['verification_id']?.toString().trim() ?? '';
     final decidedDeviceKey =
         custody['verification_decided_device_key']?.toString().trim() ?? '';

@@ -237,9 +237,8 @@ class ApiClient {
       return body is Map<String, dynamic> ? body : {'data': body};
     }
 
-    final message = body is Map<String, dynamic>
-        ? body['message']?.toString()
-        : null;
+    final message =
+        body is Map<String, dynamic> ? body['message']?.toString() : null;
     final hint = response.statusCode == 404 ? _build404Hint(requestUrl) : null;
 
     throw ApiException(

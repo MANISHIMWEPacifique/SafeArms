@@ -13,7 +13,7 @@ class OperationsProvider with ChangeNotifier {
   List<Map<String, dynamic>> _destructionRequests = [];
   List<Map<String, dynamic>> _procurementRequests = [];
   Map<String, dynamic> _stats = {};
-  
+
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
@@ -28,11 +28,11 @@ class OperationsProvider with ChangeNotifier {
   List<Map<String, dynamic>> get destructionRequests => _destructionRequests;
   List<Map<String, dynamic>> get procurementRequests => _procurementRequests;
   Map<String, dynamic> get stats => _stats;
-  
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
-  
+
   String get lossReportsFilter => _lossReportsFilter;
   String get destructionFilter => _destructionFilter;
   String get procurementFilter => _procurementFilter;
@@ -85,10 +85,10 @@ class OperationsProvider with ChangeNotifier {
       _successMessage = 'Loss report submitted successfully';
       _isLoading = false;
       notifyListeners();
-      
+
       await loadLossReports();
       await loadStats();
-      
+
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -163,10 +163,10 @@ class OperationsProvider with ChangeNotifier {
       _successMessage = 'Destruction request submitted successfully';
       _isLoading = false;
       notifyListeners();
-      
+
       await loadDestructionRequests();
       await loadStats();
-      
+
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -228,10 +228,10 @@ class OperationsProvider with ChangeNotifier {
       _successMessage = 'Procurement request submitted successfully';
       _isLoading = false;
       notifyListeners();
-      
+
       await loadProcurementRequests();
       await loadStats();
-      
+
       return true;
     } catch (e) {
       _errorMessage = e.toString();

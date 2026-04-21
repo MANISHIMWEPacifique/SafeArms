@@ -1024,10 +1024,9 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final estimatedTableWidth = columns.length * 170.0;
-        final tableWidth =
-            estimatedTableWidth > constraints.maxWidth
-                ? estimatedTableWidth
-                : constraints.maxWidth;
+        final tableWidth = estimatedTableWidth > constraints.maxWidth
+            ? estimatedTableWidth
+            : constraints.maxWidth;
 
         return Container(
           decoration: BoxDecoration(
@@ -1042,8 +1041,7 @@ class _HqReportsScreenState extends State<HqReportsScreen> {
               child: DataTable(
                 headingRowColor:
                     WidgetStateProperty.all(const Color(0xFF252A3A)),
-                dataRowColor:
-                    WidgetStateProperty.all(const Color(0xFF1A1F2E)),
+                dataRowColor: WidgetStateProperty.all(const Color(0xFF1A1F2E)),
                 headingRowHeight: 44,
                 dataRowMinHeight: 40,
                 dataRowMaxHeight: 44,

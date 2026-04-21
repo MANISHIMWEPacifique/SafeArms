@@ -1621,8 +1621,8 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                         const SizedBox(height: 8),
                         const Text(
                             'Use the filters above to search for anomalies related to your investigation',
-                            style:
-                                TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                            style: TextStyle(
+                                color: Color(0xFF78909C), fontSize: 14),
                             textAlign: TextAlign.center),
                       ],
                     ),
@@ -1674,8 +1674,9 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                     final tableWidth = constraints.maxWidth < 900
                         ? 900.0
                         : constraints.maxWidth;
-                    final tableBodyHeight =
-                        constraints.maxHeight > 52 ? constraints.maxHeight - 52 : 0.0;
+                    final tableBodyHeight = constraints.maxHeight > 52
+                        ? constraints.maxHeight - 52
+                        : 0.0;
 
                     return SingleChildScrollView(
                       child: SingleChildScrollView(
@@ -1766,7 +1767,8 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                                       final anomaly = results[index];
                                       final severity =
                                           anomaly['severity'] ?? 'medium';
-                                      final status = anomaly['status'] ?? 'open';
+                                      final status =
+                                          anomaly['status'] ?? 'open';
                                       return Container(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 16, vertical: 10),
@@ -1788,8 +1790,7 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                                                   style: const TextStyle(
                                                       color: Color(0xFF1E88E5),
                                                       fontSize: 13,
-                                                      fontFamily:
-                                                          'monospace')),
+                                                      fontFamily: 'monospace')),
                                             ),
                                             Expanded(
                                               flex: 2,
@@ -1817,8 +1818,7 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                                             Expanded(
                                               flex: 2,
                                               child: Text(
-                                                  anomaly['unit_name'] ??
-                                                      'N/A',
+                                                  anomaly['unit_name'] ?? 'N/A',
                                                   style: const TextStyle(
                                                       color: Color(0xFFB0BEC5),
                                                       fontSize: 13)),

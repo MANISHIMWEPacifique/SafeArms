@@ -652,8 +652,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     // Station commander sees custody events and general activities from their unit
     final custodyEvents = provider.recentCustodyActivity;
     final auditActivities = provider.recentActivities;
-    final nowWithSkewTolerance =
-        DateTime.now().add(const Duration(minutes: 2));
+    final nowWithSkewTolerance = DateTime.now().add(const Duration(minutes: 2));
 
     // Maximum number of activities to display in the dashboard
     const int maxDisplayItems = 6;
@@ -946,8 +945,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
       final epoch = int.tryParse(dateStr);
       if (epoch != null) {
         final millis = dateStr.length == 10 ? epoch * 1000 : epoch;
-        final parsed =
-            DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
+        final parsed = DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
         return parsed.toLocal();
       }
     }

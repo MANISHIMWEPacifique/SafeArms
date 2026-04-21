@@ -38,7 +38,8 @@ class _PendingUnitAssignmentScreenState
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final username = authProvider.currentUser?['username']?.toString() ?? 'User';
+    final username =
+        authProvider.currentUser?['username']?.toString() ?? 'User';
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1F2E),
@@ -113,7 +114,8 @@ class _PendingUnitAssignmentScreenState
                               ),
                             )
                           : const Icon(Icons.logout, size: 18),
-                      label: Text(_isSigningOut ? 'Signing out...' : 'Return to Login'),
+                      label: Text(
+                          _isSigningOut ? 'Signing out...' : 'Return to Login'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E88E5),
                         foregroundColor: Colors.white,

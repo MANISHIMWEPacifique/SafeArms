@@ -176,7 +176,6 @@ class _OfficerDeviceEnrollmentModalState
       children: [
         _buildOfficerHeader(),
         const SizedBox(height: 24),
-
         if (_isLoadingDevices)
           const Padding(
             padding: EdgeInsets.only(bottom: 16),
@@ -191,7 +190,6 @@ class _OfficerDeviceEnrollmentModalState
               ),
             ),
           ),
-
         if (!_isLoadingDevices && _activeDevices.isNotEmpty)
           Container(
             padding: const EdgeInsets.all(12),
@@ -208,7 +206,8 @@ class _OfficerDeviceEnrollmentModalState
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xFFF59E0B), size: 18),
+                    Icon(Icons.info_outline,
+                        color: Color(0xFFF59E0B), size: 18),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -226,13 +225,18 @@ class _OfficerDeviceEnrollmentModalState
                 ..._activeDevices.map((device) {
                   final deviceKey = device['device_key']?.toString() ?? '';
                   final deviceName =
-                      (device['device_name']?.toString().trim().isNotEmpty ?? false)
+                      (device['device_name']?.toString().trim().isNotEmpty ??
+                              false)
                           ? device['device_name'].toString().trim()
                           : 'Unknown device';
-                  final platform =
-                      (device['platform']?.toString().toUpperCase().trim().isNotEmpty ?? false)
-                          ? device['platform'].toString().toUpperCase().trim()
-                          : 'UNKNOWN';
+                  final platform = (device['platform']
+                              ?.toString()
+                              .toUpperCase()
+                              .trim()
+                              .isNotEmpty ??
+                          false)
+                      ? device['platform'].toString().toUpperCase().trim()
+                      : 'UNKNOWN';
                   final isRemoving = _removingDeviceKey == deviceKey;
 
                   return Container(
@@ -301,7 +305,6 @@ class _OfficerDeviceEnrollmentModalState
               ],
             ),
           ),
-
         if (_errorMessage != null)
           Container(
             padding: const EdgeInsets.all(12),
@@ -324,7 +327,6 @@ class _OfficerDeviceEnrollmentModalState
               ],
             ),
           ),
-        
         Text(
           _activeDevices.isEmpty
               ? 'Generate a secure 6-digit PIN to enroll the officer\'s mobile app.'
@@ -336,14 +338,14 @@ class _OfficerDeviceEnrollmentModalState
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
-
         if (_pin != null) ...[
           Container(
             padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
             decoration: BoxDecoration(
               color: const Color(0xFF2D324A),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.3)),
             ),
             child: Column(
               children: [
@@ -380,7 +382,6 @@ class _OfficerDeviceEnrollmentModalState
           ),
           const SizedBox(height: 24),
         ],
-
         if (_pin == null)
           Center(
             child: ElevatedButton(
@@ -393,7 +394,8 @@ class _OfficerDeviceEnrollmentModalState
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00E5FF),
                 foregroundColor: const Color(0xFF1E2336),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 textStyle: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -405,7 +407,8 @@ class _OfficerDeviceEnrollmentModalState
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E2336)),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFF1E2336)),
                       ),
                     )
                   : const Text('GENERATE NEW PIN'),

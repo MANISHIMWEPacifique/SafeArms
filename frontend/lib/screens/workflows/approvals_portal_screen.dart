@@ -379,20 +379,25 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                 status: report['status'] ?? 'pending',
                 primaryCodeLabel: 'FIREARM',
                 primaryCodeValue: report['serial_number'] ?? 'N/A',
-                dateReported: report['created_at'] != null ? DateTime.parse(report['created_at']) : DateTime.now(),
+                dateReported: report['created_at'] != null
+                    ? DateTime.parse(report['created_at'])
+                    : DateTime.now(),
                 location: report['loss_location'],
                 reportingUnit: report['unit_name'],
                 circumstancesLabel: 'CIRCUMSTANCES',
                 circumstances: report['circumstances'] ?? 'N/A',
                 severityColor: const Color(0xFFF59E0B),
                 onStatusChanged: (newStatus) {
-                  provider.updateRequestStatus(report['loss_id'], 'loss', newStatus);
+                  provider.updateRequestStatus(
+                      report['loss_id'], 'loss', newStatus);
                 },
                 detailsWidget: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailRow('Officer Info', "${report['officer_rank'] ?? ''} ${report['officer_name'] ?? ''} (${report['service_number'] ?? 'N/A'})"),
-                    _buildDetailRow('Firearm Model', "${report['manufacturer'] ?? ''} ${report['model'] ?? ''}"),
+                    _buildDetailRow('Officer Info',
+                        "${report['officer_rank'] ?? ''} ${report['officer_name'] ?? ''} (${report['service_number'] ?? 'N/A'})"),
+                    _buildDetailRow('Firearm Model',
+                        "${report['manufacturer'] ?? ''} ${report['model'] ?? ''}"),
                     _buildDetailRow('Caliber', report['caliber'] ?? 'N/A'),
                   ],
                 ),
@@ -420,20 +425,25 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                 status: req['status'] ?? 'pending',
                 primaryCodeLabel: 'FIREARM',
                 primaryCodeValue: req['serial_number'] ?? 'N/A',
-                dateReported: req['created_at'] != null ? DateTime.parse(req['created_at']) : DateTime.now(),
+                dateReported: req['created_at'] != null
+                    ? DateTime.parse(req['created_at'])
+                    : DateTime.now(),
                 location: req['condition_description'],
                 reportingUnit: req['unit_name'],
                 circumstancesLabel: 'REASON',
                 circumstances: req['destruction_reason'] ?? 'N/A',
                 severityColor: const Color(0xFFEF4444),
                 onStatusChanged: (newStatus) {
-                  provider.updateRequestStatus(req['destruction_id'], 'destruction', newStatus);
+                  provider.updateRequestStatus(
+                      req['destruction_id'], 'destruction', newStatus);
                 },
                 detailsWidget: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailRow('Condition', req['condition_description'] ?? 'N/A'),
-                    _buildDetailRow('Firearm Model', "${req['manufacturer'] ?? ''} ${req['model'] ?? ''}"),
+                    _buildDetailRow(
+                        'Condition', req['condition_description'] ?? 'N/A'),
+                    _buildDetailRow('Firearm Model',
+                        "${req['manufacturer'] ?? ''} ${req['model'] ?? ''}"),
                     _buildDetailRow('Caliber', req['caliber'] ?? 'N/A'),
                   ],
                 ),
@@ -461,19 +471,23 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                 status: req['status'] ?? 'pending',
                 primaryCodeLabel: 'TYPE',
                 primaryCodeValue: req['firearm_type'] ?? 'N/A',
-                dateReported: req['created_at'] != null ? DateTime.parse(req['created_at']) : DateTime.now(),
+                dateReported: req['created_at'] != null
+                    ? DateTime.parse(req['created_at'])
+                    : DateTime.now(),
                 location: 'Qty: ${req['quantity'] ?? 'N/A'}',
                 reportingUnit: req['unit_name'],
                 circumstancesLabel: 'JUSTIFICATION',
                 circumstances: req['justification'] ?? 'N/A',
                 severityColor: const Color(0xFF3B82F6),
                 onStatusChanged: (newStatus) {
-                  provider.updateRequestStatus(req['procurement_id'], 'procurement', newStatus);
+                  provider.updateRequestStatus(
+                      req['procurement_id'], 'procurement', newStatus);
                 },
                 detailsWidget: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailRow('Quantity Requested', req['quantity']?.toString() ?? 'N/A'),
+                    _buildDetailRow('Quantity Requested',
+                        req['quantity']?.toString() ?? 'N/A'),
                     _buildDetailRow('Priority', req['priority'] ?? 'Standard'),
                   ],
                 ),

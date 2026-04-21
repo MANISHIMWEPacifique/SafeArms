@@ -1025,7 +1025,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                                 });
                                 UserModel? selectedCommander;
                                 for (final commander in commanderOptions) {
-                                  if (commander.userId == selectedCommanderUserId) {
+                                  if (commander.userId ==
+                                      selectedCommanderUserId) {
                                     selectedCommander = commander;
                                     break;
                                   }
@@ -1322,7 +1323,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                                 );
                                 UserModel? selectedCommander;
                                 for (final commander in commanderOptions) {
-                                  if (commander.userId == selectedCommanderUserId) {
+                                  if (commander.userId ==
+                                      selectedCommanderUserId) {
                                     selectedCommander = commander;
                                     break;
                                   }

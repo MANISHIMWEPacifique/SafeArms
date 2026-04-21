@@ -95,11 +95,11 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                               AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 240),
                                 transitionBuilder: (child, animation) {
-                                  final scale = Tween<double>(
-                                          begin: 0.97, end: 1.0)
-                                      .animate(CurvedAnimation(
-                                          parent: animation,
-                                          curve: Curves.easeOut));
+                                  final scale =
+                                      Tween<double>(begin: 0.97, end: 1.0)
+                                          .animate(CurvedAnimation(
+                                              parent: animation,
+                                              curve: Curves.easeOut));
                                   return FadeTransition(
                                     opacity: animation,
                                     child: ScaleTransition(
@@ -109,12 +109,10 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                                 child: firearmProvider.isGridView
                                     ? KeyedSubtree(
                                         key: const ValueKey('grid'),
-                                        child:
-                                            _buildGridView(firearmProvider))
+                                        child: _buildGridView(firearmProvider))
                                     : KeyedSubtree(
                                         key: const ValueKey('list'),
-                                        child:
-                                            _buildListView(firearmProvider)),
+                                        child: _buildListView(firearmProvider)),
                               ),
                             ],
                           ),
@@ -847,7 +845,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             // Assignment section
             if (firearm.assignedUnitId != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF252A3A),
                   borderRadius: BorderRadius.circular(8),
@@ -881,7 +880,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 ),
               ),
             if (firearm.assignedUnitId == null)
-              Container(height: 38), // placeholder to keep card height consistent
+              Container(
+                  height: 38), // placeholder to keep card height consistent
 
             const Spacer(),
 

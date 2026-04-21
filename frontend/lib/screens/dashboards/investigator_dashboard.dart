@@ -714,18 +714,21 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
               const SizedBox(width: 4),
               Text(
                 '$pendingLoss Loss reports pending',
-                style: const TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
+                style: const TextStyle(
+                    color: _dashboardStatInfoColor, fontSize: 13),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.policy, color: _dashboardStatInfoColor, size: 14),
+              const Icon(Icons.policy,
+                  color: _dashboardStatInfoColor, size: 14),
               const SizedBox(width: 4),
               Text(
                 '$mandatoryPending Mandatory reviews',
-                style: const TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
+                style: const TextStyle(
+                    color: _dashboardStatInfoColor, fontSize: 13),
               ),
             ],
           ),
@@ -831,7 +834,8 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
               const SizedBox(width: 8),
               Text(
                 '$criticalHigh Critical/High',
-                style: const TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
+                style: const TextStyle(
+                    color: _dashboardStatInfoColor, fontSize: 13),
               ),
             ],
           ),
@@ -849,7 +853,8 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
               const SizedBox(width: 8),
               Text(
                 '$mediumLow Medium/Low',
-                style: const TextStyle(color: _dashboardStatInfoColor, fontSize: 13),
+                style: const TextStyle(
+                    color: _dashboardStatInfoColor, fontSize: 13),
               ),
             ],
           ),
@@ -1797,7 +1802,8 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -1807,19 +1813,25 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   }
 
   Future<void> _exportCustodyPdf() async {
-    if (_custodyTimelineData.isEmpty || _selectedFirearmForTimeline == null) return;
+    if (_custodyTimelineData.isEmpty || _selectedFirearmForTimeline == null) {
+      return;
+    }
 
     try {
-      final firearmStr = '${_selectedFirearmForTimeline!.serialNumber} — ${_selectedFirearmForTimeline!.manufacturer} ${_selectedFirearmForTimeline!.model}';
+      final firearmStr =
+          '${_selectedFirearmForTimeline!.serialNumber} — ${_selectedFirearmForTimeline!.manufacturer} ${_selectedFirearmForTimeline!.model}';
 
-      final custodyData = _custodyTimelineData.map((record) => {
-        'serial_number': _selectedFirearmForTimeline!.serialNumber,
-        'officer_name': record['officer_name'] ?? record['officer_id'] ?? 'Unknown',
-        'unit_name': record['unit_name'] ?? 'Unknown',
-        'issued_at': record['issued_at'] ?? '',
-        'returned_at': record['returned_at'] ?? 'Pending',
-        'duration': record['duration'] ?? '-',
-      }).toList();
+      final custodyData = _custodyTimelineData
+          .map((record) => {
+                'serial_number': _selectedFirearmForTimeline!.serialNumber,
+                'officer_name':
+                    record['officer_name'] ?? record['officer_id'] ?? 'Unknown',
+                'unit_name': record['unit_name'] ?? 'Unknown',
+                'issued_at': record['issued_at'] ?? '',
+                'returned_at': record['returned_at'] ?? 'Pending',
+                'duration': record['duration'] ?? '-',
+              })
+          .toList();
 
       final reportData = {
         'firearms': [

@@ -100,17 +100,33 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
 
   Future<void> _exportPdf() async {
     if (_searchResults.isEmpty) return;
-    
+
     try {
       final metadata = <String, String>{};
-      if (_incidentDateController.text.isNotEmpty) metadata['Incident Date'] = _incidentDateController.text;
-      if (_generalSearchController.text.isNotEmpty) metadata['General Search'] = _generalSearchController.text;
-      if (_caliberController.text.isNotEmpty) metadata['Caliber'] = _caliberController.text;
-      if (_firingPinController.text.isNotEmpty) metadata['Firing Pin'] = _firingPinController.text;
-      if (_riflingController.text.isNotEmpty) metadata['Rifling'] = _riflingController.text;
-      if (_chamberFeedController.text.isNotEmpty) metadata['Chamber Feed'] = _chamberFeedController.text;
-      if (_breechFaceController.text.isNotEmpty) metadata['Breech Face'] = _breechFaceController.text;
-      if (_testLocationController.text.isNotEmpty) metadata['Test Location'] = _testLocationController.text;
+      if (_incidentDateController.text.isNotEmpty) {
+        metadata['Incident Date'] = _incidentDateController.text;
+      }
+      if (_generalSearchController.text.isNotEmpty) {
+        metadata['General Search'] = _generalSearchController.text;
+      }
+      if (_caliberController.text.isNotEmpty) {
+        metadata['Caliber'] = _caliberController.text;
+      }
+      if (_firingPinController.text.isNotEmpty) {
+        metadata['Firing Pin'] = _firingPinController.text;
+      }
+      if (_riflingController.text.isNotEmpty) {
+        metadata['Rifling'] = _riflingController.text;
+      }
+      if (_chamberFeedController.text.isNotEmpty) {
+        metadata['Chamber Feed'] = _chamberFeedController.text;
+      }
+      if (_breechFaceController.text.isNotEmpty) {
+        metadata['Breech Face'] = _breechFaceController.text;
+      }
+      if (_testLocationController.text.isNotEmpty) {
+        metadata['Test Location'] = _testLocationController.text;
+      }
 
       await PdfReportGenerator.generate(
         reportTitle: 'Forensic Investigation Search Results',
@@ -150,16 +166,19 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
               'serial_number': _selectedFirearmLabel,
             }
           ],
-          'custody_records': _custodyTimeline.map((record) => {
-            'serial_number': _selectedFirearmLabel,
-            'officer_name': record['officer_name'] ?? record['officer_id'] ?? '',
-            'officer_rank': record['officer_rank'] ?? '',
-            'unit_name': record['unit_name'] ?? '',
-            'issued_at': record['issued_at'],
-            'returned_at': record['returned_at'],
-            'duration': record['duration'] ?? '-',
-            'custody_type': record['custody_type'] ?? '',
-          }).toList(),
+          'custody_records': _custodyTimeline
+              .map((record) => {
+                    'serial_number': _selectedFirearmLabel,
+                    'officer_name':
+                        record['officer_name'] ?? record['officer_id'] ?? '',
+                    'officer_rank': record['officer_rank'] ?? '',
+                    'unit_name': record['unit_name'] ?? '',
+                    'issued_at': record['issued_at'],
+                    'returned_at': record['returned_at'],
+                    'duration': record['duration'] ?? '-',
+                    'custody_type': record['custody_type'] ?? '',
+                  })
+              .toList(),
           'anomalies': [],
           'ballistic_profile': null,
         },
@@ -379,6 +398,14 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     SizedBox(
                       width: fieldWidth,
                       child: _buildField(
+                        controller: _generalSearchController,
+                        label: 'General Search',
+                        prefixIcon: Icons.search,
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth,
+                      child: _buildField(
                         controller: _incidentDateController,
                         label: 'Incident Date',
                         isDateField: true,
@@ -386,9 +413,16 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     ),
                     SizedBox(
                       width: fieldWidth,
-                      child: _buildField(
+                      child: _buildDropdownField(
                         controller: _caliberController,
                         label: 'Caliber / Ammunition',
+                        items: [
+                          '9x19mm Parabellum',
+                          '5.56x45mm NATO',
+                          '7.62x51mm NATO',
+                          '12 Gauge',
+                          '.45 ACP'
+                        ],
                       ),
                     ),
                     SizedBox(
@@ -400,9 +434,15 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     ),
                     SizedBox(
                       width: fieldWidth,
-                      child: _buildField(
+                      child: _buildDropdownField(
                         controller: _riflingController,
                         label: 'Rifling Characteristics',
+                        items: [
+                          '6 grooves, right-hand twist, 1:10 pitch',
+                          '6 grooves, right-hand twist, 1:7 pitch',
+                          '4 grooves, right-hand twist, 1:16 pitch',
+                          'Smoothbore'
+                        ],
                       ),
                     ),
                     SizedBox(
@@ -443,24 +483,32 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                               children: [
                                 Expanded(
                                   child: OutlinedButton(
-                                    onPressed: _hasAnyFilter ? _clearAllFilters : null,
+                                    onPressed:
+                                        _hasAnyFilter ? _clearAllFilters : null,
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: const Color(0xFFCFD8DC),
-                                      side: const BorderSide(color: Color(0xFF455A64)),
+                                      side: const BorderSide(
+                                          color: Color(0xFF455A64)),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8),
                                     ),
-                                    child: const Text('Clear All', overflow: TextOverflow.ellipsis),
+                                    child: const Text('Clear All',
+                                        overflow: TextOverflow.ellipsis),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: OutlinedButton.icon(
-                                    onPressed: _searchResults.isNotEmpty ? _exportPdf : null,
-                                    icon: const Icon(Icons.picture_as_pdf, size: 18),
-                                    label: const Text('Export PDF', overflow: TextOverflow.ellipsis),
+                                    onPressed: _searchResults.isNotEmpty
+                                        ? _exportPdf
+                                        : null,
+                                    icon: const Icon(Icons.picture_as_pdf,
+                                        size: 18),
+                                    label: const Text('Export PDF',
+                                        overflow: TextOverflow.ellipsis),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: Colors.white,
                                       side: BorderSide(
@@ -470,24 +518,28 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: _isSearching ? null : _performSearch,
+                                    onPressed:
+                                        _isSearching ? null : _performSearch,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF1E88E5),
                                       disabledBackgroundColor:
-                                          const Color(0xFF1E88E5).withValues(alpha: 0.5),
+                                          const Color(0xFF1E88E5)
+                                              .withValues(alpha: 0.5),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       elevation: 0,
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8),
                                     ),
                                     child: _isSearching
                                         ? const SizedBox(
@@ -580,6 +632,122 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                   ),
                   onSubmitted: (_) => _performSearch(),
                 ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdownField({
+    required TextEditingController controller,
+    required String label,
+    required List<String> items,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFFCFD8DC),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          height: 44,
+          child: Autocomplete<String>(
+            initialValue: TextEditingValue(text: controller.text),
+            optionsBuilder: (TextEditingValue textEditingValue) {
+              if (textEditingValue.text.isEmpty) {
+                return items;
+              }
+              return items.where((String option) {
+                return option
+                    .toLowerCase()
+                    .contains(textEditingValue.text.toLowerCase());
+              });
+            },
+            onSelected: (String selection) {
+              controller.text = selection;
+              _performSearch();
+            },
+            fieldViewBuilder:
+                (context, txtController, focusNode, onFieldSubmitted) {
+              txtController.addListener(() {
+                controller.text = txtController.text;
+              });
+              return TextField(
+                controller: txtController,
+                focusNode: focusNode,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: InputDecoration(
+                  suffixIcon: const Icon(Icons.arrow_drop_down,
+                      color: Color(0xFF78909C)),
+                  filled: true,
+                  fillColor: const Color(0xFF2A3040),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF37404F)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF37404F)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF1E88E5), width: 2),
+                  ),
+                ),
+                onSubmitted: (_) {
+                  onFieldSubmitted();
+                  _performSearch();
+                },
+              );
+            },
+            optionsViewBuilder: (context, onSelected, options) {
+              return Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Material(
+                    elevation: 4.0,
+                    color: const Color(0xFF2A3040),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(color: Color(0xFF37404F)),
+                    ),
+                    child: ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(maxHeight: 200, maxWidth: 300),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final String option = options.elementAt(index);
+                          return InkWell(
+                            onTap: () => onSelected(option),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              child: Text(option,
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 13)),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -867,10 +1035,10 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
             child: DataTable(
               headingRowColor: WidgetStateProperty.all(const Color(0xFF1E2333)),
               headingRowHeight: 44,
-              dataRowMinHeight: 56,
-              dataRowMaxHeight: 56,
-              columnSpacing: 24,
-              horizontalMargin: 20,
+              dataRowMinHeight: 64,
+              dataRowMaxHeight: 80,
+              columnSpacing: 16,
+              horizontalMargin: 16,
               showCheckboxColumn: false,
               columns: const [
                 DataColumn(label: Text('FIREARM', style: _columnHeaderStyle)),
@@ -884,7 +1052,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                 DataColumn(
                     label: Text('BREECH FACE', style: _columnHeaderStyle)),
                 DataColumn(label: Text('UNIT', style: _columnHeaderStyle)),
-                DataColumn(label: Text('STATUS', style: _columnHeaderStyle)),
+                DataColumn(
+                    label: Text('DATA INTEGRITY', style: _columnHeaderStyle)),
                 DataColumn(label: Text('CUSTODY', style: _columnHeaderStyle)),
               ],
               rows: _searchResults.asMap().entries.map<DataRow>((entry) {
@@ -942,15 +1111,17 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                           color: Color(0xFFB0BEC5), fontSize: 13),
                     )),
                     DataCell(_buildCellValue(
-                        profile['firing_pin_impression']?.toString())),
+                        profile['firing_pin_impression']?.toString(), 15)),
                     DataCell(_buildCellValue(
-                        profile['rifling_characteristics']?.toString())),
-                    DataCell(
-                        _buildCellValue(profile['chamber_marks']?.toString())),
-                    DataCell(_buildCellValue(_combineBreechFace(
-                      profile['ejector_marks']?.toString(),
-                      profile['extractor_marks']?.toString(),
-                    ))),
+                        profile['rifling_characteristics']?.toString(), 15)),
+                    DataCell(_buildCellValue(
+                        profile['chamber_marks']?.toString(), 15)),
+                    DataCell(_buildCellValue(
+                        _combineBreechFace(
+                          profile['ejector_marks']?.toString(),
+                          profile['extractor_marks']?.toString(),
+                        ),
+                        15)),
                     DataCell(Text(
                       profile['assigned_unit_name']?.toString() ?? '\u2014',
                       style: const TextStyle(
@@ -959,23 +1130,74 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                     DataCell(
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: (isLocked && hasHash
-                                  ? const Color(0xFF4CAF50)
-                                  : const Color(0xFFFFA726))
-                              .withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          isLocked && hasHash ? 'Verified' : 'Unverified',
-                          style: TextStyle(
+                          color: isLocked && hasHash
+                              ? const Color(0xFF4CAF50).withValues(alpha: 0.1)
+                              : const Color(0xFF2E3546).withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
                             color: isLocked && hasHash
-                                ? const Color(0xFF4CAF50)
-                                : const Color(0xFFFFA726),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                                ? const Color(0xFF4CAF50).withValues(alpha: 0.3)
+                                : const Color(0xFF455A64)
+                                    .withValues(alpha: 0.3),
+                            width: 1,
                           ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (isLocked && hasHash) ...[
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.verified_user,
+                                      color: Color(0xFF4CAF50), size: 12),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Sealed By: ${profile['test_conducted_by'] ?? 'Unknown'} at ${profile['forensic_lab'] ?? 'Lab'}',
+                                    style: const TextStyle(
+                                        color: Color(0xFF81C784),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.fingerprint,
+                                      color: Color(0xFF90A4AE), size: 12),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Hash ID: ${(profile['registration_hash'].toString().length > 8 ? profile['registration_hash'].toString().substring(0, 8) : profile['registration_hash'].toString())} \u2713',
+                                    style: const TextStyle(
+                                        color: Color(0xFFCFD8DC),
+                                        fontSize: 11,
+                                        fontFamily: 'monospace'),
+                                  ),
+                                ],
+                              ),
+                            ] else ...[
+                              const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.warning_amber_rounded,
+                                      color: Color(0xFFFFA726), size: 12),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Unverified Record',
+                                    style: TextStyle(
+                                        color: Color(0xFFFFB74D),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),
@@ -1222,19 +1444,21 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
     letterSpacing: 0.8,
   );
 
-  Widget _buildCellValue(String? value) {
+  Widget _buildCellValue(String? value, [int truncateLength = 15]) {
     if (value == null || value.isEmpty || value == 'null') {
       return const Text(
         '\u2014',
-        style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
+        style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
       );
     }
-    final display = value.length > 24 ? '${value.substring(0, 24)}...' : value;
+    final display = value.length > truncateLength
+        ? '${value.substring(0, truncateLength)}...'
+        : value;
     return Tooltip(
       message: value,
       child: Text(
         display,
-        style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+        style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -1496,7 +1720,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],

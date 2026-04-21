@@ -4,7 +4,8 @@ import 'api_client.dart';
 class OfficerVerificationService {
   String get _baseUrl => '${ApiConfig.apiBase}/officer-verification';
 
-  Future<Map<String, dynamic>> generateEnrollmentPin(String officerId, String unitId) async {
+  Future<Map<String, dynamic>> generateEnrollmentPin(
+      String officerId, String unitId) async {
     final response = await ApiClient.post(
       '${ApiConfig.apiBase}/enrollment/generate-pin',
       body: {

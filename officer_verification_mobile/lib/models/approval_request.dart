@@ -40,18 +40,27 @@ class ApprovalRequest {
       firearmModel: firearmModel,
       requestedBy: _stringValue(
         json['requested_by_name'],
-        fallback: _stringValue(json['requested_by'], fallback: 'Unknown Commander'),
+        fallback: _stringValue(
+          json['requested_by'],
+          fallback: 'Unknown Commander',
+        ),
       ),
       unitName: _stringValue(json['unit_name'], fallback: 'Unknown Unit'),
       reason: _stringValue(
         metadata['assignment_reason'],
-        fallback: _stringValue(json['reason'], fallback: 'Custody return verification'),
+        fallback: _stringValue(
+          json['reason'],
+          fallback: 'Custody return verification',
+        ),
       ),
       requestedAt: _parseDateTime(json['created_at']) ?? DateTime.now(),
       expiresAt:
           _parseDateTime(json['expires_at']) ??
           DateTime.now().add(const Duration(minutes: 5)),
-      requestType: _stringValue(json['request_type'], fallback: 'custody_return'),
+      requestType: _stringValue(
+        json['request_type'],
+        fallback: 'custody_return',
+      ),
     );
   }
 

@@ -153,8 +153,8 @@ class AnomalyService {
   // Restore anomaly into dashboard views.
   Future<Map<String, dynamic>> restoreToDashboard(String id) async {
     try {
-      final data =
-          await ApiClient.delete('${ApiConfig.anomaliesUrl}/$id/delete-from-dashboard');
+      final data = await ApiClient.delete(
+          '${ApiConfig.anomaliesUrl}/$id/delete-from-dashboard');
       return data['data'];
     } catch (e) {
       throw Exception('Error restoring anomaly to dashboard: $e');
@@ -165,7 +165,8 @@ class AnomalyService {
   Future<Map<String, dynamic>> hideFromDashboard(
     String id, {
     String? reason,
-  }) => deleteFromDashboard(id, reason: reason);
+  }) =>
+      deleteFromDashboard(id, reason: reason);
 
   Future<Map<String, dynamic>> unhideFromDashboard(String id) =>
       restoreToDashboard(id);
@@ -231,7 +232,8 @@ class AnomalyService {
 
         final parsedStartDate =
             startDate != null ? DateTime.tryParse(startDate) : null;
-        final parsedEndDate = endDate != null ? DateTime.tryParse(endDate) : null;
+        final parsedEndDate =
+            endDate != null ? DateTime.tryParse(endDate) : null;
 
         return allResults.where((anomaly) {
           final anomalyUnitId = anomaly['unit_id']?.toString();
@@ -248,7 +250,8 @@ class AnomalyService {
               return false;
             }
 
-            if (parsedStartDate != null && detectedAt.isBefore(parsedStartDate)) {
+            if (parsedStartDate != null &&
+                detectedAt.isBefore(parsedStartDate)) {
               return false;
             }
 

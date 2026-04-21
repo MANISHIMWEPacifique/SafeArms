@@ -38,7 +38,8 @@ PageRoute<T> slideFadeRoute<T>(
     transitionDuration: duration,
     reverseTransitionDuration: const Duration(milliseconds: 260),
     transitionsBuilder: (_, animation, __, child) {
-      final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      final curved =
+          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
       return FadeTransition(
         opacity: curved,
         child: SlideTransition(

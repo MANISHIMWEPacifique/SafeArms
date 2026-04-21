@@ -85,11 +85,11 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 240),
                               transitionBuilder: (child, animation) {
-                                final scale = Tween<double>(
-                                        begin: 0.97, end: 1.0)
-                                    .animate(CurvedAnimation(
-                                        parent: animation,
-                                        curve: Curves.easeOut));
+                                final scale =
+                                    Tween<double>(begin: 0.97, end: 1.0)
+                                        .animate(CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeOut));
                                 return FadeTransition(
                                   opacity: animation,
                                   child: ScaleTransition(

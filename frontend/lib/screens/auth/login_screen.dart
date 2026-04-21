@@ -12,9 +12,9 @@ import 'change_password_screen.dart' deferred as change_password_screen;
 import '../dashboards/admin_dashboard.dart' deferred as admin_dashboard;
 import '../dashboards/hq_commander_dashboard.dart' deferred as hq_dashboard;
 import '../dashboards/station_commander_dashboard.dart'
-  deferred as station_dashboard;
+    deferred as station_dashboard;
 import '../dashboards/investigator_dashboard.dart'
-  deferred as investigator_dashboard;
+    deferred as investigator_dashboard;
 
 class LoginScreen extends StatefulWidget {
   final String? sessionExpiredMessage;

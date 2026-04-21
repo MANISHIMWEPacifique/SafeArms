@@ -139,7 +139,8 @@ class _RoleActivityChartState extends State<RoleActivityChart> {
         sortedLabels.add(_formatDateKey(now.subtract(Duration(days: i * 7))));
       } else {
         // Monthly approximation
-        sortedLabels.add(_formatDateKey(DateTime(now.year, now.month - i, now.day)));
+        sortedLabels
+            .add(_formatDateKey(DateTime(now.year, now.month - i, now.day)));
       }
     }
 

@@ -569,7 +569,8 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
                 const SizedBox(height: 4),
                 Text(
                   'Device key: ${_selectedVerificationDeviceKey!}',
-                  style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                  style:
+                      const TextStyle(color: Color(0xFF78909C), fontSize: 12),
                 ),
               ],
             ),

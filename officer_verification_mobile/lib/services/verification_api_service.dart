@@ -39,27 +39,29 @@ class VerificationApiService {
   }) async {
     try {
       final uri = Uri.parse('$baseUrl/enrollment/exchange-pin');
-      
-      final response = await _client.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'pin': pin,
-          'device_fingerprint': deviceFingerprint,
-          'device_name': deviceName,
-          'platform': platform,
-          'app_version': appVersion,
-        }),
-      ).timeout(_requestTimeout);
+
+      final response = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'pin': pin,
+              'device_fingerprint': deviceFingerprint,
+              'device_name': deviceName,
+              'platform': platform,
+              'app_version': appVersion,
+            }),
+          )
+          .timeout(_requestTimeout);
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         final Map<String, dynamic> errorBody;
         try {
           errorBody = jsonDecode(response.body);
         } catch (_) {
-          throw VerificationApiException('Failed to enroll device (${response.statusCode})');
+          throw VerificationApiException(
+            'Failed to enroll device (${response.statusCode})',
+          );
         }
         throw VerificationApiException(
           errorBody['message'] ?? 'Failed to enroll device',
@@ -68,13 +70,16 @@ class VerificationApiService {
 
       final data = jsonDecode(response.body);
       if (data['success'] != true) {
-        throw const VerificationApiException('Unexpected server response format');
+        throw const VerificationApiException(
+          'Unexpected server response format',
+        );
       }
 
       return data['data'] as Map<String, dynamic>;
     } on SocketException {
       throw const VerificationApiException(
-          'Unable to reach server. Check your network or API Base URL.');
+        'Unable to reach server. Check your network or API Base URL.',
+      );
     } on TimeoutException {
       throw const VerificationApiException('Server request timed out.');
     } on FormatException {

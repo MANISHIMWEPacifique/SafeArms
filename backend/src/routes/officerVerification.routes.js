@@ -7,6 +7,7 @@ const { triggerManualVerificationOps } = require('../jobs/officerVerification.jo
 const {
     registerOfficerDevice,
     listOfficerDevices,
+    listUnitOfficerDevices,
     removeOfficerDevice,
     revokeOfficerDevice,
     reassignOfficerDevice,
@@ -43,6 +44,16 @@ router.post('/devices/register', authenticate, requireCommander, asyncHandler(as
 router.get('/devices/officer/:officer_id', authenticate, requireCommander, asyncHandler(async (req, res) => {
     const devices = await listOfficerDevices({
         officerId: req.params.officer_id,
+        includeRevoked: req.query.include_revoked === 'true',
+        requestingUser: req.user
+    });
+
+    res.json({ success: true, data: devices });
+}));
+
+router.get('/devices/unit/:unit_id', authenticate, requireCommander, asyncHandler(async (req, res) => {
+    const devices = await listUnitOfficerDevices({
+        unitId: req.params.unit_id,
         includeRevoked: req.query.include_revoked === 'true',
         requestingUser: req.user
     });

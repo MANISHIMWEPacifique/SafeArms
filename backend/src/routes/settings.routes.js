@@ -41,6 +41,65 @@ const DEFAULT_SETTINGS = {
     notification_sms: false
 };
 
+const ANOMALY_SCORING_THRESHOLD_KEYS = [
+    'anomaly_trigger_threshold',
+    'anomaly_medium_threshold',
+    'anomaly_high_threshold',
+    'anomaly_critical_threshold',
+    'anomaly_critical_min_confidence'
+];
+
+const toOptionalNumber = (value) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+        const parsed = Number.parseFloat(value);
+        if (Number.isFinite(parsed)) {
+            return parsed;
+        }
+    }
+
+    return null;
+};
+
+const validateAnomalyScoringThresholds = (settings) => {
+    const normalized = {};
+    const errors = [];
+
+    for (const key of ANOMALY_SCORING_THRESHOLD_KEYS) {
+        const value = toOptionalNumber(settings[key]);
+        if (value === null) {
+            errors.push(`${key} must be numeric.`);
+            continue;
+        }
+
+        if (value < 0 || value > 1) {
+            errors.push(`${key} must be between 0 and 1.`);
+            continue;
+        }
+
+        normalized[key] = value;
+    }
+
+    if (errors.length === 0) {
+        if (!(
+            normalized.anomaly_trigger_threshold <= normalized.anomaly_medium_threshold &&
+            normalized.anomaly_medium_threshold <= normalized.anomaly_high_threshold &&
+            normalized.anomaly_high_threshold <= normalized.anomaly_critical_threshold
+        )) {
+            errors.push('Threshold ordering must satisfy anomaly_trigger_threshold <= anomaly_medium_threshold <= anomaly_high_threshold <= anomaly_critical_threshold.');
+        }
+    }
+
+    return {
+        isValid: errors.length === 0,
+        errors,
+        normalized
+    };
+};
+
 const parsePositiveInt = (value, fallback) => {
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -194,6 +253,32 @@ router.put('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
     const sanitizedSettings = Object.fromEntries(
         Object.entries(settings).filter(([key]) => typeof key === 'string' && key.trim().length > 0)
     );
+
+    const updatesThresholdSettings = Object.keys(sanitizedSettings)
+        .some((key) => ANOMALY_SCORING_THRESHOLD_KEYS.includes(key));
+
+    if (updatesThresholdSettings) {
+        const currentSettings = getCachedSettings() || getDefaultSettings();
+        const validationTarget = {
+            ...currentSettings,
+            ...sanitizedSettings
+        };
+        const thresholdValidation = validateAnomalyScoringThresholds(validationTarget);
+
+        if (!thresholdValidation.isValid) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid anomaly scoring thresholds.',
+                errors: thresholdValidation.errors
+            });
+        }
+
+        for (const key of ANOMALY_SCORING_THRESHOLD_KEYS) {
+            if (Object.prototype.hasOwnProperty.call(sanitizedSettings, key)) {
+                sanitizedSettings[key] = thresholdValidation.normalized[key];
+            }
+        }
+    }
 
     if (Object.keys(sanitizedSettings).length > 0) {
         await query(`

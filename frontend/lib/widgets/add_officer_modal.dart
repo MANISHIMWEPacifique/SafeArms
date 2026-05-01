@@ -4,7 +4,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/officer_provider.dart';
+import '../../providers/unit_provider.dart';
 import '../../models/officer_model.dart';
+import 'searchable_dropdown.dart';
 
 class AddOfficerModal extends StatefulWidget {
   final OfficerModel? officer; // null for create, not null for edit
@@ -54,6 +56,10 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
       _employmentDate = widget.officer!.employmentDate;
       _isActive = widget.officer!.isActive;
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UnitProvider>().loadUnits();
+    });
   }
 
   @override
@@ -240,26 +246,44 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
                             Expanded(
                               child: Column(
                                 children: [
-                                  _buildDropdownField(
-                                    label: 'Unit Assignment',
-                                    value: _selectedUnit,
-                                    items: const [
-                                      {
-                                        'value': 'unit1',
-                                        'label': 'Kigali Central Station'
-                                      },
-                                      {
-                                        'value': 'unit2',
-                                        'label': 'Nyamirambo Station'
-                                      },
-                                      {
-                                        'value': 'unit3',
-                                        'label': 'Kicukiro Station'
-                                      },
-                                    ],
-                                    onChanged: (value) =>
-                                        setState(() => _selectedUnit = value),
-                                    required: true,
+                                  Consumer<UnitProvider>(
+                                    builder: (context, unitProvider, _) {
+                                      if (unitProvider.isLoading) {
+                                        return const Padding(
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 12),
+                                          child: Center(
+                                            child: SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      final unitItems = unitProvider.units
+                                          .map<Map<String, String>>((unit) {
+                                        return {
+                                          'value':
+                                              unit['unit_id']?.toString() ?? '',
+                                          'label': unit['unit_name']
+                                                  ?.toString() ??
+                                              'Unknown Unit',
+                                        };
+                                      }).toList();
+
+                                      return _buildSearchableDropdownField(
+                                        label: 'Unit Assignment',
+                                        value: _selectedUnit,
+                                        items: unitItems,
+                                        onChanged: (value) =>
+                                            setState(() => _selectedUnit = value),
+                                        required: true,
+                                      );
+                                    },
                                   ),
                                   const SizedBox(height: 16),
                                   _buildTextField(
@@ -539,6 +563,47 @@ class _AddOfficerModalState extends State<AddOfficerModal> {
               onChanged: onChanged,
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchableDropdownField({
+    required String label,
+    required String? value,
+    required List<Map<String, String>> items,
+    required Function(String?) onChanged,
+    bool required = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(label,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            if (required) ...[
+              const SizedBox(width: 4),
+              const Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        SearchableDropdown<String>(
+          items: items
+              .map(
+                (item) => SearchableDropdownItem<String>(
+                  value: item['value'] ?? '',
+                  label: item['label'] ?? 'Unknown',
+                  icon: Icons.account_tree_outlined,
+                ),
+              )
+              .toList(),
+          value: value,
+          hintText: items.isEmpty ? 'No units available' : 'Search unit...',
+          prefixIcon: Icons.account_tree_outlined,
+          enabled: items.isNotEmpty,
+          onChanged: onChanged,
         ),
       ],
     );

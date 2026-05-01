@@ -31,7 +31,8 @@ const cleanupExpiredVerificationArtifacts = async () => {
              'REPLAY_BLOCKED',
              'REQUEST_REUSED'
            )`,
-        [retentionDays]
+        [retentionDays],
+        { retryTransient: true }
     );
 
     const staleRequestsResult = await query(
@@ -44,7 +45,8 @@ const cleanupExpiredVerificationArtifacts = async () => {
          WHERE created_at < CURRENT_TIMESTAMP - ($1::TEXT || ' days')::INTERVAL
            AND consumed_at IS NULL
            AND decision IN ('pending', 'expired', 'cancelled')`,
-        [retentionDays]
+        [retentionDays],
+        { retryTransient: true }
     );
 
     logger.info(

@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+const { query, withTransaction } = require('../config/database');
 const { extractAllFeatures } = require('./featureExtractor');
 const { predictKMeans } = require('./kmeans');
 const { detectStatisticalOutliers } = require('./statistical');
@@ -21,6 +21,26 @@ const SCORING_THRESHOLD_SETTING_KEYS = [
     'anomaly_critical_threshold',
     'anomaly_critical_min_confidence'
 ];
+const ANOMALY_ID_LOCK_KEY = 947215;
+
+const hasValidThresholdOrdering = (thresholds) => (
+    thresholds.anomaly_trigger_threshold <= thresholds.anomaly_medium_threshold &&
+    thresholds.anomaly_medium_threshold <= thresholds.anomaly_high_threshold &&
+    thresholds.anomaly_high_threshold <= thresholds.anomaly_critical_threshold
+);
+
+const generateAnomalyId = async (client) => {
+    await client.query('SELECT pg_advisory_xact_lock($1)', [ANOMALY_ID_LOCK_KEY]);
+
+    const idResult = await client.query(`
+        SELECT COALESCE(MAX(CAST(SUBSTRING(anomaly_id FROM 6) AS INTEGER)), 0) as max_num
+        FROM anomalies
+        WHERE anomaly_id ~ '^ANOM-[0-9]+$'
+    `);
+
+    const nextNum = parseInt(idResult.rows[0].max_num, 10) + 1;
+    return `ANOM-${String(nextNum).padStart(3, '0')}`;
+};
 
 const toOptionalNumber = (value) => {
     if (value === undefined || value === null) {
@@ -45,7 +65,7 @@ const loadScoringThresholds = async () => {
     try {
         const settings = await getSystemSettings(SCORING_THRESHOLD_SETTING_KEYS);
 
-        return normalizeScoringThresholds({
+        const requestedThresholds = {
             anomaly_trigger_threshold:
                 toOptionalNumber(settings.anomaly_trigger_threshold) ??
                 DEFAULT_SCORING_THRESHOLDS.anomaly_trigger_threshold,
@@ -61,10 +81,18 @@ const loadScoringThresholds = async () => {
             anomaly_critical_min_confidence:
                 toOptionalNumber(settings.anomaly_critical_min_confidence) ??
                 DEFAULT_SCORING_THRESHOLDS.anomaly_critical_min_confidence
-        });
+        };
+
+        const normalizedThresholds = normalizeScoringThresholds(requestedThresholds);
+
+        if (!hasValidThresholdOrdering(requestedThresholds)) {
+            logger.warn('Invalid anomaly scoring threshold ordering detected; using safe default ordering.');
+        }
+
+        return normalizedThresholds;
     } catch (error) {
         logger.warn(`Unable to load anomaly scoring thresholds from system settings: ${error.message}`);
-        return DEFAULT_SCORING_THRESHOLDS;
+        return { ...DEFAULT_SCORING_THRESHOLDS };
     }
 };
 
@@ -75,7 +103,7 @@ const loadScoringThresholds = async () => {
  * 1. This system evaluates EVENTS, not people
  * 2. Anomalies represent patterns requiring human review
  * 3. Severity indicates REVIEW URGENCY, not wrongdoing
- * 4. Cross-unit transfers contribute to anomaly score but are not mandatory
+ * 4. Cross-unit transfers are always anomalies and mandatory review events
  * 5. Ballistic access timing relative to custody is a key feature
  * 6. The system is unsupervised - no labeled training data required
  * 
@@ -155,7 +183,10 @@ const detectAnomaly = async (custodyRecord) => {
             const anomalyRecord = await recordAnomaly(custodyRecord, features, ensembleResult, model?.model_id);
 
             // Send alerts for high/critical anomalies
-            if (ensembleResult.severity === 'high' || ensembleResult.severity === 'critical') {
+            if (
+                !anomalyRecord.already_exists &&
+                (ensembleResult.severity === 'high' || ensembleResult.severity === 'critical')
+            ) {
                 await sendAnomalyAlerts(custodyRecord, ensembleResult, anomalyRecord);
             }
         }
@@ -186,11 +217,6 @@ const detectAnomaly = async (custodyRecord) => {
  */
 const recordAnomaly = async (custodyRecord, features, detectionResult, modelId) => {
     try {
-        // Generate anomaly_id
-        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(anomaly_id FROM 6) AS INTEGER)), 0) as max_num FROM anomalies WHERE anomaly_id ~ '^ANOM-[0-9]+$'`);
-        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
-        const anomaly_id = `ANOM-${String(nextNum).padStart(3, '0')}`;
-
         // Build dynamic detection_method from which detectors contributed
         const methods = [];
         if (detectionResult.rules_triggered?.length > 0) methods.push('rules');
@@ -199,37 +225,67 @@ const recordAnomaly = async (custodyRecord, features, detectionResult, modelId) 
         if ((detectionResult.detection_methods?.ballistic_timing?.score || 0) > 0.5) methods.push('ballistic');
         const detectionMethod = methods.length > 0 ? methods.join('+') : 'ensemble';
 
-        const result = await query(`
-      INSERT INTO anomalies (
-        anomaly_id, custody_record_id, firearm_id, officer_id, unit_id,
-        anomaly_score, anomaly_type, detection_method, model_id,
-        severity, confidence_level, contributing_factors, feature_importance,
-        is_mandatory_review, event_context, ballistic_access_context
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-      RETURNING anomaly_id
-    `, [
-            anomaly_id,
-            custodyRecord.custody_id,
-            custodyRecord.firearm_id,
-            custodyRecord.officer_id,
-            custodyRecord.unit_id,
-            detectionResult.anomaly_score,
-            detectionResult.anomaly_type,
-            detectionMethod,
-            modelId,
-            detectionResult.severity,
-            detectionResult.confidence,
-            JSON.stringify(detectionResult.contributing_factors),
-            JSON.stringify(detectionResult.feature_importance),
-            detectionResult.is_mandatory_review || false,
-            JSON.stringify(features.event_context || detectionResult.event_context),
-            JSON.stringify(detectionResult.ballistic_access_context)
-        ]);
+        const anomalyRecord = await withTransaction(async (client) => {
+            const existing = await client.query(`
+                SELECT anomaly_id
+                FROM anomalies
+                WHERE custody_record_id = $1
+                  AND anomaly_type = $2
+                ORDER BY detected_at DESC
+                LIMIT 1
+            `, [custodyRecord.custody_id, detectionResult.anomaly_type]);
 
-        const anomalyId = result.rows[0].anomaly_id;
+            if (existing.rows.length > 0) {
+                return {
+                    anomaly_id: existing.rows[0].anomaly_id,
+                    already_exists: true
+                };
+            }
+
+            const anomalyId = await generateAnomalyId(client);
+
+            await client.query(`
+                INSERT INTO anomalies (
+                    anomaly_id, custody_record_id, firearm_id, officer_id, unit_id,
+                    anomaly_score, anomaly_type, detection_method, model_id,
+                    severity, confidence_level, contributing_factors, feature_importance,
+                    is_mandatory_review, event_context, ballistic_access_context
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                RETURNING anomaly_id
+            `, [
+                anomalyId,
+                custodyRecord.custody_id,
+                custodyRecord.firearm_id,
+                custodyRecord.officer_id,
+                custodyRecord.unit_id,
+                detectionResult.anomaly_score,
+                detectionResult.anomaly_type,
+                detectionMethod,
+                modelId,
+                detectionResult.severity,
+                detectionResult.confidence,
+                JSON.stringify(detectionResult.contributing_factors),
+                JSON.stringify(detectionResult.feature_importance),
+                detectionResult.is_mandatory_review || false,
+                JSON.stringify(features.event_context || detectionResult.event_context),
+                JSON.stringify(detectionResult.ballistic_access_context)
+            ]);
+
+            return {
+                anomaly_id: anomalyId,
+                already_exists: false
+            };
+        });
+
+        const anomalyId = anomalyRecord.anomaly_id;
+        if (anomalyRecord.already_exists) {
+            logger.info(`EVENT anomaly already recorded for custody ${custodyRecord.custody_id} (type: ${detectionResult.anomaly_type}, id: ${anomalyId})`);
+            return anomalyRecord;
+        }
+
         logger.info(`EVENT anomaly recorded: ${anomalyId} (type: ${detectionResult.anomaly_type}, severity: ${detectionResult.severity})`);
 
-        return { anomaly_id: anomalyId, ...result.rows[0] };
+        return anomalyRecord;
     } catch (error) {
         logger.error('Record anomaly error:', error);
         throw error;
@@ -538,11 +594,6 @@ const recordOverdueAnomaly = async (overdueRecord, hoursOverdue, severity) => {
         const daysOverdue = Math.floor(hoursOverdue / 24);
         const remainingHours = Math.floor(hoursOverdue % 24);
 
-        // Generate anomaly_id
-        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(anomaly_id FROM 6) AS INTEGER)), 0) as max_num FROM anomalies WHERE anomaly_id ~ '^ANOM-[0-9]+$'`);
-        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
-        const anomaly_id = `ANOM-${String(nextNum).padStart(3, '0')}`;
-
         // Build contributing factors
         const contributingFactors = {
             overdue_duration: `Firearm not returned for ${daysOverdue} day(s) and ${remainingHours} hour(s) past expected return`,
@@ -588,36 +639,41 @@ const recordOverdueAnomaly = async (overdueRecord, hoursOverdue, severity) => {
             anomalyType = 'overdue_return_extended';
         }
 
-        const result = await query(`
-            INSERT INTO anomalies (
-                anomaly_id, custody_record_id, firearm_id, officer_id, unit_id,
-                anomaly_score, anomaly_type, detection_method, model_id,
-                severity, confidence_level, contributing_factors, feature_importance,
-                is_mandatory_review, event_context, ballistic_access_context
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-            RETURNING anomaly_id
-        `, [
-            anomaly_id,
-            overdueRecord.custody_id,
-            overdueRecord.firearm_id,
-            overdueRecord.officer_id,
-            overdueRecord.unit_id,
-            anomalyScore,
-            anomalyType,
-            'overdue_scanner',
-            null, // No ML model used - this is rule-based
-            severity,
-            0.95, // High confidence since this is deterministic (date comparison)
-            JSON.stringify(contributingFactors),
-            JSON.stringify(featureImportance),
-            severity === 'high' || severity === 'critical', // Mandatory review for high/critical
-            JSON.stringify(eventContext),
-            JSON.stringify(null) // No ballistic context for overdue
-        ]);
+        const anomaly_id = await withTransaction(async (client) => {
+            const nextAnomalyId = await generateAnomalyId(client);
+
+            await client.query(`
+                INSERT INTO anomalies (
+                    anomaly_id, custody_record_id, firearm_id, officer_id, unit_id,
+                    anomaly_score, anomaly_type, detection_method, model_id,
+                    severity, confidence_level, contributing_factors, feature_importance,
+                    is_mandatory_review, event_context, ballistic_access_context
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            `, [
+                nextAnomalyId,
+                overdueRecord.custody_id,
+                overdueRecord.firearm_id,
+                overdueRecord.officer_id,
+                overdueRecord.unit_id,
+                anomalyScore,
+                anomalyType,
+                'overdue_scanner',
+                null, // No ML model used - this is rule-based
+                severity,
+                0.95, // High confidence since this is deterministic (date comparison)
+                JSON.stringify(contributingFactors),
+                JSON.stringify(featureImportance),
+                severity === 'high' || severity === 'critical', // Mandatory review for high/critical
+                JSON.stringify(eventContext),
+                JSON.stringify(null) // No ballistic context for overdue
+            ]);
+
+            return nextAnomalyId;
+        });
 
         logger.info(`OVERDUE anomaly recorded: ${anomaly_id} (custody: ${overdueRecord.custody_id}, ${daysOverdue}d ${remainingHours}h overdue, severity: ${severity})`);
 
-        return { anomaly_id: result.rows[0].anomaly_id };
+        return { anomaly_id };
     } catch (error) {
         logger.error('Record overdue anomaly error:', error);
         throw error;

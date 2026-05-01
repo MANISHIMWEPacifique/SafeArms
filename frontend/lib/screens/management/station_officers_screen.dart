@@ -48,7 +48,7 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     if (unitId != null) {
       await officerProvider.loadUnitOfficers(unitId);
       await officerProvider.loadStats(unitId: unitId);
-      await _loadOfficerDeviceStates(officerProvider.officers);
+      await _loadOfficerDeviceStates(unitId, officerProvider.officers);
     } else if (mounted) {
       setState(() {
         _officerHasActiveDevice = {};
@@ -56,21 +56,21 @@ class _StationOfficersScreenState extends State<StationOfficersScreen> {
     }
   }
 
-  Future<void> _loadOfficerDeviceStates(List<OfficerModel> officers) async {
+  Future<void> _loadOfficerDeviceStates(String unitId, List<OfficerModel> officers) async {
     final statusMap = <String, bool>{};
 
-    await Future.wait(
-      officers.map((officer) async {
-        try {
-          final devices = await _verificationService.getOfficerDevices(
-            officer.officerId,
-          );
-          statusMap[officer.officerId] = devices.isNotEmpty;
-        } catch (_) {
-          statusMap[officer.officerId] = false;
-        }
-      }),
-    );
+    try {
+      final devices = await _verificationService.getUnitOfficerDevices(unitId);
+      final officerIdsWithDevices = devices.map((d) => d['officer_id'].toString()).toSet();
+      
+      for (final officer in officers) {
+        statusMap[officer.officerId] = officerIdsWithDevices.contains(officer.officerId);
+      }
+    } catch (_) {
+      for (final officer in officers) {
+        statusMap[officer.officerId] = false;
+      }
+    }
 
     if (!mounted) return;
 

@@ -499,6 +499,25 @@ const listOfficerDevices = async ({ officerId, requestingUser, includeRevoked = 
     return result.rows.map((row) => sanitizeDevice(row));
 };
 
+const listUnitOfficerDevices = async ({ unitId, requestingUser, includeRevoked = false }) => {
+    if (!unitId) {
+        throw new AppError('unit_id is required', 400);
+    }
+
+    assertStationCommanderUnitAccess(requestingUser, unitId);
+
+    const result = await query(
+        `SELECT *
+         FROM officer_devices
+         WHERE unit_id = $1
+           AND ($2::BOOLEAN = true OR is_revoked = false)
+         ORDER BY officer_id ASC, is_revoked ASC, created_at DESC`,
+        [unitId, includeRevoked]
+    );
+
+    return result.rows.map((row) => sanitizeDevice(row));
+};
+
 const removeOfficerDevice = async ({ deviceKey, removedBy, requestingUser }) => {
     if (!deviceKey) {
         throw new AppError('device_key is required', 400);
@@ -616,7 +635,8 @@ const expireStaleRequests = async (custodyId = null) => {
         const scopedResult = await query(
             `${baseSql} AND custody_id = $1
              RETURNING verification_id, custody_id, officer_id, unit_id`,
-            [custodyId]
+            [custodyId],
+            { retryTransient: true }
         );
 
         for (const row of scopedResult.rows) {
@@ -636,7 +656,9 @@ const expireStaleRequests = async (custodyId = null) => {
 
     const result = await query(
         `${baseSql}
-         RETURNING verification_id, custody_id, officer_id, unit_id`
+         RETURNING verification_id, custody_id, officer_id, unit_id`,
+        [],
+        { retryTransient: true }
     );
 
     for (const row of result.rows) {
@@ -1307,6 +1329,7 @@ module.exports = {
     recordVerificationEvent,
     registerOfficerDevice,
     listOfficerDevices,
+    listUnitOfficerDevices,
     removeOfficerDevice,
     revokeOfficerDevice,
     reassignOfficerDevice,

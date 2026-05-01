@@ -8,14 +8,14 @@ const DEFAULT_SCORING_THRESHOLDS = Object.freeze({
     anomaly_critical_min_confidence: 0.60
 });
 
-const toFiniteNumber = (value, fallback) => {
+const toThresholdNumber = (value, fallback) => {
     if (typeof value === 'number' && Number.isFinite(value)) {
-        return value;
+        return value >= 0 && value <= 1 ? value : fallback;
     }
 
     if (typeof value === 'string' && value.trim().length > 0) {
         const parsed = Number.parseFloat(value);
-        if (Number.isFinite(parsed)) {
+        if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1) {
             return parsed;
         }
     }
@@ -23,28 +23,42 @@ const toFiniteNumber = (value, fallback) => {
     return fallback;
 };
 
-const normalizeScoringThresholds = (thresholds = {}) => ({
-    anomaly_trigger_threshold: toFiniteNumber(
-        thresholds.anomaly_trigger_threshold,
-        DEFAULT_SCORING_THRESHOLDS.anomaly_trigger_threshold
-    ),
-    anomaly_medium_threshold: toFiniteNumber(
-        thresholds.anomaly_medium_threshold,
-        DEFAULT_SCORING_THRESHOLDS.anomaly_medium_threshold
-    ),
-    anomaly_high_threshold: toFiniteNumber(
-        thresholds.anomaly_high_threshold,
-        DEFAULT_SCORING_THRESHOLDS.anomaly_high_threshold
-    ),
-    anomaly_critical_threshold: toFiniteNumber(
-        thresholds.anomaly_critical_threshold,
-        DEFAULT_SCORING_THRESHOLDS.anomaly_critical_threshold
-    ),
-    anomaly_critical_min_confidence: toFiniteNumber(
-        thresholds.anomaly_critical_min_confidence,
-        DEFAULT_SCORING_THRESHOLDS.anomaly_critical_min_confidence
-    )
-});
+const hasValidThresholdOrdering = (thresholds) => (
+    thresholds.anomaly_trigger_threshold <= thresholds.anomaly_medium_threshold &&
+    thresholds.anomaly_medium_threshold <= thresholds.anomaly_high_threshold &&
+    thresholds.anomaly_high_threshold <= thresholds.anomaly_critical_threshold
+);
+
+const normalizeScoringThresholds = (thresholds = {}) => {
+    const normalized = {
+        anomaly_trigger_threshold: toThresholdNumber(
+            thresholds.anomaly_trigger_threshold,
+            DEFAULT_SCORING_THRESHOLDS.anomaly_trigger_threshold
+        ),
+        anomaly_medium_threshold: toThresholdNumber(
+            thresholds.anomaly_medium_threshold,
+            DEFAULT_SCORING_THRESHOLDS.anomaly_medium_threshold
+        ),
+        anomaly_high_threshold: toThresholdNumber(
+            thresholds.anomaly_high_threshold,
+            DEFAULT_SCORING_THRESHOLDS.anomaly_high_threshold
+        ),
+        anomaly_critical_threshold: toThresholdNumber(
+            thresholds.anomaly_critical_threshold,
+            DEFAULT_SCORING_THRESHOLDS.anomaly_critical_threshold
+        ),
+        anomaly_critical_min_confidence: toThresholdNumber(
+            thresholds.anomaly_critical_min_confidence,
+            DEFAULT_SCORING_THRESHOLDS.anomaly_critical_min_confidence
+        )
+    };
+
+    if (!hasValidThresholdOrdering(normalized)) {
+        return { ...DEFAULT_SCORING_THRESHOLDS };
+    }
+
+    return normalized;
+};
 
 /**
  * Ensemble Anomaly Scorer for EVENT-Based Detection
@@ -52,7 +66,7 @@ const normalizeScoringThresholds = (thresholds = {}) => ({
  * IMPORTANT PRINCIPLES:
  * 1. This system evaluates EVENTS, not people
  * 2. Severity indicates REVIEW URGENCY, not wrongdoing
- * 3. Cross-unit transfers contribute to anomaly score but are not mandatory
+ * 3. Cross-unit transfers are always anomalies and mandatory review events
  * 4. Ballistic access timing relative to custody is a key feature
  * 5. The system remains unsupervised - it identifies patterns for human review
  * 
@@ -125,7 +139,10 @@ const calculateEnsembleScore = (
         const confidence = detectorAgreement / 4.0;
 
         // Classify severity (review urgency, NOT wrongdoing indication)
-        const severity = classifySeverity(ensembleScore, confidence, features, scoringThresholds);
+        const computedSeverity = classifySeverity(ensembleScore, confidence, features, scoringThresholds);
+        const severity = isCrossUnitTransfer && computedSeverity === 'low'
+            ? 'medium'
+            : computedSeverity;
 
         // Determine anomaly type
         const anomalyType = determineAnomalyType(features, kmeansResult, statisticalResult, rulesResult);
@@ -136,8 +153,8 @@ const calculateEnsembleScore = (
         // Build contributing factors
         const contributingFactors = buildContributingFactors(features, kmeansResult, statisticalResult, rulesResult);
 
-        // DECISION: Anomaly if ensemble score exceeds threshold
-        const isAnomaly = ensembleScore >= scoringThresholds.anomaly_trigger_threshold;
+        // DECISION: Cross-unit transfers are always anomalies; all others are threshold-based.
+        const isAnomaly = isCrossUnitTransfer || ensembleScore >= scoringThresholds.anomaly_trigger_threshold;
 
         return {
             is_anomaly: isAnomaly,
@@ -146,7 +163,8 @@ const calculateEnsembleScore = (
             severity,
             anomaly_type: anomalyType,
             is_mandatory_review:
-                confidence >= scoringThresholds.anomaly_critical_min_confidence && severity !== 'low',
+                isCrossUnitTransfer ||
+                (confidence >= scoringThresholds.anomaly_critical_min_confidence && severity !== 'low'),
             feature_importance: featureImportance,
             contributing_factors: contributingFactors,
             rules_triggered: rulesResult?.rules_triggered || [],
@@ -295,6 +313,11 @@ const classifySeverity = (score, confidence, features = {}, thresholds = DEFAULT
  * @returns {string}
  */
 const determineAnomalyType = (features, kmeansResult, statisticalResult, rulesResult = null) => {
+    // Cross-unit transfer is always the primary anomaly label for policy traceability.
+    if (features.is_cross_unit_transfer) {
+        return 'cross_unit_transfer';
+    }
+
     // Rules engine result: use the highest-severity rule's anomaly type
     if (rulesResult?.rules_triggered?.length > 0) {
         const severityOrder = { low: 1, medium: 2, high: 3, critical: 4 };
@@ -305,12 +328,7 @@ const determineAnomalyType = (features, kmeansResult, statisticalResult, rulesRe
     }
 
     // Priority-based classification (existing logic)
-    
-    // HIGHEST PRIORITY: Cross-unit transfer (organizational policy)
-    if (features.is_cross_unit_transfer) {
-        return 'cross_unit_transfer';
-    }
-    
+
     if (features.rapid_exchange_flag) {
         return 'rapid_exchange_pattern';
     }

@@ -10,6 +10,7 @@ import '../../providers/anomaly_provider.dart';
 import '../../providers/unit_provider.dart';
 import '../../utils/app_transitions.dart';
 import '../../widgets/anomaly_card_widget.dart';
+import '../../widgets/searchable_dropdown.dart';
 
 const double _anomalyDesktopBreakpoint = 1024;
 const double _anomalyMobileBreakpoint = 768;
@@ -1481,35 +1482,26 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
             const Text('Unit',
                 style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
             const SizedBox(height: 2),
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1F2E),
-                border: Border.all(color: const Color(0xFF37404F)),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String?>(
-                  value: _selectedUnitId,
-                  isExpanded: true,
-                  hint: const Text('All Units',
-                      style: TextStyle(color: Colors.white54, fontSize: 13)),
-                  icon: const Icon(Icons.keyboard_arrow_down,
-                      color: Color(0xFF78909C)),
-                  dropdownColor: const Color(0xFF2A3040),
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                        value: null, child: Text('All Units')),
-                    ...units.map((u) => DropdownMenuItem<String?>(
-                          value: u['unit_id']?.toString(),
-                          child: Text(u['unit_name']?.toString() ?? ''),
-                        )),
-                  ],
-                  onChanged: (v) => setState(() => _selectedUnitId = v),
+            SearchableDropdown<String?>(
+              items: [
+                const SearchableDropdownItem<String?>(
+                  value: null,
+                  label: 'All Units',
+                  icon: Icons.public,
                 ),
-              ),
+                ...units.map(
+                  (u) => SearchableDropdownItem<String?>(
+                    value: u['unit_id']?.toString(),
+                    label: u['unit_name']?.toString() ?? 'Unknown unit',
+                    subtitle: u['unit_code']?.toString(),
+                    icon: Icons.account_tree_outlined,
+                  ),
+                ),
+              ],
+              value: _selectedUnitId,
+              hintText: 'Search unit or keep all units',
+              prefixIcon: Icons.account_tree_outlined,
+              onChanged: (value) => setState(() => _selectedUnitId = value),
             ),
           ],
         );

@@ -331,7 +331,7 @@ CREATE TABLE anomaly_investigations (
     investigation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     findings TEXT,
     action_taken TEXT,
-    outcome VARCHAR(50) CHECK (outcome IN ('confirmed', 'false_positive', 'needs_further_review')),
+    outcome VARCHAR(50) CHECK (outcome IN ('confirmed', 'false_positive', 'needs_further_review', 'acceptable_change')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -14,6 +14,11 @@ const requireAnomalyAccess = requireRole([
 // Only station commanders can make anomaly decisions.
 const requireStationDecision = requireRole([ROLES.STATION_COMMANDER]);
 
+const parsePositiveInt = (value, fallback) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+};
+
 const parseListFilters = (req) => ({
     ...req.query,
     include_removed: req.query.include_removed === 'true'
@@ -48,7 +53,11 @@ const getScopedAnomaly = async (req, res, anomalyId) => {
 // Get anomalies - role-based scope, excluding dashboard-deleted records by default.
 router.get('/', authenticate, requireAnomalyAccess, asyncHandler(async (req, res) => {
     const { role, unit_id } = req.user;
-    const filters = parseListFilters(req);
+    const filters = {
+        ...parseListFilters(req),
+        limit: parsePositiveInt(req.query.limit, role === ROLES.STATION_COMMANDER ? 50 : 100),
+        offset: parsePositiveInt(req.query.offset, 0)
+    };
 
     if (role === ROLES.STATION_COMMANDER) {
         const anomalies = await getUnitAnomalies(unit_id, filters);
@@ -75,8 +84,8 @@ router.get('/investigation/search', authenticate, requireAnomalyAccess, asyncHan
         severity,
         status,
         include_removed: includeRemoved,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        limit: parsePositiveInt(limit, 100),
+        offset: parsePositiveInt(offset, 0)
     });
     res.json({ success: true, data: results });
 }));
@@ -89,7 +98,11 @@ router.get('/unit/:unit_id', authenticate, requireCommander, asyncHandler(async 
         });
     }
 
-    const anomalies = await getUnitAnomalies(req.params.unit_id, parseListFilters(req));
+    const anomalies = await getUnitAnomalies(req.params.unit_id, {
+        ...parseListFilters(req),
+        limit: parsePositiveInt(req.query.limit, 50),
+        offset: parsePositiveInt(req.query.offset, 0)
+    });
     res.json({ success: true, data: anomalies });
 }));
 

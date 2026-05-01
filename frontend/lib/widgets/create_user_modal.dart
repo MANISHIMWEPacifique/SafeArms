@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/unit_provider.dart';
 import '../../models/user_model.dart';
+import 'searchable_dropdown.dart';
 import 'user_avatar.dart';
 
 class CreateUserModal extends StatefulWidget {
@@ -668,43 +669,26 @@ class _CreateUserModalState extends State<CreateUserModal> {
                 ),
               )
             else
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A3040),
-                  border: Border.all(
-                    color: _unitValidationMessage == null
-                        ? const Color(0xFF37404F)
-                        : const Color(0xFFE85C5C),
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedUnit,
-                    isExpanded: true,
-                    hint: Text(
-                      units.isEmpty
-                          ? 'No units available'
-                          : 'Select police unit...',
-                      style: const TextStyle(color: Color(0xFF78909C)),
-                    ),
-                    dropdownColor: const Color(0xFF2A3040),
-                    style: const TextStyle(color: Colors.white),
-                    items: units.map<DropdownMenuItem<String>>((unit) {
-                      return DropdownMenuItem<String>(
+              SearchableDropdown<String>(
+                items: units
+                    .map(
+                      (unit) => SearchableDropdownItem<String>(
                         value: unit['unit_id']?.toString() ?? '',
-                        child: Text(
-                          unit['unit_name']?.toString() ?? 'Unknown Unit',
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) => setState(() {
-                      _selectedUnit = value;
-                      _unitValidationMessage = null;
-                    }),
-                  ),
-                ),
+                        label: unit['unit_name']?.toString() ?? 'Unknown Unit',
+                        subtitle: unit['location']?.toString(),
+                        icon: Icons.account_tree_outlined,
+                      ),
+                    )
+                    .toList(),
+                value: _selectedUnit,
+                hintText:
+                    units.isEmpty ? 'No units available' : 'Search police unit',
+                prefixIcon: Icons.account_tree_outlined,
+                enabled: units.isNotEmpty,
+                onChanged: (value) => setState(() {
+                  _selectedUnit = value;
+                  _unitValidationMessage = null;
+                }),
               ),
             if (_unitValidationMessage != null) ...[
               const SizedBox(height: 8),

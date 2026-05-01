@@ -9,6 +9,7 @@ import '../config/api_config.dart';
 import '../providers/firearm_provider.dart';
 import '../providers/unit_provider.dart';
 import '../models/firearm_model.dart';
+import 'searchable_dropdown.dart';
 
 class RegisterFirearmModal extends StatefulWidget {
   final FirearmModel? firearm; // null for create, not null for edit
@@ -624,7 +625,7 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
                     'label': unit['unit_name']?.toString() ?? 'Unknown Unit',
                   };
                 }).toList();
-                return _buildDropdownField(
+                return _buildSearchableDropdownField(
                   label: 'Assign to Unit',
                   value: _assignedUnitId,
                   items: unitItems,
@@ -981,6 +982,47 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
               onChanged: onChanged,
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchableDropdownField({
+    required String label,
+    required String? value,
+    required List<Map<String, String>> items,
+    required Function(String?) onChanged,
+    bool required = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(label,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            if (required) ...[
+              const SizedBox(width: 4),
+              const Text('*', style: TextStyle(color: Color(0xFFE85C5C))),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        SearchableDropdown<String>(
+          items: items
+              .map(
+                (item) => SearchableDropdownItem<String>(
+                  value: item['value'] ?? '',
+                  label: item['label'] ?? 'Unknown',
+                  icon: Icons.account_tree_outlined,
+                ),
+              )
+              .toList(),
+          value: value,
+          hintText: items.isEmpty ? 'No units available' : 'Search unit...',
+          prefixIcon: Icons.account_tree_outlined,
+          enabled: items.isNotEmpty,
+          onChanged: onChanged,
         ),
       ],
     );

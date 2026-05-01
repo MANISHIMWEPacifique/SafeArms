@@ -75,6 +75,30 @@ class OfficerVerificationService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getUnitOfficerDevices(
+    String unitId, {
+    bool includeRevoked = false,
+  }) async {
+    try {
+      final response = await ApiClient.get(
+        includeRevoked
+            ? '$_baseUrl/devices/unit/$unitId?include_revoked=true'
+            : '$_baseUrl/devices/unit/$unitId',
+      );
+      final rows = response['data'];
+      if (rows is! List) {
+        return <Map<String, dynamic>>[];
+      }
+
+      return rows
+          .whereType<Map>()
+          .map((row) => Map<String, dynamic>.from(row))
+          .toList();
+    } catch (e) {
+      throw Exception('Error loading unit officer devices: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> removeOfficerDevice(String deviceKey) async {
     try {
       final response = await ApiClient.delete('$_baseUrl/devices/$deviceKey');

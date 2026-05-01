@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../config/theme_config.dart';
 import '../../providers/settings_provider.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
 
@@ -14,7 +15,7 @@ class SystemSettingsScreen extends StatefulWidget {
 class _SystemSettingsScreenState extends State<SystemSettingsScreen>
     with SingleTickerProviderStateMixin {
   // Colors mapped from CSS vars
-  static const Color _bg = Color(0xFF0F1623);
+  static const Color _bg = SafeArmsColors.background; // Used for top bar and tab bar background
   static const Color _mainBg = Color(0xFF1A2233);
   static const Color _panelSurface = Color(0xFF212D42);
   static const Color _panelAlt = Color(0xFF273047);

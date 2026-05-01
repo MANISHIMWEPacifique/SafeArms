@@ -6,6 +6,7 @@ import '../../models/user_model.dart';
 import '../../providers/unit_provider.dart';
 import '../../services/user_service.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
+import '../../widgets/searchable_dropdown.dart';
 
 class UnitsManagementScreen extends StatefulWidget {
   const UnitsManagementScreen({super.key});
@@ -1505,41 +1506,31 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DropdownButtonFormField<String?>(
-          initialValue: selectedCommanderUserId,
+        SearchableDropdown<String?>(
           items: [
-            const DropdownMenuItem<String?>(
+            const SearchableDropdownItem<String?>(
               value: null,
-              child: Text('Not assigned'),
+              label: 'Not assigned',
+              icon: Icons.person_off,
             ),
-            ...commanders.map((commander) => DropdownMenuItem<String?>(
-                  value: commander.userId,
-                  child: Text(
+            ...commanders.map(
+              (commander) => SearchableDropdownItem<String?>(
+                value: commander.userId,
+                label:
                     '${commander.fullName} (${_formatRoleLabel(commander.role)})',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                )),
+                subtitle: commander.email,
+                icon: Icons.person_pin,
+              ),
+            ),
           ],
+          value: selectedCommanderUserId,
+          labelText: 'Unit Commander (Optional)',
+          hintText: commanders.isEmpty
+              ? 'No eligible commanders found'
+              : 'Search commander by name, role, or email',
+          prefixIcon: Icons.person_pin,
+          enabled: commanders.isNotEmpty || selectedCommanderUserId != null,
           onChanged: onChanged,
-          dropdownColor: const Color(0xFF2A3040),
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: 'Unit Commander (Optional)',
-            labelStyle: const TextStyle(color: Colors.white54),
-            prefixIcon:
-                const Icon(Icons.person_pin, color: Colors.white54, size: 20),
-            filled: true,
-            fillColor: const Color(0xFF1A1F2E),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF37404F))),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF37404F))),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF1E88E5))),
-          ),
         ),
         const SizedBox(height: 8),
         const Text(

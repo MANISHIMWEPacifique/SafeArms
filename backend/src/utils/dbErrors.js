@@ -21,6 +21,7 @@ const TRANSIENT_DB_MESSAGE_SNIPPETS = [
     'query read timeout',
     'getaddrinfo enotfound',
     'connection terminated unexpectedly',
+    'connection terminated due to connection timeout',
     'could not connect to server',
     'too many clients already',
     'timeout expired'

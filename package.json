@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "pg-pool": "^3.13.0"
+  }
+}

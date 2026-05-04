@@ -589,7 +589,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
     final total = firearmsData?['total']?.toString() ?? '0';
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         border: Border.all(color: const Color(0xFF37404F)),
@@ -599,7 +599,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.gps_fixed, color: Color(0xFF1E88E5), size: 36),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           dashboardProvider.isLoading
               ? const CircularProgressIndicator()
               : Text(
@@ -615,7 +615,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
             'Total Firearms Registered',
             style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             '${firearmsData?['available'] ?? 0} Available',
             style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
@@ -649,7 +649,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
     final total = lossReports + destruction + procurement;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         border: Border.all(color: const Color(0xFF37404F)),
@@ -683,7 +683,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           approvalProvider.isLoading
               ? const CircularProgressIndicator()
               : Text(
@@ -699,7 +699,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
             'Pending Approvals',
             style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             '$lossReports Loss Reports',
             style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
@@ -722,7 +722,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
     final activeUnits = dashboardProvider.activeUnitsCount;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         border: Border.all(color: const Color(0xFF37404F)),
@@ -732,7 +732,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.business, color: Color(0xFF1E88E5), size: 36),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           dashboardProvider.isLoading
               ? const CircularProgressIndicator()
               : Text(
@@ -778,7 +778,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         border: Border.all(color: const Color(0xFF37404F)),
@@ -788,7 +788,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.shield_outlined, color: Color(0xFF1E88E5), size: 36),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           dashboardProvider.isLoading
               ? const CircularProgressIndicator()
               : Text(
@@ -804,7 +804,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
             'Anomalies (30 Days)',
             style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _buildAnomalyIndicator('$critical Critical', const Color(0xFFE85C5C)),
           _buildAnomalyIndicator('$high High', const Color(0xFFFFC857)),
           _buildAnomalyIndicator('$medium Medium/Low', const Color(0xFF42A5F5)),

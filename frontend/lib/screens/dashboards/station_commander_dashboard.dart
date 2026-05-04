@@ -396,12 +396,13 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
                     children: [
                       Expanded(
                         flex: 5,
-                        child: _buildFirearmStatusChart(provider),
+                        child: _buildFirearmStatusChart(provider,
+                            isExpanded: true),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         flex: 5,
-                        child: _buildRecentActivity(provider),
+                        child: _buildRecentActivity(provider, isExpanded: true),
                       ),
                     ],
                   );
@@ -509,7 +510,8 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     );
   }
 
-  Widget _buildFirearmStatusChart(DashboardProvider provider) {
+  Widget _buildFirearmStatusChart(DashboardProvider provider,
+      {bool isExpanded = false}) {
     final stats = provider.dashboardStats;
     final firearms = stats?['firearms'];
 
@@ -521,7 +523,87 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         double.tryParse(firearms?['maintenance']?.toString() ?? '0') ?? 0;
     final total = available + inCustody + maintenance;
 
+    final double centerRadius = isExpanded ? 60 : 40;
+    final double sectionRadius = isExpanded ? 70 : 50;
+
+    final chartContent = total == 0
+        ? const Center(
+            child: Text(
+              'No firearm data available',
+              style: TextStyle(color: Color(0xFF78909C)),
+            ),
+          )
+        : Row(
+            children: [
+              Expanded(
+                child: PieChart(
+                  PieChartData(
+                    sectionsSpace: 2,
+                    centerSpaceRadius: centerRadius,
+                    sections: [
+                      if (available > 0)
+                        PieChartSectionData(
+                          value: available,
+                          title:
+                              '${(available / total * 100).toStringAsFixed(0)}%',
+                          color: const Color(0xFF3CCB7F),
+                          radius: sectionRadius,
+                          titleStyle: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      if (inCustody > 0)
+                        PieChartSectionData(
+                          value: inCustody,
+                          title:
+                              '${(inCustody / total * 100).toStringAsFixed(0)}%',
+                          color: const Color(0xFF42A5F5),
+                          radius: sectionRadius,
+                          titleStyle: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      if (maintenance > 0)
+                        PieChartSectionData(
+                          value: maintenance,
+                          title:
+                              '${(maintenance / total * 100).toStringAsFixed(0)}%',
+                          color: const Color(0xFFFFB74D),
+                          radius: sectionRadius,
+                          titleStyle: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLegendItem(
+                      const Color(0xFF3CCB7F), 'Available', available.toInt()),
+                  const SizedBox(height: 12),
+                  _buildLegendItem(
+                      const Color(0xFF42A5F5), 'In Custody', inCustody.toInt()),
+                  const SizedBox(height: 12),
+                  _buildLegendItem(const Color(0xFFFFB74D), 'Maintenance',
+                      maintenance.toInt()),
+                ],
+              ),
+            ],
+          );
+
     return Container(
+      height: isExpanded ? 500 : null,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
@@ -545,84 +627,13 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
             style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            height: 200,
-            child: total == 0
-                ? const Center(
-                    child: Text(
-                      'No firearm data available',
-                      style: TextStyle(color: Color(0xFF78909C)),
-                    ),
-                  )
-                : Row(
-                    children: [
-                      Expanded(
-                        child: PieChart(
-                          PieChartData(
-                            sectionsSpace: 2,
-                            centerSpaceRadius: 40,
-                            sections: [
-                              if (available > 0)
-                                PieChartSectionData(
-                                  value: available,
-                                  title:
-                                      '${(available / total * 100).toStringAsFixed(0)}%',
-                                  color: const Color(0xFF3CCB7F),
-                                  radius: 50,
-                                  titleStyle: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              if (inCustody > 0)
-                                PieChartSectionData(
-                                  value: inCustody,
-                                  title:
-                                      '${(inCustody / total * 100).toStringAsFixed(0)}%',
-                                  color: const Color(0xFF42A5F5),
-                                  radius: 50,
-                                  titleStyle: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              if (maintenance > 0)
-                                PieChartSectionData(
-                                  value: maintenance,
-                                  title:
-                                      '${(maintenance / total * 100).toStringAsFixed(0)}%',
-                                  color: const Color(0xFFFFB74D),
-                                  radius: 50,
-                                  titleStyle: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLegendItem(const Color(0xFF3CCB7F), 'Available',
-                              available.toInt()),
-                          const SizedBox(height: 12),
-                          _buildLegendItem(const Color(0xFF42A5F5),
-                              'In Custody', inCustody.toInt()),
-                          const SizedBox(height: 12),
-                          _buildLegendItem(const Color(0xFFFFB74D),
-                              'Maintenance', maintenance.toInt()),
-                        ],
-                      ),
-                    ],
-                  ),
-          ),
+          if (isExpanded)
+            Expanded(child: chartContent)
+          else
+            SizedBox(
+              height: 200,
+              child: chartContent,
+            ),
         ],
       ),
     );
@@ -648,7 +659,8 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     );
   }
 
-  Widget _buildRecentActivity(DashboardProvider provider) {
+  Widget _buildRecentActivity(DashboardProvider provider,
+      {bool isExpanded = false}) {
     // Station commander sees custody events and general activities from their unit
     final custodyEvents = provider.recentCustodyActivity;
     final auditActivities = provider.recentActivities;
@@ -747,6 +759,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     }
 
     return Container(
+      height: isExpanded ? 500 : null,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
@@ -795,10 +808,29 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
                 ),
               ),
             )
+          else if (isExpanded)
+            Expanded(
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                itemCount: limitedList.length,
+                separatorBuilder: (context, index) => const Divider(
+                  color: Color(0xFF37404F),
+                  height: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final item = limitedList[index];
+                  if (item['type'] == 'audit') {
+                    return _buildAuditItem(item['data']);
+                  }
+                  return _buildCustodyItem(item['data']);
+                },
+              ),
+            )
           else
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
               itemCount: limitedList.length,
               separatorBuilder: (context, index) => const Divider(
                 color: Color(0xFF37404F),

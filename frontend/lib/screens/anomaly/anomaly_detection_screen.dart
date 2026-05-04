@@ -10,6 +10,7 @@ import '../../providers/anomaly_provider.dart';
 import '../../providers/unit_provider.dart';
 import '../../utils/app_transitions.dart';
 import '../../widgets/anomaly_card_widget.dart';
+import '../../widgets/base_modal_widget.dart';
 import '../../widgets/searchable_dropdown.dart';
 
 const double _anomalyDesktopBreakpoint = 1024;
@@ -2089,604 +2090,24 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
     final hasExplanation = widget.anomaly['explanation_message'] != null &&
         widget.anomaly['explanation_message'].toString().isNotEmpty;
 
-    Color severityColor;
     IconData severityIcon;
     switch (severity) {
       case 'critical':
-        severityColor = const Color(0xFFE85C5C);
         severityIcon = Icons.error;
         break;
       case 'high':
-        severityColor = const Color(0xFFFF8A65);
         severityIcon = Icons.warning;
         break;
       case 'medium':
-        severityColor = const Color(0xFFFFCA28);
         severityIcon = Icons.info;
         break;
       default:
-        severityColor = const Color(0xFF78909C);
         severityIcon = Icons.info_outline;
     }
 
-    return Material(
-      color: Colors.black.withValues(alpha: 0.5),
-      child: Center(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final maxWidth = constraints.maxWidth < 760
-                ? constraints.maxWidth * 0.94
-                : 700.0;
-
-            return Container(
-              width: maxWidth,
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.9,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFF252A3A),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Header - Officer details form style
-                  _buildModalHeader(severity, severityColor, severityIcon),
-                  Flexible(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Severity Banner
-                          _buildSeverityBanner(severity, severityColor),
-                          const SizedBox(height: 24),
-
-                          // Critical anomaly explanation requirement
-                          if (isCritical &&
-                              isOpen &&
-                              !hasExplanation &&
-                              role == 'station_commander') ...[
-                            _buildExplanationRequired(role),
-                            const SizedBox(height: 24)
-                          ],
-
-                          // Existing explanation display
-                          if (hasExplanation) ...[
-                            _buildExplanationDisplay(),
-                            const SizedBox(height: 24)
-                          ],
-
-                          // False positive ML training info
-                          if (isOpen && role == 'station_commander') ...[
-                            _buildFalsePositiveInfo(),
-                            const SizedBox(height: 24)
-                          ],
-
-                          // Detection Information
-                          _buildSectionHeader('Detection Information'),
-                          const SizedBox(height: 12),
-                          _buildInfoCard([
-                            _buildInfoRow(
-                                'Type',
-                                _formatAnomalyType(
-                                    widget.anomaly['anomaly_type'] ?? 'N/A')),
-                            _buildInfoRow('Severity', severity.toUpperCase()),
-                            _buildInfoRow('Score',
-                                '${((double.tryParse(widget.anomaly['anomaly_score']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
-                            _buildInfoRow('Detection Method',
-                                widget.anomaly['detection_method'] ?? 'N/A'),
-                            _buildInfoRow('Confidence',
-                                '${((double.tryParse(widget.anomaly['confidence_level']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
-                            _buildInfoRow(
-                                'Detected At',
-                                _formatDateTimeFull(
-                                    widget.anomaly['detected_at'])),
-                          ]),
-                          const SizedBox(height: 24),
-
-                          // Custody Information
-                          _buildSectionHeader('Custody Information'),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildInfoCard([
-                                  _buildInfoRow('Firearm',
-                                      widget.anomaly['serial_number'] ?? 'N/A'),
-                                  _buildInfoRow('Officer',
-                                      widget.anomaly['officer_name'] ?? 'N/A'),
-                                ]),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _buildInfoCard([
-                                  _buildInfoRow('Unit',
-                                      widget.anomaly['unit_name'] ?? 'N/A'),
-                                  _buildInfoRow('Custody Type',
-                                      widget.anomaly['custody_type'] ?? 'N/A'),
-                                ]),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Contributing Factors
-                          if (contributingFactors != null &&
-                              contributingFactors.isNotEmpty) ...[
-                            _buildSectionHeader('Contributing Factors'),
-                            const SizedBox(height: 12),
-                            _buildContributingFactors(contributingFactors),
-                            const SizedBox(height: 24),
-                          ],
-
-                          // Feature Importance
-                          if (featureImportance != null &&
-                              featureImportance.isNotEmpty) ...[
-                            _buildSectionHeader('Feature Importance'),
-                            const SizedBox(height: 12),
-                            _buildFeatureImportance(featureImportance),
-                            const SizedBox(height: 24),
-                          ],
-
-                          // Investigation Status
-                          _buildSectionHeader('Investigation Status'),
-                          const SizedBox(height: 12),
-                          _buildInvestigationSection(),
-                          const SizedBox(height: 24),
-
-                          // Notes input (for actionable statuses)
-                          if (isOpen) ...[
-                            _buildSectionHeader('Investigation Notes'),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _notesController,
-                              maxLines: 3,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 13),
-                              decoration: _inputDecoration(
-                                  'Enter investigation notes...', Icons.notes),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Action buttons footer
-                  _buildActionFooter(status, role),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModalHeader(
-      String severity, Color severityColor, IconData severityIcon) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1F2E),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: severityColor.withValues(alpha: 0.2),
-            ),
-            child: Icon(severityIcon, color: severityColor, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Anomaly Details',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  'ID: ${widget.anomaly['anomaly_id']?.toString() ?? 'N/A'} — ${_formatAnomalyType(widget.anomaly['anomaly_type'] ?? '')}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close, color: Colors.white54),
-            hoverColor: Colors.white.withValues(alpha: 0.1),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSeverityBanner(String severity, Color severityColor) {
-    final messages = {
-      'critical':
-          'IMMEDIATE REVIEW REQUIRED — This critical anomaly requires explanation from the responsible station commander.',
-      'high':
-          'Review within 24 hours — This high-priority anomaly requires investigation attention.',
-      'medium':
-          'Reference for investigation — This anomaly can be referred to when investigation suspects related activity.',
-      'low': 'Standard review queue — Low priority for routine monitoring.',
-    };
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            severityColor.withValues(alpha: 0.2),
-            const Color(0xFF1A1F2E)
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: severityColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            severity == 'critical' ? Icons.priority_high : Icons.info_outline,
-            color: severityColor,
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${severity.toUpperCase()} SEVERITY',
-                  style: TextStyle(
-                      color: severityColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  messages[severity] ?? '',
-                  style:
-                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExplanationRequired(String role) {
-    final isStationCommander = role == 'station_commander';
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE85C5C).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: const Color(0xFFE85C5C).withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.assignment_late,
-                  color: Color(0xFFE85C5C), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                isStationCommander
-                    ? 'Explanation Required'
-                    : 'Awaiting Station Commander Explanation',
-                style: const TextStyle(
-                    color: Color(0xFFE85C5C),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isStationCommander
-                ? 'As station commander, you must provide an explanation for this critical anomaly detected in your unit.'
-                : 'The station commander responsible for this unit needs to provide an explanation for this critical anomaly.',
-            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-          ),
-          if (isStationCommander) ...[
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _explanationController,
-              maxLines: 4,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              decoration: _inputDecoration(
-                'Explain the circumstances of this anomaly...',
-                Icons.edit_note,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed:
-                    _isProcessing ? null : () => _performAction('explanation'),
-                icon: const Icon(Icons.send, size: 18),
-                label: const Text('Submit Explanation'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE85C5C),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExplanationDisplay() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF3CCB7F).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: const Color(0xFF3CCB7F).withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.check_circle, color: Color(0xFF3CCB7F), size: 20),
-              SizedBox(width: 8),
-              Text('Explanation Provided',
-                  style: TextStyle(
-                      color: Color(0xFF3CCB7F),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1F2E),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              widget.anomaly['explanation_message'].toString(),
-              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-            ),
-          ),
-          if (widget.anomaly['explanation_date'] != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Submitted: ${_formatDateTimeFull(widget.anomaly['explanation_date'])}',
-              style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFalsePositiveInfo() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E88E5).withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border:
-            Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.2)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.psychology, color: Color(0xFF1E88E5), size: 20),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'If this is a false positive, marking it will feed the ML training data to improve future detection accuracy.',
-              style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-          color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-    );
-  }
-
-  Widget _buildInfoCard(List<Widget> children) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF37404F)),
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 130,
-            child: Text('$label:',
-                style: const TextStyle(color: Color(0xFF78909C), fontSize: 13)),
-          ),
-          Expanded(
-            child: Text(value,
-                style: const TextStyle(
-                    color: Color(0xFFB0BEC5),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContributingFactors(Map<String, dynamic> factors) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF37404F)),
-      ),
-      child: Column(
-        children: factors.entries.map((entry) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle,
-                    color: Color(0xFFE85C5C), size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(entry.key.replaceAll('_', ' ').toUpperCase(),
-                      style: const TextStyle(
-                          color: Color(0xFFB0BEC5), fontSize: 13)),
-                ),
-                Text(entry.value.toString(),
-                    style: const TextStyle(
-                        color: Color(0xFFE85C5C),
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold)),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildFeatureImportance(Map<String, dynamic> features) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF37404F)),
-      ),
-      child: Column(
-        children: features.entries.map((entry) {
-          final value = double.tryParse(entry.value?.toString() ?? '0') ?? 0.0;
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(entry.key.replaceAll('_', ' ').toUpperCase(),
-                        style: const TextStyle(
-                            color: Color(0xFFB0BEC5), fontSize: 12)),
-                    Text('${(value * 100).toStringAsFixed(1)}%',
-                        style: const TextStyle(
-                            color: Color(0xFF1E88E5), fontSize: 12)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: value,
-                    minHeight: 6,
-                    backgroundColor: const Color(0xFF37404F),
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(Color(0xFF1E88E5)),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildInvestigationSection() {
-    final anomaly = widget.anomaly;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF37404F)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildInfoRow('Status', anomaly['status'] ?? 'N/A'),
-          if (anomaly['investigated_by'] != null)
-            _buildInfoRow(
-                'Investigated By', anomaly['investigated_by'].toString()),
-          if (anomaly['resolution_date'] != null)
-            _buildInfoRow(
-                'Resolved At', _formatDateTimeFull(anomaly['resolution_date'])),
-          if (anomaly['investigation_notes'] != null &&
-              anomaly['investigation_notes'].toString().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const Text('Investigation Notes:',
-                style: TextStyle(color: Color(0xFF78909C), fontSize: 12)),
-            const SizedBox(height: 4),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF252A3A),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(anomaly['investigation_notes'].toString(),
-                  style:
-                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionFooter(String status, String role) {
-    final isOpen = status == 'open' || status == 'investigating';
-    final isStationCommander = role == 'station_commander';
-
     final actionButtons = <Widget>[];
 
-    if (isOpen && isStationCommander) {
+    if (isOpen && role == 'station_commander') {
       actionButtons.addAll([
         OutlinedButton.icon(
           onPressed:
@@ -2694,11 +2115,9 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
           icon: const Icon(Icons.cancel_outlined, size: 18),
           label: const Text('False Positive'),
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF78909C),
+            foregroundColor: const Color(0xFFB0BEC5),
             side: const BorderSide(color: Color(0xFF37404F)),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         ElevatedButton.icon(
@@ -2710,8 +2129,6 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
             backgroundColor: const Color(0xFF42A5F5),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         ElevatedButton.icon(
@@ -2722,8 +2139,6 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
             backgroundColor: const Color(0xFF3CCB7F),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
       ]);
@@ -2738,85 +2153,240 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
           foregroundColor: const Color(0xFFB0BEC5),
           side: const BorderSide(color: Color(0xFF37404F)),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     );
 
     if (_isProcessing) {
       actionButtons.add(
-        const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            color: Color(0xFF1E88E5),
-            strokeWidth: 2,
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10),
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              color: Color(0xFF1E88E5),
+              strokeWidth: 2,
+            ),
           ),
         ),
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1F2E),
-        border: Border(top: BorderSide(color: Color(0xFF37404F), width: 1)),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 900;
-
-          if (isCompact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFB0BEC5),
-                    side: const BorderSide(color: Color(0xFF37404F)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: const Text('Close'),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  alignment: WrapAlignment.end,
-                  children: actionButtons,
-                ),
-              ],
-            );
-          }
-
-          return Row(
-            children: [
-              OutlinedButton(
-                onPressed: () => Navigator.pop(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFB0BEC5),
-                  side: const BorderSide(color: Color(0xFF37404F)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text('Close'),
+    return BaseModalWidget(
+      width: 700,
+      headerTitle: 'Anomaly Details',
+      headerSubtitle:
+          'ID: ${widget.anomaly['anomaly_id']?.toString() ?? 'N/A'} — ${_formatAnomalyType(widget.anomaly['anomaly_type'] ?? '')}',
+      headerIcon: severityIcon,
+      onClose: () {
+        if (!_isProcessing) {
+          Navigator.pop(context);
+        }
+      },
+      footerActions: actionButtons,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (isCritical &&
+              isOpen &&
+              !hasExplanation &&
+              role == 'station_commander') ...[
+            _buildSectionHeader('Explanation Required'),
+            const SizedBox(height: 12),
+            const Text(
+              'As station commander, you must provide an explanation for this critical anomaly detected in your unit.',
+              style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _explanationController,
+              maxLines: 4,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: _inputDecoration(
+                'Explain the circumstances of this anomaly...',
+                Icons.edit_note,
               ),
-              const Spacer(),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                alignment: WrapAlignment.end,
-                children: actionButtons,
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed:
+                  _isProcessing ? null : () => _performAction('explanation'),
+              icon: const Icon(Icons.send, size: 18),
+              label: const Text('Submit Explanation'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E88E5),
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+          if (hasExplanation) ...[
+            _buildSectionHeader('Provided Explanation'),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1F2E),
+                border: Border.all(color: const Color(0xFF37404F)),
+              ),
+              child: Text(
+                widget.anomaly['explanation_message'].toString(),
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+              ),
+            ),
+            if (widget.anomaly['explanation_date'] != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Submitted: ${_formatDateTimeFull(widget.anomaly['explanation_date'])}',
+                style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
               ),
             ],
-          );
-        },
+            const SizedBox(height: 24),
+          ],
+          _buildInfoSection('Detection Information', [
+            _buildInfoRow('Type',
+                _formatAnomalyType(widget.anomaly['anomaly_type'] ?? 'N/A')),
+            _buildInfoRow('Severity', severity.toUpperCase()),
+            _buildInfoRow('Score',
+                '${((double.tryParse(widget.anomaly['anomaly_score']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
+            _buildInfoRow('Detection Method',
+                widget.anomaly['detection_method'] ?? 'N/A'),
+            _buildInfoRow('Confidence',
+                '${((double.tryParse(widget.anomaly['confidence_level']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
+            _buildInfoRow('Detected At',
+                _formatDateTimeFull(widget.anomaly['detected_at'])),
+          ]),
+          const SizedBox(height: 24),
+          _buildInfoSection('Custody Information', [
+            _buildInfoRow('Firearm', widget.anomaly['serial_number'] ?? 'N/A'),
+            _buildInfoRow('Officer', widget.anomaly['officer_name'] ?? 'N/A'),
+            _buildInfoRow('Unit', widget.anomaly['unit_name'] ?? 'N/A'),
+            _buildInfoRow(
+                'Custody Type', widget.anomaly['custody_type'] ?? 'N/A'),
+          ]),
+          const SizedBox(height: 24),
+          if (contributingFactors != null &&
+              contributingFactors.isNotEmpty) ...[
+            _buildInfoSection(
+              'Contributing Factors',
+              contributingFactors.entries
+                  .map((entry) => _buildInfoRow(
+                      entry.key.replaceAll('_', ' ').toUpperCase(),
+                      entry.value.toString()))
+                  .toList(),
+            ),
+            const SizedBox(height: 24),
+          ],
+          if (featureImportance != null && featureImportance.isNotEmpty) ...[
+            _buildInfoSection(
+              'Feature Importance',
+              featureImportance.entries.map((entry) {
+                final value =
+                    double.tryParse(entry.value?.toString() ?? '0') ?? 0.0;
+                return _buildInfoRow(
+                    entry.key.replaceAll('_', ' ').toUpperCase(),
+                    '${(value * 100).toStringAsFixed(1)}%');
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+          ],
+          _buildInfoSection('Investigation Status', [
+            _buildInfoRow('Status', widget.anomaly['status'] ?? 'N/A'),
+            if (widget.anomaly['investigated_by'] != null)
+              _buildInfoRow('Investigated By',
+                  widget.anomaly['investigated_by'].toString()),
+            if (widget.anomaly['resolution_date'] != null)
+              _buildInfoRow('Resolved At',
+                  _formatDateTimeFull(widget.anomaly['resolution_date'])),
+            if (widget.anomaly['investigation_notes'] != null &&
+                widget.anomaly['investigation_notes'].toString().isNotEmpty)
+              _buildInfoRow('Investigation Notes',
+                  widget.anomaly['investigation_notes'].toString()),
+          ]),
+          const SizedBox(height: 24),
+          if (isOpen) ...[
+            _buildSectionHeader('Investigation Notes'),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _notesController,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration:
+                  _inputDecoration('Enter investigation notes...', Icons.notes),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1F2E),
+            border: Border.all(color: const Color(0xFF37404F)),
+          ),
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2824,14 +2394,10 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
   InputDecoration _inputDecoration(String hint, IconData icon) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF78909C)),
-      prefixIcon: Icon(icon, color: Colors.white54, size: 20),
+      hintStyle: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
+      prefixIcon: Icon(icon, color: const Color(0xFF78909C), size: 18),
       filled: true,
       fillColor: const Color(0xFF1A1F2E),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFF37404F)),
-      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: Color(0xFF37404F)),
@@ -2840,38 +2406,25 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: Color(0xFF1E88E5)),
       ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }
 
   String _formatAnomalyType(String type) {
-    const typeLabels = {
-      'overdue_return': 'Overdue Return',
-      'overdue_return_extended': 'Extended Overdue (3+ days)',
-      'overdue_return_critical': 'Critical Overdue (7+ days)',
-      'cross_unit_transfer': 'Cross-Unit Transfer',
-      'rapid_exchange_pattern': 'Rapid Exchange',
-      'unusual_custody_duration': 'Unusual Duration',
-      'unusual_issue_frequency': 'Unusual Frequency',
-      'off_hours_activity': 'Off-Hours Activity',
-      'cluster_outlier': 'Pattern Outlier',
-      'high_exchange_rate': 'High Exchange Rate',
-      'behavioral_deviation': 'Behavioral Deviation',
-      'ballistic_access_before_custody': 'Ballistic Access Before Custody',
-      'ballistic_access_after_custody': 'Ballistic Access After Custody',
-      'ballistic_access_timing_pattern': 'Ballistic Timing Pattern',
-      'cross_unit_anomaly': 'Cross-Unit Pattern',
-    };
-    return typeLabels[type] ?? type.replaceAll('_', ' ');
+    return type
+        .split('_')
+        .map((word) =>
+            word.isEmpty ? '' : '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
   }
 
-  String _formatDateTimeFull(dynamic timestamp) {
-    if (timestamp == null) return 'N/A';
+  String _formatDateTimeFull(dynamic dateStr) {
+    if (dateStr == null) return 'N/A';
     try {
-      final date =
-          timestamp is DateTime ? timestamp : DateTime.parse(timestamp);
-      return DateFormat('MMM dd, yyyy HH:mm:ss').format(date);
+      final date = DateTime.parse(dateStr.toString());
+      return DateFormat('MMM d, yyyy HH:mm:ss').format(date);
     } catch (e) {
-      return 'Invalid date';
+      return dateStr.toString();
     }
   }
 }

@@ -11,6 +11,8 @@ import '../auth/login_screen.dart';
 import '../management/user_management_screen.dart';
 import '../settings/system_settings_screen.dart';
 import '../management/units_management_screen.dart';
+import '../management/firearms_registry_screen.dart';
+import '../management/ballistic_profiles_screen.dart';
 import '../workflows/admin_reports_screen.dart';
 import '../../widgets/user_avatar.dart';
 import '../../widgets/charts/role_activity_chart.dart';
@@ -50,6 +52,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
     _NavItem(icon: Icons.account_balance_outlined, label: 'Units'),
     _NavItem(icon: Icons.group_outlined, label: 'Users'),
+    _NavItem(icon: Icons.security_outlined, label: 'Firearms'),
+    _NavItem(icon: Icons.fingerprint, label: 'Ballistic Profiles'),
     _NavItem(icon: Icons.settings_outlined, label: 'System Settings'),
     _NavItem(icon: Icons.analytics_outlined, label: 'Reports'),
   ];
@@ -375,9 +379,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
         // Users Management
         return const UserManagementScreen();
       case 3:
+        // Firearms Registry
+        return const FirearmsRegistryScreen();
+      case 4:
+        // Ballistic Profiles
+        return const BallisticProfilesScreen();
+      case 5:
         // System Settings
         return const SystemSettingsScreen();
-      case 4:
+      case 6:
         // System Audit & Compliance Reports
         return const AdminReportsScreen();
       default:

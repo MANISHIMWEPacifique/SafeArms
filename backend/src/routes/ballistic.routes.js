@@ -6,7 +6,8 @@ const {
     requireHQCommander, 
     requireRole, 
     requireBallisticAccess,
-    PERMISSIONS 
+    PERMISSIONS,
+    ROLES
 } = require('../middleware/authorization');
 const { logCreate, auditLogger } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -221,7 +222,7 @@ router.get('/custody-chain/:firearm_id', authenticate, requireBallisticAccess, a
 
 // Create ballistic profile - HQ Commander only (during firearm registration)
 // Profiles are IMMUTABLE after creation
-router.post('/', authenticate, requireHQCommander, logCreate, asyncHandler(async (req, res) => {
+router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandler(async (req, res) => {
     // Verify firearm exists
     const firearmCheck = await query('SELECT firearm_id FROM firearms WHERE firearm_id = $1', [req.body.firearm_id]);
     if (firearmCheck.rows.length === 0) {

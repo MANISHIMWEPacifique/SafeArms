@@ -234,7 +234,7 @@ router.get('/unit/:unit_id', authenticate, asyncHandler(async (req, res) => {
     res.json({ success: true, data: firearms });
 }));
 
-router.post('/:id/image', authenticate, requireHQCommander, logUpdate, handleImageUpload, asyncHandler(async (req, res) => {
+router.post('/:id/image', authenticate, requireRole([ROLES.ADMIN]), logUpdate, handleImageUpload, asyncHandler(async (req, res) => {
     const firearm = await Firearm.findById(req.params.id);
 
     if (!firearm) {
@@ -293,7 +293,7 @@ router.get('/:id/stats', authenticate, requireCommander, asyncHandler(async (req
     res.json({ success: true, data: stats });
 }));
 
-router.post('/', authenticate, requireHQCommander, logCreate, asyncHandler(async (req, res) => {
+router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandler(async (req, res) => {
     const { assigned_unit_id, ballistic_profile } = req.body;
     
     // Validate that unit_id is provided - firearms must be assigned to a unit at registration
@@ -393,7 +393,7 @@ router.post('/', authenticate, requireHQCommander, logCreate, asyncHandler(async
     });
 }));
 
-router.put('/:id', authenticate, requireCommander, requireUnitAccess, logUpdate, asyncHandler(async (req, res) => {
+router.put('/:id', authenticate, requireRole([ROLES.ADMIN, ROLES.STATION_COMMANDER]), requireUnitAccess, logUpdate, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
     
     // Station commanders can only update firearms in their own unit
@@ -495,8 +495,8 @@ const deleteFirearmHandler = async (req, res) => {
     }
 };
 
-router.delete('/:id', authenticate, requireHQCommander, logDelete, asyncHandler(deleteFirearmHandler));
-router.post('/:id/delete', authenticate, requireHQCommander, logDelete, asyncHandler(deleteFirearmHandler));
+router.delete('/:id', authenticate, requireRole([ROLES.ADMIN]), logDelete, asyncHandler(deleteFirearmHandler));
+router.post('/:id/delete', authenticate, requireRole([ROLES.ADMIN]), logDelete, asyncHandler(deleteFirearmHandler));
 
 // ============================================
 // FULL TRACEABILITY ENDPOINT

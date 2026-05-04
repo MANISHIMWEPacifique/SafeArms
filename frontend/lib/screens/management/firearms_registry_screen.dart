@@ -33,7 +33,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
 
   bool get _canDeleteFirearm {
     final authProvider = context.read<AuthProvider>();
-    return authProvider.currentUser?['role'] == 'hq_firearm_commander';
+    return authProvider.currentUser?['role'] == 'admin';
   }
 
   @override
@@ -78,7 +78,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
               Expanded(
                 child: Column(
                   children: [
-                    _buildTopNavBar(context, firearmProvider, isHQCommander,
+                    _buildTopNavBar(context, firearmProvider, isAdmin,
                         hasNationalAccess, isInvestigator),
                     Expanded(
                       child: SingleChildScrollView(
@@ -164,7 +164,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   }
 
   Widget _buildTopNavBar(BuildContext context, FirearmProvider provider,
-      bool isHQCommander, bool hasNationalAccess, bool isInvestigator) {
+      bool isAdmin, bool hasNationalAccess, bool isInvestigator) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 700;
@@ -197,7 +197,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                             ),
                           ),
                         ),
-                        if (isHQCommander)
+                        if (isAdmin)
                           ElevatedButton.icon(
                             onPressed: () => setState(() {
                               _firearmToEdit = null;
@@ -318,7 +318,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    if (isHQCommander)
+                    if (isAdmin)
                       ElevatedButton.icon(
                         onPressed: () => setState(() {
                           _firearmToEdit = null;
@@ -904,7 +904,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                         style: TextStyle(fontSize: 13)),
                   ),
                 ),
-                if (!_isInvestigator) ...[
+                if ((!_isInvestigator && !context.read<AuthProvider>().currentUser!['role'].toString().contains('hq_')) || context.read<AuthProvider>().currentUser!['role'] == 'admin') ...[
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.edit,
@@ -1229,7 +1229,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                     child: const Text('View', style: TextStyle(fontSize: 12)),
                   ),
                 ),
-                if (!_isInvestigator) ...[
+                if ((!_isInvestigator && !context.read<AuthProvider>().currentUser!['role'].toString().contains('hq_')) || context.read<AuthProvider>().currentUser!['role'] == 'admin') ...[
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.edit,
@@ -1368,7 +1368,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
-                  if (!_isInvestigator) ...[
+                  if ((!_isInvestigator && !context.read<AuthProvider>().currentUser!['role'].toString().contains('hq_')) || context.read<AuthProvider>().currentUser!['role'] == 'admin') ...[
                     const SizedBox(width: 8),
                     IconButton(
                       icon: const Icon(Icons.edit,

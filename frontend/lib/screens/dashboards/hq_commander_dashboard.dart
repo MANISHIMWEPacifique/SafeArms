@@ -15,7 +15,6 @@ import '../../providers/settings_provider.dart';
 import '../auth/login_screen.dart';
 import '../management/units_management_screen.dart';
 import '../management/firearms_registry_screen.dart';
-import '../management/ballistic_profiles_screen.dart';
 import '../workflows/reports_screen.dart';
 import '../workflows/hq_reports_screen.dart';
 import '../anomaly/anomaly_detection_screen.dart';
@@ -112,8 +111,6 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
       _NavItem(
           icon: Icons.account_balance_outlined, label: 'Units', badge: null),
       _NavItem(icon: Icons.security_outlined, label: 'Firearms', badge: null),
-      _NavItem(
-          icon: Icons.fingerprint, label: 'Ballistic Profiles', badge: null),
       _NavItem(
         icon: Icons.task_alt,
         label: 'Approvals',
@@ -491,15 +488,12 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         // Firearms Registry
         return const FirearmsRegistryScreen();
       case 3:
-        // Ballistic Profiles
-        return const BallisticProfilesScreen();
-      case 4:
         // Approvals - using ReportsScreen with HQ role for approve/reject
         return const ReportsScreen(roleType: 'hq');
-      case 5:
+      case 4:
         // Anomalies Detection
         return const AnomalyDetectionScreen();
-      case 6:
+      case 5:
         // National Reports
         return const HqReportsScreen();
       default:
@@ -1185,7 +1179,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
           ),
           OutlinedButton(
             onPressed: () {
-              setState(() => _selectedIndex = 4); // Go to Approvals tab
+              setState(() => _selectedIndex = 3); // Go to Approvals tab
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF1E88E5),

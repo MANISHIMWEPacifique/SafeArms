@@ -169,8 +169,6 @@ class PdfReportGenerator {
         return _anomalySummary(data);
       case 'user_activity':
         return _userActivity(data);
-      case 'audit_log':
-        return _auditLog(data);
       default:
         return [pw.Text('Unknown report type: $type')];
     }
@@ -182,8 +180,6 @@ class PdfReportGenerator {
   static List<pw.Widget> _firearmHistory(Map<String, dynamic> data) {
     final firearms = _asList(data['firearms']);
     final custody = _asList(data['custody_records']);
-    final anomalies = _asList(data['anomalies']);
-    final ballistic = data['ballistic_profile'] as Map<String, dynamic>?;
 
     final widgets = <pw.Widget>[];
 
@@ -244,71 +240,6 @@ class PdfReportGenerator {
       ));
     }
 
-    // Custody Timeline
-    if (custody.isNotEmpty) {
-      widgets.add(pw.SizedBox(height: 16));
-      widgets.add(_sectionTitle('Custody Timeline'));
-      widgets.add(_table(
-        headers: [
-          'Serial Number',
-          'Officer',
-          'Unit',
-          'Issued',
-          'Returned',
-          'Duration'
-        ],
-        rows: custody
-            .map((c) => [
-                  c['serial_number']?.toString() ?? '',
-                  c['officer_name']?.toString() ??
-                      c['officer_id']?.toString() ??
-                      '',
-                  c['unit_name']?.toString() ?? '',
-                  _fmtDate(c['issued_at']?.toString()),
-                  _fmtDate(c['returned_at']?.toString()),
-                  c['duration']?.toString() ?? '–',
-                ])
-            .toList(),
-      ));
-    }
-
-    // Anomalies
-    if (anomalies.isNotEmpty) {
-      widgets.add(pw.SizedBox(height: 16));
-      widgets.add(_sectionTitle('Linked Anomalies'));
-      widgets.add(_table(
-        headers: ['Anomaly ID', 'Severity', 'Status'],
-        rows: anomalies
-            .map((a) => [
-                  a['anomaly_id']?.toString() ?? '',
-                  a['severity']?.toString() ?? '',
-                  a['status']?.toString() ?? '',
-                ])
-            .toList(),
-      ));
-    }
-
-    // Ballistic Profile
-    if (ballistic != null) {
-      widgets.add(pw.SizedBox(height: 16));
-      widgets.add(_sectionTitle('Ballistic Reference Metadata'));
-      widgets.add(_keyValueGrid({
-        'Rifling Characteristics':
-            ballistic['rifling_characteristics']?.toString() ?? '–',
-        'Firing Pin Impression':
-            ballistic['firing_pin_impression']?.toString() ?? '–',
-        'Ejector Marks': ballistic['ejector_marks']?.toString() ?? '–',
-        'Extractor Marks': ballistic['extractor_marks']?.toString() ?? '–',
-        'Chamber Marks': ballistic['chamber_marks']?.toString() ?? '–',
-        'Test Date': _fmtDate(ballistic['test_date']?.toString()),
-        'Forensic Lab': ballistic['forensic_lab']?.toString() ?? '–',
-        'Verified': (ballistic['is_locked'] == true &&
-                ballistic['registration_hash'] != null)
-            ? 'Yes'
-            : 'No',
-      }));
-    }
-
     return widgets;
   }
 
@@ -317,6 +248,8 @@ class PdfReportGenerator {
   // ─────────────────────────────────────────────
   static List<pw.Widget> _ballisticSummary(Map<String, dynamic> data) {
     final profiles = _asList(data['profiles']);
+    final activities = _asList(data['investigator_activities']);
+    
     if (profiles.isEmpty) {
       return [
         _sectionTitle('Ballistic Profiles'),
@@ -357,6 +290,32 @@ class PdfReportGenerator {
         ),
       ));
     }
+
+    if (activities.isNotEmpty) {
+      widgets.add(pw.SizedBox(height: 16));
+      widgets.add(_sectionTitle('Investigator Activities & Traceability Logs'));
+      widgets.add(_table(
+        headers: [
+          'Date',
+          'Serial',
+          'Investigator',
+          'Type',
+          'Action',
+          'Notes/Findings'
+        ],
+        rows: activities
+            .map((a) => [
+                  _fmtDate(a['activity_date']?.toString()),
+                  a['serial_number']?.toString() ?? '–',
+                  a['investigator_name']?.toString() ?? '–',
+                  a['activity_type']?.toString() ?? '',
+                  a['action']?.toString() ?? '',
+                  a['notes']?.toString() ?? '–',
+                ])
+            .toList(),
+      ));
+    }
+
     return widgets;
   }
 
@@ -364,7 +323,7 @@ class PdfReportGenerator {
   // ANOMALY SUMMARY
   // ─────────────────────────────────────────────
   static List<pw.Widget> _anomalySummary(Map<String, dynamic> data) {
-    final anomalies = _asList(data['anomalies']);
+    final groups = _asList(data['anomaly_groups']);
     final summary = data['summary'] as Map<String, dynamic>? ?? {};
     final widgets = <pw.Widget>[_sectionTitle('Anomaly Detection Summary')];
 
@@ -386,29 +345,41 @@ class PdfReportGenerator {
       ));
     }
 
-    if (anomalies.isNotEmpty) {
-      widgets.add(pw.SizedBox(height: 12));
-      widgets.add(_table(
-        headers: [
-          'Anomaly ID',
-          'Firearm Serial',
-          'Unit',
-          'Severity',
-          'Status',
-          'Detected'
-        ],
-        rows: anomalies
-            .map((a) => [
-                  a['anomaly_id']?.toString() ?? '',
-                  a['serial_number']?.toString() ?? '–',
-                  a['unit_name']?.toString() ?? '–',
-                  a['severity']?.toString() ?? '',
-                  a['status']?.toString() ?? '',
-                  _fmtDate(a['detected_at']?.toString()),
-                ])
-            .toList(),
-      ));
+    if (groups.isEmpty) {
+       widgets.add(pw.SizedBox(height: 12));
+       widgets.add(_emptyNote('No anomalies found matching criteria.'));
+       return widgets;
     }
+
+    for (final group in groups) {
+      widgets.add(pw.SizedBox(height: 16));
+      widgets.add(_sectionTitle('Group: ${group['group_name']}'));
+      
+      final records = _asList(group['records']);
+      if (records.isNotEmpty) {
+        widgets.add(_table(
+          headers: [
+            'Anomaly ID',
+            'Firearm Serial',
+            'Unit',
+            'Severity',
+            'Status',
+            'Detected'
+          ],
+          rows: records
+              .map((a) => [
+                    a['anomaly_id']?.toString() ?? '',
+                    a['serial_number']?.toString() ?? '–',
+                    a['unit_name']?.toString() ?? '–',
+                    a['severity']?.toString() ?? '',
+                    a['status']?.toString() ?? '',
+                    _fmtDate(a['detected_at']?.toString()),
+                  ])
+              .toList(),
+        ));
+      }
+    }
+    
     return widgets;
   }
 
@@ -434,35 +405,6 @@ class PdfReportGenerator {
                   a['action_type']?.toString() ?? '',
                   '${a['table_name'] ?? ''} ${a['record_id'] ?? ''}'.trim(),
                   _fmtDateTime(a['created_at']?.toString()),
-                ])
-            .toList(),
-      ),
-    ];
-  }
-
-  // ─────────────────────────────────────────────
-  // AUDIT LOG (Admin)
-  // ─────────────────────────────────────────────
-  static List<pw.Widget> _auditLog(Map<String, dynamic> data) {
-    final logs = _asList(data['audit_logs']);
-    if (logs.isEmpty) {
-      return [
-        _sectionTitle('Audit Log'),
-        _emptyNote('No audit log entries found.')
-      ];
-    }
-    return [
-      _sectionTitle('System Audit Trail'),
-      _table(
-        headers: ['Event Type', 'Performed By', 'Date & Time', 'Status'],
-        rows: logs
-            .map((l) => [
-                  l['action_type']?.toString() ?? '',
-                  l['actor_name']?.toString() ??
-                      l['username']?.toString() ??
-                      '',
-                  _fmtDateTime(l['created_at']?.toString()),
-                  l['success'] == true ? 'Success' : 'Failed',
                 ])
             .toList(),
       ),

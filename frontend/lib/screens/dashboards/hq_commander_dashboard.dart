@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/firearm_provider.dart';
@@ -828,178 +829,33 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
   }
 
   Widget _buildChartsSection() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 800) {
-          return Column(
-            children: [
-              _buildDistributionChart(),
-              const SizedBox(height: 16),
-              _buildApprovalQueue(),
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 65, child: _buildDistributionChart()),
-            const SizedBox(width: 16),
-            Expanded(flex: 35, child: _buildApprovalQueue()),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildDistributionChart() {
-    final dashProvider = Provider.of<DashboardProvider>(context, listen: false);
-    final firearms = dashProvider.firearmsStats;
-
-    final available =
-        double.tryParse(firearms?['available']?.toString() ?? '0') ?? 0;
-    final inCustody =
-        double.tryParse(firearms?['in_custody']?.toString() ?? '0') ?? 0;
-    final maintenance =
-        double.tryParse(firearms?['maintenance']?.toString() ?? '0') ?? 0;
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A3040),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Firearms Distribution',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Current distribution overview',
-            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 250,
-            child: (available + inCustody + maintenance) == 0
-                ? const Center(
-                    child: Text(
-                      'No data available',
-                      style: TextStyle(color: Color(0xFF78909C)),
-                    ),
-                  )
-                : BarChart(
-                    BarChartData(
-                      alignment: BarChartAlignment.spaceAround,
-                      maxY: [
-                                available,
-                                inCustody,
-                                maintenance,
-                              ].fold(0.0, (a, b) => a > b ? a : b) *
-                              1.2 +
-                          1,
-                      barTouchData: BarTouchData(
-                        enabled: true,
-                        touchTooltipData: BarTouchTooltipData(
-                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                            final labels = [
-                              'Available',
-                              'In Custody',
-                              'Maintenance',
-                            ];
-                            return BarTooltipItem(
-                              '${labels[groupIndex]}\n${rod.toY.toInt()}',
-                              const TextStyle(
-                                  color: Colors.white, fontSize: 12),
-                            );
-                          },
-                        ),
-                      ),
-                      titlesData: FlTitlesData(
-                        show: true,
-                        topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (value, meta) {
-                              final labels = [
-                                'Avail',
-                                'Custody',
-                                'Maint',
-                              ];
-                              final idx = value.toInt();
-                              if (idx >= 0 && idx < labels.length) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Text(
-                                    labels[idx],
-                                    style: const TextStyle(
-                                        color: Color(0xFF78909C), fontSize: 11),
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 30,
-                            getTitlesWidget: (value, meta) {
-                              return Text(
-                                value.toInt().toString(),
-                                style: const TextStyle(
-                                    color: Color(0xFF78909C), fontSize: 11),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        horizontalInterval: 1,
-                        getDrawingHorizontalLine: (value) => const FlLine(
-                          color: Color(0xFF37404F),
-                          strokeWidth: 0.5,
-                        ),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      barGroups: [
-                        _makeBarGroup(0, available, const Color(0xFF3CCB7F)),
-                        _makeBarGroup(1, inCustody, const Color(0xFF42A5F5)),
-                        _makeBarGroup(2, maintenance, const Color(0xFFFFB74D)),
-                      ],
-                    ),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  BarChartGroupData _makeBarGroup(int x, double y, Color color) {
-    return BarChartGroupData(
-      x: x,
-      barRods: [
-        BarChartRodData(
-          toY: y,
-          color: color,
-          width: 22,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(4),
-            topRight: Radius.circular(4),
-          ),
+    return Column(
+      children: [
+        const _UserActivitiesBarChart(),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 800) {
+              return Column(
+                children: [
+                  const _FirearmDistributionPieChart(),
+                  const SizedBox(height: 16),
+                  _buildApprovalQueue(),
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Expanded(
+                  flex: 65,
+                  child: _FirearmDistributionPieChart(),
+                ),
+                const SizedBox(width: 16),
+                Expanded(flex: 35, child: _buildApprovalQueue()),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -1208,4 +1064,470 @@ class _NavItem {
 
   _NavItem(
       {required this.icon, required this.label, this.badge, this.badgeColor});
+}
+
+class _FirearmDistributionPieChart extends StatefulWidget {
+  const _FirearmDistributionPieChart();
+
+  @override
+  State<_FirearmDistributionPieChart> createState() =>
+      _FirearmDistributionPieChartState();
+}
+
+class _FirearmDistributionPieChartState
+    extends State<_FirearmDistributionPieChart> {
+  int _touchedIndex = -1;
+
+  @override
+  Widget build(BuildContext context) {
+    final dashProvider = Provider.of<DashboardProvider>(context);
+    final firearms = dashProvider.firearmsStats;
+
+    final available =
+        double.tryParse(firearms?['available']?.toString() ?? '0') ?? 0;
+    final inCustody =
+        double.tryParse(firearms?['in_custody']?.toString() ?? '0') ?? 0;
+    final maintenance =
+        double.tryParse(firearms?['maintenance']?.toString() ?? '0') ?? 0;
+
+    final total = available + inCustody + maintenance;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A3040),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Firearms Distribution',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Current distribution overview',
+            style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 250,
+            child: total == 0
+                ? const Center(
+                    child: Text(
+                      'No data available',
+                      style: TextStyle(color: Color(0xFF78909C)),
+                    ),
+                  )
+                : PieChart(
+                    PieChartData(
+                      pieTouchData: PieTouchData(
+                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                          setState(() {
+                            if (!event.isInterestedForInteractions ||
+                                pieTouchResponse == null ||
+                                pieTouchResponse.touchedSection == null) {
+                              _touchedIndex = -1;
+                              return;
+                            }
+                            _touchedIndex = pieTouchResponse
+                                .touchedSection!.touchedSectionIndex;
+                          });
+                        },
+                      ),
+                      borderData: FlBorderData(show: false),
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 40,
+                      sections: [
+                        _buildPieSection(0, available, const Color(0xFF3CCB7F)),
+                        _buildPieSection(1, inCustody, const Color(0xFF42A5F5)),
+                        _buildPieSection(
+                            2, maintenance, const Color(0xFFFFB74D)),
+                      ],
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 16),
+          _buildPieLegend(),
+        ],
+      ),
+    );
+  }
+
+  PieChartSectionData _buildPieSection(int index, double value, Color color) {
+    final isTouched = index == _touchedIndex;
+    final fontSize = isTouched ? 16.0 : 12.0;
+    final radius = isTouched ? 75.0 : 65.0;
+
+    return PieChartSectionData(
+      color: color,
+      value: value,
+      title: '${value.toInt()}',
+      radius: radius,
+      titleStyle: TextStyle(
+        fontSize: fontSize,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildPieLegend() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildLegendItem(const Color(0xFF3CCB7F), 'Available'),
+        const SizedBox(width: 16),
+        _buildLegendItem(const Color(0xFF42A5F5), 'In Custody'),
+        const SizedBox(width: 16),
+        _buildLegendItem(const Color(0xFFFFB74D), 'Maintenance'),
+      ],
+    );
+  }
+
+  Widget _buildLegendItem(Color color, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+        ),
+      ],
+    );
+  }
+}
+
+class _UserActivitiesBarChart extends StatefulWidget {
+  const _UserActivitiesBarChart();
+
+  @override
+  State<_UserActivitiesBarChart> createState() =>
+      _UserActivitiesBarChartState();
+}
+
+class _UserActivitiesBarChartState extends State<_UserActivitiesBarChart> {
+  String _selectedPeriod = 'Weekly';
+
+  final Map<String, Color> _roleColors = {
+    'admin': const Color(0xFFFFA726), // Orange
+    'hq_firearm_commander': const Color(0xFF1E88E5), // Blue
+    'station_commander': const Color(0xFFFFCA28), // Yellow
+    'investigator': const Color(0xFFFFFFFF), // White
+  };
+
+  final Map<String, String> _roleNames = {
+    'admin': 'System Admin',
+    'hq_firearm_commander': 'HQ Cmdr',
+    'station_commander': 'Station Cmdr',
+    'investigator': 'Investigator',
+  };
+
+  String _formatDateKey(DateTime date) {
+    if (_selectedPeriod == 'Daily') {
+      return DateFormat('MMM d').format(date);
+    } else if (_selectedPeriod == 'Weekly') {
+      int week = ((date.day - date.weekday + 10) / 7).floor();
+      return 'Wk $week, ${DateFormat('MMM').format(date)}';
+    } else {
+      return DateFormat('MMM yyyy').format(date);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<DashboardProvider>(
+      builder: (context, dashProvider, _) {
+        final activityData = dashProvider.roleActivity;
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A3040),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'User Activities',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  _buildPeriodSelector(),
+                ],
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                height: 250,
+                child: dashProvider.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                        color: Color(0xFF1E88E5),
+                      ))
+                    : activityData.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No activity recorded.',
+                              style: TextStyle(color: Color(0xFF78909C)),
+                            ),
+                          )
+                        : _buildGroupedBarChart(activityData),
+              ),
+              const SizedBox(height: 24),
+              _buildLegend(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPeriodSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1F2E),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF37404F)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: ['Daily', 'Weekly', 'Monthly'].map((period) {
+          final isSelected = _selectedPeriod == period;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedPeriod = period),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color:
+                    isSelected ? const Color(0xFF1E88E5) : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                period,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFFB0BEC5),
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildGroupedBarChart(List<dynamic> rawData) {
+    final now = DateTime.now();
+    final parsedMap = <String, Map<String, double>>{};
+    final sortedLabels = <String>[];
+
+    for (int i = 3; i >= 0; i--) {
+      if (_selectedPeriod == 'Daily') {
+        sortedLabels.add(_formatDateKey(now.subtract(Duration(days: i))));
+      } else if (_selectedPeriod == 'Weekly') {
+        sortedLabels.add(_formatDateKey(now.subtract(Duration(days: i * 7))));
+      } else {
+        sortedLabels
+            .add(_formatDateKey(DateTime(now.year, now.month - i, now.day)));
+      }
+    }
+
+    for (var r in _roleColors.keys) {
+      parsedMap[r] = {};
+      for (var label in sortedLabels) {
+        parsedMap[r]![label] = 0;
+      }
+    }
+
+    for (var item in rawData) {
+      if (item['activity_date'] == null || item['actor_role'] == null) continue;
+
+      final date = DateTime.tryParse(item['activity_date'].toString());
+      if (date == null) continue;
+
+      final role = item['actor_role'].toString();
+      if (!_roleColors.containsKey(role)) continue;
+
+      final val = double.tryParse(item['actions_count'].toString()) ?? 0;
+      final timeKey = _formatDateKey(date);
+
+      if (sortedLabels.contains(timeKey)) {
+        parsedMap[role]![timeKey] = (parsedMap[role]![timeKey] ?? 0) + val;
+      }
+    }
+
+    double maxY = 10;
+    final barGroups = <BarChartGroupData>[];
+
+    for (int i = 0; i < sortedLabels.length; i++) {
+      final label = sortedLabels[i];
+      final adminVal = parsedMap['admin']![label] ?? 0;
+      final hqVal = parsedMap['hq_firearm_commander']![label] ?? 0;
+      final stationVal = parsedMap['station_commander']![label] ?? 0;
+      final investVal = parsedMap['investigator']![label] ?? 0;
+
+      final maxInGroup = [adminVal, hqVal, stationVal, investVal]
+          .fold(0.0, (a, b) => a > b ? a : b);
+      if (maxInGroup > maxY) maxY = maxInGroup;
+
+      barGroups.add(
+        BarChartGroupData(
+          x: i,
+          barRods: [
+            BarChartRodData(
+                toY: adminVal,
+                color: _roleColors['admin'],
+                width: 16,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(2))),
+            BarChartRodData(
+                toY: hqVal,
+                color: _roleColors['hq_firearm_commander'],
+                width: 16,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(2))),
+            BarChartRodData(
+                toY: stationVal,
+                color: _roleColors['station_commander'],
+                width: 16,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(2))),
+            BarChartRodData(
+                toY: investVal,
+                color: _roleColors['investigator'],
+                width: 16,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(2))),
+          ],
+          barsSpace: 6,
+        ),
+      );
+    }
+
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: maxY * 1.2 + 1,
+        barTouchData: BarTouchData(
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              String roleName = '';
+              if (rodIndex == 0) {
+                roleName = 'Admin';
+              } else if (rodIndex == 1) {
+                roleName = 'HQ Cmdr';
+              } else if (rodIndex == 2) {
+                roleName = 'Stn Cmdr';
+              } else if (rodIndex == 3) {
+                roleName = 'Investigator';
+              }
+
+              return BarTooltipItem(
+                '$roleName\n${rod.toY.toInt()}',
+                const TextStyle(color: Colors.white, fontSize: 12),
+              );
+            },
+          ),
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final idx = value.toInt();
+                if (idx >= 0 && idx < sortedLabels.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      sortedLabels[idx],
+                      style: const TextStyle(
+                          color: Color(0xFF78909C), fontSize: 10),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 45,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toInt().toString(),
+                  style:
+                      const TextStyle(color: Color(0xFF78909C), fontSize: 10),
+                );
+              },
+            ),
+          ),
+        ),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: (maxY / 5).ceil().toDouble() > 0
+              ? (maxY / 5).ceil().toDouble()
+              : 1.0,
+          getDrawingHorizontalLine: (value) =>
+              const FlLine(color: Color(0xFF37404F), strokeWidth: 0.5),
+        ),
+        borderData: FlBorderData(show: false),
+        barGroups: barGroups,
+      ),
+    );
+  }
+
+  Widget _buildLegend() {
+    return Wrap(
+      spacing: 16,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
+      children: _roleColors.keys.map((role) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _roleColors[role],
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              _roleNames[role]!,
+              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11),
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
 }

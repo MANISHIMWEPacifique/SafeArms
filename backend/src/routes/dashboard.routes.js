@@ -137,11 +137,6 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
                 (SELECT COUNT(*) FROM destruction_requests WHERE status = 'pending') as destruction_requests,
                 (SELECT COUNT(*) FROM procurement_requests WHERE status = 'pending') as procurement_requests
         `);
-    }
-
-    if (role === ROLES.ADMIN) {
-        queries.usersCount = () => query(`SELECT COUNT(*) as total FROM users WHERE is_active = true`);
-        queries.activeUnits = () => query(`SELECT COUNT(*) as total FROM units WHERE is_active = true`);
         queries.roleActivity = () => query(`
             SELECT 
                 DATE(created_at) as activity_date,
@@ -153,6 +148,11 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
             GROUP BY DATE(created_at), new_values->>'actor_role'
             ORDER BY activity_date ASC
         `);
+    }
+
+    if (role === ROLES.ADMIN) {
+        queries.usersCount = () => query(`SELECT COUNT(*) as total FROM users WHERE is_active = true`);
+        queries.activeUnits = () => query(`SELECT COUNT(*) as total FROM units WHERE is_active = true`);
     }
 
     if (role === ROLES.HQ_COMMANDER) {

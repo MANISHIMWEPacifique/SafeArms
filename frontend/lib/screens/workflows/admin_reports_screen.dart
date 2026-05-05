@@ -8,7 +8,7 @@ import '../../utils/pdf_report_generator.dart';
 import '../../widgets/empty_state_widget.dart';
 
 /// System Admin – Audit, Compliance & System Oversight Reports
-/// Report types: User Activity Audit, System Audit Log
+/// Report types: User Activity Audit
 class AdminReportsScreen extends StatefulWidget {
   const AdminReportsScreen({super.key});
 
@@ -35,7 +35,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
 
   final List<Map<String, String>> _reportTypes = [
     {'value': 'user_activity', 'label': 'User Activity Audit'},
-    {'value': 'audit_log', 'label': 'System Audit Trail'},
   ];
 
   final List<Map<String, String>> _roles = [
@@ -316,9 +315,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                           Icon(
                             rt['value'] == 'user_activity'
                                 ? Icons.people_outline
-                                : rt['value'] == 'audit_log'
-                                    ? Icons.list_alt
-                                    : Icons.warning_amber_rounded,
+                                : Icons.warning_amber_rounded,
                             color: isSelected
                                 ? const Color(0xFF1E88E5)
                                 : const Color(0xFF78909C),
@@ -449,14 +446,8 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                       icon: const Icon(Icons.picture_as_pdf, size: 18),
                       label: const Text('Export PDF'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: _reportGenerated
-                            ? const Color(0xFFB0BEC5)
-                            : const Color(0xFF546E7A),
-                        side: BorderSide(
-                            color: _reportGenerated
-                                ? const Color(0xFF37404F)
-                                : const Color(0xFF37404F)
-                                    .withValues(alpha: 0.5)),
+                        foregroundColor: const Color(0xFFB0BEC5),
+                        side: const BorderSide(color: Color(0xFF37404F)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
@@ -482,20 +473,8 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                       icon: const Icon(Icons.clear, size: 18),
                       label: const Text('Clear All'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: (_usernameController.text.isNotEmpty ||
-                                _selectedRole.isNotEmpty ||
-                                _dateFrom != null ||
-                                _dateTo != null)
-                            ? const Color(0xFFB0BEC5)
-                            : const Color(0xFF546E7A),
-                        side: BorderSide(
-                            color: (_usernameController.text.isNotEmpty ||
-                                    _selectedRole.isNotEmpty ||
-                                    _dateFrom != null ||
-                                    _dateTo != null)
-                                ? const Color(0xFF37404F)
-                                : const Color(0xFF37404F)
-                                    .withValues(alpha: 0.5)),
+                        foregroundColor: const Color(0xFFB0BEC5),
+                        side: const BorderSide(color: Color(0xFF37404F)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
@@ -674,7 +653,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           const Divider(color: Color(0xFF37404F), height: 32),
           if (_selectedReportType == 'user_activity')
             _buildUserActivityReport(),
-          if (_selectedReportType == 'audit_log') _buildAuditLogReport(),
         ],
       ),
     );
@@ -756,47 +734,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                     a['action_type']?.toString() ?? '',
                     '${a['table_name'] ?? ''} ${a['record_id'] != null ? '#${a['record_id']}' : ''}',
                     _fmtDateTime(a['created_at']?.toString()),
-                  ])
-              .toList(),
-        ),
-      ],
-    );
-  }
-
-  // ==============================
-  // SYSTEM AUDIT LOG REPORT
-  // ==============================
-  Widget _buildAuditLogReport() {
-    final logs =
-        List<Map<String, dynamic>>.from(_reportData['audit_logs'] ?? []);
-
-    if (logs.isEmpty) {
-      return _buildEmptyState(
-          'No audit log entries found for the selected filters.');
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle('System Audit Log'),
-        const SizedBox(height: 12),
-        _buildDataTable(
-          columns: const [
-            'Event Type',
-            'Performed By',
-            'Date & Time',
-            'Status'
-          ],
-          rows: logs
-              .map((l) => [
-                    l['action_type']?.toString() ?? '',
-                    l['actor_name']?.toString() ??
-                        l['username']?.toString() ??
-                        'System',
-                    _fmtDateTime(l['created_at']?.toString()),
-                    (l['success'] == true || l['success'] == 'true')
-                        ? 'Success'
-                        : 'Failed',
                   ])
               .toList(),
         ),

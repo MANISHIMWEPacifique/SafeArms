@@ -77,6 +77,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
         // ===== FIREARM HISTORY =====
         case 'firearm_history': {
             let firearmFilter = 'WHERE 1=1';
+            let custodyFilter = '';
             const fParams = [...dateParams];
             let fIdx = paramIdx;
 
@@ -91,24 +92,34 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 fIdx++;
             }
 
+            // A firearm falls in the date range if its creation overlaps OR it has custody records intersecting the range.
             const firearms = await query(`
                 SELECT f.firearm_id, f.serial_number, f.firearm_type, f.caliber,
                        f.manufacturer, f.model, f.acquisition_date, f.current_status,
                        u.unit_name
                 FROM firearms f
                 LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
-                ${(firearmFilter + dateFilter).replace(/created_at/g, 'f.created_at')}
+                ${firearmFilter} AND (
+                    EXISTS (
+                        SELECT 1 FROM custody_records cr 
+                        WHERE cr.firearm_id = f.firearm_id
+                        ${dateFilter.replace(/created_at/g, 'cr.issued_at')}
+                    )
+                    ${dateFilter ? `OR (${dateFilter.replace(/created_at/g, 'f.created_at').replace(/^ AND /, '')})` : ''}
+                )
                 ORDER BY f.created_at DESC
                 LIMIT 100
             `, fParams);
 
-            // Get custody records for those firearms
+            // Get custody records strictly bound by the interval
             const firearmIds = firearms.rows.map(f => f.firearm_id);
             let custodyRecords = [];
-            let anomalies = [];
-            let ballisticProfile = null;
 
             if (firearmIds.length > 0) {
+                let custParams = [...dateParams];
+                // Append the array parameter after the date params
+                custParams.push(firearmIds);
+                
                 const custodyResult = await query(`
                     SELECT cr.custody_id, cr.firearm_id, cr.issued_at, cr.returned_at,
                            cr.custody_type, f.serial_number,
@@ -123,43 +134,17 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                     LEFT JOIN firearms f ON cr.firearm_id = f.firearm_id
                     LEFT JOIN officers o ON cr.officer_id = o.officer_id
                     LEFT JOIN units u ON cr.unit_id = u.unit_id
-                    WHERE cr.firearm_id = ANY($1)
+                    WHERE cr.firearm_id = ANY($${custParams.length})
+                    ${dateFilter.replace(/created_at/g, 'cr.issued_at')}
                     ORDER BY cr.issued_at ASC
                     LIMIT 500
-                `, [firearmIds]);
+                `, custParams);
                 custodyRecords = custodyResult.rows;
-
-                const anomalyResult = await query(`
-                    SELECT anomaly_id, severity, status
-                    FROM anomalies
-                    WHERE firearm_id = ANY($1)
-                    ORDER BY detected_at DESC
-                `, [firearmIds]);
-                anomalies = anomalyResult.rows;
-
-                // Get ballistic profile for first firearm (for investigator detail view)
-                if (firearmIds.length === 1 || serial_number) {
-                    const bpResult = await query(`
-                        SELECT bp.ballistic_id, bp.rifling_characteristics, bp.firing_pin_impression,
-                               bp.ejector_marks, bp.extractor_marks, bp.chamber_marks,
-                               bp.test_date, bp.test_location, bp.forensic_lab,
-                               bp.is_locked, bp.registration_hash,
-                               bp.created_at
-                        FROM ballistic_profiles bp
-                        WHERE bp.firearm_id = $1
-                        LIMIT 1
-                    `, [firearmIds[0]]);
-                    if (bpResult.rows.length > 0) {
-                        ballisticProfile = bpResult.rows[0];
-                    }
-                }
             }
 
             data = {
                 firearms: firearms.rows,
-                custody_records: custodyRecords,
-                anomalies: anomalies,
-                ballistic_profile: ballisticProfile,
+                custody_records: custodyRecords
             };
             break;
         }
@@ -196,26 +181,44 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
             `, bParams);
 
             const firearmIds = profiles.rows.map(p => p.firearm_id).filter(Boolean);
-            let recent_custody_logs = [];
+            let activities = [];
 
             if (firearmIds.length > 0) {
-                const custodyResult = await query(`
-                    SELECT cr.custody_id, cr.firearm_id, cr.issued_at, cr.returned_at,
-                           cr.custody_type, o.full_name as officer_name,
-                           u.unit_name
-                    FROM custody_records cr
-                    LEFT JOIN officers o ON cr.officer_id = o.officer_id
-                    LEFT JOIN units u ON cr.unit_id = u.unit_id
-                    WHERE cr.firearm_id = ANY($1)
-                    ORDER BY cr.issued_at DESC
-                    LIMIT 200
-                `, [firearmIds]);
-                recent_custody_logs = custodyResult.rows;
+                let actParams = [...dateParams];
+                actParams.push(firearmIds);
+                
+                // Fetch Ballistic Access Logs (Investigator Searches/Views)
+                const accessLogs = await query(`
+                    SELECT bal.access_id as id, 'Access Log' as activity_type, bal.access_type as action,
+                           bal.access_reason as notes, u.full_name as investigator_name,
+                           bal.accessed_at as activity_date, f.serial_number
+                    FROM ballistic_access_logs bal
+                    LEFT JOIN users u ON bal.accessed_by = u.user_id
+                    LEFT JOIN firearms f ON bal.firearm_id = f.firearm_id
+                    WHERE bal.firearm_id = ANY($${actParams.length})
+                    ${dateFilter.replace(/created_at/g, 'bal.accessed_at')}
+                `, actParams);
+
+                // Fetch Anomaly Investigations (Investigator cases for these firearms)
+                const investigations = await query(`
+                    SELECT ai.investigation_id as id, 'Investigation' as activity_type, ai.outcome as action,
+                           ai.findings as notes, u.full_name as investigator_name,
+                           ai.investigation_date as activity_date, f.serial_number
+                    FROM anomaly_investigations ai
+                    LEFT JOIN anomalies a ON ai.anomaly_id = a.anomaly_id
+                    LEFT JOIN users u ON ai.investigator_id = u.user_id
+                    LEFT JOIN firearms f ON a.firearm_id = f.firearm_id
+                    WHERE a.firearm_id = ANY($${actParams.length})
+                    ${dateFilter.replace(/created_at/g, 'ai.investigation_date')}
+                `, actParams);
+
+                // Combine and sort
+                activities = [...accessLogs.rows, ...investigations.rows].sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
             }
 
             data = { 
                 profiles: profiles.rows,
-                recent_custody_logs: recent_custody_logs
+                investigator_activities: activities
             };
             break;
         }
@@ -238,6 +241,11 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 aParams.push(unit_id);
                 aIdx++;
             }
+            if (serial_number) {
+                aFilter += ` AND f.serial_number ILIKE $${aIdx}`;
+                aParams.push(`%${serial_number}%`);
+                aIdx++;
+            }
 
             const anomalies = await query(`
                 SELECT a.anomaly_id, a.severity, a.status,
@@ -249,8 +257,27 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 LEFT JOIN units u ON a.unit_id = u.unit_id
                 ${(aFilter + dateFilter).replace(/created_at/g, 'a.detected_at')}
                 ORDER BY a.detected_at DESC
-                LIMIT 100
+                LIMIT 500
             `, aParams);
+
+            // Group anomalies
+            const groupedAnomalies = {};
+            anomalies.rows.forEach(a => {
+                // Determine group key: prioritize unit_name unless only serial_number was filtered
+                const groupKey = (unit_id || !serial_number) 
+                    ? (a.unit_name || 'Unassigned Unit') 
+                    : (a.serial_number || 'Unknown Firearm');
+                if (!groupedAnomalies[groupKey]) {
+                    groupedAnomalies[groupKey] = [];
+                }
+                groupedAnomalies[groupKey].push(a);
+            });
+
+            // Convert to array of groups for PDF generator
+            const anomalyGroups = Object.keys(groupedAnomalies).map(g => ({
+                group_name: g,
+                records: groupedAnomalies[g]
+            }));
 
             // Summary counts
             const total = anomalies.rows.length;
@@ -258,10 +285,11 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
             const medium = anomalies.rows.filter(a => a.severity?.toLowerCase() === 'medium').length;
             const low = anomalies.rows.filter(a => a.severity?.toLowerCase() === 'low').length;
             const reviewed = anomalies.rows.filter(a => a.status?.toLowerCase() === 'reviewed' || a.status?.toLowerCase() === 'resolved').length;
-            const pending = anomalies.rows.filter(a => a.status?.toLowerCase() === 'pending' || a.status?.toLowerCase() === 'open').length;
+            const pending = anomalies.rows.filter(a => a.status?.toLowerCase() === 'investigating' || a.status?.toLowerCase() === 'detected').length;
 
-            data = {
+            data = { 
                 anomalies: anomalies.rows,
+                anomaly_groups: anomalyGroups,
                 summary: { total, high, medium, low, reviewed, pending }
             };
             break;
@@ -296,7 +324,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 LEFT JOIN users u ON al.user_id = u.user_id
                 ${(uaFilter + dateFilter).replace(/created_at/g, 'al.created_at')}
                 ORDER BY al.created_at DESC
-                LIMIT 200
+                LIMIT 300
             `, uaParams);
 
             data = { activities: activities.rows };
@@ -333,7 +361,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 LEFT JOIN users u ON al.user_id = u.user_id
                 ${(alFilter + dateFilter).replace(/created_at/g, 'al.created_at')}
                 ORDER BY al.created_at DESC
-                LIMIT 200
+                LIMIT 300
             `, alParams);
 
             data = { audit_logs: logs.rows };

@@ -53,8 +53,8 @@ const connectionConfig = process.env.DATABASE_URL
 const pool = new Pool({
   ...connectionConfig,
   max: 15,                         // 15 connections is plenty for a single Node process
-  min: 2,                          // Keep 2 connections warm
-  idleTimeoutMillis: 30000,        // Release idle connections after 30s
+  min: 0,                          // Don't keep connections warm to prevent stale sockets with Supabase/PgBouncer
+  idleTimeoutMillis: 15000,        // Release idle connections after 15s to beat any proxy heartbeat drops
   connectionTimeoutMillis: DB_CONNECTION_TIMEOUT_MS, // Wait for an available connection before failing
   statement_timeout: DB_STATEMENT_TIMEOUT_MS,        // Server-side limit per SQL statement
   query_timeout: DB_QUERY_TIMEOUT_MS,                // Client-side query timeout

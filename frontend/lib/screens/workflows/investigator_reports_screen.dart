@@ -342,14 +342,8 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                       icon: const Icon(Icons.picture_as_pdf, size: 18),
                       label: const Text('Export PDF'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: _reportGenerated
-                            ? const Color(0xFFB0BEC5)
-                            : const Color(0xFF546E7A),
-                        side: BorderSide(
-                            color: _reportGenerated
-                                ? const Color(0xFF37404F)
-                                : const Color(0xFF37404F)
-                                    .withValues(alpha: 0.5)),
+                        foregroundColor: const Color(0xFFB0BEC5),
+                        side: const BorderSide(color: Color(0xFF37404F)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
@@ -373,18 +367,8 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
                       icon: const Icon(Icons.clear, size: 18),
                       label: const Text('Clear All'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: (_serialController.text.isNotEmpty ||
-                                _dateFrom != null ||
-                                _dateTo != null)
-                            ? const Color(0xFFB0BEC5)
-                            : const Color(0xFF546E7A),
-                        side: BorderSide(
-                            color: (_serialController.text.isNotEmpty ||
-                                    _dateFrom != null ||
-                                    _dateTo != null)
-                                ? const Color(0xFF37404F)
-                                : const Color(0xFF37404F)
-                                    .withValues(alpha: 0.5)),
+                        foregroundColor: const Color(0xFFB0BEC5),
+                        side: const BorderSide(color: Color(0xFF37404F)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),

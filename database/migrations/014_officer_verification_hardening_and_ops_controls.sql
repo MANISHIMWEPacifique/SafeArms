@@ -44,6 +44,9 @@ CREATE INDEX IF NOT EXISTS idx_verification_events_type
 CREATE INDEX IF NOT EXISTS idx_verification_events_created
     ON officer_verification_events(created_at DESC);
 
+-- Enable RLS to satisfy security requirements (backend bypasses this)
+ALTER TABLE officer_verification_events ENABLE ROW LEVEL SECURITY;
+
 DO $$
 BEGIN
     IF EXISTS (

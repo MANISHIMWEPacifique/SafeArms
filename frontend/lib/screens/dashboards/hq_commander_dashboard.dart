@@ -119,13 +119,13 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
             totalPendingApprovals > 0 ? totalPendingApprovals.toString() : null,
         badgeColor: const Color(0xFFE85C5C),
       ),
+      _NavItem(icon: Icons.analytics_outlined, label: 'Reports', badge: null),
       _NavItem(
         icon: Icons.report_problem_outlined,
         label: 'Anomalies',
         badge: anomaliesCount > 0 ? anomaliesCount.toString() : null,
         badgeColor: const Color(0xFFFFC857),
       ),
-      _NavItem(icon: Icons.analytics_outlined, label: 'Reports', badge: null),
     ];
   }
 
@@ -492,11 +492,11 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
         // Approvals - using ReportsScreen with HQ role for approve/reject
         return const ReportsScreen(roleType: 'hq');
       case 4:
-        // Anomalies Detection
-        return const AnomalyDetectionScreen();
-      case 5:
         // National Reports
         return const HqReportsScreen();
+      case 5:
+        // Anomalies Detection
+        return const AnomalyDetectionScreen();
       default:
         return _buildDashboardOverview();
     }

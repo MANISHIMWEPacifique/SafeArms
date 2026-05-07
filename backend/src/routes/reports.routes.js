@@ -50,8 +50,11 @@ const ensureDeleteAccess = (req, reportRow, reportLabel) => {
 // ============================================
 
 router.get('/generate', authenticate, asyncHandler(async (req, res) => {
-    const { type, start_date, end_date, unit_id, serial_number, case_ref, user_id, role: filterRole } = req.query;
+    const { type, start_date, end_date, unit_id, serial_number, case_ref, user_id, role: filterRole, page = 1, limit = 100 } = req.query;
     const userRole = req.user.role;
+
+    const parsedLimit = Math.min(parseInt(limit), 500); // Max 500 per page
+    const parsedOffset = (Math.max(parseInt(page), 1) - 1) * parsedLimit;
 
     // Build date filter
     let dateFilter = '';
@@ -92,6 +95,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 fIdx++;
             }
 
+            fParams.push(parsedLimit, parsedOffset);
             // A firearm falls in the date range if its creation overlaps OR it has custody records intersecting the range.
             const firearms = await query(`
                 SELECT f.firearm_id, f.serial_number, f.firearm_type, f.caliber,
@@ -108,7 +112,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                     ${dateFilter ? `OR (${dateFilter.replace(/created_at/g, 'f.created_at').replace(/^ AND /, '')})` : ''}
                 )
                 ORDER BY f.created_at DESC
-                LIMIT 100
+                LIMIT $${fParams.length - 1} OFFSET $${fParams.length}
             `, fParams);
 
             // Get custody records strictly bound by the interval
@@ -247,6 +251,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 aIdx++;
             }
 
+            aParams.push(parsedLimit, parsedOffset);
             const anomalies = await query(`
                 SELECT a.anomaly_id, a.severity, a.status,
                        a.detected_at, a.anomaly_type,
@@ -257,7 +262,7 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
                 LEFT JOIN units u ON a.unit_id = u.unit_id
                 ${(aFilter + dateFilter).replace(/created_at/g, 'a.detected_at')}
                 ORDER BY a.detected_at DESC
-                LIMIT 500
+                LIMIT $${aParams.length - 1} OFFSET $${aParams.length}
             `, aParams);
 
             // Group anomalies

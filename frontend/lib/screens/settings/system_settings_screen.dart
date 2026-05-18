@@ -635,8 +635,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
     final lastRunReason = _safeString(lastRun?['reason'], fallback: '');
 
     final trainHint = canTrain
-        ? 'Sufficient samples available for training'
-        : 'Need more samples before training';
+      ? 'Sufficient operational records available for training'
+      : 'Need more operational records before training';
 
     return _buildPanel(
       header: _buildPanelHeader(
@@ -644,7 +644,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
         iconColor: _teal,
         iconBg: _tealDim,
         title: 'Anomaly detection engine',
-        subtitle: 'Rules Engine + K-Means clustering model',
+        subtitle: 'K-Means clustering model',
         trailing: _buildModelActiveBadge(sp),
       ),
       children: [
@@ -667,8 +667,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
                   _MiniStatCard(label: 'MODEL ID', value: modelId),
                   _MiniStatCard(
                       label: 'LAST TRAINED', value: lastTrained, valueSize: 15),
-                  _MiniStatCard(
-                      label: 'TRAINING SAMPLES', value: trainingSamples),
+                    _MiniStatCard(
+                      label: 'TRAINED RECORDS', value: trainingSamples),
                   _MiniStatCard(label: 'SILHOUETTE SCORE', value: silhouette),
                 ],
               );
@@ -677,7 +677,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
         ),
         _buildKvTable([
           {'label': 'Clusters', 'value': clusters},
-          {'label': 'Available samples', 'value': availableSamples},
+          {'label': 'Available records', 'value': availableSamples},
           {'label': 'Minimum required', 'value': minimumRequired},
           {
             'label': 'Training readiness',

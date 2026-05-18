@@ -219,7 +219,6 @@ const recordAnomaly = async (custodyRecord, features, detectionResult, modelId) 
     try {
         // Build dynamic detection_method from which detectors contributed
         const methods = [];
-        if (detectionResult.rules_triggered?.length > 0) methods.push('rules');
         if (detectionResult.detection_methods?.kmeans?.is_anomaly) methods.push('kmeans');
         if (detectionResult.detection_methods?.statistical?.is_anomaly) methods.push('statistical');
         if ((detectionResult.detection_methods?.ballistic_timing?.score || 0) > 0.5) methods.push('ballistic');

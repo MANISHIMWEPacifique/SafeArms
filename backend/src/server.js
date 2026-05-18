@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-const { pool, setShuttingDown } = require('./config/database');
+const { pool, query, setShuttingDown } = require('./config/database');
 const { SERVER_CONFIG } = require('./config/server');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
@@ -128,14 +128,14 @@ const firearmUploadsDir = path.join(__dirname, '../uploads/firearms');
 if (!fs.existsSync(firearmUploadsDir)) {
     fs.mkdirSync(firearmUploadsDir, { recursive: true });
 }
-app.use('/uploads/firearms', express.static(firearmUploadsDir));
+app.use('/uploads/firearms', express.static(firearmUploadsDir, { maxAge: 0, setHeaders: (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate') }));
 
 // Static user profile photo uploads
 const userUploadsDir = path.join(__dirname, '../uploads/users');
 if (!fs.existsSync(userUploadsDir)) {
     fs.mkdirSync(userUploadsDir, { recursive: true });
 }
-app.use('/uploads/users', express.static(userUploadsDir));
+app.use('/uploads/users', express.static(userUploadsDir, { maxAge: 0, setHeaders: (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate') }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -222,6 +222,32 @@ const waitForDatabase = async () => {
     }
 };
 
+const syncAuditLogSequence = async () => {
+    try {
+        await query(`
+            SELECT setval(
+                'audit_logs_id_seq',
+                COALESCE(
+                    (
+                        SELECT MAX(
+                            CAST(
+                                NULLIF(REGEXP_REPLACE(log_id, '[^0-9]', '', 'g'), '')
+                                AS INTEGER
+                            )
+                        )
+                        FROM audit_logs
+                    ),
+                    0
+                ) + 1,
+                false
+            )
+        `);
+        console.log('[OK] audit_logs_id_seq synchronized');
+    } catch (error) {
+        console.warn('[WARN] Failed to sync audit_logs_id_seq:', error.message);
+    }
+};
+
 (async () => {
     console.log('\n========================================');
     console.log('[SafeArms] Backend Server');
@@ -232,6 +258,7 @@ const waitForDatabase = async () => {
     try {
         await waitForDatabase();
         console.log('[OK] Database connected successfully');
+        await syncAuditLogSequence();
     } catch (error) {
         console.error('[ERROR] Database connection failed:', error.message);
         console.error('[ERROR] Server will not start without a database connection.');

@@ -612,7 +612,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
         iconColor: _teal,
         iconBg: _tealDim,
         title: 'Anomaly detection engine',
-        subtitle: 'Rules Engine + K-Means clustering model',
+        subtitle: 'K-Means clustering model',
         trailing: _buildModelActiveBadge(),
       ),
       children: [
@@ -637,7 +637,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
                       label: 'LAST TRAINED',
                       value: 'Jan 8, 2025',
                       valueSize: 15),
-                  _MiniStatCard(label: 'TRAINING SAMPLES', value: '134'),
+                  _MiniStatCard(label: 'TRAINED RECORDS', value: '134'),
                   _MiniStatCard(label: 'SILHOUETTE SCORE', value: '0.68'),
                 ],
               );
@@ -646,7 +646,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
         ),
         _buildKvTable([
           {'label': 'Clusters', 'value': '4'},
-          {'label': 'Available samples', 'value': '182'},
+          {'label': 'Available records', 'value': '182'},
           {'label': 'Minimum required', 'value': '100'},
           {'label': 'Recent detections (30d)', 'value': '4'},
           {
@@ -669,7 +669,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
                           fontSize: 15,
                           fontWeight: FontWeight.w500)),
                   SizedBox(height: 4),
-                  Text('Sufficient samples available for training',
+                  Text('Sufficient operational records available for training',
                       style: TextStyle(color: _textSecondary, fontSize: 13)),
                 ],
               ),

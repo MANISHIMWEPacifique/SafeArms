@@ -183,6 +183,7 @@ const getTrainingReadiness = async () => {
         SELECT COUNT(*)::int AS count
         FROM ml_training_features
         WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
+          AND used_in_model_id IS NULL
     `);
 
     const availableTrainingSamples = toPositiveInt(samplesResult.rows[0]?.count, 0);

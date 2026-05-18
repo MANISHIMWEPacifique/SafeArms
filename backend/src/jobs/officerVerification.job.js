@@ -37,14 +37,11 @@ const cleanupExpiredVerificationArtifacts = async () => {
 
     const staleRequestsResult = await query(
         `UPDATE officer_verification_requests
-         SET decision = CASE
-                WHEN decision = 'pending' THEN 'expired'
-                ELSE decision
-             END,
+         SET decision = 'expired',
              updated_at = CURRENT_TIMESTAMP
          WHERE created_at < CURRENT_TIMESTAMP - ($1::TEXT || ' days')::INTERVAL
            AND consumed_at IS NULL
-           AND decision IN ('pending', 'expired', 'cancelled')`,
+           AND decision = 'pending'`,
         [retentionDays],
         { retryTransient: true }
     );

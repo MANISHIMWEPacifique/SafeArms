@@ -113,22 +113,6 @@ const detectStatisticalOutliers = async (features) => {
             maxZScore = Math.max(maxZScore, proximityScore);
         }
 
-        // ============================================
-        // NEW: Cross-unit transfer patterns
-        // ============================================
-        
-        // Multiple cross-unit transfers in short period
-        const crossUnitCount30d = features.cross_unit_transfer_count_30d || 0;
-        if (crossUnitCount30d > 2) {
-            outliers.push({
-                feature: 'cross_unit_transfer_frequency',
-                value: crossUnitCount30d,
-                severity: crossUnitCount30d > 4 ? 'high' : 'medium',
-                description: `Firearm has crossed between units ${crossUnitCount30d} times in 30 days`
-            });
-            maxZScore = Math.max(maxZScore, crossUnitCount30d / 2.0);
-        }
-
         // Calculate statistical anomaly score (0 to 1)
         const statisticalScore = outliers.length > 0
             ? Math.min(maxZScore / 4.0, 1.0)
@@ -163,45 +147,6 @@ const detectStatisticalOutliers = async (features) => {
 /**
  * Calculate modified z-score (robust to outliers)
  * @param {number} value
- * @param {number} median
- * @param {number} mad - Median Absolute Deviation
- * @returns {number}
- */
-const calculateModifiedZScore = (value, median, mad) => {
-    if (mad === 0) return 0;
-    return 0.6745 * (value - median) / mad;
-};
-
-/**
- * Detect univariate outliers using Interquartile Range (IQR)
- * @param {Array} values
- * @param {number} threshold - IQR multiplier (default: 1.5)
- * @returns {Object}
- */
-const detectIQROutliers = (values, threshold = 1.5) => {
-    if (values.length === 0) return { outliers: [], bounds: {} };
-
-    const sorted = [...values].sort((a, b) => a - b);
-    const q1Index = Math.floor(sorted.length * 0.25);
-    const q3Index = Math.floor(sorted.length * 0.75);
-
-    const q1 = sorted[q1Index];
-    const q3 = sorted[q3Index];
-    const iqr = q3 - q1;
-
-    const lowerBound = q1 - threshold * iqr;
-    const upperBound = q3 + threshold * iqr;
-
-    const outliers = values
-        .map((val, idx) => ({ value: val, index: idx }))
-        .filter(item => item.value < lowerBound || item.value > upperBound);
-
-    return {
-        outliers,
-        bounds: { lowerBound, upperBound, q1, q3, iqr }
-    };
-};
-
 /**
  * Calculate percentile rank of a value
  * @param {number} value
@@ -310,8 +255,6 @@ const grubbsTest = (values, alpha = 0.05) => {
 module.exports = {
     detectStatisticalOutliers,
     calculateZScore,
-    calculateModifiedZScore,
-    detectIQROutliers,
     calculatePercentile,
     calculateMahalanobisDistance,
     grubbsTest

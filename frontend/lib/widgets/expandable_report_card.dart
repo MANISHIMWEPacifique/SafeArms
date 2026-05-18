@@ -14,7 +14,8 @@ class ExpandableReportCard extends StatefulWidget {
   final Color severityColor;
   final Widget detailsWidget;
   final VoidCallback? onDelete;
-  final ValueChanged<String>? onStatusChanged;
+  final String? initialRemarks;
+  final void Function(String newStatus, String? remarks)? onStatusChanged;
 
   const ExpandableReportCard({
     super.key,
@@ -30,6 +31,7 @@ class ExpandableReportCard extends StatefulWidget {
     required this.severityColor,
     required this.detailsWidget,
     this.onDelete,
+    this.initialRemarks,
     this.onStatusChanged,
   });
 
@@ -44,6 +46,8 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
   // Single source of truth for programmatic expand/collapse.
   // Drives both the ExpansionTile and the "View Details" button.
   final ExpansibleController _expansionController = ExpansibleController();
+  final TextEditingController _remarksController = TextEditingController();
+  String? _remarksError;
 
   // Colors based on requested theme
   static const Color _cardBgColor = Color(0xFF212D42);
@@ -62,11 +66,13 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
   void initState() {
     super.initState();
     _currentStatus = widget.status.toLowerCase();
+    _remarksController.text = widget.initialRemarks ?? '';
   }
 
   @override
   void dispose() {
     _expansionController.dispose();
+    _remarksController.dispose();
     super.dispose();
   }
 
@@ -78,23 +84,6 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
         _currentStatus = widget.status.toLowerCase();
       });
     }
-  }
-
-  void _cycleStatus() {
-    if (widget.onStatusChanged == null) return;
-    String nextStatus;
-    if (_currentStatus == 'pending') {
-      nextStatus = 'approved';
-    } else if (_currentStatus == 'approved') {
-      nextStatus = 'rejected';
-    } else {
-      nextStatus = 'pending';
-    }
-
-    setState(() {
-      _currentStatus = nextStatus;
-    });
-    widget.onStatusChanged!(nextStatus);
   }
 
   void _confirmDelete() {
@@ -136,6 +125,27 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
       default:
         return _amberWarn;
     }
+  }
+
+  void _handleApprove() {
+    setState(() {
+      _remarksError = null;
+    });
+    final remarks = _remarksController.text.trim();
+    widget.onStatusChanged?.call('approved', remarks.isEmpty ? null : remarks);
+  }
+
+  void _handleReject() {
+    if (_remarksController.text.trim().isEmpty) {
+      setState(() {
+        _remarksError = 'Remarks are required for rejection';
+      });
+      return;
+    }
+    setState(() {
+      _remarksError = null;
+    });
+    widget.onStatusChanged?.call('rejected', _remarksController.text.trim());
   }
 
   @override
@@ -191,8 +201,85 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
                       border: Border(top: BorderSide(color: _borderDefault)),
                     ),
                     padding: const EdgeInsets.all(16),
-                    child: widget.detailsWidget,
-                  )
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        widget.detailsWidget,
+                        const SizedBox(height: 16),
+                        if (_currentStatus == 'pending') ...[
+                          TextField(
+                            controller: _remarksController,
+                            maxLines: 4,
+                            style: const TextStyle(color: _primaryText),
+                            decoration: InputDecoration(
+                              labelText: 'Decision Remarks',
+                              labelStyle: const TextStyle(color: _secondaryText),
+                              hintText:
+                                  'Enter your remarks for this decision',
+                              hintStyle: const TextStyle(color: _mutedText),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide:
+                                    const BorderSide(color: _borderDefault),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide:
+                                    const BorderSide(color: _borderDefault),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide:
+                                    const BorderSide(color: _accentBlue),
+                              ),
+                              errorText: _remarksError,
+                              errorStyle:
+                                  const TextStyle(color: _dangerRed),
+                              filled: true,
+                              fillColor: const Color(0xFF1A2233),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              ElevatedButton(
+                                onPressed: _handleApprove,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _approvedGreen,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
+                                child: const Text('Approve'),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: _handleReject,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _dangerRed,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
+                                child: const Text('Reject'),
+                              ),
+                            ],
+                          ),
+                        ] else ...[
+                          Text(
+                            'Decision Remarks:\n${widget.initialRemarks ?? _remarksController.text}',
+                            style: const TextStyle(
+                              color: _secondaryText,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -233,31 +320,28 @@ class _ExpandableReportCardState extends State<ExpandableReportCard> {
             ),
             Row(
               children: [
-                GestureDetector(
-                  onTap: _cycleStatus,
-                  child: AnimatedContainer(
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor().withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _getStatusColor().withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: AnimatedDefaultTextStyle(
                     duration: const Duration(milliseconds: 220),
                     curve: Curves.easeOut,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor().withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _getStatusColor().withValues(alpha: 0.5),
-                      ),
+                    style: TextStyle(
+                      fontFamily: 'DM Sans',
+                      color: _getStatusColor(),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
-                    child: AnimatedDefaultTextStyle(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOut,
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: _getStatusColor(),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      child: Text(_currentStatus.toUpperCase()),
-                    ),
+                    child: Text(_currentStatus.toUpperCase()),
                   ),
                 ),
                 const SizedBox(width: 12),

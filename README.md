@@ -79,7 +79,16 @@ npm run dev
 
 Backend runs on: http://localhost:3000
 
-### 3. Frontend Setup
+### 3. ML Training (Demo)
+After seeding, generate features and train the model from the custody data:
+
+```bash
+cd backend
+node src/scripts/populateTrainingFeatures.js
+node src/scripts/trainModel.js
+```
+
+### 4. Frontend Setup
 ```bash
 cd frontend
 flutter pub get

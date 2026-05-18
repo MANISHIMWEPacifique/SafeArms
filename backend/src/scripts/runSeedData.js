@@ -71,6 +71,10 @@ async function runSeedData() {
     console.log('   PTS Gishari:     station_pts / Admin@123');
     console.log('   Investigator:    investigator / Admin@123');
 
+    console.log('\n[INFO] ML Training (demo flow):');
+    console.log('   1. node src/scripts/populateTrainingFeatures.js');
+    console.log('   2. node src/scripts/trainModel.js');
+
   } catch (error) {
     console.error('[ERROR] Error seeding database:', error.message);
     if (error.detail) {

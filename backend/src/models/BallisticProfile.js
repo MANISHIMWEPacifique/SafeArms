@@ -275,16 +275,20 @@ const BallisticProfile = {
 
         // Log search query (not individual results) for audit purposes
         if (requestingUserId && result.rows.length > 0) {
-            // Log one access event for the search operation
-            await query(`
-                INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address, user_agent)
-                VALUES ($1, 'SEARCH', 'ballistic_profiles', $2, $3, $4)
-            `, [
-                requestingUserId,
-                JSON.stringify({ search_params: searchParams, result_count: total }),
-                reqInfo.ip,
-                reqInfo.userAgent
-            ]);
+            try {
+                // Log one access event for the search operation
+                await query(`
+                    INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address, user_agent)
+                    VALUES ($1, 'SEARCH', 'ballistic_profiles', $2, $3, $4)
+                `, [
+                    requestingUserId,
+                    JSON.stringify({ search_params: searchParams, result_count: total }),
+                    reqInfo.ip,
+                    reqInfo.userAgent
+                ]);
+            } catch (error) {
+                console.error('Failed to log ballistic search audit:', error);
+            }
         }
 
         return {

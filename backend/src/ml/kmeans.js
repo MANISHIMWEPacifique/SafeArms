@@ -42,20 +42,6 @@ const normalizeFeatures = (data) => {
 };
 
 /**
- * Denormalize a feature vector
- * @param {Array} normalized - Normalized feature vector
- * @param {Object} params - Normalization parameters
- * @returns {Array}
- */
-const denormalizeFeatures = (normalized, params) => {
-    const { mins, maxs } = params;
-    return normalized.map((value, idx) => {
-        const range = maxs[idx] - mins[idx];
-        return value * range + mins[idx];
-    });
-};
-
-/**
  * Train K-Means model on custody features
  * @param {number} k - Number of clusters (default: 6)
  * @returns {Promise<Object>} Trained model metadata
@@ -77,8 +63,9 @@ const trainKMeansModel = async (k = 6) => {
         CASE WHEN cross_unit_movement_flag THEN 1.0 ELSE 0.0 END as cross_unit_flag,
         custody_duration_zscore,
         issue_frequency_zscore
-      FROM ml_training_features
-      WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
+            FROM ml_training_features
+            WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
+                AND used_in_model_id IS NULL
     `);
 
         // Adapt k to available data (need at least k*3 samples for stable clusters)

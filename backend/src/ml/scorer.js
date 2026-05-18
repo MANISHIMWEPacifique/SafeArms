@@ -82,7 +82,7 @@ const normalizeScoringThresholds = (thresholds = {}) => {
  *
  * Adaptive weighting:
  *   Without K-Means model → rules(0.45) + statistical(0.30) + ballistic(0.25)
- *   With K-Means model    → kmeans(0.40) + rules(0.25) + statistical(0.20) + ballistic(0.15)
+ *   With K-Means model    → kmeans(0.45) + statistical(0.25) + ballistic(0.15) + rules(0.15)
  *
  * @param {Object|null} kmeansResult - K-Means detection result (null if no model)
  * @param {Object} statisticalResult - Statistical detection result
@@ -105,7 +105,7 @@ const calculateEnsembleScore = (
 
         // ── Adaptive weighting based on model availability ──
         const weights = hasModel
-            ? { kmeans: 0.40, rules: 0.25, statistical: 0.20, ballisticTiming: 0.15 }
+            ? { kmeans: 0.45, rules: 0.15, statistical: 0.25, ballisticTiming: 0.15 }
             : { kmeans: 0.00, rules: 0.45, statistical: 0.30, ballisticTiming: 0.25 };
 
         // Use rules engine result when available, fall back to legacy flag-based scoring

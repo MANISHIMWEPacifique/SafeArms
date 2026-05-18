@@ -4,6 +4,17 @@ const { query } = require('../config/database');
 const { authenticate } = require('../middleware/authentication');
 const { ROLES } = require('../middleware/authorization');
 const { asyncHandler } = require('../middleware/errorHandler');
+const NodeCache = require('node-cache');
+
+const dbCache = new NodeCache({ stdTTL: 60 }); // Cache for 60 seconds
+
+const cachedQuery = async (cacheKey, queryStr, params = []) => {
+    const cached = dbCache.get(cacheKey);
+    if (cached) return { rows: cached };
+    const result = await query(queryStr, params);
+    dbCache.set(cacheKey, result.rows);
+    return result;
+};
 
 const parsedDashboardBatchSize = parseInt(process.env.DASHBOARD_QUERY_BATCH_SIZE || '10', 10);
 const DASHBOARD_QUERY_BATCH_SIZE = Number.isFinite(parsedDashboardBatchSize) && parsedDashboardBatchSize > 0
@@ -35,33 +46,39 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     const queries = {};
 
     // Common stats (all roles)
-    queries.firearmsStats = () => query(`
-        SELECT 
+    queries.firearmsStats = () => cachedQuery(
+        `firearmsStats_${isStationCmd ? unit_id : 'all'}`,
+        `SELECT 
           COUNT(*) as total,
           COUNT(*) FILTER (WHERE current_status = 'available') as available,
           COUNT(*) FILTER (WHERE current_status = 'in_custody') as in_custody,
           COUNT(*) FILTER (WHERE current_status = 'maintenance') as maintenance
         FROM firearms
-        ${isStationCmd ? 'WHERE assigned_unit_id = $1' : ''}
-    `, unitParams);
+        ${isStationCmd ? 'WHERE assigned_unit_id = $1' : ''}`,
+        unitParams
+    );
 
-    queries.custodyStats = () => query(`
-        SELECT COUNT(*) as active_custody
+    queries.custodyStats = () => cachedQuery(
+        `custodyStats_${isStationCmd ? unit_id : 'all'}`,
+        `SELECT COUNT(*) as active_custody
         FROM custody_records
         WHERE returned_at IS NULL
-        ${isStationCmd ? 'AND unit_id = $1' : ''}
-    `, unitParams);
+        ${isStationCmd ? 'AND unit_id = $1' : ''}`,
+        unitParams
+    );
 
     if (role === ROLES.ADMIN) {
         queries.anomaliesStats = async () => ({ rows: [] });
     } else {
-        queries.anomaliesStats = () => query(`
-        SELECT severity, COUNT(*) as count
-        FROM anomalies
-        WHERE detected_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
-        ${isStationCmd ? 'AND unit_id = $1' : ''}
-        GROUP BY severity
-    `, unitParams);
+        queries.anomaliesStats = () => cachedQuery(
+            `anomaliesStats_${isStationCmd ? unit_id : 'all'}`,
+            `SELECT severity, COUNT(*) as count
+            FROM anomalies
+            WHERE detected_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
+            ${isStationCmd ? 'AND unit_id = $1' : ''}
+            GROUP BY severity`,
+            unitParams
+        );
     }
 
     queries.recentCustody = () => query(`
@@ -131,45 +148,60 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
 
     // Role-specific queries
     if (role === ROLES.HQ_COMMANDER || role === ROLES.ADMIN) {
-        queries.pendingApprovals = () => query(`
-            SELECT 
-                (SELECT COUNT(*) FROM loss_reports WHERE status = 'pending') as loss_reports,
-                (SELECT COUNT(*) FROM destruction_requests WHERE status = 'pending') as destruction_requests,
-                (SELECT COUNT(*) FROM procurement_requests WHERE status = 'pending') as procurement_requests
-        `);
-        queries.roleActivity = () => query(`
-            SELECT 
-                DATE(created_at) as activity_date,
-                new_values->>'actor_role' as actor_role,
-                COUNT(*) as actions_count
-            FROM audit_logs
-            WHERE created_at >= CURRENT_DATE - INTERVAL '90 days'
-            AND new_values->>'actor_role' IS NOT NULL
-            GROUP BY DATE(created_at), new_values->>'actor_role'
-            ORDER BY activity_date ASC
-        `);
+        queries.pendingApprovals = async () => {
+            const cacheKey = "admin_pending_approvals";
+            const cached = dbCache.get(cacheKey);
+            if (cached) return { rows: cached };
+            const result = await query(`
+                SELECT 
+                    (SELECT COUNT(*) FROM loss_reports WHERE status = 'pending') as loss_reports,
+                    (SELECT COUNT(*) FROM destruction_requests WHERE status = 'pending') as destruction_requests,
+                    (SELECT COUNT(*) FROM procurement_requests WHERE status = 'pending') as procurement_requests
+            `);
+            dbCache.set(cacheKey, result.rows);
+            return result;
+        };
+        queries.roleActivity = async () => {
+            const cacheKey = "admin_role_activity_90days";
+            const cached = dbCache.get(cacheKey);
+            if (cached) return { rows: cached };
+            const result = await query(`
+                SELECT 
+                    DATE(created_at) as activity_date,
+                    new_values->>'actor_role' as actor_role,
+                    COUNT(*) as actions_count
+                FROM audit_logs
+                WHERE created_at >= CURRENT_DATE - INTERVAL '90 days'
+                AND new_values->>'actor_role' IS NOT NULL
+                GROUP BY DATE(created_at), new_values->>'actor_role'
+                ORDER BY activity_date ASC
+            `);
+            dbCache.set(cacheKey, result.rows);
+            return result;
+        };
     }
 
     if (role === ROLES.ADMIN) {
-        queries.usersCount = () => query(`SELECT COUNT(*) as total FROM users WHERE is_active = true`);
-        queries.activeUnits = () => query(`SELECT COUNT(*) as total FROM units WHERE is_active = true`);
+        queries.usersCount = () => cachedQuery('usersCount', `SELECT COUNT(*) as total FROM users WHERE is_active = true`);
+        queries.activeUnits = () => cachedQuery('activeUnits', `SELECT COUNT(*) as total FROM units WHERE is_active = true`);
     }
 
     if (role === ROLES.HQ_COMMANDER) {
-        queries.activeUnits = () => query(`SELECT COUNT(*) as total FROM units WHERE is_active = true`);
+        queries.activeUnits = () => cachedQuery('activeUnits', `SELECT COUNT(*) as total FROM units WHERE is_active = true`);
     }
 
     if (isStationCmd) {
-        queries.officersCount = () => query(
+        queries.officersCount = () => cachedQuery(
+            `officersCount_${unit_id}`, 
             `SELECT COUNT(*) as total FROM officers WHERE unit_id = $1 AND is_active = true`,
             [unit_id]
         );
     }
 
     if (role === ROLES.INVESTIGATOR) {
-        queries.ballisticCount = () => query(`SELECT COUNT(*) as total FROM ballistic_profiles`);
-        queries.totalCustody = () => query(`SELECT COUNT(*) as total FROM custody_records`);
-        queries.lossReportStats = () => query(`
+        queries.ballisticCount = () => cachedQuery('ballisticCount', `SELECT COUNT(*) as total FROM ballistic_profiles`);
+        queries.totalCustody = () => cachedQuery('totalCustody', `SELECT COUNT(*) as total FROM custody_records`);
+        queries.lossReportStats = () => cachedQuery('lossReportStats', `
             SELECT 
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE status = 'pending') as pending,
@@ -177,7 +209,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
                 COUNT(*) FILTER (WHERE status = 'rejected') as rejected
             FROM loss_reports
         `);
-        queries.pendingAnomalies = () => query(`
+        queries.pendingAnomalies = () => cachedQuery('pendingAnomalies', `
             SELECT 
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE severity = 'critical') as critical,

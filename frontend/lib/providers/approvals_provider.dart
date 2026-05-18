@@ -301,40 +301,41 @@ class ApprovalsProvider with ChangeNotifier {
 
   // Generic update requests status
   Future<bool> updateRequestStatus(
-      dynamic requestIdDynamic, String type, String status) async {
+      dynamic requestIdDynamic, String type, String status,
+      {String? remarks}) async {
     final requestId = requestIdDynamic.toString();
     if (status == 'approved') {
       if (type == 'loss') {
         return await approveLossReport(
             reportId: requestId,
-            approvalNotes: 'Approved directly from list view');
+            approvalNotes: remarks ?? 'Approved directly from list view');
       } else if (type == 'destruction') {
         return await approveDestruction(
             requestId: requestId,
-            approvalNotes: 'Approved directly from list view');
+            approvalNotes: remarks ?? 'Approved directly from list view');
       } else if (type == 'procurement') {
         return await approveProcurement(
             requestId: requestId,
-            approvalNotes: 'Approved directly from list view');
+            approvalNotes: remarks ?? 'Approved directly from list view');
       }
     } else if (status == 'rejected') {
       if (type == 'loss') {
         return await rejectLossReport(
           reportId: requestId,
-          rejectionReason: 'Rejected from list view',
-          feedback: 'No detailed feedback provided.',
+          rejectionReason: remarks != null && remarks.isNotEmpty ? remarks : 'Rejected from list view',
+          feedback: remarks != null && remarks.isNotEmpty ? remarks : 'No detailed feedback provided.',
         );
       } else if (type == 'destruction') {
         return await rejectDestruction(
           requestId: requestId,
-          rejectionReason: 'Rejected from list view',
-          feedback: 'No detailed feedback provided.',
+          rejectionReason: remarks != null && remarks.isNotEmpty ? remarks : 'Rejected from list view',
+          feedback: remarks != null && remarks.isNotEmpty ? remarks : 'No detailed feedback provided.',
         );
       } else if (type == 'procurement') {
         return await rejectProcurement(
           requestId: requestId,
-          rejectionReason: 'Rejected from list view',
-          feedback: 'No detailed feedback provided.',
+          rejectionReason: remarks != null && remarks.isNotEmpty ? remarks : 'Rejected from list view',
+          feedback: remarks != null && remarks.isNotEmpty ? remarks : 'No detailed feedback provided.',
         );
       }
     }

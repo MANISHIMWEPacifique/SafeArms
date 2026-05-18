@@ -176,55 +176,61 @@ INSERT INTO officers (officer_id, officer_number, full_name, rank, unit_id, phon
   ('OFF-022', 'RNP-2019-022', 'Sgt. Mukiza Claudette',      'Sergeant',             'UNIT-PTS', '+250788100022', 'mukiza.c@rnp.gov.rw',          '1992-10-30', '2019-02-15', true,  '2023-11-01', '2026-11-01', true);
 
 -- ============================================
--- 4. FIREARMS (20 firearms across all units)
+-- 4. FIREARMS (26 firearms across all units)
 -- ============================================
 INSERT INTO firearms (firearm_id, serial_number, manufacturer, model, firearm_type, caliber, manufacture_year, acquisition_date, acquisition_source, registration_level, registered_by, assigned_unit_id, current_status, notes, is_active) VALUES
-  -- Nyamirambo (UNIT-NYA) — 5 firearms
-  ('FA-001', 'GLK-NYA-0001', 'Glock',      'Glock 17 Gen5',  'pistol',  '9x19mm Parabellum',  2023, '2023-06-15', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-NYA', 'available', 'Standard issue sidearm',   true),
-  ('FA-002', 'GLK-NYA-0002', 'Glock',      'Glock 17 Gen5',  'pistol',  '9x19mm Parabellum',  2023, '2023-06-15', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-NYA', 'available', 'Standard issue sidearm',   true),
-  ('FA-003', 'FNH-NYA-0001', 'FN Herstal', 'FN SCAR-L',      'rifle',   '5.56x45mm NATO',     2022, '2022-03-20', 'Government Procurement 2022', 'hq', 'USR-002', 'UNIT-NYA', 'available', 'Patrol rifle',            true),
-  ('FA-004', 'BRT-NYA-0001', 'Beretta',    '92FS',            'pistol',  '9x19mm Parabellum',  2021, '2021-09-10', 'Government Procurement 2021', 'hq', 'USR-002', 'UNIT-NYA', 'available', 'Backup sidearm',          true),
-  ('FA-005', 'REM-NYA-0001', 'Remington',  'Model 870',       'shotgun', '12 gauge',           2020, '2020-11-05', 'Government Procurement 2020', 'hq', 'USR-002', 'UNIT-NYA', 'available', 'Breaching / crowd control',true),
-  -- Kimironko (UNIT-KIM) — 5 firearms
-  ('FA-006', 'GLK-KIM-0001', 'Glock',      'Glock 19 Gen5',  'pistol',  '9x19mm Parabellum',  2023, '2023-07-10', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-KIM', 'available', 'Compact sidearm',         true),
-  ('FA-007', 'GLK-KIM-0002', 'Glock',      'Glock 19 Gen5',  'pistol',  '9x19mm Parabellum',  2023, '2023-07-10', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-KIM', 'available', 'Compact sidearm',         true),
-  ('FA-008', 'SIG-KIM-0001', 'SIG Sauer',  'P320',            'pistol',  '9x19mm Parabellum',  2024, '2024-01-15', 'Government Procurement 2024', 'hq', 'USR-002', 'UNIT-KIM', 'available', 'Modular duty pistol',     true),
-  ('FA-009', 'FNH-KIM-0001', 'FN Herstal', 'FN SCAR-H',      'rifle',   '7.62x51mm NATO',     2022, '2022-05-20', 'Government Procurement 2022', 'hq', 'USR-002', 'UNIT-KIM', 'available', 'Designated marksman rifle',true),
-  ('FA-010', 'HNK-KIM-0001', 'Heckler & Koch', 'MP5',        'submachine_gun', '9x19mm Parabellum', 2021, '2021-08-12', 'Government Procurement 2021', 'hq', 'USR-002', 'UNIT-KIM', 'available', 'Close protection detail', true),
-  -- Remera (UNIT-REM) — 4 firearms
-  ('FA-011', 'GLK-REM-0001', 'Glock',      'Glock 17',        'pistol',  '9x19mm Parabellum',  2022, '2022-05-20', 'Government Procurement 2022', 'hq', 'USR-002', 'UNIT-REM', 'available', 'Standard sidearm',        true),
-  ('FA-012', 'BRT-REM-0001', 'Beretta',    '92FS',            'pistol',  '9x19mm Parabellum',  2021, '2021-11-10', 'Government Procurement 2021', 'hq', 'USR-002', 'UNIT-REM', 'available', 'Backup sidearm',          true),
-  ('FA-013', 'SIG-REM-0001', 'SIG Sauer',  'P226',            'pistol',  '9x19mm Parabellum',  2023, '2023-04-05', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-REM', 'available', 'Officer sidearm',         true),
-  ('FA-014', 'REM-REM-0001', 'Remington',  'Model 870',       'shotgun', '12 gauge',           2019, '2019-06-20', 'Government Procurement 2019', 'hq', 'USR-002', 'UNIT-REM', 'maintenance', 'Needs barrel inspection',true),
-  -- Kicukiro (UNIT-KIC) — 4 firearms
-  ('FA-015', 'GLK-KIC-0001', 'Glock',      'Glock 17 Gen4',  'pistol',  '9x19mm Parabellum',  2022, '2022-08-15', 'Government Procurement 2022', 'hq', 'USR-002', 'UNIT-KIC', 'available', 'Standard sidearm',        true),
-  ('FA-016', 'SIG-KIC-0001', 'SIG Sauer',  'P320',            'pistol',  '9x19mm Parabellum',  2024, '2024-02-20', 'Government Procurement 2024', 'hq', 'USR-002', 'UNIT-KIC', 'available', 'Modular duty pistol',     true),
-  ('FA-017', 'BRT-KIC-0001', 'Beretta',    'ARX 160',         'rifle',   '5.56x45mm NATO',     2023, '2023-09-01', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-KIC', 'available', 'Patrol rifle',            true),
-  ('FA-018', 'REM-KIC-0001', 'Remington',  'Model 870',       'shotgun', '12 gauge',           2020, '2020-04-10', 'Government Procurement 2020', 'hq', 'USR-002', 'UNIT-KIC', 'available', 'Crowd control',           true),
-  -- HQ Reserve (UNIT-HQ) — 2 firearms
-  ('FA-019', 'GLK-HQ-0001',  'Glock',      'Glock 17 Gen5',  'pistol',  '9x19mm Parabellum',  2024, '2024-01-20', 'Government Procurement 2024', 'hq', 'USR-002', 'UNIT-HQ',  'available', 'HQ reserve',              true),
-  ('FA-020', 'SIG-HQ-0001',  'SIG Sauer',  'P226',            'pistol',  '9x19mm Parabellum',  2024, '2024-01-20', 'Government Procurement 2024', 'hq', 'USR-002', 'UNIT-HQ',  'available', 'HQ reserve',              true);
+  -- Nyamirambo (UNIT-NYA) - 5 firearms
+  ('FA-001', 'AK47-NYA-0001', 'Kalashnikov Concern', 'AK-47',      'rifle',          '7.62x39mm',         2022, '2022-03-20', 'Government Procurement 2022', 'hq', 'USR-002', 'UNIT-NYA', 'available', 'Standard patrol rifle',         true),
+  ('FA-002', 'AKM-NYA-0002',  'Kalashnikov Concern', 'AKM',        'rifle',          '7.62x39mm',         2021, '2021-10-05', 'Government Procurement 2021', 'hq', 'USR-002', 'UNIT-NYA', 'available', 'RNP patrol rifle',              true),
+  ('FA-003', 'M4-NYA-0003',   'Colt',                'M4 Carbine', 'rifle',          '5.56x45mm NATO',    2023, '2023-05-12', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-NYA', 'available', 'Rapid response rifle',          true),
+  ('FA-004', 'GLK-NYA-0004',  'Glock',               'Glock 17 Gen5', 'pistol',        '9x19mm Parabellum', 2023, '2023-06-15', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-NYA', 'available', 'Standard duty pistol',          true),
+  ('FA-005', 'REM-NYA-0005',  'Remington',           'Model 870',  'shotgun',        '12 gauge',          2019, '2019-06-20', 'Government Procurement 2019', 'hq', 'USR-002', 'UNIT-NYA', 'available', 'Crowd control shotgun',         true),
+  -- Kimironko (UNIT-KIM) - 5 firearms
+  ('FA-006', 'AK103-KIM-0001','Kalashnikov Concern', 'AK-103',     'rifle',          '7.62x39mm',         2023, '2023-07-10', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-KIM', 'available', 'Border checkpoint rifle',       true),
+  ('FA-007', 'AKM-KIM-0002',  'Kalashnikov Concern', 'AKM',        'rifle',          '7.62x39mm',         2022, '2022-05-20', 'Government Procurement 2022', 'hq', 'USR-002', 'UNIT-KIM', 'available', 'Patrol rifle',                  true),
+  ('FA-008', 'AR15-KIM-0003', 'Colt',                'AR-15',      'rifle',          '5.56x45mm NATO',    2024, '2024-01-15', 'Government Procurement 2024', 'hq', 'USR-002', 'UNIT-KIM', 'available', 'Perimeter rifle',               true),
+  ('FA-009', 'GLK-KIM-0004',  'Glock',               'Glock 19 Gen5','pistol',        '9x19mm Parabellum', 2023, '2023-07-10', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-KIM', 'available', 'Compact duty pistol',           true),
+  ('FA-010', 'SIG-KIM-0005',  'SIG Sauer',           'P320',       'pistol',         '9x19mm Parabellum', 2024, '2024-02-05', 'Government Procurement 2024', 'hq', 'USR-002', 'UNIT-KIM', 'available', 'Modular duty pistol',           true),
+  -- Remera (UNIT-REM) - 5 firearms
+  ('FA-011', 'AK47-REM-0001', 'Kalashnikov Concern', 'AK-47',      'rifle',          '7.62x39mm',         2021, '2021-06-10', 'Government Procurement 2021', 'hq', 'USR-002', 'UNIT-REM', 'available', 'Station patrol rifle',          true),
+  ('FA-012', 'AK103-REM-0002','Kalashnikov Concern', 'AK-103',     'rifle',          '7.62x39mm',         2023, '2023-04-05', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-REM', 'available', 'Rapid response rifle',          true),
+  ('FA-013', 'FNFAL-REM-0003','FN Herstal',          'FN FAL',     'rifle',          '7.62x51mm NATO',    2020, '2020-09-18', 'Government Procurement 2020', 'hq', 'USR-002', 'UNIT-REM', 'available', 'Designated marksman rifle',     true),
+  ('FA-014', 'GLK-REM-0004',  'Glock',               'Glock 17',   'pistol',         '9x19mm Parabellum', 2022, '2022-05-20', 'Government Procurement 2022', 'hq', 'USR-002', 'UNIT-REM', 'available', 'Standard sidearm',              true),
+  ('FA-021', 'SIG-REM-0005',  'SIG Sauer',           'P226',       'pistol',         '9x19mm Parabellum', 2023, '2023-11-12', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-REM', 'available', 'Duty pistol reserve',           true),
+  -- Kicukiro (UNIT-KIC) - 5 firearms
+  ('FA-015', 'AKM-KIC-0001',  'Kalashnikov Concern', 'AKM',        'rifle',          '7.62x39mm',         2022, '2022-08-15', 'Government Procurement 2022', 'hq', 'USR-002', 'UNIT-KIC', 'available', 'Station patrol rifle',          true),
+  ('FA-016', 'AK103-KIC-0002','Kalashnikov Concern', 'AK-103',     'rifle',          '7.62x39mm',         2024, '2024-02-20', 'Government Procurement 2024', 'hq', 'USR-002', 'UNIT-KIC', 'available', 'Rapid response rifle',          true),
+  ('FA-017', 'AR15-KIC-0003', 'Colt',                'AR-15',      'rifle',          '5.56x45mm NATO',    2023, '2023-09-01', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-KIC', 'available', 'Patrol rifle',                  true),
+  ('FA-018', 'GLK-KIC-0004',  'Glock',               'Glock 17 Gen4', 'pistol',        '9x19mm Parabellum', 2022, '2022-10-10', 'Government Procurement 2022', 'hq', 'USR-002', 'UNIT-KIC', 'available', 'Standard sidearm',              true),
+  ('FA-022', 'BRT-KIC-0005',  'Beretta',             '92FS',       'pistol',         '9x19mm Parabellum', 2021, '2021-11-10', 'Government Procurement 2021', 'hq', 'USR-002', 'UNIT-KIC', 'available', 'Duty pistol reserve',           true),
+  -- HQ Reserve (UNIT-HQ) - 6 firearms
+  ('FA-019', 'GLK-HQ-0001',   'Glock',               'Glock 17 Gen5','pistol',        '9x19mm Parabellum', 2024, '2024-01-20', 'Government Procurement 2024', 'hq', 'USR-002', 'UNIT-HQ',  'available', 'HQ reserve sidearm',            true),
+  ('FA-020', 'M4-HQ-0002',    'Colt',                'M4 Carbine', 'rifle',          '5.56x45mm NATO',    2023, '2023-10-12', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-HQ',  'available', 'HQ rapid response rifle',       true),
+  ('FA-023', 'AK47-HQ-0003',  'Kalashnikov Concern', 'AK-47',      'rifle',          '7.62x39mm',         2022, '2022-12-02', 'Government Procurement 2022', 'hq', 'USR-002', 'UNIT-HQ',  'available', 'HQ reserve rifle',              true),
+  ('FA-024', 'AKM-HQ-0004',   'Kalashnikov Concern', 'AKM',        'rifle',          '7.62x39mm',         2021, '2021-11-05', 'Government Procurement 2021', 'hq', 'USR-002', 'UNIT-HQ',  'available', 'HQ reserve rifle',              true),
+  ('FA-025', 'HNK-HQ-0005',   'Heckler & Koch',      'MP5',        'submachine_gun', '9x19mm Parabellum', 2020, '2020-08-12', 'Government Procurement 2020', 'hq', 'USR-002', 'UNIT-HQ',  'available', 'Close protection detail',       true),
+  ('FA-026', 'AR15-HQ-0006',  'Colt',                'AR-15',      'rifle',          '5.56x45mm NATO',    2023, '2023-03-18', 'Government Procurement 2023', 'hq', 'USR-002', 'UNIT-HQ',  'available', 'HQ reserve rifle',              true);
 
 -- ============================================
 -- 5. BALLISTIC PROFILES (12 firearms with profiles)
 -- Each profile has distinct characteristics for forensic search
 -- ============================================
 INSERT INTO ballistic_profiles (ballistic_id, firearm_id, test_date, test_location, rifling_characteristics, firing_pin_impression, ejector_marks, extractor_marks, chamber_marks, test_conducted_by, forensic_lab, test_ammunition, notes, created_by, is_locked, registration_hash) VALUES
-  ('BP-001', 'FA-001', '2023-06-20', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Circular, centered, 0.8mm diameter',            'Rectangular at 3 o''clock',        'Linear scratch at 9 o''clock',         'Smooth feed ramp, standard marks',          'Dr. Kamanzi Eric',       'RNP Central Forensic Lab',  '9mm FMJ 124gr',     'Clean test, excellent sample quality',  'USR-008', true, 'a1b2c3d4e5f6'),
-  ('BP-002', 'FA-002', '2023-06-20', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Circular, centered, 0.82mm diameter',           'Rectangular at 3 o''clock',        'Linear scratch at 9 o''clock',         'Smooth feed ramp, minor tooling marks',     'Dr. Kamanzi Eric',       'RNP Central Forensic Lab',  '9mm FMJ 124gr',     'Slight variation from FA-001',          'USR-008', true, 'b2c3d4e5f6a1'),
-  ('BP-003', 'FA-003', '2022-04-01', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:7 pitch',                 'Hemispherical, off-center 0.1mm left',          'Triangular at 2 o''clock',         'Deep gouge at 8 o''clock',             'Detachable magazine, slight burr on lip',   'Dr. Ingabire Alice',     'RNP Central Forensic Lab',  '5.56mm M855 62gr',  'Rifle pattern distinct from pistols',   'USR-009', true, 'c3d4e5f6a1b2'),
-  ('BP-004', 'FA-004', '2021-10-05', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Oval, centered, 0.9mm × 0.7mm',                 'Semi-circular at 4 o''clock',      'Faint linear mark at 10 o''clock',     'Open-slide feed, moderate wear marks',      'Dr. Kamanzi Eric',       'RNP Central Forensic Lab',  '9mm FMJ 115gr',     'Older model, moderate barrel wear',     'USR-008', true, 'd4e5f6a1b2c3'),
-  ('BP-005', 'FA-006', '2023-07-15', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Circular, slightly off-center right, 0.75mm',   'Semi-circular at 4 o''clock',      'Angular mark at 8 o''clock',           'Compact slide, clean chamber walls',        'Dr. Ingabire Alice',     'RNP Central Forensic Lab',  '9mm FMJ 124gr',     'Compact model profile',                 'USR-009', true, 'e5f6a1b2c3d4'),
-  ('BP-006', 'FA-007', '2023-07-15', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Circular, centered, 0.76mm diameter',           'Semi-circular at 3 o''clock',      'Angular mark at 9 o''clock',           'Compact slide, clean',                      'Dr. Ingabire Alice',     'RNP Central Forensic Lab',  '9mm FMJ 124gr',     'Sister pistol to FA-006',               'USR-009', true, 'f6a1b2c3d4e5'),
-  ('BP-007', 'FA-008', '2024-01-20', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Rectangular, centered, 1.0mm × 0.6mm',          'Crescent at 5 o''clock',           'Double scratch marks at 11 o''clock',  'Modular chassis, crisp chamber marks',      'Dr. Kamanzi Eric',       'RNP Central Forensic Lab',  '9mm FMJ 124gr',     'New P320 modular system',               'USR-008', true, 'a2b3c4d5e6f7'),
-  ('BP-008', 'FA-011', '2022-06-01', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Circular, centered, 0.8mm diameter',            'Rectangular at 2 o''clock',        'Faint linear mark at 8 o''clock',      'Standard feed ramp',                        'Dr. Kamanzi Eric',       'RNP Central Forensic Lab',  '9mm FMJ 124gr',     'Standard Glock 17 pattern',             'USR-008', true, 'b3c4d5e6f7a2'),
-  ('BP-009', 'FA-012', '2021-12-01', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Oval, centered, 0.85mm × 0.65mm',               'Deep semi-circular at 3 o''clock', 'Pronounced gouge at 9 o''clock',       'Open-slide feed, heavy wear on throat',     'Dr. Ingabire Alice',     'RNP Central Forensic Lab',  '9mm FMJ 115gr',     'Showing barrel wear consistent with age','USR-009', true, 'c4d5e6f7a2b3'),
-  ('BP-010', 'FA-015', '2022-09-01', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Circular, centered, 0.78mm diameter',           'Rectangular at 3 o''clock',        'Faint mark at 9 o''clock',             'Standard ramp, clean',                      'Dr. Kamanzi Eric',       'RNP Central Forensic Lab',  '9mm FMJ 124gr',     'Gen4 profile',                          'USR-008', true, 'd5e6f7a2b3c4'),
-  ('BP-011', 'FA-019', '2024-02-01', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Circular, perfectly centered, 0.81mm',          'Clean rectangular at 3 o''clock',  'Light linear at 9 o''clock',           'Factory-new feed ramp',                     'Dr. Kamanzi Eric',       'RNP Central Forensic Lab',  '9mm FMJ 124gr',     'Brand new, reference-quality profile',  'USR-008', true, 'e6f7a2b3c4d5'),
-  ('BP-012', 'FA-020', '2024-02-01', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Rectangular, centered, 0.95mm × 0.55mm',        'Triangular at 4 o''clock',         'Double linear at 10 o''clock',         'DA/SA slide, crisp chamber impression',     'Dr. Ingabire Alice',     'RNP Central Forensic Lab',  '9mm FMJ 124gr',     'P226 double-action reference profile',  'USR-009', true, 'f7a2b3c4d5e6');
+  ('BP-001', 'FA-001', '2022-04-01', 'RNP Central Forensic Lab, Kigali',  '4 grooves, right-hand twist, 1:9.5 pitch',               'Rectangular, centered, 1.2mm x 0.8mm',         'Rectangular at 3 o''clock',        'Linear mark at 9 o''clock',         'Stamped receiver marks, consistent',         'Dr. Kamanzi Eric',   'RNP Central Forensic Lab',  '7.62x39mm FMJ 123gr', 'AK-47 profile, baseline sample',        'USR-008', true, 'a1b2c3d4e5f6'),
+  ('BP-002', 'FA-002', '2022-06-20', 'RNP Central Forensic Lab, Kigali',  '4 grooves, right-hand twist, 1:9.5 pitch',               'Rectangular, slight offset, 1.1mm x 0.8mm',    'Rectangular at 4 o''clock',        'Linear mark at 8 o''clock',         'Receiver marks with light wear',             'Dr. Kamanzi Eric',   'RNP Central Forensic Lab',  '7.62x39mm FMJ 123gr', 'AKM profile, slight variation',        'USR-008', true, 'b2c3d4e5f6a1'),
+  ('BP-003', 'FA-003', '2023-04-01', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:7 pitch',                 'Circular, centered, 1.0mm diameter',          'Rectangular at 2 o''clock',        'Linear mark at 8 o''clock',         'Clean chamber, moderate tool marks',         'Dr. Ingabire Alice','RNP Central Forensic Lab',  '5.56mm M855 62gr',   'M4 carbine profile',                  'USR-009', true, 'c3d4e5f6a1b2'),
+  ('BP-004', 'FA-004', '2021-10-05', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Oval, centered, 0.9mm x 0.7mm',                'Semi-circular at 4 o''clock',      'Faint linear mark at 10 o''clock', 'Open-slide feed, moderate wear marks',       'Dr. Kamanzi Eric',   'RNP Central Forensic Lab',  '9mm FMJ 115gr',      'Service pistol profile',             'USR-008', true, 'd4e5f6a1b2c3'),
+  ('BP-005', 'FA-006', '2023-07-15', 'RNP Central Forensic Lab, Kigali',  '4 grooves, right-hand twist, 1:9.5 pitch',               'Rectangular, centered, 1.15mm x 0.8mm',        'Rectangular at 3 o''clock',        'Angular mark at 9 o''clock',        'Receiver marks, tight headspace',           'Dr. Ingabire Alice','RNP Central Forensic Lab',  '7.62x39mm FMJ 123gr', 'AK-103 profile',                     'USR-009', true, 'e5f6a1b2c3d4'),
+  ('BP-006', 'FA-007', '2023-07-15', 'RNP Central Forensic Lab, Kigali',  '4 grooves, right-hand twist, 1:9.5 pitch',               'Rectangular, centered, 1.1mm x 0.8mm',         'Rectangular at 4 o''clock',        'Angular mark at 9 o''clock',        'Receiver marks, clean chamber',             'Dr. Ingabire Alice','RNP Central Forensic Lab',  '7.62x39mm FMJ 123gr', 'AKM profile',                        'USR-009', true, 'f6a1b2c3d4e5'),
+  ('BP-007', 'FA-008', '2024-01-20', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:7 pitch',                 'Circular, centered, 0.95mm diameter',         'Rectangular at 2 o''clock',        'Double scratch marks at 11 o''clock', 'Clean chamber, crisp rifling',             'Dr. Kamanzi Eric',   'RNP Central Forensic Lab',  '5.56mm M855 62gr',   'AR-15 profile, new barrel',          'USR-008', true, 'a2b3c4d5e6f7'),
+  ('BP-008', 'FA-011', '2022-06-01', 'RNP Central Forensic Lab, Kigali',  '4 grooves, right-hand twist, 1:9.5 pitch',               'Rectangular, centered, 1.2mm x 0.8mm',         'Rectangular at 3 o''clock',        'Faint linear mark at 8 o''clock',    'Receiver marks consistent',                'Dr. Kamanzi Eric',   'RNP Central Forensic Lab',  '7.62x39mm FMJ 123gr', 'AK-47 profile, station issue',       'USR-008', true, 'b3c4d5e6f7a2'),
+  ('BP-009', 'FA-012', '2023-12-01', 'RNP Central Forensic Lab, Kigali',  '4 grooves, right-hand twist, 1:9.5 pitch',               'Rectangular, centered, 1.15mm x 0.8mm',        'Rectangular at 3 o''clock',        'Pronounced mark at 9 o''clock',     'Receiver marks, light wear',               'Dr. Ingabire Alice','RNP Central Forensic Lab',  '7.62x39mm FMJ 123gr', 'AK-103 profile, rapid response',     'USR-009', true, 'c4d5e6f7a2b3'),
+  ('BP-010', 'FA-015', '2022-09-01', 'RNP Central Forensic Lab, Kigali',  '4 grooves, right-hand twist, 1:9.5 pitch',               'Rectangular, centered, 1.1mm x 0.8mm',         'Rectangular at 3 o''clock',        'Faint mark at 9 o''clock',          'Receiver marks, clean chamber',            'Dr. Kamanzi Eric',   'RNP Central Forensic Lab',  '7.62x39mm FMJ 123gr', 'AKM profile, station issue',         'USR-008', true, 'd5e6f7a2b3c4'),
+  ('BP-011', 'FA-019', '2024-02-01', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:10 pitch',                'Circular, perfectly centered, 0.81mm',         'Clean rectangular at 3 o''clock',  'Light linear at 9 o''clock',         'Factory-new feed ramp',                   'Dr. Kamanzi Eric',   'RNP Central Forensic Lab',  '9mm FMJ 124gr',      'HQ reference pistol profile',        'USR-008', true, 'e6f7a2b3c4d5'),
+  ('BP-012', 'FA-020', '2024-02-01', 'RNP Central Forensic Lab, Kigali',  '6 grooves, right-hand twist, 1:7 pitch',                 'Circular, centered, 1.0mm diameter',           'Rectangular at 2 o''clock',        'Double linear at 10 o''clock',       'Clean chamber, sharp lands',              'Dr. Ingabire Alice','RNP Central Forensic Lab',  '5.56mm M855 62gr',   'M4 carbine reference profile',        'USR-009', true, 'f7a2b3c4d5e6');
 
 -- ============================================
--- 6. UNIT MOVEMENTS (initial assignments for all 20 firearms)
+-- 6. UNIT MOVEMENTS (initial assignments for all 26 firearms)
 -- ============================================
 INSERT INTO firearm_unit_movements (movement_id, firearm_id, from_unit_id, to_unit_id, movement_type, authorized_by, reason) VALUES
   ('MOV-001', 'FA-001', NULL, 'UNIT-NYA', 'initial_assignment', 'USR-002', 'HQ registration and station assignment'),
@@ -246,7 +252,13 @@ INSERT INTO firearm_unit_movements (movement_id, firearm_id, from_unit_id, to_un
   ('MOV-017', 'FA-017', NULL, 'UNIT-KIC', 'initial_assignment', 'USR-002', 'HQ registration and station assignment'),
   ('MOV-018', 'FA-018', NULL, 'UNIT-KIC', 'initial_assignment', 'USR-002', 'HQ registration and station assignment'),
   ('MOV-019', 'FA-019', NULL, 'UNIT-HQ',  'initial_assignment', 'USR-002', 'HQ reserve stock'),
-  ('MOV-020', 'FA-020', NULL, 'UNIT-HQ',  'initial_assignment', 'USR-002', 'HQ reserve stock');
+  ('MOV-020', 'FA-020', NULL, 'UNIT-HQ',  'initial_assignment', 'USR-002', 'HQ reserve stock'),
+  ('MOV-021', 'FA-021', NULL, 'UNIT-REM', 'initial_assignment', 'USR-002', 'HQ registration and station assignment'),
+  ('MOV-022', 'FA-022', NULL, 'UNIT-KIC', 'initial_assignment', 'USR-002', 'HQ registration and station assignment'),
+  ('MOV-023', 'FA-023', NULL, 'UNIT-HQ',  'initial_assignment', 'USR-002', 'HQ reserve stock'),
+  ('MOV-024', 'FA-024', NULL, 'UNIT-HQ',  'initial_assignment', 'USR-002', 'HQ reserve stock'),
+  ('MOV-025', 'FA-025', NULL, 'UNIT-HQ',  'initial_assignment', 'USR-002', 'HQ reserve stock'),
+  ('MOV-026', 'FA-026', NULL, 'UNIT-HQ',  'initial_assignment', 'USR-002', 'HQ reserve stock');
 
 -- ============================================
 -- 7. CUSTODY RECORDS — COMPREHENSIVE (160+ records)
@@ -322,9 +334,9 @@ INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custod
   ('CUS-040', 'FA-007', 'OFF-007', 'UNIT-KIM', 'temporary', '2025-07-14 07:00:00', 'USR-005', '2025-07-14 17:00:00', 'USR-005', 36000, 'Community patrol',              NULL, 7, 1, false, false),
   ('CUS-041', 'FA-007', 'OFF-007', 'UNIT-KIM', 'temporary', '2025-07-17 07:00:00', 'USR-005', '2025-07-17 18:00:00', 'USR-005', 39600, 'Day patrol',                    NULL, 7, 4, false, false),
   ('CUS-042', 'FA-007', 'OFF-007', 'UNIT-KIM', 'temporary', '2025-07-21 07:00:00', 'USR-005', '2025-07-21 17:30:00', 'USR-005', 37800, 'Patrol and foot beat',          NULL, 7, 1, false, false),
-  ('CUS-043', 'FA-008', 'OFF-008', 'UNIT-KIM', 'permanent', '2025-06-15 08:00:00', 'USR-005', NULL, NULL, NULL,                         'Senior duty — permanent sidearm',  NULL, 8, 0, false, true),
+  ('CUS-043', 'FA-008', 'OFF-008', 'UNIT-KIM', 'permanent', '2025-06-15 08:00:00', 'USR-005', NULL, NULL, NULL,                         'Senior duty - permanent rifle assignment',  NULL, 8, 0, false, true),
   ('CUS-044', 'FA-009', 'OFF-008', 'UNIT-KIM', 'temporary', '2025-07-05 07:00:00', 'USR-005', '2025-07-05 18:00:00', 'USR-005', 39600, 'Perimeter security detail',     NULL, 7, 6, false, true),
-  ('CUS-045', 'FA-010', 'OFF-008', 'UNIT-KIM', 'temporary', '2025-07-19 07:00:00', 'USR-005', '2025-07-19 18:00:00', 'USR-005', 39600, 'Event security with SMG',       NULL, 7, 6, false, true),
+  ('CUS-045', 'FA-010', 'OFF-008', 'UNIT-KIM', 'temporary', '2025-07-19 07:00:00', 'USR-005', '2025-07-19 18:00:00', 'USR-005', 39600, 'Event security detail',          NULL, 7, 6, false, true),
   ('CUS-046', 'FA-008', 'OFF-009', 'UNIT-KIM', 'temporary', '2025-07-03 07:00:00', 'USR-005', '2025-07-03 17:00:00', 'USR-005', 36000, 'Day patrol',                    NULL, 7, 4, false, false),
   ('CUS-047', 'FA-008', 'OFF-009', 'UNIT-KIM', 'temporary', '2025-07-10 07:00:00', 'USR-005', '2025-07-10 18:00:00', 'USR-005', 39600, 'Patrol duty',                   NULL, 7, 4, false, false),
   ('CUS-048', 'FA-008', 'OFF-009', 'UNIT-KIM', 'temporary', '2025-07-17 07:00:00', 'USR-005', '2025-07-17 17:30:00', 'USR-005', 37800, 'Routine patrol',                NULL, 7, 4, false, false),
@@ -335,10 +347,10 @@ INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custod
 -- ── REMERA STATION (UNIT-REM) — Normal patterns ──
 
 INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custody_type, issued_at, issued_by, returned_at, returned_to, custody_duration_seconds, assignment_reason, notes, issue_hour, issue_day_of_week, is_night_issue, is_weekend_issue) VALUES
-  ('CUS-052', 'FA-011', 'OFF-011', 'UNIT-REM', 'permanent', '2025-06-01 08:00:00', 'USR-006', NULL, NULL, NULL,                         'Senior duty — permanent sidearm',    NULL, 8, 0, false, true),
-  ('CUS-053', 'FA-012', 'OFF-011', 'UNIT-REM', 'temporary', '2025-07-05 07:00:00', 'USR-006', '2025-07-05 18:00:00', 'USR-006', 39600, 'Backup weapon for VIP detail',      NULL, 7, 6, false, true),
+  ('CUS-052', 'FA-011', 'OFF-011', 'UNIT-REM', 'permanent', '2025-06-01 08:00:00', 'USR-006', NULL, NULL, NULL,                         'Senior duty - permanent rifle assignment',    NULL, 8, 0, false, true),
+  ('CUS-053', 'FA-014', 'OFF-011', 'UNIT-REM', 'temporary', '2025-07-05 07:00:00', 'USR-006', '2025-07-05 18:00:00', 'USR-006', 39600, 'Backup sidearm for VIP detail',      NULL, 7, 6, false, true),
   ('CUS-054', 'FA-011', 'OFF-012', 'UNIT-REM', 'temporary', '2025-07-01 07:00:00', 'USR-006', '2025-07-01 18:00:00', 'USR-006', 39600, 'Day shift patrol',                  NULL, 7, 2, false, false),
-  ('CUS-055', 'FA-012', 'OFF-012', 'UNIT-REM', 'temporary', '2025-07-04 07:00:00', 'USR-006', '2025-07-04 17:00:00', 'USR-006', 36000, 'Community beat',                    NULL, 7, 5, false, false),
+  ('CUS-055', 'FA-021', 'OFF-012', 'UNIT-REM', 'temporary', '2025-07-04 07:00:00', 'USR-006', '2025-07-04 17:00:00', 'USR-006', 36000, 'Community beat',                    NULL, 7, 5, false, false),
   ('CUS-056', 'FA-011', 'OFF-012', 'UNIT-REM', 'temporary', '2025-07-08 07:00:00', 'USR-006', '2025-07-08 18:00:00', 'USR-006', 39600, 'Patrol',                            NULL, 7, 2, false, false),
   ('CUS-057', 'FA-012', 'OFF-012', 'UNIT-REM', 'temporary', '2025-07-11 07:00:00', 'USR-006', '2025-07-11 18:00:00', 'USR-006', 39600, 'Standard patrol',                   NULL, 7, 5, false, false),
   ('CUS-058', 'FA-011', 'OFF-012', 'UNIT-REM', 'temporary', '2025-07-15 07:00:00', 'USR-006', '2025-07-15 17:30:00', 'USR-006', 37800, 'Day shift',                         NULL, 7, 2, false, false),
@@ -350,36 +362,36 @@ INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custod
   ('CUS-064', 'FA-013', 'OFF-013', 'UNIT-REM', 'temporary', '2025-07-17 07:00:00', 'USR-006', '2025-07-17 18:00:00', 'USR-006', 39600, 'Community patrol',                  NULL, 7, 4, false, false),
   ('CUS-065', 'FA-013', 'OFF-013', 'UNIT-REM', 'temporary', '2025-07-21 07:00:00', 'USR-006', '2025-07-21 17:30:00', 'USR-006', 37800, 'Patrol',                            NULL, 7, 1, false, false),
   ('CUS-066', 'FA-011', 'OFF-014', 'UNIT-REM', 'temporary', '2025-07-03 07:00:00', 'USR-006', '2025-07-03 18:00:00', 'USR-006', 39600, 'Patrol duty',                       NULL, 7, 4, false, false),
-  ('CUS-067', 'FA-012', 'OFF-014', 'UNIT-REM', 'temporary', '2025-07-09 07:00:00', 'USR-006', '2025-07-09 17:00:00', 'USR-006', 36000, 'Checkpoint duty',                   NULL, 7, 3, false, false),
+  ('CUS-067', 'FA-014', 'OFF-014', 'UNIT-REM', 'temporary', '2025-07-09 07:00:00', 'USR-006', '2025-07-09 17:00:00', 'USR-006', 36000, 'Checkpoint duty',                   NULL, 7, 3, false, false),
   ('CUS-068', 'FA-011', 'OFF-014', 'UNIT-REM', 'temporary', '2025-07-16 07:00:00', 'USR-006', '2025-07-16 18:00:00', 'USR-006', 39600, 'Area patrol',                       NULL, 7, 3, false, false),
   ('CUS-069', 'FA-012', 'OFF-014', 'UNIT-REM', 'temporary', '2025-07-23 07:00:00', 'USR-006', '2025-07-23 17:30:00', 'USR-006', 37800, 'Standard patrol',                   NULL, 7, 3, false, false);
 
 -- ── KICUKIRO STATION (UNIT-KIC) — Normal patterns ──
 
 INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custody_type, issued_at, issued_by, returned_at, returned_to, custody_duration_seconds, assignment_reason, notes, issue_hour, issue_day_of_week, is_night_issue, is_weekend_issue) VALUES
-  ('CUS-070', 'FA-015', 'OFF-015', 'UNIT-KIC', 'permanent', '2025-06-01 08:00:00', 'USR-007', NULL, NULL, NULL,                         'Senior duty — permanent sidearm',    NULL, 8, 0, false, true),
-  ('CUS-071', 'FA-016', 'OFF-015', 'UNIT-KIC', 'temporary', '2025-07-05 07:00:00', 'USR-007', '2025-07-05 18:00:00', 'USR-007', 39600, 'Backup sidearm for operation',       NULL, 7, 6, false, true),
+  ('CUS-070', 'FA-015', 'OFF-015', 'UNIT-KIC', 'permanent', '2025-06-01 08:00:00', 'USR-007', NULL, NULL, NULL,                         'Senior duty - permanent rifle assignment',    NULL, 8, 0, false, true),
+  ('CUS-071', 'FA-016', 'OFF-015', 'UNIT-KIC', 'temporary', '2025-07-05 07:00:00', 'USR-007', '2025-07-05 18:00:00', 'USR-007', 39600, 'Backup rifle for operation',         NULL, 7, 6, false, true),
   ('CUS-072', 'FA-015', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-07-01 07:00:00', 'USR-007', '2025-07-01 17:00:00', 'USR-007', 36000, 'Day patrol',                         NULL, 7, 2, false, false),
-  ('CUS-073', 'FA-016', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-07-04 07:00:00', 'USR-007', '2025-07-04 18:00:00', 'USR-007', 39600, 'Market area security',               NULL, 7, 5, false, false),
+  ('CUS-073', 'FA-022', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-07-04 07:00:00', 'USR-007', '2025-07-04 18:00:00', 'USR-007', 39600, 'Market area security',               NULL, 7, 5, false, false),
   ('CUS-074', 'FA-015', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-07-08 07:00:00', 'USR-007', '2025-07-08 17:30:00', 'USR-007', 37800, 'Patrol duty',                        NULL, 7, 2, false, false),
   ('CUS-075', 'FA-016', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-07-11 07:00:00', 'USR-007', '2025-07-11 18:00:00', 'USR-007', 39600, 'Standard patrol',                    NULL, 7, 5, false, false),
   ('CUS-076', 'FA-015', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-07-15 07:00:00', 'USR-007', '2025-07-15 17:00:00', 'USR-007', 36000, 'Day shift',                          NULL, 7, 2, false, false),
   ('CUS-077', 'FA-016', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-07-18 07:00:00', 'USR-007', '2025-07-18 18:00:00', 'USR-007', 39600, 'Patrol',                             NULL, 7, 5, false, false),
   ('CUS-078', 'FA-017', 'OFF-018', 'UNIT-KIC', 'temporary', '2025-07-02 07:00:00', 'USR-007', '2025-07-02 18:00:00', 'USR-007', 39600, 'Checkpoint with rifle',              NULL, 7, 3, false, false),
-  ('CUS-079', 'FA-018', 'OFF-018', 'UNIT-KIC', 'temporary', '2025-07-06 07:00:00', 'USR-007', '2025-07-06 14:00:00', 'USR-007', 25200, 'Crowd control — stadium event',      NULL, 7, 0, false, true),
+  ('CUS-079', 'FA-018', 'OFF-018', 'UNIT-KIC', 'temporary', '2025-07-06 07:00:00', 'USR-007', '2025-07-06 14:00:00', 'USR-007', 25200, 'Event security detail - stadium event', NULL, 7, 0, false, true),
   ('CUS-080', 'FA-017', 'OFF-018', 'UNIT-KIC', 'temporary', '2025-07-09 07:00:00', 'USR-007', '2025-07-09 18:00:00', 'USR-007', 39600, 'Patrol with rifle',                  NULL, 7, 3, false, false),
   ('CUS-081', 'FA-017', 'OFF-018', 'UNIT-KIC', 'temporary', '2025-07-16 07:00:00', 'USR-007', '2025-07-16 17:00:00', 'USR-007', 36000, 'Checkpoint duty',                    NULL, 7, 3, false, false),
-  ('CUS-082', 'FA-018', 'OFF-018', 'UNIT-KIC', 'temporary', '2025-07-20 07:00:00', 'USR-007', '2025-07-20 14:00:00', 'USR-007', 25200, 'Crowd control — market day',         NULL, 7, 0, false, true),
+  ('CUS-082', 'FA-018', 'OFF-018', 'UNIT-KIC', 'temporary', '2025-07-20 07:00:00', 'USR-007', '2025-07-20 14:00:00', 'USR-007', 25200, 'Market day patrol detail',           NULL, 7, 0, false, true),
   ('CUS-083', 'FA-017', 'OFF-018', 'UNIT-KIC', 'temporary', '2025-07-23 07:00:00', 'USR-007', '2025-07-23 18:00:00', 'USR-007', 39600, 'Patrol',                             NULL, 7, 3, false, false);
 
 -- ── HQ OFFICERS — Normal patterns ──
 
 INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custody_type, issued_at, issued_by, returned_at, returned_to, custody_duration_seconds, assignment_reason, notes, issue_hour, issue_day_of_week, is_night_issue, is_weekend_issue) VALUES
-  ('CUS-084', 'FA-019', 'OFF-019', 'UNIT-HQ', 'permanent', '2025-05-01 08:00:00', 'USR-002', NULL, NULL, NULL, 'Senior officer — permanent sidearm', NULL, 8, 4, false, false),
+  ('CUS-084', 'FA-019', 'OFF-019', 'UNIT-HQ', 'permanent', '2025-05-01 08:00:00', 'USR-002', NULL, NULL, NULL, 'Senior officer - permanent sidearm', NULL, 8, 4, false, false),
   ('CUS-085', 'FA-020', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-07-01 08:00:00', 'USR-002', '2025-07-01 17:00:00', 'USR-002', 32400, 'HQ gate duty',                NULL, 8, 2, false, false),
-  ('CUS-086', 'FA-020', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-07-08 08:00:00', 'USR-002', '2025-07-08 17:00:00', 'USR-002', 32400, 'HQ perimeter patrol',         NULL, 8, 2, false, false),
-  ('CUS-087', 'FA-020', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-07-15 08:00:00', 'USR-002', '2025-07-15 17:00:00', 'USR-002', 32400, 'Ceremony security',           NULL, 8, 2, false, false),
-  ('CUS-088', 'FA-020', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-07-22 08:00:00', 'USR-002', '2025-07-22 17:00:00', 'USR-002', 32400, 'HQ duty',                     NULL, 8, 2, false, false);
+  ('CUS-086', 'FA-023', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-07-08 08:00:00', 'USR-002', '2025-07-08 17:00:00', 'USR-002', 32400, 'HQ perimeter patrol',         NULL, 8, 2, false, false),
+  ('CUS-087', 'FA-025', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-07-15 08:00:00', 'USR-002', '2025-07-15 17:00:00', 'USR-002', 32400, 'Ceremony security detail',    NULL, 8, 2, false, false),
+  ('CUS-088', 'FA-024', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-07-22 08:00:00', 'USR-002', '2025-07-22 17:00:00', 'USR-002', 32400, 'HQ duty',                     NULL, 8, 2, false, false);
 
 -- ── MORE HISTORICAL NORMAL RECORDS (earlier months) ──
 
@@ -447,7 +459,7 @@ INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custod
 -- Remera April records
 INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custody_type, issued_at, issued_by, returned_at, returned_to, custody_duration_seconds, assignment_reason, notes, issue_hour, issue_day_of_week, is_night_issue, is_weekend_issue) VALUES
   ('CUS-140', 'FA-011', 'OFF-012', 'UNIT-REM', 'temporary', '2025-04-08 07:00:00', 'USR-006', '2025-04-08 17:30:00', 'USR-006', 37800, 'Area patrol',        NULL, 7, 2, false, false),
-  ('CUS-141', 'FA-012', 'OFF-012', 'UNIT-REM', 'temporary', '2025-04-15 07:00:00', 'USR-006', '2025-04-15 18:00:00', 'USR-006', 39600, 'Day patrol',         NULL, 7, 2, false, false),
+  ('CUS-141', 'FA-021', 'OFF-012', 'UNIT-REM', 'temporary', '2025-04-15 07:00:00', 'USR-006', '2025-04-15 18:00:00', 'USR-006', 39600, 'Day patrol',         NULL, 7, 2, false, false),
   ('CUS-142', 'FA-013', 'OFF-013', 'UNIT-REM', 'temporary', '2025-04-09 07:00:00', 'USR-006', '2025-04-09 18:00:00', 'USR-006', 39600, 'Patrol duty',        NULL, 7, 3, false, false),
   ('CUS-143', 'FA-013', 'OFF-013', 'UNIT-REM', 'temporary', '2025-04-16 07:00:00', 'USR-006', '2025-04-16 17:00:00', 'USR-006', 36000, 'Community beat',     NULL, 7, 3, false, false),
   ('CUS-144', 'FA-011', 'OFF-014', 'UNIT-REM', 'temporary', '2025-04-10 07:00:00', 'USR-006', '2025-04-10 18:00:00', 'USR-006', 39600, 'Standard patrol',    NULL, 7, 4, false, false),
@@ -456,7 +468,7 @@ INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custod
 -- Kicukiro April records
 INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custody_type, issued_at, issued_by, returned_at, returned_to, custody_duration_seconds, assignment_reason, notes, issue_hour, issue_day_of_week, is_night_issue, is_weekend_issue) VALUES
   ('CUS-146', 'FA-015', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-04-08 07:00:00', 'USR-007', '2025-04-08 18:00:00', 'USR-007', 39600, 'Day patrol',         NULL, 7, 2, false, false),
-  ('CUS-147', 'FA-016', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-04-15 07:00:00', 'USR-007', '2025-04-15 17:00:00', 'USR-007', 36000, 'Standard patrol',    NULL, 7, 2, false, false),
+  ('CUS-147', 'FA-022', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-04-15 07:00:00', 'USR-007', '2025-04-15 17:00:00', 'USR-007', 36000, 'Standard patrol',    NULL, 7, 2, false, false),
   ('CUS-148', 'FA-015', 'OFF-016', 'UNIT-KIC', 'temporary', '2025-04-22 07:00:00', 'USR-007', '2025-04-22 18:00:00', 'USR-007', 39600, 'Patrol duty',        NULL, 7, 2, false, false),
   ('CUS-149', 'FA-017', 'OFF-018', 'UNIT-KIC', 'temporary', '2025-04-09 07:00:00', 'USR-007', '2025-04-09 18:00:00', 'USR-007', 39600, 'Checkpoint patrol',  NULL, 7, 3, false, false),
   ('CUS-150', 'FA-017', 'OFF-018', 'UNIT-KIC', 'temporary', '2025-04-16 07:00:00', 'USR-007', '2025-04-16 17:30:00', 'USR-007', 37800, 'Area patrol',        NULL, 7, 3, false, false),
@@ -464,9 +476,9 @@ INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custod
 
 -- HQ April records
 INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custody_type, issued_at, issued_by, returned_at, returned_to, custody_duration_seconds, assignment_reason, notes, issue_hour, issue_day_of_week, is_night_issue, is_weekend_issue) VALUES
-  ('CUS-152', 'FA-020', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-04-08 08:00:00', 'USR-002', '2025-04-08 17:00:00', 'USR-002', 32400, 'HQ gate duty',        NULL, 8, 2, false, false),
+  ('CUS-152', 'FA-026', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-04-08 08:00:00', 'USR-002', '2025-04-08 17:00:00', 'USR-002', 32400, 'HQ gate duty',        NULL, 8, 2, false, false),
   ('CUS-153', 'FA-020', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-04-15 08:00:00', 'USR-002', '2025-04-15 17:00:00', 'USR-002', 32400, 'HQ perimeter patrol', NULL, 8, 2, false, false),
-  ('CUS-154', 'FA-020', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-04-22 08:00:00', 'USR-002', '2025-04-22 17:00:00', 'USR-002', 32400, 'HQ duty',             NULL, 8, 2, false, false);
+  ('CUS-154', 'FA-024', 'OFF-020', 'UNIT-HQ', 'temporary', '2025-04-22 08:00:00', 'USR-002', '2025-04-22 17:00:00', 'USR-002', 32400, 'HQ duty',             NULL, 8, 2, false, false);
 
 -- ── ADDITIONAL March 2025 records (deep historical baseline) ──
 INSERT INTO custody_records (custody_id, firearm_id, officer_id, unit_id, custody_type, issued_at, issued_by, returned_at, returned_to, custody_duration_seconds, assignment_reason, notes, issue_hour, issue_day_of_week, is_night_issue, is_weekend_issue) VALUES
@@ -555,7 +567,7 @@ INSERT INTO destruction_requests (destruction_id, firearm_id, unit_id, requested
 -- ============================================
 INSERT INTO procurement_requests (procurement_id, unit_id, requested_by, firearm_type, quantity, justification, priority, estimated_cost, preferred_supplier, status, reviewed_by, review_date, review_notes) VALUES
   ('PROC-001', 'UNIT-NYA', 'USR-004', 'pistol',  3, 'Nyamirambo station has expanded patrol zones after Nyamirambo sector restructuring. Three additional officers need sidearms for new community patrol beats.', 'routine',  4500000.00, 'Glock International', 'pending',  NULL,      NULL,         NULL),
-  ('PROC-002', 'UNIT-KIM', 'USR-005', 'rifle',   2, 'Kimironko needs additional patrol rifles for checkpoint duty near Amahoro Stadium. Current single rifle is insufficient for simultaneous checkpoint coverage.', 'high',     7200000.00, 'FN Herstal',          'approved', 'USR-002', '2025-07-20', 'Approved. Budget allocated from Q3 procurement fund.'),
+  ('PROC-002', 'UNIT-KIM', 'USR-005', 'rifle',   2, 'Kimironko needs additional patrol rifles for checkpoint duty near Amahoro Stadium. Current rifles are insufficient for simultaneous checkpoint coverage.', 'high',     7200000.00, 'FN Herstal',          'approved', 'USR-002', '2025-07-20', 'Approved. Budget allocated from Q3 procurement fund.'),
   ('PROC-003', 'UNIT-KIC', 'USR-007', 'pistol',  5, 'Kicukiro station staffing has increased by 5 new officers after graduation from PTS Gishari. All are firearm-certified and require duty sidearms.',           'urgent',   7500000.00, 'SIG Sauer',           'rejected', 'USR-002', '2025-08-01', 'Budget insufficient this quarter. Re-submit for Q1 2026 procurement cycle.');
 
 -- ============================================
@@ -567,12 +579,12 @@ INSERT INTO anomalies (anomaly_id, custody_record_id, firearm_id, officer_id, un
   ('ANO-002', 'CUS-A02', 'FA-002', 'OFF-002', 'UNIT-NYA', 0.92, 'extended_custody',     'statistical', 'critical', 0.95, '{"duration_hours": 120, "avg_duration_hours": 11, "deviation": "10x normal"}',         '{"custody_duration": 0.55, "duration_zscore": 0.30, "return_delay": 0.15}',     'investigating', 'Officer claims special assignment. Verifying with commander.', '2025-08-03 08:00:00'),
   ('ANO-003', 'CUS-A03', 'FA-004', 'OFF-004', 'UNIT-NYA', 0.78, 'unusual_timing',       'statistical', 'medium',   0.82, '{"weekend": true, "night": true, "hour": 23, "officer_weekend_rate": 0.0}',            '{"is_weekend_issue": 0.40, "is_night_issue": 0.35, "issue_hour": 0.25}',        'open',          NULL, '2025-08-02 23:35:00'),
   ('ANO-004', 'CUS-A04', 'FA-006', 'OFF-006', 'UNIT-KIM', 0.85, 'rapid_exchange',       'statistical', 'high',     0.88, '{"exchanges_in_day": 3, "avg_daily_exchanges": 0.3, "shortest_custody_min": 90}',      '{"firearm_exchange_rate": 0.50, "custody_duration": 0.30, "frequency": 0.20}',  'open',          NULL, '2025-08-04 12:05:00'),
-  ('ANO-005', 'CUS-A07', 'FA-001', 'OFF-006', 'UNIT-KIM', 0.95, 'cross_unit_transfer',  'rule_based',  'critical', 0.99, '{"firearm_home_unit": "UNIT-NYA", "custody_unit": "UNIT-KIM", "authorized": true}',    '{"cross_unit_flag": 0.60, "unit_mismatch": 0.25, "officer_unit": 0.15}',        'investigating', 'Joint operation confirmed by both station commanders.', '2025-08-06 07:05:00'),
-  ('ANO-006', 'CUS-A08', 'FA-013', 'OFF-016', 'UNIT-KIC', 0.93, 'cross_unit_transfer',  'rule_based',  'critical', 0.99, '{"firearm_home_unit": "UNIT-REM", "custody_unit": "UNIT-KIC", "authorized": true}',    '{"cross_unit_flag": 0.60, "unit_mismatch": 0.25, "officer_unit": 0.15}',        'resolved',      'Confirmed authorized inter-station operation near shared border area.', '2025-08-07 07:05:00'),
-  ('ANO-007', 'CUS-A09', 'FA-015', 'OFF-016', 'UNIT-KIC', 0.65, 'very_short_custody',   'statistical', 'low',      0.70, '{"duration_minutes": 15, "min_expected_minutes": 60, "immediate_return": true}',       '{"custody_duration": 0.60, "rapid_return": 0.25, "pattern_deviation": 0.15}',   'false_positive', 'Administrative error — wrong pistol issued, immediately corrected.', '2025-08-08 10:20:00'),
-  ('ANO-008', 'CUS-A10', 'FA-016', 'OFF-017', 'UNIT-KIC', 0.88, 'uncertified_officer',  'rule_based',  'high',     0.99, '{"officer_certified": false, "certification_required": true}',                         '{"certification_check": 0.70, "policy_violation": 0.20, "risk_score": 0.10}',   'open',          NULL, '2025-08-03 07:05:00'),
+  ('ANO-005', 'CUS-A07', 'FA-001', 'OFF-006', 'UNIT-KIM', 0.95, 'cross_unit_transfer',  'ensemble',  'critical', 0.99, '{"firearm_home_unit": "UNIT-NYA", "custody_unit": "UNIT-KIM", "authorized": true}',    '{"cross_unit_flag": 0.60, "unit_mismatch": 0.25, "officer_unit": 0.15}',        'investigating', 'Joint operation confirmed by both station commanders.', '2025-08-06 07:05:00'),
+  ('ANO-006', 'CUS-A08', 'FA-013', 'OFF-016', 'UNIT-KIC', 0.93, 'cross_unit_transfer',  'ensemble',  'critical', 0.99, '{"firearm_home_unit": "UNIT-REM", "custody_unit": "UNIT-KIC", "authorized": true}',    '{"cross_unit_flag": 0.60, "unit_mismatch": 0.25, "officer_unit": 0.15}',        'resolved',      'Confirmed authorized inter-station operation near shared border area.', '2025-08-07 07:05:00'),
+  ('ANO-007', 'CUS-A09', 'FA-015', 'OFF-016', 'UNIT-KIC', 0.65, 'very_short_custody',   'statistical', 'low',      0.70, '{"duration_minutes": 15, "min_expected_minutes": 60, "immediate_return": true}',       '{"custody_duration": 0.60, "rapid_return": 0.25, "pattern_deviation": 0.15}',   'false_positive', 'Administrative error - wrong firearm issued, immediately corrected.', '2025-08-08 10:20:00'),
+  ('ANO-008', 'CUS-A10', 'FA-016', 'OFF-017', 'UNIT-KIC', 0.88, 'uncertified_officer',  'ensemble',  'high',     0.99, '{"officer_certified": false, "certification_required": true}',                         '{"certification_check": 0.70, "policy_violation": 0.20, "risk_score": 0.10}',   'open',          NULL, '2025-08-03 07:05:00'),
   ('ANO-009', 'CUS-A11', 'FA-020', 'OFF-020', 'UNIT-HQ',  0.82, 'unusual_timing',       'statistical', 'high',     0.85, '{"night_issue": true, "hour": 1, "extended_custody": true, "duration_hours": 55}',     '{"is_night_issue": 0.35, "custody_duration": 0.35, "issue_hour": 0.30}',        'open',          NULL, '2025-08-09 01:05:00'),
-  ('ANO-010', 'CUS-A12', 'FA-005', 'OFF-003', 'UNIT-NYA', 0.72, 'multiple_firearms',    'rule_based',  'medium',   0.80, '{"active_custodies": 2, "max_allowed": 1, "permanent_firearm": "FA-003"}',             '{"concurrent_firearms": 0.50, "policy_check": 0.30, "officer_history": 0.20}', 'open',          NULL, '2025-08-10 07:05:00');
+  ('ANO-010', 'CUS-A12', 'FA-005', 'OFF-003', 'UNIT-NYA', 0.72, 'multiple_firearms',    'ensemble',  'medium',   0.80, '{"active_custodies": 2, "max_allowed": 1, "permanent_firearm": "FA-003"}',             '{"concurrent_firearms": 0.50, "policy_check": 0.30, "officer_history": 0.20}', 'open',          NULL, '2025-08-10 07:05:00');
 
 -- ============================================
 -- 12. ANOMALY INVESTIGATIONS (for resolved/investigating anomalies)
@@ -581,7 +593,7 @@ INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_i
   ('INV-001', 'ANO-002', 'USR-008', '2025-08-04 10:00:00', 'Officer Uwase Marie kept FA-002 for 5 days. Claims she was deployed on extended rural patrol in Bugesera and could not return weapon on time. Commander confirmed deployment but noted failure to notify armory.', 'Verbal warning issued. SOP updated to require daily check-in during extended deployments.', 'confirmed'),
   ('INV-002', 'ANO-005', 'USR-008', '2025-08-06 14:00:00', 'FA-001 from Nyamirambo was used at Kimironko during joint anti-trafficking operation. Both station commanders authorized the cross-unit loan via phone. Written authorization was filed 2 hours later.', 'Confirmed authorized. Recommended pre-authorization for future joint operations.', 'confirmed'),
   ('INV-003', 'ANO-006', 'USR-009', '2025-08-08 09:00:00', 'FA-013 from Remera was used at Kicukiro for a cordon security operation near the Remera-Kicukiro border. Fully authorized by both commanders. Firearm returned same day.', 'No action needed. Properly authorized inter-unit operation.', 'confirmed'),
-  ('INV-004', 'ANO-007', 'USR-009', '2025-08-08 15:00:00', 'Very short custody of 15 minutes. Armorer confirmed wrong pistol was pulled from rack. Immediately swapped for correct weapon. No policy violation.', 'No action. Administrative error documented.', 'false_positive');
+  ('INV-004', 'ANO-007', 'USR-009', '2025-08-08 15:00:00', 'Very short custody of 15 minutes. Armorer confirmed wrong firearm was pulled from rack. Immediately swapped for correct weapon. No policy violation.', 'No action. Administrative error documented.', 'false_positive');
 
 -- ============================================
 -- 13. AUDIT LOGS (sample entries)
@@ -610,75 +622,15 @@ INSERT INTO ballistic_access_logs (access_id, ballistic_id, firearm_id, accessed
   ('BAL-008', 'BP-003', 'FA-003', 'USR-008', 'forensic_query',       'Rifle casing match — border incident',             'in_custody','OFF-003', 'UNIT-NYA');
 
 -- ============================================
--- 15. ML MODEL METADATA (baseline trained model)
--- ============================================
-INSERT INTO ml_model_metadata (model_id, model_type, model_version, training_date, training_samples_count, num_clusters, cluster_centers, silhouette_score, outlier_threshold, normalization_params, is_active) VALUES
-  ('MDL-001', 'kmeans', 'v1.0.0', '2025-08-01 10:00:00', 134, 4,
-    '[[0.35, 0.12, 0.08, 0.29, 0.0, 0.0, 0.0, 0.0, 0.12, -0.28],
-      [0.42, 0.18, 0.15, 0.42, 1.0, 0.0, 0.0, 1.0, 0.08, -0.11],
-      [0.28, 0.08, 0.05, 0.29, 0.0, 1.0, 0.0, 0.0, 0.05, 0.06],
-      [0.55, 0.25, 0.22, 0.33, 1.0, 1.0, 1.0, 1.0, -0.10, 0.45]]'::jsonb,
-    0.6823, 2.5000,
-    '{"mins": [0, 0, 0, 0, 0, 0, 0, 0, -2.5, -2.5], "maxs": [1.0, 100000, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.5, 2.5]}'::jsonb,
-    true),
-  ('MDL-002', 'kmeans', 'v0.9.0', '2025-07-15 14:00:00', 88, 3,
-    '[[0.30, 0.10, 0.06, 0.29, 0.0, 0.0, 0.0, 0.0, 0.10, -0.20],
-      [0.40, 0.16, 0.12, 0.42, 1.0, 0.0, 0.0, 1.0, 0.06, -0.08],
-      [0.50, 0.22, 0.20, 0.33, 1.0, 1.0, 1.0, 1.0, -0.08, 0.35]]'::jsonb,
-    0.5912, 2.8000,
-    '{"mins": [0, 0, 0, 0, 0, 0, 0, 0, -2.5, -2.5], "maxs": [1.0, 100000, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.5, 2.5]}'::jsonb,
-    false);
-
--- ============================================
--- 16. ML TRAINING FEATURES (pre-extracted features for key custody records)
--- These represent the feature vectors the ML model uses to detect anomalies
--- ============================================
-INSERT INTO ml_training_features (feature_id, officer_id, firearm_id, unit_id, custody_record_id, custody_duration_seconds, issue_hour, issue_day_of_week, is_night_issue, is_weekend_issue, officer_issue_frequency_30d, officer_avg_custody_duration_30d, firearm_exchange_rate_7d, officer_unit_consistency_score, time_since_last_return_seconds, consecutive_same_firearm_count, cross_unit_movement_flag, rapid_exchange_flag, custody_duration_zscore, issue_frequency_zscore, has_ballistic_profile, ballistic_accesses_7d) VALUES
-  -- Normal baseline features (OFF-001 regular day patrol)
-  ('FT-001', 'OFF-001', 'FA-001', 'UNIT-NYA', 'CUS-001', 39600,  7, 2, false, false, 3.50, 38700.00, 0.14, 1.00, 172800, 5, false, false, 0.1185, -0.2780, true, 0),
-  ('FT-002', 'OFF-001', 'FA-001', 'UNIT-NYA', 'CUS-002', 39600,  6, 4, false, false, 3.80, 38900.00, 0.14, 1.00, 172800, 6, false, false, 0.1185, -0.1100, true, 0),
-  ('FT-003', 'OFF-001', 'FA-001', 'UNIT-NYA', 'CUS-003', 39600,  7, 1, false, false, 4.00, 39200.00, 0.14, 1.00, 345600, 7, false, false, 0.1185,  0.0560, true, 0),
-  ('FT-004', 'OFF-001', 'FA-001', 'UNIT-NYA', 'CUS-004', 40500,  6, 4, false, false, 4.20, 39400.00, 0.14, 1.00, 259200, 8, false, false, 0.2191,  0.2220, true, 0),
-  ('FT-005', 'OFF-001', 'FA-001', 'UNIT-NYA', 'CUS-005', 38700,  7, 1, false, false, 4.50, 39500.00, 0.14, 1.00, 345600, 9, false, false, 0.0176,  0.5000, true, 0),
-  -- Normal baseline features (OFF-002 day + night patterns)
-  ('FT-006', 'OFF-002', 'FA-002', 'UNIT-NYA', 'CUS-011', 39600,  7, 3, false, false, 2.80, 39600.00, 0.14, 1.00, 259200, 3, false, false, 0.1185, -0.3890, true, 0),
-  ('FT-007', 'OFF-002', 'FA-002', 'UNIT-NYA', 'CUS-012', 43200, 18, 5, false, false, 3.00, 40200.00, 0.14, 1.00, 86400,  4, false, false, 0.5215, -0.2780, true, 0),
-  ('FT-008', 'OFF-002', 'FA-002', 'UNIT-NYA', 'CUS-013', 36000,  7, 2, false, false, 3.20, 39600.00, 0.14, 1.00, 259200, 5, false, false,-0.2831, -0.1670, true, 0),
-  -- Normal baseline features (OFF-006 Kimironko)
-  ('FT-009', 'OFF-006', 'FA-006', 'UNIT-KIM', 'CUS-029', 36000,  7, 2, false, false, 3.00, 37800.00, 0.28, 1.00, 172800, 4, false, false,-0.2831, -0.2780, true, 0),
-  ('FT-010', 'OFF-006', 'FA-006', 'UNIT-KIM', 'CUS-030', 39600,  7, 5, false, false, 3.20, 38200.00, 0.28, 1.00, 259200, 5, false, false, 0.1185, -0.1670, true, 0),
-  ('FT-011', 'OFF-006', 'FA-006', 'UNIT-KIM', 'CUS-031', 37800,  7, 2, false, false, 3.50, 37900.00, 0.28, 1.00, 345600, 6, false, false,-0.0328, -0.0000, true, 0),
-  -- Normal baseline features (OFF-012 Remera)
-  ('FT-012', 'OFF-012', 'FA-011', 'UNIT-REM', 'CUS-054', 39600,  7, 2, false, false, 2.50, 38400.00, 0.14, 1.00, 345600, 2, false, false, 0.1185, -0.5560, true, 0),
-  ('FT-013', 'OFF-012', 'FA-012', 'UNIT-REM', 'CUS-055', 36000,  7, 5, false, false, 2.80, 37800.00, 0.14, 1.00, 259200, 1, false, false,-0.2831, -0.3890, true, 0),
-  -- Normal baseline features (OFF-016 Kicukiro)
-  ('FT-014', 'OFF-016', 'FA-015', 'UNIT-KIC', 'CUS-072', 36000,  7, 2, false, false, 2.80, 37400.00, 0.28, 1.00, 345600, 3, false, false,-0.2831, -0.3890, true, 0),
-  ('FT-015', 'OFF-016', 'FA-016', 'UNIT-KIC', 'CUS-073', 39600,  7, 5, false, false, 3.00, 37800.00, 0.28, 1.00, 259200, 2, false, false, 0.1185, -0.2780, true, 0),
-  -- Normal baseline features (OFF-020 HQ)
-  ('FT-016', 'OFF-020', 'FA-020', 'UNIT-HQ',  'CUS-085', 32400,  8, 2, false, false, 1.50, 32400.00, 0.14, 1.00, 604800, 1, false, false,-0.6854, -1.1110, true, 1),
-  ('FT-017', 'OFF-020', 'FA-020', 'UNIT-HQ',  'CUS-086', 32400,  8, 2, false, false, 1.80, 32400.00, 0.14, 1.00, 604800, 2, false, false,-0.6854, -0.9440, true, 0),
-  -- ANOMALOUS features (these should have extreme z-scores and flags)
-  ('FT-A01', 'OFF-001', 'FA-001', 'UNIT-NYA', 'CUS-A01', 10800,  2, 2, true,  false, 4.50, 39200.00, 0.14, 1.00, 86400,  10, false, false,-3.0580,  0.5000, true, 0),
-  ('FT-A02', 'OFF-002', 'FA-002', 'UNIT-NYA', 'CUS-A02', 432000, 7, 5, false, false, 3.20, 39600.00, 0.14, 1.00, 172800,  5, false, false, 44.1340, -0.1670, true, 0),
-  ('FT-A03', 'OFF-004', 'FA-004', 'UNIT-NYA', 'CUS-A03', 16200, 23, 6, true,  true,  1.50, 37800.00, 0.14, 1.00, 604800,  3, false, false,-2.4533, -1.1110, true, 0),
-  ('FT-A04', 'OFF-006', 'FA-006', 'UNIT-KIM', 'CUS-A04', 7200,   6, 1, false, false, 5.00, 38200.00, 0.85, 1.00, 86400,   7, false, true, -3.4608,  0.8330, true, 0),
-  ('FT-A05', 'OFF-006', 'FA-001', 'UNIT-KIM', 'CUS-A07', 39600,  7, 3, false, false, 5.20, 38200.00, 0.14, 0.85, 172800,  1, true,  false, 0.1185,  0.9440, true, 1),
-  ('FT-A06', 'OFF-016', 'FA-013', 'UNIT-KIC', 'CUS-A08', 39600,  7, 4, false, false, 3.00, 37800.00, 0.14, 0.80, 259200,  1, true,  false, 0.1185, -0.2780, false, 0),
-  ('FT-A07', 'OFF-016', 'FA-015', 'UNIT-KIC', 'CUS-A09', 900,   10, 5, false, false, 3.20, 37800.00, 0.28, 1.00, 172800,  4, false, false,-4.1676, -0.1670, true, 0),
-  ('FT-A08', 'OFF-017', 'FA-016', 'UNIT-KIC', 'CUS-A10', 39600,  7, 0, false, true,  0.50, 39600.00, 0.14, 1.00, NULL,     1, false, false, 0.1185, -1.6670, true, 0),
-  ('FT-A09', 'OFF-020', 'FA-020', 'UNIT-HQ',  'CUS-A11', 198000, 1, 6, true,  true,  2.00, 32400.00, 0.14, 1.00, 259200,  3, false, false, 17.9360, -0.8330, true, 1),
-  ('FT-A10', 'OFF-003', 'FA-005', 'UNIT-NYA', 'CUS-A12', 39600,  7, 0, false, true,  1.20, 39600.00, 0.14, 1.00, 2592000, 1, false, false, 0.1185, -1.2780, false, 0);
-
--- ============================================
--- 17. EXPANDED AUDIT LOGS (comprehensive activity trail)
+-- 15. EXPANDED AUDIT LOGS (comprehensive activity trail)
 -- ============================================
 INSERT INTO audit_logs (log_id, user_id, action_type, table_name, record_id, new_values, success) VALUES
   -- Firearm registrations
-  ('L-00009', 'USR-002', 'CREATE', 'firearms',          'FA-002', '{"action": "HQ firearm registration — Glock 17 Gen5"}',     true),
-  ('L-00010', 'USR-002', 'CREATE', 'firearms',          'FA-003', '{"action": "HQ firearm registration — FN SCAR-L"}',         true),
-  ('L-00011', 'USR-002', 'CREATE', 'firearms',          'FA-011', '{"action": "HQ firearm registration — Glock 17"}',          true),
-  ('L-00012', 'USR-002', 'CREATE', 'firearms',          'FA-015', '{"action": "HQ firearm registration — Glock 17 Gen4"}',     true),
-  ('L-00013', 'USR-002', 'CREATE', 'firearms',          'FA-019', '{"action": "HQ firearm registration — Glock 17 Gen5 HQ"}',  true),
+  ('L-00009', 'USR-002', 'CREATE', 'firearms',          'FA-002', '{"action": "HQ firearm registration - AKM"}',              true),
+  ('L-00010', 'USR-002', 'CREATE', 'firearms',          'FA-003', '{"action": "HQ firearm registration - M4 Carbine"}',       true),
+  ('L-00011', 'USR-002', 'CREATE', 'firearms',          'FA-011', '{"action": "HQ firearm registration - AK-47"}',            true),
+  ('L-00012', 'USR-002', 'CREATE', 'firearms',          'FA-015', '{"action": "HQ firearm registration - AKM"}',              true),
+  ('L-00013', 'USR-002', 'CREATE', 'firearms',          'FA-019', '{"action": "HQ firearm registration - Glock 17 Gen5"}',    true),
   -- Custody operations
   ('L-00014', 'USR-005', 'CREATE', 'custody_records',   'CUS-029', '{"action": "Issued FA-006 to OFF-006 for patrol"}',        true),
   ('L-00015', 'USR-005', 'UPDATE', 'custody_records',   'CUS-029', '{"action": "FA-006 returned by OFF-006"}',                 true),

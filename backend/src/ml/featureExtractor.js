@@ -99,83 +99,6 @@ const extractBehavioralFeatures = async (officerId, firearmId) => {
 };
 
 /**
- * Extract cross-unit transfer context
- * Cross-unit transfers ALWAYS require review (organizational policy)
- * 
- * @param {Object} custodyRecord
- * @returns {Promise<Object>}
- */
-const extractCrossUnitTransferContext = async (custodyRecord) => {
-    try {
-        const { firearm_id, unit_id, custody_id } = custodyRecord;
-
-        // Get the previous custody record for this firearm
-        const previousCustody = await query(`
-            SELECT 
-                cr.custody_id,
-                cr.unit_id as previous_unit_id,
-                u.unit_name as previous_unit_name,
-                cr.returned_at,
-                o.full_name as previous_officer_name
-            FROM custody_records cr
-            JOIN units u ON cr.unit_id = u.unit_id
-            JOIN officers o ON cr.officer_id = o.officer_id
-            WHERE cr.firearm_id = $1
-            AND cr.custody_id != $2
-            ORDER BY cr.issued_at DESC
-            LIMIT 1
-        `, [firearm_id, custody_id]);
-
-        if (previousCustody.rows.length === 0) {
-            return {
-                is_cross_unit_transfer: false,
-                previous_unit_id: null,
-                previous_unit_name: null,
-                cross_unit_transfer_count_30d: 0,
-                is_first_custody: true
-            };
-        }
-
-        const prevRecord = previousCustody.rows[0];
-        const isCrossUnit = prevRecord.previous_unit_id !== unit_id;
-
-        // Count cross-unit transfers in last 30 days for this firearm
-        const crossUnitCount = await query(`
-            WITH custody_with_prev AS (
-                SELECT 
-                    cr.custody_id,
-                    cr.unit_id,
-                    cr.issued_at,
-                    LAG(cr.unit_id) OVER (ORDER BY cr.issued_at) as prev_unit_id
-                FROM custody_records cr
-                WHERE cr.firearm_id = $1
-                AND cr.issued_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
-            )
-            SELECT COUNT(*) as count
-            FROM custody_with_prev
-            WHERE unit_id != prev_unit_id AND prev_unit_id IS NOT NULL
-        `, [firearm_id]);
-
-        return {
-            is_cross_unit_transfer: isCrossUnit,
-            previous_unit_id: prevRecord.previous_unit_id,
-            previous_unit_name: isCrossUnit ? prevRecord.previous_unit_name : null,
-            cross_unit_transfer_count_30d: parseInt(crossUnitCount.rows[0]?.count || 0),
-            is_first_custody: false
-        };
-    } catch (error) {
-        logger.error('Extract cross-unit transfer context error:', error);
-        return {
-            is_cross_unit_transfer: false,
-            previous_unit_id: null,
-            previous_unit_name: null,
-            cross_unit_transfer_count_30d: 0,
-            is_first_custody: false
-        };
-    }
-};
-
-/**
  * Detect pattern-based anomaly flags
  * @param {Object} custodyRecord
  * @returns {Promise<Object>}
@@ -447,12 +370,10 @@ const extractAllFeatures = async (custodyRecord) => {
         const [
             behavioral,
             patternFlags,
-            crossUnitContext,
             ballisticContext
         ] = await Promise.all([
             extractBehavioralFeatures(officer_id, firearm_id),
             extractPatternFlags(custodyRecord),
-            extractCrossUnitTransferContext(custodyRecord),
             extractBallisticContext(firearm_id, custodyRecord) // Pass custody for timing context
         ]);
 
@@ -467,10 +388,10 @@ const extractAllFeatures = async (custodyRecord) => {
             firearm_id,
             officer_id,
             unit_id,
-            is_cross_unit_transfer: crossUnitContext.is_cross_unit_transfer,
-            previous_unit_id: crossUnitContext.previous_unit_id,
-            previous_unit_name: crossUnitContext.previous_unit_name,
-            is_first_custody: crossUnitContext.is_first_custody
+            is_cross_unit_transfer: false,
+            previous_unit_id: null,
+            previous_unit_name: null,
+            is_first_custody: false
         };
 
         // Combine all features
@@ -480,7 +401,6 @@ const extractAllFeatures = async (custodyRecord) => {
             ...temporal,
             ...behavioral,
             ...patternFlags,
-            ...crossUnitContext,
             ...statistical,
             ...ballisticContext,
             extracted_at: new Date()
@@ -570,6 +490,5 @@ module.exports = {
     extractBehavioralFeatures,
     extractPatternFlags,
     extractStatisticalFeatures,
-    extractBallisticContext,
-    extractCrossUnitTransferContext
+    extractBallisticContext
 };

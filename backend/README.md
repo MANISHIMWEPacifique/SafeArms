@@ -53,6 +53,15 @@ npm run dev
 npm start
 ```
 
+## Demo ML Training
+
+After loading seed data, generate training features and train the model:
+
+```bash
+node src/scripts/populateTrainingFeatures.js
+node src/scripts/trainModel.js
+```
+
 ## Optional Hosted Deployment (Render + Supabase)
 
 Current development can run backend locally while PostgreSQL is hosted on Supabase.

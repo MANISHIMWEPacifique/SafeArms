@@ -54,7 +54,7 @@ DROP TABLE IF EXISTS units CASCADE;
 CREATE TABLE units (
     unit_id VARCHAR(20) PRIMARY KEY,  -- e.g., 'UNIT-001', 'UNIT-HQ'
     unit_name VARCHAR(200) NOT NULL UNIQUE,
-    unit_type VARCHAR(50) NOT NULL CHECK (unit_type IN ('headquarters', 'district', 'station', 'specialized')),
+    unit_type VARCHAR(50) NOT NULL CHECK (unit_type IN ('headquarters', 'district', 'station', 'specialized', 'training_school', 'special_unit')),
     location VARCHAR(200),
     province VARCHAR(100),
     district VARCHAR(100),
@@ -261,7 +261,8 @@ CREATE TABLE ml_training_features (
     issue_frequency_zscore DECIMAL(10,4),
     has_ballistic_profile BOOLEAN DEFAULT false,
     ballistic_accesses_7d INTEGER DEFAULT 0,
-    feature_extraction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    feature_extraction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    used_in_model_id VARCHAR(20)
 );
 
 -- ML Model Metadata Table
@@ -274,6 +275,11 @@ CREATE TABLE ml_model_metadata (
     num_clusters INTEGER,
     cluster_centers JSONB,
     silhouette_score DECIMAL(5,4),
+    precision_score DECIMAL(5,4),
+    recall_score DECIMAL(5,4),
+    f1_score DECIMAL(5,4),
+    effectiveness_score DECIMAL(5,4),
+    false_positive_rate_estimate DECIMAL(5,4),
     outlier_threshold DECIMAL(10,4),
     normalization_params JSONB,
     is_active BOOLEAN DEFAULT false,

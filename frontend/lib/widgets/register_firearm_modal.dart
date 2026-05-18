@@ -280,11 +280,15 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
     if (rawImageUrl == null || rawImageUrl.isEmpty) {
       return null;
     }
-    if (rawImageUrl.startsWith('http://') ||
-        rawImageUrl.startsWith('https://')) {
-      return rawImageUrl;
+    String url = rawImageUrl;
+    if (!rawImageUrl.startsWith('http://') && !rawImageUrl.startsWith('https://')) {
+      url = '${ApiConfig.baseUrl}$rawImageUrl';
     }
-    return '${ApiConfig.baseUrl}$rawImageUrl';
+    if (url.contains('?')) {
+      return '$url&v=${DateTime.now().millisecondsSinceEpoch}';
+    } else {
+      return '$url?v=${DateTime.now().millisecondsSinceEpoch}';
+    }
   }
 
   Widget _buildImageSection() {

@@ -92,9 +92,9 @@ WITH weekend_dates AS (
 weekend_patterns AS (
     SELECT *
     FROM (VALUES
-        (1, 'UNIT-NYA', 'USR-004', 'OFF-003', 'FA-003', 8, 8, 'Weekend checkpoint supervision'),
-        (2, 'UNIT-KIM', 'USR-005', 'OFF-008', 'FA-008', 8, 8, 'Weekend market crowd management'),
-        (3, 'UNIT-KIC', 'USR-007', 'OFF-018', 'FA-017', 8, 7, 'Weekend event perimeter duty')
+        (1, 'UNIT-NYA', 'USR-004', 'OFF-003', 'FA-004', 8, 8, 'Weekend checkpoint supervision'),
+        (2, 'UNIT-KIM', 'USR-005', 'OFF-008', 'FA-009', 8, 8, 'Weekend market crowd management'),
+        (3, 'UNIT-KIC', 'USR-007', 'OFF-018', 'FA-018', 8, 7, 'Weekend event perimeter duty')
     ) AS t(pattern_id, unit_id, issued_by, officer_id, firearm_id, start_hour, base_duration_hours, assignment_reason)
 ),
 generated_weekend AS (

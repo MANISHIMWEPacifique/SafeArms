@@ -16,6 +16,32 @@ import '../../widgets/searchable_dropdown.dart';
 const double _anomalyDesktopBreakpoint = 1024;
 const double _anomalyMobileBreakpoint = 768;
 
+String _formatDetectionMethod(dynamic method) {
+  if (method == null) return 'N/A';
+  final raw = method.toString().trim();
+  if (raw.isEmpty) return 'N/A';
+
+  final parts = raw
+      .split('+')
+      .map((part) => part.trim())
+      .where((part) => part.isNotEmpty)
+      .toList();
+
+  final filtered = parts.where((part) {
+    final normalized = part.toLowerCase().replaceAll('-', '_');
+    return normalized != 'rules' &&
+        normalized != 'rule_based' &&
+        normalized != 'rules_only' &&
+        normalized != 'rulebased';
+  }).toList();
+
+  if (filtered.isEmpty) {
+    return 'ensemble';
+  }
+
+  return filtered.join('+');
+}
+
 class AnomalyDetectionScreen extends StatefulWidget {
   const AnomalyDetectionScreen({super.key});
 
@@ -2254,7 +2280,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
             _buildInfoRow('Score',
                 '${((double.tryParse(widget.anomaly['anomaly_score']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
             _buildInfoRow('Detection Method',
-                widget.anomaly['detection_method'] ?? 'N/A'),
+              _formatDetectionMethod(widget.anomaly['detection_method'])),
             _buildInfoRow('Confidence',
                 '${((double.tryParse(widget.anomaly['confidence_level']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
             _buildInfoRow('Detected At',

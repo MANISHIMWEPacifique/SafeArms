@@ -322,15 +322,12 @@ const Unit = {
     async update(unitId, updates) {
         const normalizedUpdates = { ...updates };
 
-        // Map unit_type to valid CHECK constraint values
+        // Map unit_type to valid CHECK constraint values (if using an older schema version)
+        // or just allow the new types through
         if (normalizedUpdates.unit_type) {
-            const validTypes = ['headquarters', 'district', 'station', 'specialized'];
+            const validTypes = ['headquarters', 'district', 'station', 'specialized', 'training_school', 'special_unit'];
             if (!validTypes.includes(normalizedUpdates.unit_type)) {
-                if (normalizedUpdates.unit_type === 'training_school' || normalizedUpdates.unit_type === 'special_unit') {
-                    normalizedUpdates.unit_type = 'specialized';
-                } else {
-                    normalizedUpdates.unit_type = 'station';
-                }
+                normalizedUpdates.unit_type = 'station';
             }
         }
 

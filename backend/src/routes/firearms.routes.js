@@ -234,7 +234,7 @@ router.get('/unit/:unit_id', authenticate, asyncHandler(async (req, res) => {
     res.json({ success: true, data: firearms });
 }));
 
-router.post('/:id/image', authenticate, requireRole([ROLES.ADMIN]), logUpdate, handleImageUpload, asyncHandler(async (req, res) => {
+router.post('/:id/image', authenticate, requireRole([ROLES.ADMIN, ROLES.INVESTIGATOR]), logUpdate, handleImageUpload, asyncHandler(async (req, res) => {
     const firearm = await Firearm.findById(req.params.id);
 
     if (!firearm) {

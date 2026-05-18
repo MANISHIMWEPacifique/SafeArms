@@ -43,11 +43,15 @@ class UserAvatar extends StatelessWidget {
       return null;
     }
 
-    if (photoUrl!.startsWith('http://') || photoUrl!.startsWith('https://')) {
-      return photoUrl;
+    final url = photoUrl!.startsWith('http://') || photoUrl!.startsWith('https://')
+        ? photoUrl!
+        : '${ApiConfig.baseUrl}$photoUrl';
+        
+    if (url.contains('?')) {
+      return '$url&v=${DateTime.now().millisecondsSinceEpoch}';
+    } else {
+      return '$url?v=${DateTime.now().millisecondsSinceEpoch}';
     }
-
-    return '${ApiConfig.baseUrl}$photoUrl';
   }
 
   Widget _buildFallback() {

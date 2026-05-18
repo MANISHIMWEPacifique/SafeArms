@@ -43,6 +43,7 @@ async function seedDatabase() {
     await client.query('DELETE FROM firearms');
     await client.query('DELETE FROM officers');
     await client.query('DELETE FROM audit_logs');
+    await client.query('DELETE FROM system_settings');
     await client.query('DELETE FROM users');
     await client.query('DELETE FROM units');
     console.log('[OK] Existing data cleared');
@@ -153,67 +154,93 @@ async function seedDatabase() {
     // ============================================
     console.log('\n[SEED] Seeding Firearms...');
 
-    // Nyamirambo Station Firearms (UNIT-NYA) - 3 firearms
-    await client.query(`
-      INSERT INTO firearms (firearm_id, serial_number, manufacturer, model, firearm_type, caliber, manufacture_year, acquisition_date, acquisition_source, registration_level, registered_by, assigned_unit_id, current_status, is_active)
-      VALUES 
-        ('FA-001', 'GLK-NYA-0001', 'Glock', 'Glock 17 Gen5', 'pistol', '9mm', 2023, '2023-06-15', 'Government Procurement', 'hq', 'USR-002', 'UNIT-NYA', 'available', true),
-        ('FA-002', 'GLK-NYA-0002', 'Glock', 'Glock 17 Gen5', 'pistol', '9mm', 2023, '2023-06-15', 'Government Procurement', 'hq', 'USR-002', 'UNIT-NYA', 'available', true),
-        ('FA-003', 'RFL-NYA-0001', 'FN Herstal', 'FN SCAR-L', 'rifle', '5.56mm NATO', 2022, '2022-03-20', 'Government Procurement', 'hq', 'USR-002', 'UNIT-NYA', 'available', true)
-    `);
-    console.log('  [OK] 3 firearms assigned to Nyamirambo Station (UNIT-NYA)');
+    
+    const units = ['UNIT-NYA', 'UNIT-KIM', 'UNIT-REM', 'UNIT-KIC', 'UNIT-PTS', 'UNIT-HQ'];
+    
+    // Generate 5 firearms per unit (1 Glock, 4 AK-47s)
+    let faCount = 1;
+    for (const unit of units) {
+      const inserts = [];
+      for (let i = 1; i <= 5; i++) {
+        const faId = `FA-${faCount.toString().padStart(3, '0')}`;
+        const isAK = i > 1; // 1st is Glock, rest are AK-47
+        const model = isAK ? 'AK-47' : 'Glock 17 Gen5';
+        const manufacturer = isAK ? 'Kalashnikov' : 'Glock';
+        const type = isAK ? 'rifle' : 'pistol';
+        const caliber = isAK ? '7.62x39mm' : '9mm';
+        const sn = isAK ? `AK-${unit.replace('UNIT-', '')}-${i.toString().padStart(4, '0')}` : `GLK-${unit.replace('UNIT-', '')}-${i.toString().padStart(4, '0')}`;
+        
+        inserts.push(`('${faId}', '${sn}', '${manufacturer}', '${model}', '${type}', '${caliber}', 2020, '2020-01-15', 'Government Procurement', 'hq', 'USR-002', '${unit}', 'available', true)`);
+        
+        faCount++;
+      }
+      
+      await client.query(`
+        INSERT INTO firearms (firearm_id, serial_number, manufacturer, model, firearm_type, caliber, manufacture_year, acquisition_date, acquisition_source, registration_level, registered_by, assigned_unit_id, current_status, is_active)
+        VALUES ${inserts.join(', ')}
+      `);
+      console.log(`  [OK] 5 firearms assigned to ${unit}`);
+    }
 
-    // Kimironko Station Firearms (UNIT-KIM) - 3 firearms
-    await client.query(`
-      INSERT INTO firearms (firearm_id, serial_number, manufacturer, model, firearm_type, caliber, manufacture_year, acquisition_date, acquisition_source, registration_level, registered_by, assigned_unit_id, current_status, is_active)
-      VALUES 
-        ('FA-004', 'GLK-KIM-0001', 'Glock', 'Glock 19 Gen5', 'pistol', '9mm', 2023, '2023-07-10', 'Government Procurement', 'hq', 'USR-002', 'UNIT-KIM', 'available', true),
-        ('FA-005', 'GLK-KIM-0002', 'Glock', 'Glock 19 Gen5', 'pistol', '9mm', 2023, '2023-07-10', 'Government Procurement', 'hq', 'USR-002', 'UNIT-KIM', 'available', true),
-        ('FA-006', 'SIG-KIM-0001', 'SIG Sauer', 'P320', 'pistol', '9mm', 2024, '2024-01-15', 'Government Procurement', 'hq', 'USR-002', 'UNIT-KIM', 'available', true)
-    `);
-    console.log('  [OK] 3 firearms assigned to Kimironko Station (UNIT-KIM)');
 
-    // Remera Station Firearms (UNIT-REM) - 2 firearms
-    await client.query(`
-      INSERT INTO firearms (firearm_id, serial_number, manufacturer, model, firearm_type, caliber, manufacture_year, acquisition_date, acquisition_source, registration_level, registered_by, assigned_unit_id, current_status, is_active)
-      VALUES 
-        ('FA-007', 'GLK-REM-0001', 'Glock', 'Glock 17', 'pistol', '9mm', 2022, '2022-05-20', 'Government Procurement', 'hq', 'USR-002', 'UNIT-REM', 'available', true),
-        ('FA-008', 'BRT-REM-0001', 'Beretta', '92FS', 'pistol', '9mm', 2021, '2021-11-10', 'Government Procurement', 'hq', 'USR-002', 'UNIT-REM', 'available', true)
-    `);
-    console.log('  [OK] 2 firearms assigned to Remera Station (UNIT-REM)');
-
-    // Kicukiro Station Firearms (UNIT-KIC) - 2 firearms
-    await client.query(`
-      INSERT INTO firearms (firearm_id, serial_number, manufacturer, model, firearm_type, caliber, manufacture_year, acquisition_date, acquisition_source, registration_level, registered_by, assigned_unit_id, current_status, is_active)
-      VALUES 
-        ('FA-009', 'GLK-KIC-0001', 'Glock', 'Glock 17 Gen4', 'pistol', '9mm', 2022, '2022-08-15', 'Government Procurement', 'hq', 'USR-002', 'UNIT-KIC', 'available', true),
-        ('FA-010', 'SHT-KIC-0001', 'Remington', 'Model 870', 'shotgun', '12 gauge', 2020, '2020-04-10', 'Government Procurement', 'hq', 'USR-002', 'UNIT-KIC', 'available', true)
-    `);
-    console.log('  [OK] 2 firearms assigned to Kicukiro Station (UNIT-KIC)');
-
-    // HQ Reserved Firearms (UNIT-HQ) - 2 firearms (unassigned to stations)
-    await client.query(`
-      INSERT INTO firearms (firearm_id, serial_number, manufacturer, model, firearm_type, caliber, manufacture_year, acquisition_date, acquisition_source, registration_level, registered_by, assigned_unit_id, current_status, is_active)
-      VALUES 
-        ('FA-011', 'GLK-HQ-0001', 'Glock', 'Glock 17 Gen5', 'pistol', '9mm', 2024, '2024-01-20', 'Government Procurement', 'hq', 'USR-002', 'UNIT-HQ', 'available', true),
-        ('FA-012', 'SIG-HQ-0001', 'SIG Sauer', 'P226', 'pistol', '9mm', 2024, '2024-01-20', 'Government Procurement', 'hq', 'USR-002', 'UNIT-HQ', 'available', true)
-    `);
-    console.log('  [OK] 2 firearms reserved at HQ (UNIT-HQ)');
+    // Dynamic additional firearms if requested by arguments e.g., node seedDatabase.js 50
+    const desiredTotal = parseInt(process.argv[2], 10);
+    if (!isNaN(desiredTotal) && desiredTotal > 30) {
+      const extraCount = desiredTotal - 30;
+      console.log(`\n[SEED] Generating ${extraCount} additional firearms as requested...`);
+      const extraValues = [];
+      for (let i = 1; i <= extraCount; i++) {
+        const faIdNumber = 30 + i;
+        const faId = `FA-${faIdNumber.toString().padStart(3, '0')}`;
+        const sn = `GEN-EXT-${faIdNumber.toString().padStart(4, '0')}`;
+        extraValues.push(`('${faId}', '${sn}', 'Kalashnikov', 'AK-47', 'rifle', '7.62x39mm', 2024, '2024-01-01', 'Government Procurement', 'hq', 'USR-002', 'UNIT-HQ', 'available', true)`);
+      }
+      
+      for (let i = 0; i < extraValues.length; i += 100) {
+        const batch = extraValues.slice(i, i + 100);
+        await client.query(`
+          INSERT INTO firearms (firearm_id, serial_number, manufacturer, model, firearm_type, caliber, manufacture_year, acquisition_date, acquisition_source, registration_level, registered_by, assigned_unit_id, current_status, is_active)
+          VALUES ${batch.join(', ')}
+        `);
+      }
+      console.log(`  [OK] ${extraCount} additional firearms generated at HQ (UNIT-HQ)`);
+      faCount += extraCount;
+    }
 
     // ============================================
+
     // BALLISTIC PROFILES
     // ============================================
     console.log('\n[SEED] Seeding Ballistic Profiles...');
 
-    await client.query(`
-      INSERT INTO ballistic_profiles (ballistic_id, firearm_id, test_date, test_location, rifling_characteristics, firing_pin_impression, ejector_marks, test_conducted_by, forensic_lab, created_by)
-      VALUES 
-        ('BP-001', 'FA-001', '2023-06-20', 'RNP Forensic Laboratory', '6 grooves, right-hand twist, 1:10 pitch', 'Circular, centered, 0.8mm diameter', 'Semi-circular impression at 3 oclock position', 'Dr. Kamanzi Eric', 'RNP Central Forensic Lab', 'USR-008'),
-        ('BP-002', 'FA-002', '2023-06-20', 'RNP Forensic Laboratory', '6 grooves, right-hand twist, 1:10 pitch', 'Circular, centered, 0.8mm diameter', 'Semi-circular impression at 3 oclock position', 'Dr. Kamanzi Eric', 'RNP Central Forensic Lab', 'USR-008'),
-        ('BP-003', 'FA-004', '2023-07-15', 'RNP Forensic Laboratory', '6 grooves, right-hand twist, 1:10 pitch', 'Circular, slightly off-center, 0.75mm diameter', 'Semi-circular impression at 4 oclock position', 'Dr. Ingabire Alice', 'RNP Central Forensic Lab', 'USR-009'),
-        ('BP-004', 'FA-007', '2022-06-01', 'RNP Forensic Laboratory', '6 grooves, right-hand twist, 1:10 pitch', 'Circular, centered, 0.8mm diameter', 'Rectangular impression at 2 oclock position', 'Dr. Kamanzi Eric', 'RNP Central Forensic Lab', 'USR-008')
-    `);
-    console.log('[OK] 4 ballistic profiles seeded');
+    
+    let bpInserts = [];
+    // faCount now holds total firearms created + 1
+    for (let i = 1; i < faCount; i++) {
+      const faId = `FA-${i.toString().padStart(3, '0')}`;
+      const bpId = `BP-${i.toString().padStart(3, '0')}`;
+      const isRifle = i % 5 !== 1; // Simplistic but matches our manual generation where 1st of 5 is Glock
+      const rifling = isRifle ? '4 grooves, right-hand twist, 1:9.45 pitch' : '6 grooves, right-hand twist, 1:10 pitch';
+      
+      bpInserts.push(`('${bpId}', '${faId}', '2023-01-10', 'RNP Forensic Laboratory', '${rifling}', 'Circular, centered, 0.8mm diameter', 'Semi-circular', 'Dr. Kamanzi Eric', 'RNP Central Forensic Lab', 'USR-008')`);
+      
+      if (bpInserts.length === 50) {
+        await client.query(`
+          INSERT INTO ballistic_profiles (ballistic_id, firearm_id, test_date, test_location, rifling_characteristics, firing_pin_impression, ejector_marks, test_conducted_by, forensic_lab, created_by)
+          VALUES ${bpInserts.join(', ')}
+        `);
+        bpInserts = [];
+      }
+    }
+    
+    if (bpInserts.length > 0) {
+      await client.query(`
+        INSERT INTO ballistic_profiles (ballistic_id, firearm_id, test_date, test_location, rifling_characteristics, firing_pin_impression, ejector_marks, test_conducted_by, forensic_lab, created_by)
+        VALUES ${bpInserts.join(', ')}
+      `);
+    }
+    console.log(`  [OK] ${faCount - 1} ballistic profiles seeded`);
+
 
     // ============================================
     // SAMPLE CUSTODY RECORDS
@@ -248,22 +275,39 @@ async function seedDatabase() {
     // ============================================
     console.log('\n[SEED] Seeding Unit Movement Records...');
 
-    await client.query(`
-      INSERT INTO firearm_unit_movements (movement_id, firearm_id, from_unit_id, to_unit_id, movement_type, authorized_by, reason)
-      VALUES 
-        ('MOV-001', 'FA-001', NULL, 'UNIT-NYA', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment'),
-        ('MOV-002', 'FA-002', NULL, 'UNIT-NYA', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment'),
-        ('MOV-003', 'FA-003', NULL, 'UNIT-NYA', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment'),
-        ('MOV-004', 'FA-004', NULL, 'UNIT-KIM', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment'),
-        ('MOV-005', 'FA-005', NULL, 'UNIT-KIM', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment'),
-        ('MOV-006', 'FA-006', NULL, 'UNIT-KIM', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment'),
-        ('MOV-007', 'FA-007', NULL, 'UNIT-REM', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment'),
-        ('MOV-008', 'FA-008', NULL, 'UNIT-REM', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment'),
-        ('MOV-009', 'FA-009', NULL, 'UNIT-KIC', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment'),
-        ('MOV-010', 'FA-010', NULL, 'UNIT-KIC', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment'),
-        ('MOV-011', 'FA-011', NULL, 'UNIT-HQ', 'initial_assignment', 'USR-002', 'HQ reserve stock'),
-        ('MOV-012', 'FA-012', NULL, 'UNIT-HQ', 'initial_assignment', 'USR-002', 'HQ reserve stock')
-    `);
+    
+    let movInserts = [];
+    let currentUnitIdx = 0;
+    const allUnits = ['UNIT-NYA', 'UNIT-KIM', 'UNIT-REM', 'UNIT-KIC', 'UNIT-PTS', 'UNIT-HQ'];
+    
+    for (let i = 1; i < faCount; i++) {
+      const faId = `FA-${i.toString().padStart(3, '0')}`;
+      const movId = `MOV-${i.toString().padStart(3, '0')}`;
+      
+      // Determine unit (First 30 are distributed 5 each to the 6 units. The rest are HQ)
+      let targetUnit = 'UNIT-HQ';
+      if (i <= 30) {
+         targetUnit = allUnits[Math.floor((i - 1) / 5)];
+      }
+
+      movInserts.push(`('${movId}', '${faId}', NULL, '${targetUnit}', 'initial_assignment', 'USR-002', 'Initial firearm registration and assignment')`);
+      
+      if (movInserts.length === 100) {
+         await client.query(`
+           INSERT INTO firearm_unit_movements (movement_id, firearm_id, from_unit_id, to_unit_id, movement_type, authorized_by, reason)
+           VALUES ${movInserts.join(', ')}
+         `);
+         movInserts = [];
+      }
+    }
+    
+    if (movInserts.length > 0) {
+       await client.query(`
+         INSERT INTO firearm_unit_movements (movement_id, firearm_id, from_unit_id, to_unit_id, movement_type, authorized_by, reason)
+         VALUES ${movInserts.join(', ')}
+       `);
+    }
+
     console.log('[OK] 12 unit movement records seeded');
 
     // ============================================
@@ -293,8 +337,8 @@ async function seedDatabase() {
     console.log('│ Users                  │ 9 (1 admin + 2 HQ + 4 station +  │');
     console.log('│                        │    2 investigators)              │');
     console.log('│ Officers               │ 10 (distributed across units)    │');
-    console.log('│ Firearms               │ 12 (assigned to specific units)  │');
-    console.log('│ Ballistic Profiles     │ 4                                │');
+    console.log(`│ Firearms               │ ${faCount - 1} (assigned to specific units)  │`);
+    console.log(`│ Ballistic Profiles     │ ${faCount - 1}                                │`);
     console.log('│ Custody Records        │ 3                                │');
     console.log('└────────────────────────┴──────────────────────────────────┘');
 
@@ -314,12 +358,12 @@ async function seedDatabase() {
     console.log('┌─────────────┬──────────────────────────────────────────────┐');
     console.log('│ Unit        │ Firearms                                     │');
     console.log('├─────────────┼──────────────────────────────────────────────┤');
-    console.log('│ UNIT-HQ     │ FA-011, FA-012 (2 reserved)                  │');
-    console.log('│ UNIT-NYA    │ FA-001, FA-002, FA-003 (3 firearms)          │');
-    console.log('│ UNIT-KIM    │ FA-004, FA-005, FA-006 (3 firearms)          │');
-    console.log('│ UNIT-REM    │ FA-007, FA-008 (2 firearms)                  │');
-    console.log('│ UNIT-KIC    │ FA-009, FA-010 (2 firearms)                  │');
-    console.log('│ UNIT-PTS    │ None                                         │');
+    console.log('│ UNIT-HQ     │ 5 firearms (mostly AK-47)                    │');
+    console.log('│ UNIT-NYA    │ 5 firearms (mostly AK-47)                    │');
+    console.log('│ UNIT-KIM    │ 5 firearms (mostly AK-47)                    │');
+    console.log('│ UNIT-REM    │ 5 firearms (mostly AK-47)                    │');
+    console.log('│ UNIT-KIC    │ 5 firearms (mostly AK-47)                    │');
+    console.log('│ UNIT-PTS    │ 5 firearms (mostly AK-47)                    │');
     console.log('└─────────────┴──────────────────────────────────────────────┘');
 
     console.log('\n[CREDENTIALS] TEST USER CREDENTIALS (Password: Admin@123)');
@@ -343,6 +387,32 @@ async function seedDatabase() {
     console.log('   • Officers can only receive custody of firearms in their unit');
     console.log('\n');
 
+    // Sync sequences after seeding to prevent duplicate key errors during runtime
+    console.log('[SEED] Synchronizing database sequences...');
+    try {
+      await client.query(`
+        SELECT setval(
+            'audit_logs_id_seq',
+            COALESCE(
+                (
+                    SELECT MAX(
+                        CAST(
+                            NULLIF(REGEXP_REPLACE(log_id, '[^0-9]', '', 'g'), '')
+                            AS INTEGER
+                        )
+                    )
+                    FROM audit_logs
+                ),
+                0
+            ) + 1,
+            false
+        )
+      `);
+      console.log('  [OK] audit_logs_id_seq synchronized');
+    } catch (seqError) {
+      console.warn('  [WARN] Failed to sync sequence:', seqError.message);
+    }
+    
   } catch (error) {
     console.error('[ERROR] Seeding Error:', error.message);
     console.error(error.stack);

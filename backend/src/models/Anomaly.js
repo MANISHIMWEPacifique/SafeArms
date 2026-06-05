@@ -40,11 +40,12 @@ const createInvestigationRecord = async ({
 
 const createAnomalyAuditLog = async ({ userId, anomalyId, actionType, payload = {}, client }) => {
     const executor = getExecutor(client);
+    const logId = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
 
     await executor.query(`
-        INSERT INTO audit_logs (user_id, action_type, table_name, record_id, new_values)
-        VALUES ($1, $2, 'anomalies', $3, $4)
-    `, [userId, actionType, anomalyId, JSON.stringify(payload)]);
+        INSERT INTO audit_logs (log_id, user_id, action_type, table_name, record_id, new_values)
+        VALUES ($1, $2, $3, 'anomalies', $4, $5)
+    `, [logId, userId, actionType, anomalyId, JSON.stringify(payload)]);
 };
 
 /**

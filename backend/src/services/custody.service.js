@@ -192,10 +192,12 @@ const assignCustody = async (custodyData) => {
 
             // Log cross-unit transfer in audit and movement tables
             if (isCrossUnitTransfer) {
+                const logId = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
                 await client.query(`
-                    INSERT INTO audit_logs (user_id, action_type, table_name, record_id, new_values)
-                    VALUES ($1, 'CROSS_UNIT_TRANSFER', 'custody_records', $2, $3)
+                    INSERT INTO audit_logs (log_id, user_id, action_type, table_name, record_id, new_values)
+                    VALUES ($1, $2, 'CROSS_UNIT_TRANSFER', 'custody_records', $3, $4)
                 `, [
+                    logId,
                     issued_by,
                     custodyRecord.custody_id,
                     JSON.stringify({

@@ -82,4 +82,55 @@ class DateFormatter {
     final e = end != null ? formatDate(end) : 'Present';
     return '$s — $e';
   }
+
+  static DateTime? parseTimestamp(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value.isUtc ? value.toLocal() : value;
+
+    if (value is int) {
+      final millis = value < 1000000000000 ? value * 1000 : value;
+      final parsed = DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
+      return parsed.toLocal();
+    }
+
+    final dateStr = value.toString().trim();
+    if (dateStr.isEmpty) return null;
+
+    // ignore: deprecated_member_use
+    if (RegExp(r'^\d{10,13}$').hasMatch(dateStr)) {
+      final epoch = int.tryParse(dateStr);
+      if (epoch != null) {
+        final millis = dateStr.length == 10 ? epoch * 1000 : epoch;
+        final parsed = DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
+        return parsed.toLocal();
+      }
+    }
+
+    DateTime? parsed = DateTime.tryParse(dateStr);
+    if (parsed == null) {
+      var normalized = dateStr;
+
+      if (normalized.contains(' ') && !normalized.contains('T')) {
+        normalized = normalized.replaceFirst(' ', 'T');
+      }
+
+      normalized = normalized.replaceFirstMapped(
+        // ignore: deprecated_member_use
+        RegExp(r'([+-]\d{2})$'),
+        (match) => '${match.group(1)}:00',
+      );
+
+      normalized = normalized.replaceFirstMapped(
+        // ignore: deprecated_member_use
+        RegExp(r'\.(\d{6})\d+(?=(Z|[+-]\d{2}:?\d{2})?$)'),
+        (match) => '.${match.group(1)}',
+      );
+
+      parsed = DateTime.tryParse(normalized);
+    }
+
+    if (parsed == null) return null;
+
+    return parsed.isUtc ? parsed.toLocal() : parsed;
+  }
 }

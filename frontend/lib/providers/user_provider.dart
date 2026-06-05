@@ -182,6 +182,7 @@ class UserProvider with ChangeNotifier {
   // Update user
   Future<bool> updateUser({
     required String userId,
+    String? username,
     String? fullName,
     String? email,
     String? phoneNumber,
@@ -199,6 +200,7 @@ class UserProvider with ChangeNotifier {
     try {
       var updatedUser = await _userService.updateUser(
         userId: userId,
+        username: username,
         fullName: fullName,
         email: email,
         phoneNumber: phoneNumber,

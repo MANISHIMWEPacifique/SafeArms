@@ -359,121 +359,113 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final tableWidth = isNarrow ? 800.0 : constraints.maxWidth;
-
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: tableWidth,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2A3040),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF37404F)),
-                        ),
-                        child: Column(
-                          children: [
-                            // Table Header
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(color: Color(0xFF37404F)),
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A3040),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF37404F)),
+                    ),
+                    child: Column(
+                      children: [
+                        // Table Header
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: Color(0xFF37404F)),
+                            ),
+                          ),
+                          child: const Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  'Unit Name',
+                                  style: TextStyle(
+                                    color: Color(0xFF78909C),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
-                              child: const Row(
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: Text(
-                                      'Unit Name',
-                                      style: TextStyle(
-                                        color: Color(0xFF78909C),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'Type',
+                                  style: TextStyle(
+                                    color: Color(0xFF78909C),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
                                   ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      'Type',
-                                      style: TextStyle(
-                                        color: Color(0xFF78909C),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      'Location',
-                                      style: TextStyle(
-                                        color: Color(0xFF78909C),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 1,
-                                    child: Text(
-                                      'Firearms',
-                                      style: TextStyle(
-                                        color: Color(0xFF78909C),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 1,
-                                    child: Text(
-                                      'Officers',
-                                      style: TextStyle(
-                                        color: Color(0xFF78909C),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 1,
-                                    child: Text(
-                                      'Status',
-                                      style: TextStyle(
-                                        color: Color(0xFF78909C),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 80),
-                                ],
+                                ),
                               ),
-                            ),
-
-                            // Table Body
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: units.length,
-                              separatorBuilder: (_, __) => const Divider(
-                                color: Color(0xFF37404F),
-                                height: 1,
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'Location',
+                                  style: TextStyle(
+                                    color: Color(0xFF78909C),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
-                              itemBuilder: (context, index) {
-                                final unit = units[index];
-                                return _buildUnitRow(unit);
-                              },
-                            ),
-                          ],
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  'Firearms',
+                                  style: TextStyle(
+                                    color: Color(0xFF78909C),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  'Officers',
+                                  style: TextStyle(
+                                    color: Color(0xFF78909C),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  'Status',
+                                  style: TextStyle(
+                                    color: Color(0xFF78909C),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 80),
+                            ],
+                          ),
                         ),
-                      ),
+
+                        // Table Body
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: units.length,
+                          separatorBuilder: (_, __) => const Divider(
+                            color: Color(0xFF37404F),
+                            height: 1,
+                          ),
+                          itemBuilder: (context, index) {
+                            final unit = units[index];
+                            return _buildUnitRow(unit, isNarrow);
+                          },
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -508,7 +500,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
     }).toList();
   }
 
-  Widget _buildUnitRow(dynamic unit) {
+  Widget _buildUnitRow(dynamic unit, bool isNarrow) {
     // Get stats from unit data (or default to 0)
     final firearmCount = unit['firearm_count'] ?? unit['firearms_count'] ?? 0;
     final officerCount = unit['officer_count'] ?? unit['officers_count'] ?? 0;
@@ -566,35 +558,39 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
               ],
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getTypeColor(unit['unit_type']).withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                _formatUnitType(unit['unit_type']),
-                style: TextStyle(
-                  color: _getTypeColor(unit['unit_type']),
-                  fontSize: 12,
+          if (!isNarrow)
+            Expanded(
+              flex: 2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color:
+                      _getTypeColor(unit['unit_type']).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                overflow: TextOverflow.ellipsis,
+                child: Text(
+                  _formatUnitType(unit['unit_type']),
+                  style: TextStyle(
+                    color: _getTypeColor(unit['unit_type']),
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Text(
-                '${unit['district'] ?? ''}, ${unit['province'] ?? ''}',
-                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-                overflow: TextOverflow.ellipsis,
+          if (!isNarrow)
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(
+                  '${unit['district'] ?? ''}, ${unit['province'] ?? ''}',
+                  style:
+                      const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
-          ),
           // Firearms count with icon
           Expanded(
             flex: 1,
@@ -614,23 +610,24 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
             ),
           ),
           // Officers count with icon
-          Expanded(
-            flex: 1,
-            child: Row(
-              children: [
-                const Icon(Icons.badge, color: Color(0xFF3CCB7F), size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  '$officerCount',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+          if (!isNarrow)
+            Expanded(
+              flex: 1,
+              child: Row(
+                children: [
+                  const Icon(Icons.badge, color: Color(0xFF3CCB7F), size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$officerCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           Expanded(
             flex: 1,
             child: Container(

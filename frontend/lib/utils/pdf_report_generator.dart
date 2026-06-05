@@ -1,4 +1,4 @@
-import 'package:pdf/pdf.dart';
+﻿import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
@@ -9,31 +9,17 @@ class PdfReportGenerator {
   // ── Colours ──
   static const _primaryColor = PdfColor.fromInt(0xFF1E88E5);
 
-  /// Entry point – builds the PDF and triggers a download / share dialog.
+  /// Entry point - builds the PDF and triggers a download / share dialog.
   static Future<void> generate({
     required String reportTitle,
     required String reportType,
     required Map<String, dynamic> reportData,
     Map<String, String> metadata = const {},
   }) async {
-    // Load Roboto from Google Fonts (cached after first download).
-    // Roboto has full Unicode support — fixes en-dash / special-char warnings.
-    final baseFont = await PdfGoogleFonts.robotoRegular();
-    final boldFont = await PdfGoogleFonts.robotoBold();
-    final italicFont = await PdfGoogleFonts.robotoItalic();
-    final boldItalicFont = await PdfGoogleFonts.robotoBoldItalic();
-
-    final pdf = pw.Document(
-      theme: pw.ThemeData.withFont(
-        base: baseFont,
-        bold: boldFont,
-        italic: italicFont,
-        boldItalic: boldItalicFont,
-      ),
-    );
+    final pdf = pw.Document();
 
     final generatedAt =
-        DateFormat('MMM d, yyyy – h:mm a').format(DateTime.now());
+        DateFormat('MMM d, yyyy - h:mm a').format(DateTime.now());
 
     pdf.addPage(
       pw.MultiPage(
@@ -234,7 +220,7 @@ class PdfReportGenerator {
                   c['unit_name']?.toString() ?? '',
                   _fmtDate(c['issued_at']?.toString()),
                   _fmtDate(c['returned_at']?.toString()),
-                  c['duration']?.toString() ?? '–',
+                  c['duration']?.toString() ?? '-',
                 ])
             .toList(),
       ));
@@ -249,7 +235,7 @@ class PdfReportGenerator {
   static List<pw.Widget> _ballisticSummary(Map<String, dynamic> data) {
     final profiles = _asList(data['profiles']);
     final activities = _asList(data['investigator_activities']);
-    
+
     if (profiles.isEmpty) {
       return [
         _sectionTitle('Ballistic Profiles'),
@@ -269,17 +255,17 @@ class PdfReportGenerator {
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text(
-              'Firearm: ${p['serial_number'] ?? 'N/A'} — ${p['firearm_type'] ?? ''} — ${p['caliber'] ?? ''}',
+              'Firearm: ${p['serial_number'] ?? 'N/A'} - ${p['firearm_type'] ?? ''} - ${p['caliber'] ?? ''}',
               style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(height: 6),
             _keyValueGrid({
-              'Rifling': p['rifling_characteristics']?.toString() ?? '–',
-              'Firing Pin': p['firing_pin_impression']?.toString() ?? '–',
-              'Ejector Marks': p['ejector_marks']?.toString() ?? '–',
-              'Extractor Marks': p['extractor_marks']?.toString() ?? '–',
-              'Chamber Marks': p['chamber_marks']?.toString() ?? '–',
-              'Forensic Lab': p['forensic_lab']?.toString() ?? '–',
+              'Rifling': p['rifling_characteristics']?.toString() ?? '-',
+              'Firing Pin': p['firing_pin_impression']?.toString() ?? '-',
+              'Ejector Marks': p['ejector_marks']?.toString() ?? '-',
+              'Extractor Marks': p['extractor_marks']?.toString() ?? '-',
+              'Chamber Marks': p['chamber_marks']?.toString() ?? '-',
+              'Forensic Lab': p['forensic_lab']?.toString() ?? '-',
               'Test Date': _fmtDate(p['test_date']?.toString()),
               'Verified':
                   (p['is_locked'] == true && p['registration_hash'] != null)
@@ -306,11 +292,11 @@ class PdfReportGenerator {
         rows: activities
             .map((a) => [
                   _fmtDate(a['activity_date']?.toString()),
-                  a['serial_number']?.toString() ?? '–',
-                  a['investigator_name']?.toString() ?? '–',
+                  a['serial_number']?.toString() ?? '-',
+                  a['investigator_name']?.toString() ?? '-',
                   a['activity_type']?.toString() ?? '',
                   a['action']?.toString() ?? '',
-                  a['notes']?.toString() ?? '–',
+                  a['notes']?.toString() ?? '-',
                 ])
             .toList(),
       ));
@@ -346,15 +332,15 @@ class PdfReportGenerator {
     }
 
     if (groups.isEmpty) {
-       widgets.add(pw.SizedBox(height: 12));
-       widgets.add(_emptyNote('No anomalies found matching criteria.'));
-       return widgets;
+      widgets.add(pw.SizedBox(height: 12));
+      widgets.add(_emptyNote('No anomalies found matching criteria.'));
+      return widgets;
     }
 
     for (final group in groups) {
       widgets.add(pw.SizedBox(height: 16));
       widgets.add(_sectionTitle('Group: ${group['group_name']}'));
-      
+
       final records = _asList(group['records']);
       if (records.isNotEmpty) {
         widgets.add(_table(
@@ -369,8 +355,8 @@ class PdfReportGenerator {
           rows: records
               .map((a) => [
                     a['anomaly_id']?.toString() ?? '',
-                    a['serial_number']?.toString() ?? '–',
-                    a['unit_name']?.toString() ?? '–',
+                    a['serial_number']?.toString() ?? '-',
+                    a['unit_name']?.toString() ?? '-',
                     a['severity']?.toString() ?? '',
                     a['status']?.toString() ?? '',
                     _fmtDate(a['detected_at']?.toString()),
@@ -379,7 +365,7 @@ class PdfReportGenerator {
         ));
       }
     }
-    
+
     return widgets;
   }
 
@@ -526,7 +512,7 @@ class PdfReportGenerator {
   }
 
   static String _fmtDate(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return '–';
+    if (dateStr == null || dateStr.isEmpty) return '-';
     try {
       return DateFormat('MMM d, yyyy').format(DateTime.parse(dateStr));
     } catch (_) {
@@ -535,9 +521,9 @@ class PdfReportGenerator {
   }
 
   static String _fmtDateTime(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return '–';
+    if (dateStr == null || dateStr.isEmpty) return '-';
     try {
-      return DateFormat('MMM d, yyyy – h:mm a').format(DateTime.parse(dateStr));
+      return DateFormat('MMM d, yyyy - h:mm a').format(DateTime.parse(dateStr));
     } catch (_) {
       return dateStr;
     }

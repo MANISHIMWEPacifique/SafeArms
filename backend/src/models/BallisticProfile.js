@@ -276,11 +276,13 @@ const BallisticProfile = {
         // Log search query (not individual results) for audit purposes
         if (requestingUserId && result.rows.length > 0) {
             try {
+                const logId = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
                 // Log one access event for the search operation
                 await query(`
-                    INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address, user_agent)
-                    VALUES ($1, 'SEARCH', 'ballistic_profiles', $2, $3, $4)
+                    INSERT INTO audit_logs (log_id, user_id, action_type, table_name, new_values, ip_address, user_agent)
+                    VALUES ($1, $2, 'SEARCH', 'ballistic_profiles', $3, $4, $5)
                 `, [
+                    logId,
                     requestingUserId,
                     JSON.stringify({ search_params: searchParams, result_count: total }),
                     reqInfo.ip,

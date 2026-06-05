@@ -12,6 +12,7 @@ import '../../services/firearm_service.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
 import '../../widgets/searchable_dropdown.dart';
 import '../../widgets/empty_state_widget.dart';
+import 'procurement_request_dialog.dart';
 
 class ReportsScreen extends StatefulWidget {
   final String? roleType; // 'station', 'hq', 'investigator', 'admin'
@@ -127,11 +128,11 @@ class _ReportsScreenState extends State<ReportsScreen>
               controller: _tabController,
               children: [
                 _buildLossReportsTab(isStation,
-                    canApprove: canApprove, canDelete: canDelete),
+                    canApprove: canApprove, canDelete: canDelete, isHQ: isHQ),
                 _buildDestructionRequestsTab(isStation,
-                    canApprove: canApprove, canDelete: canDelete),
+                    canApprove: canApprove, canDelete: canDelete, isHQ: isHQ),
                 _buildProcurementRequestsTab(isStation,
-                    canApprove: canApprove, canDelete: canDelete),
+                    canApprove: canApprove, canDelete: canDelete, isHQ: isHQ),
               ],
             ),
           ),
@@ -225,29 +226,48 @@ class _ReportsScreenState extends State<ReportsScreen>
 
     return Container(
       padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-              child: _buildStatCard(
-                  'Loss Reports',
-                  _lossReports.length.toString(),
-                  pendingLoss,
-                  const Color(0xFF1E88E5))),
-          const SizedBox(width: 12),
-          Expanded(
-              child: _buildStatCard(
-                  'Destruction Requests',
-                  _destructionRequests.length.toString(),
-                  pendingDestruction,
-                  const Color(0xFF1E88E5))),
-          const SizedBox(width: 12),
-          Expanded(
-              child: _buildStatCard(
-                  'Procurement Requests',
-                  _procurementRequests.length.toString(),
-                  pendingProcurement,
-                  const Color(0xFF1E88E5))),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cards = [
+            _buildStatCard(
+                'Loss Reports',
+                _lossReports.length.toString(),
+                pendingLoss,
+                const Color(0xFF1E88E5)),
+            _buildStatCard(
+                'Destruction Requests',
+                _destructionRequests.length.toString(),
+                pendingDestruction,
+                const Color(0xFF1E88E5)),
+            _buildStatCard(
+                'Procurement Requests',
+                _procurementRequests.length.toString(),
+                pendingProcurement,
+                const Color(0xFF1E88E5)),
+          ];
+
+          if (constraints.maxWidth < 700) {
+            return Column(
+              children: [
+                cards[0],
+                const SizedBox(height: 12),
+                cards[1],
+                const SizedBox(height: 12),
+                cards[2],
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: cards[0]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[1]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[2]),
+            ],
+          );
+        },
       ),
     );
   }
@@ -313,6 +333,8 @@ class _ReportsScreenState extends State<ReportsScreen>
           Expanded(
             child: TabBar(
               controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
               indicatorColor: const Color(0xFF1E88E5),
               labelColor: const Color(0xFF1E88E5),
               unselectedLabelColor: const Color(0xFF78909C),
@@ -365,7 +387,7 @@ class _ReportsScreenState extends State<ReportsScreen>
   }
 
   Widget _buildLossReportsTab(bool isStation,
-      {bool canApprove = false, bool canDelete = false}) {
+      {bool canApprove = false, bool canDelete = false, bool isHQ = false}) {
     if (_isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
@@ -380,14 +402,15 @@ class _ReportsScreenState extends State<ReportsScreen>
       itemCount: _lossReports.length,
       itemBuilder: (context, index) => _buildLossReportCard(
           _lossReports[index], isStation,
-          canApprove: canApprove, canDelete: canDelete),
+          canApprove: canApprove, canDelete: canDelete, isHQ: isHQ),
     );
   }
 
   Widget _buildLossReportCard(Map<String, dynamic> report, bool isStation,
-      {bool canApprove = false, bool canDelete = false}) {
+      {bool canApprove = false, bool canDelete = false, bool isHQ = false}) {
     final status = report['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
+    final deleteEnabled = canDelete && !(isHQ && status == 'pending');
     final createdAt = report['created_at'] != null
         ? DateFormat('MMM dd, yyyy')
             .format(DateTime.parse(report['created_at']))
@@ -432,7 +455,7 @@ class _ReportsScreenState extends State<ReportsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (canDelete) ...[
+                if (deleteEnabled) ...[
                   OutlinedButton(
                     onPressed: () => _handleDeleteReport(report, 'loss'),
                     style: OutlinedButton.styleFrom(
@@ -480,7 +503,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               ],
             ),
           ],
-          if ((!canApprove || status != 'pending') && canDelete) ...[
+          if ((!canApprove || status != 'pending') && deleteEnabled) ...[
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -507,7 +530,7 @@ class _ReportsScreenState extends State<ReportsScreen>
   }
 
   Widget _buildDestructionRequestsTab(bool isStation,
-      {bool canApprove = false, bool canDelete = false}) {
+      {bool canApprove = false, bool canDelete = false, bool isHQ = false}) {
     if (_isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
@@ -523,14 +546,15 @@ class _ReportsScreenState extends State<ReportsScreen>
       itemCount: _destructionRequests.length,
       itemBuilder: (context, index) => _buildDestructionCard(
           _destructionRequests[index], isStation,
-          canApprove: canApprove, canDelete: canDelete),
+          canApprove: canApprove, canDelete: canDelete, isHQ: isHQ),
     );
   }
 
   Widget _buildDestructionCard(Map<String, dynamic> request, bool isStation,
-      {bool canApprove = false, bool canDelete = false}) {
+      {bool canApprove = false, bool canDelete = false, bool isHQ = false}) {
     final status = request['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
+    final deleteEnabled = canDelete && !(isHQ && status == 'pending');
     final createdAt = request['created_at'] != null
         ? DateFormat('MMM dd, yyyy')
             .format(DateTime.parse(request['created_at']))
@@ -575,7 +599,7 @@ class _ReportsScreenState extends State<ReportsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (canDelete) ...[
+                if (deleteEnabled) ...[
                   OutlinedButton(
                     onPressed: () =>
                         _handleDeleteReport(request, 'destruction'),
@@ -624,7 +648,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               ],
             ),
           ],
-          if ((!canApprove || status != 'pending') && canDelete) ...[
+          if ((!canApprove || status != 'pending') && deleteEnabled) ...[
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -651,7 +675,7 @@ class _ReportsScreenState extends State<ReportsScreen>
   }
 
   Widget _buildProcurementRequestsTab(bool isStation,
-      {bool canApprove = false, bool canDelete = false}) {
+      {bool canApprove = false, bool canDelete = false, bool isHQ = false}) {
     if (_isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
@@ -667,14 +691,15 @@ class _ReportsScreenState extends State<ReportsScreen>
       itemCount: _procurementRequests.length,
       itemBuilder: (context, index) => _buildProcurementCard(
           _procurementRequests[index], isStation,
-          canApprove: canApprove, canDelete: canDelete),
+          canApprove: canApprove, canDelete: canDelete, isHQ: isHQ),
     );
   }
 
   Widget _buildProcurementCard(Map<String, dynamic> request, bool isStation,
-      {bool canApprove = false, bool canDelete = false}) {
+      {bool canApprove = false, bool canDelete = false, bool isHQ = false}) {
     final status = request['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
+    final deleteEnabled = canDelete && !(isHQ && status == 'pending');
     final createdAt = request['created_at'] != null
         ? DateFormat('MMM dd, yyyy')
             .format(DateTime.parse(request['created_at']))
@@ -718,7 +743,7 @@ class _ReportsScreenState extends State<ReportsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (canDelete) ...[
+                if (deleteEnabled) ...[
                   OutlinedButton(
                     onPressed: () =>
                         _handleDeleteReport(request, 'procurement'),
@@ -737,7 +762,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                 ],
                 OutlinedButton(
                   onPressed: () =>
-                      _handleReportAction(request, 'procurement', 'rejected'),
+                      _showReviewActionDialog(request, 'procurement', 'rejected'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFFE85C5C),
                     side: const BorderSide(color: Color(0xFF37404F)),
@@ -752,7 +777,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () =>
-                      _handleReportAction(request, 'procurement', 'approved'),
+                      _showReviewActionDialog(request, 'procurement', 'approved'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E88E5),
                     foregroundColor: Colors.white,
@@ -767,7 +792,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               ],
             ),
           ],
-          if ((!canApprove || status != 'pending') && canDelete) ...[
+          if ((!canApprove || status != 'pending') && deleteEnabled) ...[
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -1076,128 +1101,42 @@ class _ReportsScreenState extends State<ReportsScreen>
   }
 
   void _showProcurementRequestDialog() {
-    String firearmType = 'pistol';
-    int quantity = 1;
-    final justificationController = TextEditingController();
-
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF252A3A),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.add_shopping_cart, color: Color(0xFF1E88E5)),
-              SizedBox(width: 12),
-              Text('Request Firearms', style: TextStyle(color: Colors.white)),
-            ],
-          ),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildDropdownField(
-                    'Firearm Type',
-                    firearmType,
-                    ['pistol', 'rifle', 'shotgun', 'smg', 'other'],
-                    (value) => setDialogState(() => firearmType = value!),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Text('Quantity:',
-                          style: TextStyle(color: Color(0xFF78909C))),
-                      const SizedBox(width: 16),
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle,
-                            color: Color(0xFF1E88E5)),
-                        onPressed: quantity > 1
-                            ? () => setDialogState(() => quantity--)
-                            : null,
-                      ),
-                      Text('$quantity',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold)),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle,
-                            color: Color(0xFF1E88E5)),
-                        onPressed: () => setDialogState(() => quantity++),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(justificationController, 'Justification',
-                      maxLines: 3),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFB0BEC5),
-                side: const BorderSide(color: Color(0xFF37404F)),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Cancel', style: TextStyle(fontSize: 15)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (justificationController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Please provide justification'),
-                        backgroundColor: Color(0xFFE85C5C)),
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext);
-                try {
-                  await _reportService.createProcurementRequest(
-                    firearmType: firearmType,
-                    quantity: quantity,
-                    justification: justificationController.text,
-                  );
-                  if (mounted) {
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Procurement request submitted'),
-                          backgroundColor: Color(0xFF3CCB7F)),
-                    );
-                    _loadData();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      SnackBar(
-                          content: Text('Error: $e'),
-                          backgroundColor: const Color(0xFFE85C5C)),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88E5),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  )),
-              child: const Text('Submit Request'),
-            ),
-          ],
-        ),
+      barrierDismissible: false,
+      builder: (dialogContext) => ProcurementRequestDialog(
+        onSubmit: (List<Map<String, dynamic>> requests, String priority, DateTime requiredBy, String justification) async {
+          try {
+            final formattedDate = DateFormat('MMM dd, yyyy').format(requiredBy);
+            final combinedJustification = "Required by: $formattedDate\n\n$justification";
+            
+            // Loop through each firearm type requested and submit sequentially
+            for (var requestItem in requests) {
+              await _reportService.createProcurementRequest(
+                firearmType: requestItem['type'],
+                quantity: requestItem['quantity'],
+                justification: combinedJustification,
+                priority: priority,
+              );
+            }
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Procurement requests submitted successfully'),
+                    backgroundColor: Color(0xFF3CCB7F)),
+              );
+              _loadData();
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('Error: $e'),
+                    backgroundColor: const Color(0xFFE85C5C)),
+              );
+            }
+          }
+        },
       ),
     );
   }
@@ -1277,7 +1216,7 @@ class _ReportsScreenState extends State<ReportsScreen>
   }
 
   Future<void> _handleReportAction(
-      Map<String, dynamic> report, String type, String action) async {
+      Map<String, dynamic> report, String type, String action, {String? reviewNotes}) async {
     try {
       // Handle approval/rejection based on type
       if (type == 'loss') {
@@ -1288,7 +1227,8 @@ class _ReportsScreenState extends State<ReportsScreen>
             report['destruction_id'].toString(), action);
       } else if (type == 'procurement') {
         await _reportService.updateProcurementRequestStatus(
-            report['procurement_id'].toString(), action);
+            report['procurement_id'].toString(), action,
+            reviewNotes: reviewNotes);
       }
 
       if (mounted) {
@@ -1315,6 +1255,68 @@ class _ReportsScreenState extends State<ReportsScreen>
               backgroundColor: const Color(0xFFE85C5C)),
         );
       }
+    }
+  }
+
+  Future<void> _showReviewActionDialog(
+      Map<String, dynamic> report, String type, String action) async {
+    final remarksController = TextEditingController();
+    final bool isApproval = action == 'approved';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF252A3A),
+        title: Text(isApproval ? 'Approve Request' : 'Reject Request',
+            style: const TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+                isApproval
+                    ? 'Are you sure you want to approve this request?'
+                    : 'Are you sure you want to reject this request?',
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 14)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: remarksController,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Add review notes (optional)',
+                hintStyle: const TextStyle(color: Color(0xFF78909C)),
+                filled: true,
+                fillColor: const Color(0xFF1E2330),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFFB0BEC5))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isApproval ? const Color(0xFF3CCB7F) : const Color(0xFFE85C5C),
+            ),
+            child: Text(isApproval ? 'Approve' : 'Reject'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _handleReportAction(report, type, action,
+          reviewNotes: remarksController.text.trim().isNotEmpty
+              ? remarksController.text.trim()
+              : null);
     }
   }
 

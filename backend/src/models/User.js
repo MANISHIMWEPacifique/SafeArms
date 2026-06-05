@@ -145,6 +145,17 @@ const User = {
             values
         );
 
+        if (result.rows.length > 0 && (updates.unit_id !== undefined || updates.role !== undefined)) {
+            const updatedUser = result.rows[0];
+            const isEligibleRole = ['admin', 'hq_firearm_commander', 'station_commander'].includes(updatedUser.role);
+            
+            if (!isEligibleRole || !updatedUser.unit_id) {
+                await query('UPDATE units SET commander_user_id = NULL, commander_name = NULL WHERE commander_user_id = $1', [userId]);
+            } else {
+                await query('UPDATE units SET commander_user_id = NULL, commander_name = NULL WHERE commander_user_id = $1 AND unit_id != $2', [userId, updatedUser.unit_id]);
+            }
+        }
+
         return result.rows[0];
     },
 
@@ -155,6 +166,9 @@ const User = {
      */
     async delete(userId) {
         return await withTransaction(async (client) => {
+            // Nullify unit commander references
+            await client.query('UPDATE units SET commander_user_id = NULL, commander_name = NULL WHERE commander_user_id = $1', [userId]);
+
             // Delete records from tables with NOT NULL user references
             await client.query('DELETE FROM anomaly_investigations WHERE investigator_id = $1', [userId]);
             await client.query('DELETE FROM ballistic_access_logs WHERE accessed_by = $1', [userId]);

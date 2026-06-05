@@ -361,6 +361,23 @@ const determineAnomalyType = (features, kmeansResult, statisticalResult, rulesRe
     }
 
     if (kmeansResult?.is_anomaly) {
+        // Cross-reference K-Means triggered anomalies with explicit defined thresholds for interpretability
+        if (features.officer_issue_frequency_30d > (6 / 30)) { // ~6 per day roughly
+            return 'high_transfer_frequency';
+        }
+        
+        // Custody duration bounds (< 2 or > 48 hours for outlier mapping from raw model, fallback if rule missing)
+        if (statisticalResult?.outliers?.length > 0) {
+             const durOutlier = statisticalResult.outliers.find(o => o.feature === 'custody_duration');
+             if (durOutlier && (features.officer_avg_custody_duration_30d < 7200 || features.officer_avg_custody_duration_30d > 172800)) {
+                 return 'abnormal_custody_duration';
+             }
+        }
+         // Short assignments
+         if (features.officer_avg_custody_duration_30d < 28800 && features.officer_issue_frequency_30d > (3 / 30)) {
+             return 'excessive_short_assignments';
+         }
+
         return 'cluster_outlier';
     }
 
@@ -500,7 +517,16 @@ const buildContributingFactors = (features, kmeansResult, statisticalResult, rul
     }
 
     if (kmeansResult?.distance > 2.0) {
-        factors.cluster_outlier = `Pattern significantly deviates from normal clusters (distance: ${kmeansResult.distance.toFixed(2)})`;
+        // Build descriptive factors indicating *why* it's an outlier based on numerical feature bounds
+        if (features.officer_issue_frequency_30d > (6 / 30)) {
+            factors.high_transfer_frequency = `Officer transfer frequency ${parseFloat((features.officer_issue_frequency_30d * 30).toFixed(1))} times/day exceeds normal bounds`;
+        } else if (features.officer_avg_custody_duration_30d < 7200 || features.officer_avg_custody_duration_30d > 172800) {
+            factors.abnormal_custody_duration = `Custody duration averaging ${(features.officer_avg_custody_duration_30d / 3600).toFixed(1)}h is outside normal 2-48h bounds`;
+        } else if (features.officer_avg_custody_duration_30d < 28800 && features.officer_issue_frequency_30d > (3 / 30)) {
+            factors.excessive_short_assignments = `Multiple short-term assignments (${parseFloat((features.officer_issue_frequency_30d * 30).toFixed(1))} per day, avg ${(features.officer_avg_custody_duration_30d / 3600).toFixed(1)}h)`;
+        } else {
+            factors.cluster_outlier = `Pattern significantly deviates from normal clusters (distance: ${kmeansResult.distance.toFixed(2)})`;
+        }
     }
 
     if (features.officer_issue_frequency_30d > 2.0) {

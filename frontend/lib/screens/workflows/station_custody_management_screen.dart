@@ -142,16 +142,19 @@ class _StationCustodyManagementScreenState
   Widget _buildTopNavBar(
       BuildContext context, CustodyProvider provider, String unitName) {
     return Container(
-      height: 64,
       decoration: const BoxDecoration(
         color: Color(0xFF252A3A),
         border: Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
@@ -168,35 +171,39 @@ class _StationCustodyManagementScreenState
               ),
             ],
           ),
-          const Spacer(),
-          ElevatedButton.icon(
-            onPressed: () => setState(() => _showAssignModal = true),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Assign Custody',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          _buildMLStatus(provider),
-          const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: _loadUnitCustody,
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Refresh'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB0BEC5),
-              side: const BorderSide(color: Color(0xFF37404F)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () => setState(() => _showAssignModal = true),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Assign Custody',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E88E5),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              _buildMLStatus(provider),
+              OutlinedButton.icon(
+                onPressed: _loadUnitCustody,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Refresh'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFB0BEC5),
+                  side: const BorderSide(color: Color(0xFF37404F)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          )
         ],
       ),
     );
@@ -250,44 +257,55 @@ class _StationCustodyManagementScreenState
   Widget _buildStatsRow(CustodyProvider provider) {
     final stats = provider.stats;
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            'Active Custody',
-            stats['active']?.toString() ?? '0',
-            Icons.assignment_ind,
-            const Color(0xFF3CCB7F),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'Permanent',
-            stats['permanent']?.toString() ?? '0',
-            Icons.lock,
-            const Color(0xFF42A5F5),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'Temporary',
-            stats['temporary']?.toString() ?? '0',
-            Icons.schedule,
-            const Color(0xFFFFC857),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'Personal',
-            stats['personal']?.toString() ?? '0',
-            Icons.person,
-            const Color(0xFF9575CD),
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Switch to wrap on small screens
+        final isSmall = constraints.maxWidth < 600;
+        final childWidth = isSmall ? (constraints.maxWidth / 2) - 8 : (constraints.maxWidth / 4) - 12;
+
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: [
+            SizedBox(
+              width: childWidth,
+              child: _buildStatCard(
+                'Active Custody',
+                stats['active']?.toString() ?? '0',
+                Icons.assignment_ind,
+                const Color(0xFF3CCB7F),
+              ),
+            ),
+            SizedBox(
+              width: childWidth,
+              child: _buildStatCard(
+                'Permanent',
+                stats['permanent']?.toString() ?? '0',
+                Icons.lock,
+                const Color(0xFF42A5F5),
+              ),
+            ),
+            SizedBox(
+              width: childWidth,
+              child: _buildStatCard(
+                'Temporary',
+                stats['temporary']?.toString() ?? '0',
+                Icons.schedule,
+                const Color(0xFFFFC857),
+              ),
+            ),
+            SizedBox(
+              width: childWidth,
+              child: _buildStatCard(
+                'Personal',
+                stats['personal']?.toString() ?? '0',
+                Icons.person,
+                const Color(0xFF9575CD),
+              ),
+            ),
+          ],
+        );
+      }
     );
   }
 
@@ -471,11 +489,11 @@ class _StationCustodyManagementScreenState
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 350,
+        mainAxisExtent: 260, // Fixed height instead of varying ratio to avoid overflow with Spacer
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 0.85,
       ),
       itemCount: custodyRecords.length,
       itemBuilder: (context, index) => _buildCustodyCard(custodyRecords[index]),

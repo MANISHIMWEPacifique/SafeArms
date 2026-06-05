@@ -16,6 +16,7 @@ class Validators {
     if (value.trim().length < 3) {
       return 'Username must be at least 3 characters';
     }
+    // ignore: deprecated_member_use
     if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value.trim())) {
       return 'Username can only contain letters, numbers, and underscores';
     }
@@ -29,15 +30,19 @@ class Validators {
     if (value.length < 8) {
       return 'Password must be at least 8 characters';
     }
+    // ignore: deprecated_member_use
     if (!RegExp(r'[A-Z]').hasMatch(value)) {
       return 'Password must contain at least one uppercase letter';
     }
+    // ignore: deprecated_member_use
     if (!RegExp(r'[a-z]').hasMatch(value)) {
       return 'Password must contain at least one lowercase letter';
     }
+    // ignore: deprecated_member_use
     if (!RegExp(r'[0-9]').hasMatch(value)) {
       return 'Password must contain at least one number';
     }
+    // ignore: deprecated_member_use
     if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(value)) {
       return 'Password must contain at least one special character';
     }
@@ -48,6 +53,7 @@ class Validators {
     if (value == null || value.trim().isEmpty) {
       return 'Email is required';
     }
+    // ignore: deprecated_member_use
     if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
       return 'Enter a valid email address';
     }
@@ -56,6 +62,7 @@ class Validators {
 
   static String? phone(String? value) {
     if (value == null || value.trim().isEmpty) return null;
+    // ignore: deprecated_member_use
     if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(value.trim())) {
       return 'Enter a valid phone number';
     }
@@ -66,6 +73,7 @@ class Validators {
     if (value == null || value.trim().isEmpty) {
       return 'OTP code is required';
     }
+    // ignore: deprecated_member_use
     if (!RegExp(r'^[0-9]{6}$').hasMatch(value.trim())) {
       return 'Enter a valid 6-digit OTP code';
     }

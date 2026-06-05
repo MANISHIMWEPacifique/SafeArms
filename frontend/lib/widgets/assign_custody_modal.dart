@@ -16,11 +16,15 @@ import 'searchable_dropdown.dart';
 class AssignCustodyModal extends StatefulWidget {
   final VoidCallback onClose;
   final VoidCallback onSuccess;
+  final List<FirearmModel>? preloadedFirearms;
+  final List<OfficerModel>? preloadedOfficers;
 
   const AssignCustodyModal({
     super.key,
     required this.onClose,
     required this.onSuccess,
+    this.preloadedFirearms,
+    this.preloadedOfficers,
   });
 
   @override
@@ -128,6 +132,15 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
   }
 
   Future<void> _loadData() async {
+    if (widget.preloadedFirearms != null && widget.preloadedOfficers != null) {
+      setState(() {
+        _availableFirearms = widget.preloadedFirearms!;
+        _officers = widget.preloadedOfficers!;
+        _isLoading = false;
+      });
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     final authProvider = context.read<AuthProvider>();

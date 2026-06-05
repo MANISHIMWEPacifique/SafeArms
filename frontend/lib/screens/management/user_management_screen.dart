@@ -1294,15 +1294,19 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                       if (v.length < 8) {
                                         return 'Min 8 characters';
                                       }
+                                      // ignore: deprecated_member_use
                                       if (!RegExp(r'[A-Z]').hasMatch(v)) {
                                         return 'Need uppercase letter';
                                       }
+                                      // ignore: deprecated_member_use
                                       if (!RegExp(r'[a-z]').hasMatch(v)) {
                                         return 'Need lowercase letter';
                                       }
+                                      // ignore: deprecated_member_use
                                       if (!RegExp(r'[0-9]').hasMatch(v)) {
                                         return 'Need a number';
                                       }
+                                      // ignore: deprecated_member_use
                                       if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]')
                                           .hasMatch(v)) {
                                         return 'Need special char';
@@ -1622,6 +1626,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   void _showEditUserDialog(UserModel user, UserProvider provider) {
     final formKey = GlobalKey<FormState>();
+    String username = user.username;
     String fullName = user.fullName;
     String email = user.email;
     String phoneNumber = user.phoneNumber ?? '';
@@ -1749,19 +1754,17 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            // Username (readonly)
+                            // Username
                             TextFormField(
-                              initialValue: user.username,
-                              enabled: false,
+                              initialValue: username,
                               decoration: InputDecoration(
-                                labelText: 'Username (cannot be changed)',
+                                labelText: 'Username',
                                 labelStyle:
                                     const TextStyle(color: Colors.white54),
                                 prefixIcon: const Icon(Icons.account_circle,
                                     color: Colors.white54, size: 20),
                                 filled: true,
-                                fillColor: const Color(0xFF1A1F2E)
-                                    .withValues(alpha: 0.5),
+                                fillColor: const Color(0xFF252A3A),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: const BorderSide(
@@ -1772,13 +1775,26 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   borderSide: const BorderSide(
                                       color: Color(0xFF37404F)),
                                 ),
-                                disabledBorder: OutlineInputBorder(
+                                focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: const BorderSide(
-                                      color: Color(0xFF37404F)),
+                                      color: Color(0xFFFFC857)),
+                                ),
+                                errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFFE85C5C)),
+                                ),
+                                focusedErrorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFFE85C5C)),
                                 ),
                               ),
-                              style: const TextStyle(color: Color(0xFF78909C)),
+                              style: const TextStyle(color: Colors.white),
+                              validator: (v) =>
+                                  (v == null || v.isEmpty) ? 'Required' : null,
+                              onSaved: (v) => username = v ?? '',
                             ),
                             const SizedBox(height: 16),
                             Row(
@@ -2063,18 +2079,22 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                               if (v.length < 8) {
                                                 return 'Min 8 characters';
                                               }
+                                              // ignore: deprecated_member_use
                                               if (!RegExp(r'[A-Z]')
                                                   .hasMatch(v)) {
                                                 return 'Need uppercase letter';
                                               }
+                                              // ignore: deprecated_member_use
                                               if (!RegExp(r'[a-z]')
                                                   .hasMatch(v)) {
                                                 return 'Need lowercase letter';
                                               }
+                                              // ignore: deprecated_member_use
                                               if (!RegExp(r'[0-9]')
                                                   .hasMatch(v)) {
                                                 return 'Need a number';
                                               }
+                                              // ignore: deprecated_member_use
                                               if (!RegExp(
                                                       r'[!@#$%^&*(),.?":{}|<>]')
                                                   .hasMatch(v)) {
@@ -2145,6 +2165,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                         final success =
                                             await provider.updateUser(
                                           userId: user.userId,
+                                          username: username,
                                           fullName: fullName,
                                           email: email,
                                           phoneNumber: phoneNumber,

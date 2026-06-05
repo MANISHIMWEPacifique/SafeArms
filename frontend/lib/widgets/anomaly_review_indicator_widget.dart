@@ -338,6 +338,12 @@ class AnomalyReviewIndicatorWidget extends StatelessWidget {
         return 'Statistical Outlier Event';
       case 'ml_ensemble':
         return 'ML-Detected Event';
+      case 'abnormal_custody_duration':
+        return 'Abnormal Custody Duration Event';
+      case 'high_transfer_frequency':
+        return 'High Transfer Frequency Event';
+      case 'excessive_short_assignments':
+        return 'Excessive Short Assignments Event';
       default:
         return 'Event Requiring Review';
     }

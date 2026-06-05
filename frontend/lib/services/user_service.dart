@@ -85,6 +85,7 @@ class UserService {
   // Update user (Admin only)
   Future<UserModel> updateUser({
     required String userId,
+    String? username,
     String? fullName,
     String? email,
     String? phoneNumber,
@@ -95,6 +96,7 @@ class UserService {
   }) async {
     try {
       final Map<String, dynamic> updates = {};
+      if (username != null) updates['username'] = username;
       if (fullName != null) updates['full_name'] = fullName;
       if (email != null) updates['email'] = email;
       if (phoneNumber != null) updates['phone_number'] = phoneNumber;

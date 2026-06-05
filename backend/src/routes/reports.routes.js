@@ -18,6 +18,17 @@ const ensureDeleteAccess = (req, reportRow, reportLabel) => {
         };
     }
 
+    if (req.user.role === ROLES.HQ_COMMANDER && reportRow.status === 'pending') {
+        return {
+            allowed: false,
+            status: 403,
+            payload: {
+                success: false,
+                message: 'Access denied. HQ Commanders cannot delete pending requests. Please approve or reject them first.'
+            }
+        };
+    }
+
     if (req.user.role === ROLES.STATION_COMMANDER && req.user.unit_id !== reportRow.unit_id) {
         return {
             allowed: false,
@@ -428,10 +439,12 @@ router.get('/chain-of-custody/:firearm_id',
         const integrityCheck = await verifyChainIntegrity(firearm_id);
 
         // Log this access
+        const logId = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
         await query(`
-            INSERT INTO audit_logs (user_id, action_type, table_name, record_id, reason, ip_address, user_agent, is_chain_of_custody_event)
-            VALUES ($1, 'CHAIN_OF_CUSTODY_EXPORT', 'chain_of_custody_audit', $2, $3, $4, $5, true)
+            INSERT INTO audit_logs (log_id, user_id, action_type, table_name, record_id, reason, ip_address, user_agent, is_chain_of_custody_event)
+            VALUES ($1, $2, 'CHAIN_OF_CUSTODY_EXPORT', 'chain_of_custody_audit', $3, $4, $5, $6, true)
         `, [
+            logId,
             req.user.user_id,
             firearm_id,
             req.query.reason || 'Legal chain-of-custody export',
@@ -611,7 +624,7 @@ router.patch('/loss/:id/status', authenticate, requireRole([ROLES.HQ_COMMANDER, 
 
 router.delete('/loss/:id', authenticate, requireRole([ROLES.STATION_COMMANDER, ROLES.HQ_COMMANDER, ROLES.ADMIN]), logDelete, asyncHandler(async (req, res) => {
     const reportResult = await query(
-        `SELECT loss_id, unit_id FROM loss_reports WHERE loss_id = $1`,
+        `SELECT loss_id, unit_id, status FROM loss_reports WHERE loss_id = $1`,
         [req.params.id]
     );
 
@@ -666,7 +679,7 @@ router.patch('/destruction/:id/status', authenticate, requireRole([ROLES.HQ_COMM
 
 router.delete('/destruction/:id', authenticate, requireRole([ROLES.STATION_COMMANDER, ROLES.HQ_COMMANDER, ROLES.ADMIN]), logDelete, asyncHandler(async (req, res) => {
     const requestResult = await query(
-        `SELECT destruction_id, unit_id FROM destruction_requests WHERE destruction_id = $1`,
+        `SELECT destruction_id, unit_id, status FROM destruction_requests WHERE destruction_id = $1`,
         [req.params.id]
     );
 
@@ -719,7 +732,7 @@ router.patch('/procurement/:id/status', authenticate, requireRole([ROLES.HQ_COMM
 
 router.delete('/procurement/:id', authenticate, requireRole([ROLES.STATION_COMMANDER, ROLES.HQ_COMMANDER, ROLES.ADMIN]), logDelete, asyncHandler(async (req, res) => {
     const requestResult = await query(
-        `SELECT procurement_id, unit_id FROM procurement_requests WHERE procurement_id = $1`,
+        `SELECT procurement_id, unit_id, status FROM procurement_requests WHERE procurement_id = $1`,
         [req.params.id]
     );
 

@@ -38,10 +38,12 @@ const auditBallisticAccess = async (req, res, next) => {
     res.on('finish', async () => {
         if (res.statusCode >= 200 && res.statusCode < 300 && req.user) {
             try {
+                const logId = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
                 await query(`
-                    INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address, user_agent)
-                    VALUES ($1, 'BALLISTIC_ACCESS', 'ballistic_profiles', $2, $3, $4)
+                    INSERT INTO audit_logs (log_id, user_id, action_type, table_name, new_values, ip_address, user_agent)
+                    VALUES ($1, $2, 'BALLISTIC_ACCESS', 'ballistic_profiles', $3, $4, $5)
                 `, [
+                    logId,
                     req.user.user_id,
                     JSON.stringify({
                         endpoint: req.originalUrl,

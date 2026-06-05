@@ -136,6 +136,7 @@ class ReportService {
     required String firearmType,
     required int quantity,
     required String justification,
+    String? priority,
     String? notes,
   }) async {
     try {
@@ -145,6 +146,7 @@ class ReportService {
           'firearm_type': firearmType,
           'quantity': quantity,
           'justification': justification,
+          if (priority != null) 'priority': priority,
           'notes': notes,
         },
       );
@@ -237,11 +239,15 @@ class ReportService {
   }
 
   Future<Map<String, dynamic>> updateProcurementRequestStatus(
-      String requestId, String status) async {
+      String requestId, String status,
+      {String? reviewNotes}) async {
     try {
       final data = await ApiClient.patch(
         '${ApiConfig.reportsUrl}/procurement/$requestId/status',
-        body: {'status': status},
+        body: {
+          'status': status,
+          if (reviewNotes != null) 'review_notes': reviewNotes,
+        },
       );
       return data['data'] ?? {};
     } catch (e) {

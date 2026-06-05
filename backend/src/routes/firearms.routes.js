@@ -661,10 +661,12 @@ router.get('/:id/full-history', authenticate, asyncHandler(async (req, res) => {
     };
 
     // Log this comprehensive access
+    const logId = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
     await query(`
-        INSERT INTO audit_logs (user_id, action_type, table_name, record_id, new_values, ip_address, user_agent)
-        VALUES ($1, 'FULL_HISTORY_ACCESS', 'firearms', $2, $3, $4, $5)
+        INSERT INTO audit_logs (log_id, user_id, action_type, table_name, record_id, new_values, ip_address, user_agent)
+        VALUES ($1, $2, 'FULL_HISTORY_ACCESS', 'firearms', $3, $4, $5, $6)
     `, [
+        logId,
         req.user.user_id,
         firearmId,
         JSON.stringify({ 

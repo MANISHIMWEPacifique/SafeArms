@@ -99,11 +99,12 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         queryParams['end_date'] = _dateTo!.toIso8601String();
       }
       if (_usernameController.text.trim().isNotEmpty) {
-        // Find user by name
+        final query = _usernameController.text.trim().toLowerCase();
+        // Find user by full name or username
         final matchedUser = _users.firstWhere(
-          (u) => (u['full_name']?.toString() ?? '').toLowerCase().contains(
-                _usernameController.text.trim().toLowerCase(),
-              ),
+          (u) =>
+              (u['full_name']?.toString() ?? '').toLowerCase().contains(query) ||
+              (u['username']?.toString() ?? '').toLowerCase().contains(query),
           orElse: () => {},
         );
         if (matchedUser.isNotEmpty) {

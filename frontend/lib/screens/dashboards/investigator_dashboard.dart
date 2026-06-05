@@ -1094,6 +1094,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
     final dashboardStats = dashboardProvider.dashboardStats;
     final custodyEvents =
         (dashboardStats?['recent_custody_events'] as List<dynamic>?) ?? [];
+    final isNarrow = MediaQuery.of(context).size.width < 900;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1148,81 +1149,86 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
               ),
             )
           else
-            DataTable(
-              headingRowColor: WidgetStateProperty.all(
-                const Color(0xFF252A3A),
-              ),
-              dataRowColor: WidgetStateProperty.all(const Color(0xFF2A3040)),
-              headingRowHeight: 44,
-              dataRowMinHeight: 48,
-              dataRowMaxHeight: 48,
-              columnSpacing: 20,
-              columns: const [
-                DataColumn(
-                  label: Text(
-                    'STATUS',
-                    style: TextStyle(
-                      color: Color(0xFFB0BEC5),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(
+                  const Color(0xFF252A3A),
+                ),
+                dataRowColor: WidgetStateProperty.all(const Color(0xFF2A3040)),
+                headingRowHeight: 44,
+                dataRowMinHeight: 48,
+                dataRowMaxHeight: 48,
+                columnSpacing: 20,
+                columns: [
+                  const DataColumn(
+                    label: Text(
+                      'STATUS',
+                      style: TextStyle(
+                        color: Color(0xFFB0BEC5),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'FIREARM',
-                    style: TextStyle(
-                      color: Color(0xFFB0BEC5),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  const DataColumn(
+                    label: Text(
+                      'FIREARM',
+                      style: TextStyle(
+                        color: Color(0xFFB0BEC5),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'OFFICER',
-                    style: TextStyle(
-                      color: Color(0xFFB0BEC5),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  const DataColumn(
+                    label: Text(
+                      'OFFICER',
+                      style: TextStyle(
+                        color: Color(0xFFB0BEC5),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'UNIT',
-                    style: TextStyle(
-                      color: Color(0xFFB0BEC5),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  if (!isNarrow)
+                    const DataColumn(
+                      label: Text(
+                        'UNIT',
+                        style: TextStyle(
+                          color: Color(0xFFB0BEC5),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'TYPE',
-                    style: TextStyle(
-                      color: Color(0xFFB0BEC5),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  if (!isNarrow)
+                    const DataColumn(
+                      label: Text(
+                        'TYPE',
+                        style: TextStyle(
+                          color: Color(0xFFB0BEC5),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'ISSUED',
-                    style: TextStyle(
-                      color: Color(0xFFB0BEC5),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  if (!isNarrow)
+                    const DataColumn(
+                      label: Text(
+                        'ISSUED',
+                        style: TextStyle(
+                          color: Color(0xFFB0BEC5),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
-              rows: custodyEvents.take(6).map<DataRow>((event) {
-                final custodyStatus =
-                    event['custody_status']?.toString() ?? 'active';
-                final isActive = custodyStatus == 'active';
+                ],
+                rows: custodyEvents.take(6).map<DataRow>((event) {
+                  final custodyStatus =
+                      event['custody_status']?.toString() ?? 'active';
+                  final isActive = custodyStatus == 'active';
 
                 return DataRow(
                   cells: [
@@ -1253,42 +1259,46 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
                         ),
                       ),
                     ),
-                    DataCell(
-                      Text(
-                        event['unit_name']?.toString() ?? 'N/A',
-                        style: const TextStyle(
-                          color: Color(0xFFB0BEC5),
-                          fontSize: 13,
+                    if (!isNarrow)
+                      DataCell(
+                        Text(
+                          event['unit_name']?.toString() ?? 'N/A',
+                          style: const TextStyle(
+                            color: Color(0xFFB0BEC5),
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                    ),
-                    DataCell(
-                      Text(
-                        (event['custody_type']?.toString() ?? '')
-                            .replaceAll('_', ' '),
-                        style: const TextStyle(
-                          color: Color(0xFFB0BEC5),
-                          fontSize: 13,
+                    if (!isNarrow)
+                      DataCell(
+                        Text(
+                          (event['custody_type']?.toString() ?? '')
+                              .replaceAll('_', ' '),
+                          style: const TextStyle(
+                            color: Color(0xFFB0BEC5),
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                    ),
-                    DataCell(
-                      Text(
-                        _formatTimeAgo(
-                          (event['custody_status'] == 'returned'
-                                  ? event['returned_at']?.toString()
-                                  : event['issued_at']?.toString()) ??
-                              event['issued_at']?.toString(),
-                        ),
-                        style: const TextStyle(
-                          color: Color(0xFF78909C),
-                          fontSize: 13,
+                    if (!isNarrow)
+                      DataCell(
+                        Text(
+                          _formatTimeAgo(
+                            (event['custody_status'] == 'returned'
+                                    ? event['returned_at']?.toString()
+                                    : event['issued_at']?.toString()) ??
+                                event['issued_at']?.toString(),
+                          ),
+                          style: const TextStyle(
+                            color: Color(0xFF78909C),
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 );
               }).toList(),
+            ),
             ),
         ],
       ),

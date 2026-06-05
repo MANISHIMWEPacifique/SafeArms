@@ -29,6 +29,7 @@ class UserAvatar extends StatelessWidget {
     if (name.isEmpty) return 'U';
 
     final parts =
+        // ignore: deprecated_member_use
         name.split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
 
     if (parts.length == 1) {

@@ -38,10 +38,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   // Password validation
   bool _hasMinLength(String password) => password.length >= 8;
+  // ignore: deprecated_member_use
   bool _hasUppercase(String password) => password.contains(RegExp(r'[A-Z]'));
+  // ignore: deprecated_member_use
   bool _hasLowercase(String password) => password.contains(RegExp(r'[a-z]'));
+  // ignore: deprecated_member_use
   bool _hasNumber(String password) => password.contains(RegExp(r'[0-9]'));
   bool _hasSpecialChar(String password) =>
+      // ignore: deprecated_member_use
       password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
 
   bool _isPasswordValid(String password) {

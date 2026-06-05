@@ -96,17 +96,20 @@ class SideMenuWidget extends StatelessWidget {
                   top: BorderSide(color: Color(0xFF37404F), width: 1),
                 ),
               ),
-              child: ListTile(
-                leading: const Icon(
-                  Icons.logout,
-                  color: Color(0xFFE85C5C),
-                  size: 20,
+              child: Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.logout,
+                    color: Color(0xFFE85C5C),
+                    size: 20,
+                  ),
+                  title: const Text(
+                    'Logout',
+                    style: TextStyle(color: Color(0xFFE85C5C), fontSize: 14),
+                  ),
+                  onTap: onLogout,
                 ),
-                title: const Text(
-                  'Logout',
-                  style: TextStyle(color: Color(0xFFE85C5C), fontSize: 14),
-                ),
-                onTap: onLogout,
               ),
             ),
         ],
@@ -127,28 +130,31 @@ class SideMenuWidget extends StatelessWidget {
             ? Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3))
             : null,
       ),
-      child: ListTile(
-        leading: Icon(
-          item.icon,
-          color: isSelected ? const Color(0xFF1E88E5) : const Color(0xFF78909C),
-          size: 20,
-        ),
-        title: Text(
-          item.label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFFB0BEC5),
-            fontSize: 14,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          leading: Icon(
+            item.icon,
+            color: isSelected ? const Color(0xFF1E88E5) : const Color(0xFF78909C),
+            size: 20,
           ),
+          title: Text(
+            item.label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : const Color(0xFFB0BEC5),
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+          dense: true,
+          onTap: () {
+            onTap();
+            final scaffoldState = Scaffold.maybeOf(context);
+            if (scaffoldState?.isDrawerOpen ?? false) {
+              Navigator.of(context).pop();
+            }
+          },
         ),
-        dense: true,
-        onTap: () {
-          onTap();
-          final scaffoldState = Scaffold.maybeOf(context);
-          if (scaffoldState?.isDrawerOpen ?? false) {
-            Navigator.of(context).pop();
-          }
-        },
       ),
     );
   }

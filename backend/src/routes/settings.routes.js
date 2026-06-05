@@ -293,10 +293,11 @@ router.put('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
     }
     
     // Log the settings update
+    const logId = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
     await query(`
-        INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
-        VALUES ($1, 'UPDATE', 'system_settings', $2, $3)
-    `, [req.user.user_id, JSON.stringify(sanitizedSettings), req.ip]);
+        INSERT INTO audit_logs (log_id, user_id, action_type, table_name, new_values, ip_address)
+        VALUES ($1, $2, 'UPDATE', 'system_settings', $3, $4)
+    `, [logId, req.user.user_id, JSON.stringify(sanitizedSettings), req.ip]);
 
     const currentSettings = getCachedSettings() || getDefaultSettings();
     setCachedSettings({
@@ -386,10 +387,11 @@ router.get('/config', authenticate, requireAdmin, asyncHandler(async (req, res) 
 router.put('/config', authenticate, requireAdmin, asyncHandler(async (req, res) => {
     const config = req.body;
     
+    const logId = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
     await query(`
-        INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
-        VALUES ($1, 'UPDATE', 'ml_configuration', $2, $3)
-    `, [req.user.user_id, JSON.stringify(config), req.ip]);
+        INSERT INTO audit_logs (log_id, user_id, action_type, table_name, new_values, ip_address)
+        VALUES ($1, $2, 'UPDATE', 'ml_configuration', $3, $4)
+    `, [logId, req.user.user_id, JSON.stringify(config), req.ip]);
     
     res.json({
         success: true,
@@ -409,10 +411,12 @@ router.post('/train', authenticate, requireAdmin, asyncHandler(async (req, res) 
     
     // Log the training initiation gracefully
     try {
+        const logIdTraining = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
         await query(`
-            INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
-            VALUES ($1, 'TRAIN', 'ml_model', $2, $3)
+            INSERT INTO audit_logs (log_id, user_id, action_type, table_name, new_values, ip_address)
+            VALUES ($1, $2, 'TRAIN', 'ml_model', $3, $4)
         `, [
+            logIdTraining,
             req.user.user_id,
             JSON.stringify({ status: 'initiated', force, wait }),
             req.ip
@@ -483,10 +487,12 @@ router.post('/generate-training-data', authenticate, requireAdmin, asyncHandler(
         throw error;
     }
 
+    const logIdGenerate = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
     await query(`
-        INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
-        VALUES ($1, 'GENERATE_TRAINING_DATA', 'custody_records', $2, $3)
+        INSERT INTO audit_logs (log_id, user_id, action_type, table_name, new_values, ip_address)
+        VALUES ($1, $2, 'GENERATE_TRAINING_DATA', 'custody_records', $3, $4)
     `, [
+        logIdGenerate,
         req.user.user_id,
         JSON.stringify(result),
         req.ip
@@ -616,10 +622,11 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
 router.post('/scan-overdue', authenticate, requireAdmin, asyncHandler(async (req, res) => {
     logger.info(`Overdue custody scan triggered by user: ${req.user.user_id}`);
 
+    const logIdScan = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
     await query(`
-        INSERT INTO audit_logs (user_id, action_type, table_name, new_values, ip_address)
-        VALUES ($1, 'SCAN', 'custody_records', '{"type": "overdue_scan"}', $2)
-    `, [req.user.user_id, req.ip]);
+        INSERT INTO audit_logs (log_id, user_id, action_type, table_name, new_values, ip_address)
+        VALUES ($1, $2, 'SCAN', 'custody_records', '{"type": "overdue_scan"}', $3)
+    `, [logIdScan, req.user.user_id, req.ip]);
 
     const result = await triggerManualOverdueScan();
 

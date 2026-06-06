@@ -322,9 +322,11 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
 
   Widget _buildTab(String label, String view, IconData icon) {
     final isActive = _activeView == view;
+    final minWidth = view == 'investigation' ? 220.0 : 160.0;
     return InkWell(
       onTap: () => setState(() => _activeView = view),
       child: Container(
+        constraints: BoxConstraints(minWidth: minWidth),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isActive
@@ -338,6 +340,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
           ),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon,
                 color: isActive
@@ -1172,6 +1175,24 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   }
 }
 
+class _SearchTableHeader extends StatelessWidget {
+  final String label;
+
+  const _SearchTableHeader(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(
+        color: Color(0xFF78909C),
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
 // ============================================================
 // Investigation Search Panel - Filter by unit and time interval
 // ============================================================
@@ -1202,11 +1223,16 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
   }
 
   Future<void> _selectDate(bool isStart) async {
+    final today = DateTime.now();
+    final initialDate = isStart
+        ? (_startDate ?? _endDate ?? today.subtract(const Duration(days: 30)))
+        : (_endDate ?? today);
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 30)),
+      initialDate: initialDate.isAfter(today) ? today : initialDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      lastDate: today,
       builder: (context, child) {
         return Theme(
           data: ThemeData.dark().copyWith(
@@ -1250,8 +1276,14 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
       setState(() {
         if (isStart) {
           _startDate = picked;
+          if (_endDate != null && picked.isAfter(_endDate!)) {
+            _endDate = null;
+          }
         } else {
           _endDate = picked;
+          if (_startDate != null && picked.isBefore(_startDate!)) {
+            _startDate = null;
+          }
         }
       });
     }
@@ -1273,235 +1305,211 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Search Form
-        Container(
-          margin: const EdgeInsets.all(20),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color(0xFF252A3A),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF37404F)),
-          ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isTablet = constraints.maxWidth < 1100;
-              final fieldWidth = constraints.maxWidth < 680
-                  ? constraints.maxWidth
-                  : (constraints.maxWidth - 16) / 2;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalPadding = constraints.maxWidth < 720 ? 12.0 : 20.0;
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
-                        ),
-                        child: const Icon(Icons.search,
-                            color: Color(0xFF1E88E5), size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Investigation Search',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600)),
-                            Text(
-                                'Search anomaly data by unit and time interval',
-                                style: TextStyle(
-                                    color: Colors.white54, fontSize: 12),
-                                overflow: TextOverflow.ellipsis),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  if (!isTablet) ...[
-                    Row(
-                      children: [
-                        Expanded(child: _buildUnitDropdown()),
-                        const SizedBox(width: 16),
-                        Expanded(
-                            child: _buildDatePicker('Start Date', _startDate,
-                                () => _selectDate(true))),
-                        const SizedBox(width: 16),
-                        Expanded(
-                            child: _buildDatePicker('End Date', _endDate,
-                                () => _selectDate(false))),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildDropdownField(
-                            'Severity',
-                            _searchSeverity,
-                            [
-                              {'value': 'all', 'label': 'All Severities'},
-                              {'value': 'critical', 'label': 'Critical'},
-                              {'value': 'high', 'label': 'High'},
-                              {'value': 'medium', 'label': 'Medium'},
-                              {'value': 'low', 'label': 'Low'},
-                            ],
-                            (v) => setState(() => _searchSeverity = v!),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildDropdownField(
-                            'Status',
-                            _searchStatus,
-                            [
-                              {'value': 'all', 'label': 'All Statuses'},
-                              {'value': 'open', 'label': 'Open'},
-                              {
-                                'value': 'investigating',
-                                'label': 'Investigating'
-                              },
-                              {'value': 'resolved', 'label': 'Resolved'},
-                              {
-                                'value': 'false_positive',
-                                'label': 'False Positive'
-                              },
-                              {
-                                'value': 'acceptable_change',
-                                'label': 'Acceptable Change'
-                              },
-                            ],
-                            (v) => setState(() => _searchStatus = v!),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('', style: TextStyle(fontSize: 11)),
-                              const SizedBox(height: 2),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: _performSearch,
-                                  icon: const Icon(Icons.search, size: 18),
-                                  label: const Text('Search'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF1E88E5),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ] else ...[
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 12,
-                      children: [
-                        SizedBox(
-                            width: fieldWidth, child: _buildUnitDropdown()),
-                        SizedBox(
-                            width: fieldWidth,
-                            child: _buildDatePicker('Start Date', _startDate,
-                                () => _selectDate(true))),
-                        SizedBox(
-                            width: fieldWidth,
-                            child: _buildDatePicker('End Date', _endDate,
-                                () => _selectDate(false))),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: _buildDropdownField(
-                            'Severity',
-                            _searchSeverity,
-                            [
-                              {'value': 'all', 'label': 'All Severities'},
-                              {'value': 'critical', 'label': 'Critical'},
-                              {'value': 'high', 'label': 'High'},
-                              {'value': 'medium', 'label': 'Medium'},
-                              {'value': 'low', 'label': 'Low'},
-                            ],
-                            (v) => setState(() => _searchSeverity = v!),
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: _buildDropdownField(
-                            'Status',
-                            _searchStatus,
-                            [
-                              {'value': 'all', 'label': 'All Statuses'},
-                              {'value': 'open', 'label': 'Open'},
-                              {
-                                'value': 'investigating',
-                                'label': 'Investigating'
-                              },
-                              {'value': 'resolved', 'label': 'Resolved'},
-                              {
-                                'value': 'false_positive',
-                                'label': 'False Positive'
-                              },
-                              {
-                                'value': 'acceptable_change',
-                                'label': 'Acceptable Change'
-                              },
-                            ],
-                            (v) => setState(() => _searchStatus = v!),
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('', style: TextStyle(fontSize: 11)),
-                              const SizedBox(height: 2),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: _performSearch,
-                                  icon: const Icon(Icons.search, size: 18),
-                                  label: const Text('Search'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF1E88E5),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              );
-            },
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            20,
+            horizontalPadding,
+            20,
           ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildSearchForm(),
+              const SizedBox(height: 20),
+              _buildSearchResults(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchForm() {
+    final severityItems = [
+      {'value': 'all', 'label': 'All Severities'},
+      {'value': 'critical', 'label': 'Critical'},
+      {'value': 'high', 'label': 'High'},
+      {'value': 'medium', 'label': 'Medium'},
+      {'value': 'low', 'label': 'Low'},
+    ];
+    final statusItems = [
+      {'value': 'all', 'label': 'All Statuses'},
+      {'value': 'open', 'label': 'Open'},
+      {'value': 'investigating', 'label': 'Investigating'},
+      {'value': 'resolved', 'label': 'Resolved'},
+      {'value': 'false_positive', 'label': 'False Positive'},
+      {'value': 'acceptable_change', 'label': 'Acceptable Change'},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252A3A),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF37404F)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isSingleColumn = constraints.maxWidth < 680;
+          final fieldWidth = isSingleColumn
+              ? constraints.maxWidth
+              : (constraints.maxWidth - 16) / 2;
+
+          final fields = [
+            SizedBox(width: fieldWidth, child: _buildUnitDropdown()),
+            SizedBox(
+              width: fieldWidth,
+              child: _buildDatePicker(
+                'Start Date',
+                _startDate,
+                () => _selectDate(true),
+              ),
+            ),
+            SizedBox(
+              width: fieldWidth,
+              child: _buildDatePicker(
+                'End Date',
+                _endDate,
+                () => _selectDate(false),
+              ),
+            ),
+            SizedBox(
+              width: fieldWidth,
+              child: _buildDropdownField(
+                'Severity',
+                _searchSeverity,
+                severityItems,
+                (v) => setState(() => _searchSeverity = v!),
+              ),
+            ),
+            SizedBox(
+              width: fieldWidth,
+              child: _buildDropdownField(
+                'Status',
+                _searchStatus,
+                statusItems,
+                (v) => setState(() => _searchStatus = v!),
+              ),
+            ),
+            SizedBox(width: fieldWidth, child: _buildSearchActions()),
+          ];
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+                    ),
+                    child: const Icon(
+                      Icons.search,
+                      color: Color(0xFF1E88E5),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Investigation Search',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          'Search anomaly data by unit and time interval',
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: fields,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSearchActions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Actions',
+          style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11),
         ),
-        // Results
-        Expanded(child: _buildSearchResults()),
+        const SizedBox(height: 2),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _performSearch,
+                icon: const Icon(Icons.search, size: 18),
+                label: const Text('Search'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E88E5),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _clearFilters,
+                icon: const Icon(Icons.filter_list_off, size: 18),
+                label: const Text('Clear'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFB0BEC5),
+                  side: const BorderSide(color: Color(0xFF37404F)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _selectedUnitId = null;
+      _startDate = null;
+      _endDate = null;
+      _searchSeverity = 'all';
+      _searchStatus = 'all';
+    });
   }
 
   Widget _buildUnitDropdown() {
@@ -1541,7 +1549,11 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
     );
   }
 
-  Widget _buildDatePicker(String label, DateTime? date, VoidCallback onTap) {
+  Widget _buildDatePicker(
+    String label,
+    DateTime? date,
+    VoidCallback onTap,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1618,47 +1630,51 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
     return Consumer<AnomalyProvider>(
       builder: (context, provider, _) {
         if (provider.isLoading) {
-          return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF1E88E5)));
+          return const SizedBox(
+            height: 220,
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
+            ),
+          );
         }
 
         final results = provider.investigationResults;
         if (results.isEmpty) {
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search_off,
-                            color:
-                                const Color(0xFF78909C).withValues(alpha: 0.5),
-                            size: 64),
-                        const SizedBox(height: 16),
-                        const Text('No results',
-                            style: TextStyle(
-                                color: Color(0xFFB0BEC5), fontSize: 18)),
-                        const SizedBox(height: 8),
-                        const Text(
-                            'Use the filters above to search for anomalies related to your investigation',
-                            style: TextStyle(
-                                color: Color(0xFF78909C), fontSize: 14),
-                            textAlign: TextAlign.center),
-                      ],
-                    ),
+          return Container(
+            constraints: const BoxConstraints(minHeight: 260),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF252A3A),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFF37404F)),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.search_off,
+                    color: const Color(0xFF78909C).withValues(alpha: 0.5),
+                    size: 64,
                   ),
-                ),
-              );
-            },
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No results',
+                    style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Use the filters above to search for anomalies related to your investigation',
+                    style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
           );
         }
 
         return Container(
-          margin: const EdgeInsets.only(left: 20, right: 20, bottom: 8),
           decoration: BoxDecoration(
             color: const Color(0xFF252A3A),
             borderRadius: BorderRadius.circular(10),
@@ -1692,214 +1708,139 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                   ],
                 ),
               ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final tableWidth = constraints.maxWidth < 900
-                        ? 900.0
-                        : constraints.maxWidth;
-                    final tableBodyHeight = constraints.maxHeight > 52
-                        ? constraints.maxHeight - 52
-                        : 0.0;
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final tableWidth =
+                      constraints.maxWidth < 980 ? 980.0 : constraints.maxWidth;
 
-                    return SingleChildScrollView(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: SizedBox(
-                          width: tableWidth,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Table header
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 10),
-                                decoration: const BoxDecoration(
-                                  border: Border(
-                                      bottom: BorderSide(
-                                          color: Color(0xFF37404F), width: 1)),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Expanded(
-                                        flex: 2,
-                                        child: Text('ID',
-                                            style: TextStyle(
-                                                color: Color(0xFF78909C),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600))),
-                                    Expanded(
-                                        flex: 2,
-                                        child: Text('Type',
-                                            style: TextStyle(
-                                                color: Color(0xFF78909C),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600))),
-                                    Expanded(
-                                        flex: 1,
-                                        child: Text('Severity',
-                                            style: TextStyle(
-                                                color: Color(0xFF78909C),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600))),
-                                    Expanded(
-                                        flex: 2,
-                                        child: Text('Officer',
-                                            style: TextStyle(
-                                                color: Color(0xFF78909C),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600))),
-                                    Expanded(
-                                        flex: 2,
-                                        child: Text('Unit',
-                                            style: TextStyle(
-                                                color: Color(0xFF78909C),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600))),
-                                    Expanded(
-                                        flex: 2,
-                                        child: Text('Detected',
-                                            style: TextStyle(
-                                                color: Color(0xFF78909C),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600))),
-                                    Expanded(
-                                        flex: 1,
-                                        child: Text('Status',
-                                            style: TextStyle(
-                                                color: Color(0xFF78909C),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600))),
-                                    Expanded(
-                                        flex: 1,
-                                        child: Text('Actions',
-                                            style: TextStyle(
-                                                color: Color(0xFF78909C),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600))),
-                                  ],
-                                ),
-                              ),
-                              if (tableBodyHeight <= 0)
-                                const SizedBox.shrink()
-                              else
-                                SizedBox(
-                                  height: tableBodyHeight,
-                                  child: ListView.builder(
-                                    itemCount: results.length,
-                                    itemBuilder: (context, index) {
-                                      final anomaly = results[index];
-                                      final severity =
-                                          anomaly['severity'] ?? 'medium';
-                                      final status =
-                                          anomaly['status'] ?? 'open';
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 16, vertical: 10),
-                                        decoration: BoxDecoration(
-                                          color: index % 2 == 0
-                                              ? const Color(0xFF2A3040)
-                                              : const Color(0xFF252A3A),
-                                          border: const Border(
-                                              bottom: BorderSide(
-                                                  color: Color(0xFF37404F),
-                                                  width: 1)),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              flex: 2,
-                                              child: Text(
-                                                  '#${anomaly['anomaly_id'] ?? 'N/A'}',
-                                                  style: const TextStyle(
-                                                      color: Color(0xFF1E88E5),
-                                                      fontSize: 13,
-                                                      fontFamily: 'monospace')),
-                                            ),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Text(
-                                                  _formatAnomalyType(
-                                                      anomaly['anomaly_type'] ??
-                                                          ''),
-                                                  style: const TextStyle(
-                                                      color: Color(0xFFB0BEC5),
-                                                      fontSize: 13)),
-                                            ),
-                                            Expanded(
-                                                flex: 1,
-                                                child: _buildSeverityBadge(
-                                                    severity)),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Text(
-                                                  anomaly['officer_name'] ??
-                                                      'N/A',
-                                                  style: const TextStyle(
-                                                      color: Color(0xFFB0BEC5),
-                                                      fontSize: 13)),
-                                            ),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Text(
-                                                  anomaly['unit_name'] ?? 'N/A',
-                                                  style: const TextStyle(
-                                                      color: Color(0xFFB0BEC5),
-                                                      fontSize: 13)),
-                                            ),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Text(
-                                                  _formatDateTime(
-                                                      anomaly['detected_at']),
-                                                  style: const TextStyle(
-                                                      color: Color(0xFF78909C),
-                                                      fontSize: 12)),
-                                            ),
-                                            Expanded(
-                                                flex: 1,
-                                                child: _buildStatusBadgeStatic(
-                                                    status)),
-                                            Expanded(
-                                              flex: 1,
-                                              child: IconButton(
-                                                icon: const Icon(
-                                                    Icons.info_outline,
-                                                    size: 18),
-                                                color: const Color(0xFF1E88E5),
-                                                onPressed: () {
-                                                  showDialog(
-                                                    context: context,
-                                                    barrierColor: Colors.black
-                                                        .withValues(alpha: 0.5),
-                                                    builder: (_) =>
-                                                        _AnomalyDetailModal(
-                                                            anomaly: anomaly,
-                                                            onActionComplete:
-                                                                () {}),
-                                                  );
-                                                },
-                                                tooltip: 'View Details',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildResultsHeaderRow(),
+                          for (int index = 0; index < results.length; index++)
+                            _buildResultRow(results[index], index),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildResultsHeaderRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+        ),
+      ),
+      child: const Row(
+        children: [
+          Expanded(flex: 2, child: _SearchTableHeader('ID')),
+          Expanded(flex: 2, child: _SearchTableHeader('Type')),
+          Expanded(flex: 1, child: _SearchTableHeader('Severity')),
+          Expanded(flex: 2, child: _SearchTableHeader('Officer')),
+          Expanded(flex: 2, child: _SearchTableHeader('Unit')),
+          Expanded(flex: 2, child: _SearchTableHeader('Detected')),
+          Expanded(flex: 1, child: _SearchTableHeader('Status')),
+          Expanded(flex: 1, child: _SearchTableHeader('Actions')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultRow(Map<String, dynamic> anomaly, int index) {
+    final severity = anomaly['severity']?.toString() ?? 'medium';
+    final status = anomaly['status']?.toString() ?? 'open';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: index.isEven ? const Color(0xFF2A3040) : const Color(0xFF252A3A),
+        border: const Border(
+          bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              '#${anomaly['anomaly_id'] ?? 'N/A'}',
+              style: const TextStyle(
+                color: Color(0xFF1E88E5),
+                fontSize: 13,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              _formatAnomalyType(anomaly['anomaly_type']?.toString() ?? ''),
+              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(flex: 1, child: _buildSeverityBadge(severity)),
+          Expanded(
+            flex: 2,
+            child: Text(
+              anomaly['officer_name']?.toString() ?? 'N/A',
+              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              anomaly['unit_name']?.toString() ?? 'N/A',
+              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              _formatDateTime(anomaly['event_at'] ?? anomaly['detected_at']),
+              style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(flex: 1, child: _buildStatusBadgeStatic(status)),
+          Expanded(
+            flex: 1,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                icon: const Icon(Icons.info_outline, size: 18),
+                color: const Color(0xFF1E88E5),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    barrierColor: Colors.black.withValues(alpha: 0.5),
+                    builder: (_) => _AnomalyDetailModal(
+                      anomaly: anomaly,
+                      onActionComplete: () {},
+                    ),
+                  );
+                },
+                tooltip: 'View Details',
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2290,7 +2231,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
             _buildInfoRow('Score',
                 '${((double.tryParse(widget.anomaly['anomaly_score']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
             _buildInfoRow('Detection Method',
-              _formatDetectionMethod(widget.anomaly['detection_method'])),
+                _formatDetectionMethod(widget.anomaly['detection_method'])),
             _buildInfoRow('Confidence',
                 '${((double.tryParse(widget.anomaly['confidence_level']?.toString() ?? '0') ?? 0.0) * 100).toStringAsFixed(1)}%'),
             _buildInfoRow('Detected At',

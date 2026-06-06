@@ -5,21 +5,40 @@ import '../config/api_config.dart';
 import 'api_client.dart';
 
 class AnomalyService {
+  bool _hasValue(String? value) => value != null && value.trim().isNotEmpty;
+
+  void _addQueryParam(
+    Map<String, String> queryParams,
+    String key,
+    String? value,
+  ) {
+    if (_hasValue(value)) {
+      queryParams[key] = value!.trim();
+    }
+  }
+
+  void _disableResponseCache(Map<String, String> queryParams) {
+    queryParams['_ts'] = DateTime.now().millisecondsSinceEpoch.toString();
+  }
+
   // Get all anomalies with optional filters
   Future<List<Map<String, dynamic>>> getAnomalies({
     int? limit,
     int? offset,
     String? severity,
     String? status,
+    String? unitId,
     bool includeRemoved = false,
   }) async {
     try {
       Map<String, String> queryParams = {};
       if (limit != null) queryParams['limit'] = limit.toString();
       if (offset != null) queryParams['offset'] = offset.toString();
-      if (severity != null) queryParams['severity'] = severity;
-      if (status != null) queryParams['status'] = status;
+      _addQueryParam(queryParams, 'severity', severity);
+      _addQueryParam(queryParams, 'status', status);
+      _addQueryParam(queryParams, 'unit_id', unitId);
       if (includeRemoved) queryParams['include_removed'] = 'true';
+      _disableResponseCache(queryParams);
 
       final uri = Uri.parse(ApiConfig.anomaliesUrl).replace(
           queryParameters: queryParams.isNotEmpty ? queryParams : null);
@@ -43,6 +62,7 @@ class AnomalyService {
       if (limit != null) queryParams['limit'] = limit.toString();
       if (offset != null) queryParams['offset'] = offset.toString();
       if (includeRemoved) queryParams['include_removed'] = 'true';
+      _disableResponseCache(queryParams);
 
       final uri = Uri.parse('${ApiConfig.anomaliesUrl}/unit/$unitId').replace(
           queryParameters: queryParams.isNotEmpty ? queryParams : null);
@@ -199,14 +219,15 @@ class AnomalyService {
     bool includeRemoved = true,
   }) async {
     Map<String, String> queryParams = {};
-    if (unitId != null) queryParams['unit_id'] = unitId;
-    if (startDate != null) queryParams['start_date'] = startDate;
-    if (endDate != null) queryParams['end_date'] = endDate;
-    if (severity != null) queryParams['severity'] = severity;
-    if (status != null) queryParams['status'] = status;
+    _addQueryParam(queryParams, 'unit_id', unitId);
+    _addQueryParam(queryParams, 'start_date', startDate);
+    _addQueryParam(queryParams, 'end_date', endDate);
+    _addQueryParam(queryParams, 'severity', severity);
+    _addQueryParam(queryParams, 'status', status);
     if (limit != null) queryParams['limit'] = limit.toString();
     if (offset != null) queryParams['offset'] = offset.toString();
     if (includeRemoved) queryParams['include_removed'] = 'true';
+    _disableResponseCache(queryParams);
 
     final uri = Uri.parse('${ApiConfig.anomaliesUrl}/investigation/search')
         .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
@@ -214,59 +235,6 @@ class AnomalyService {
     try {
       final data = await ApiClient.get(uri.toString());
       return List<Map<String, dynamic>>.from(data['data'] ?? []);
-    } on ApiException catch (endpointError) {
-      // Fallback for older backends where the dedicated investigation endpoint
-      // may be unavailable; preserve filters and apply date window client-side.
-      if (endpointError.statusCode != 404) {
-        throw Exception('Error searching anomalies: $endpointError');
-      }
-
-      try {
-        final allResults = await getAnomalies(
-          limit: limit ?? 300,
-          offset: offset,
-          severity: severity,
-          status: status,
-          includeRemoved: includeRemoved,
-        );
-
-        final parsedStartDate =
-            startDate != null ? DateTime.tryParse(startDate) : null;
-        final parsedEndDate =
-            endDate != null ? DateTime.tryParse(endDate) : null;
-
-        return allResults.where((anomaly) {
-          final anomalyUnitId = anomaly['unit_id']?.toString();
-          if (unitId != null && unitId.isNotEmpty && anomalyUnitId != unitId) {
-            return false;
-          }
-
-          if (parsedStartDate != null || parsedEndDate != null) {
-            final detectedAtRaw = anomaly['detected_at']?.toString();
-            final detectedAt =
-                detectedAtRaw != null ? DateTime.tryParse(detectedAtRaw) : null;
-
-            if (detectedAt == null) {
-              return false;
-            }
-
-            if (parsedStartDate != null &&
-                detectedAt.isBefore(parsedStartDate)) {
-              return false;
-            }
-
-            if (parsedEndDate != null && detectedAt.isAfter(parsedEndDate)) {
-              return false;
-            }
-          }
-
-          return true;
-        }).toList();
-      } catch (fallbackError) {
-        throw Exception(
-          'Error searching anomalies: $endpointError | Fallback failed: $fallbackError',
-        );
-      }
     } catch (e) {
       throw Exception('Error searching anomalies: $e');
     }

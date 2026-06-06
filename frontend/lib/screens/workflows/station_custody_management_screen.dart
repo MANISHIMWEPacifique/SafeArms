@@ -146,66 +146,112 @@ class _StationCustodyManagementScreenState
         color: Color(0xFF252A3A),
         border: Border(bottom: BorderSide(color: Color(0xFF37404F), width: 1)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Wrap(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 720;
+          final title = _buildHeaderTitle(unitName);
+          final actions = _buildHeaderActions(provider, isCompact: isCompact);
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                title,
+                const SizedBox(height: 12),
+                actions,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: title),
+              const SizedBox(width: 16),
+              actions,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildHeaderTitle(String unitName) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Custody Management',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          unitName,
+          style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeaderActions(
+    CustodyProvider provider, {
+    required bool isCompact,
+  }) {
+    final assignButton = ElevatedButton.icon(
+      onPressed: () => setState(() => _showAssignModal = true),
+      icon: const Icon(Icons.add, size: 18),
+      label: const Text(
+        'Assign Custody',
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF1E88E5),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+
+    final refreshButton = OutlinedButton.icon(
+      onPressed: _loadUnitCustody,
+      icon: const Icon(Icons.refresh, size: 18),
+      label: const Text('Refresh'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFFB0BEC5),
+        side: const BorderSide(color: Color(0xFF37404F)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+
+    if (isCompact) {
+      return Wrap(
         spacing: 12,
         runSpacing: 12,
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Custody Management',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                unitName,
-                style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
-              ),
-            ],
-          ),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () => setState(() => _showAssignModal = true),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Assign Custody',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88E5),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-              _buildMLStatus(provider),
-              OutlinedButton.icon(
-                onPressed: _loadUnitCustody,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Refresh'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFB0BEC5),
-                  side: const BorderSide(color: Color(0xFF37404F)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ],
-          )
+          assignButton,
+          _buildMLStatus(provider),
+          refreshButton,
         ],
-      ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        assignButton,
+        const SizedBox(width: 12),
+        _buildMLStatus(provider),
+        const SizedBox(width: 12),
+        refreshButton,
+      ],
     );
   }
 
@@ -215,7 +261,7 @@ class _StationCustodyManagementScreenState
     final count = status['count'] ?? 0;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF1E3A5F),
         border: Border.all(
@@ -224,6 +270,7 @@ class _StationCustodyManagementScreenState
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 8,
@@ -236,11 +283,12 @@ class _StationCustodyManagementScreenState
           ),
           const SizedBox(width: 8),
           const Text(
-            'ML Monitoring',
+            'ML',
             style: TextStyle(
                 color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 6),
           Text(
             '$count anomalies',
             style: TextStyle(
@@ -248,6 +296,7 @@ class _StationCustodyManagementScreenState
                   count > 0 ? const Color(0xFFE85C5C) : const Color(0xFF3CCB7F),
               fontSize: 13,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -356,6 +405,58 @@ class _StationCustodyManagementScreenState
   }
 
   Widget _buildFilterBar(CustodyProvider provider) {
+    final statusDropdown = _buildFilterDropdown(
+      label: 'Status',
+      value: provider.statusFilter,
+      items: const [
+        {'value': 'active', 'label': 'Active'},
+        {'value': 'all', 'label': 'All'},
+        {'value': 'returned', 'label': 'Returned'},
+      ],
+      onChanged: (value) => provider.setStatusFilter(value ?? 'active'),
+    );
+
+    final typeDropdown = _buildFilterDropdown(
+      label: 'Custody Type',
+      value: provider.typeFilter,
+      items: const [
+        {'value': 'all', 'label': 'All Types'},
+        {'value': 'permanent', 'label': 'Permanent'},
+        {'value': 'temporary', 'label': 'Temporary'},
+        {'value': 'personal_long_term', 'label': 'Personal Long-term'},
+      ],
+      onChanged: (value) => provider.setTypeFilter(value ?? 'all'),
+    );
+
+    final searchField = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Search',
+            style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A3040),
+            border: Border.all(color: const Color(0xFF37404F)),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) => provider.setSearchQuery(value),
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            decoration: const InputDecoration(
+              hintText: 'Search by officer or serial number',
+              hintStyle: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+              prefixIcon:
+                  Icon(Icons.search, color: Color(0xFF78909C), size: 20),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(vertical: 8),
+            ),
+          ),
+        ),
+      ],
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
@@ -363,68 +464,37 @@ class _StationCustodyManagementScreenState
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildFilterDropdown(
-              label: 'Status',
-              value: provider.statusFilter,
-              items: const [
-                {'value': 'active', 'label': 'Active'},
-                {'value': 'all', 'label': 'All'},
-                {'value': 'returned', 'label': 'Returned'},
-              ],
-              onChanged: (value) => provider.setStatusFilter(value ?? 'active'),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _buildFilterDropdown(
-              label: 'Custody Type',
-              value: provider.typeFilter,
-              items: const [
-                {'value': 'all', 'label': 'All Types'},
-                {'value': 'permanent', 'label': 'Permanent'},
-                {'value': 'temporary', 'label': 'Temporary'},
-                {'value': 'personal_long_term', 'label': 'Personal Long-term'},
-              ],
-              onChanged: (value) => provider.setTypeFilter(value ?? 'all'),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Narrow layout: stack dropdowns 2-per-row then search full-width
+          if (constraints.maxWidth < 700) {
+            final halfWidth = (constraints.maxWidth - 16) / 2;
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Search',
-                    style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A3040),
-                    border: Border.all(color: const Color(0xFF37404F)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) => provider.setSearchQuery(value),
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    decoration: const InputDecoration(
-                      hintText: 'Search by officer or serial number',
-                      hintStyle:
-                          TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                      prefixIcon: Icon(Icons.search,
-                          color: Color(0xFF78909C), size: 20),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
+                Row(
+                  children: [
+                    SizedBox(width: halfWidth, child: statusDropdown),
+                    const SizedBox(width: 16),
+                    SizedBox(width: halfWidth, child: typeDropdown),
+                  ],
                 ),
+                const SizedBox(height: 16),
+                searchField,
               ],
-            ),
-          ),
-        ],
+            );
+          }
+          // Wide layout: all in one row
+          return Row(
+            children: [
+              Expanded(child: statusDropdown),
+              const SizedBox(width: 16),
+              Expanded(child: typeDropdown),
+              const SizedBox(width: 16),
+              Expanded(flex: 2, child: searchField),
+            ],
+          );
+        },
       ),
     );
   }
@@ -490,8 +560,8 @@ class _StationCustodyManagementScreenState
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 350,
-        mainAxisExtent: 260, // Fixed height instead of varying ratio to avoid overflow with Spacer
+        maxCrossAxisExtent: 380,
+        mainAxisExtent: 360,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
@@ -601,7 +671,7 @@ class _StationCustodyManagementScreenState
           const SizedBox(height: 10),
           _buildVerificationIndicator(custody),
 
-          const Spacer(),
+          const SizedBox(height: 8),
 
           // Action buttons
           Row(

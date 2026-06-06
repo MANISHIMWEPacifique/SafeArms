@@ -189,7 +189,7 @@ const Unit = {
     async create(unitData) {
         const { unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, commander_user_id, is_active } = unitData;
 
-        const createdUnitId = await withTransaction(async (client) => {
+        return await withTransaction(async (client) => {
             // Generate unit_id
             const idResult = await client.query(`SELECT COALESCE(MAX(CAST(SUBSTRING(unit_id FROM 6) AS INTEGER)), 0) as max_num FROM units WHERE unit_id ~ '^UNIT-[0-9]+$'`);
             const count = parseInt(idResult.rows[0].max_num) + 1;
@@ -209,7 +209,7 @@ const Unit = {
                 client
             );
 
-            await client.query(
+            const insertResult = await client.query(
                 `INSERT INTO units (unit_id, unit_name, unit_type, location, province, district, contact_phone, contact_email, commander_name, commander_user_id, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
                 [
@@ -233,10 +233,15 @@ const Unit = {
                 nextCommanderUserId: commanderFields.commander_user_id ?? null
             });
 
-            return unit_id;
+            return {
+                ...insertResult.rows[0],
+                commander_name: commanderFields.commander_name,
+                firearm_count: 0,
+                officer_count: 0,
+                active_custody: 0,
+                anomaly_count: 0
+            };
         });
-
-        return await this.findById(createdUnitId);
     },
 
     async update(unitId, updates) {

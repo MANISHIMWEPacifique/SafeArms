@@ -1,5 +1,7 @@
 // Units Management Screen
 // Manage police units and stations
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
@@ -18,6 +20,8 @@ class UnitsManagementScreen extends StatefulWidget {
 class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
   final UserService _userService = UserService();
+  Future<List<UserModel>>? _eligibleCommandersFuture;
+  List<UserModel>? _eligibleCommandersCache;
   static const Set<String> _eligibleCommanderRoles = {
     'station_commander',
     'hq_firearm_commander',
@@ -771,13 +775,113 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
   }
 
   Future<List<UserModel>> _loadEligibleCommanders() async {
-    final users = await _userService.getAllUsers();
-    final commanders = users
-        .where((user) =>
-            user.isActive && _eligibleCommanderRoles.contains(user.role))
-        .toList();
-    commanders.sort((a, b) => a.fullName.compareTo(b.fullName));
-    return commanders;
+    if (_eligibleCommandersCache != null) {
+      return _eligibleCommandersCache!;
+    }
+
+    final existingFuture = _eligibleCommandersFuture;
+    if (existingFuture != null) {
+      return existingFuture;
+    }
+
+    final future = Future.wait(
+      _eligibleCommanderRoles.map(
+        (role) => _userService.getAllUsers(
+          role: role,
+          isActive: true,
+          limit: 1000,
+        ),
+      ),
+    ).then((groups) {
+      final users = groups.expand((group) => group).toList();
+      final seen = <String>{};
+      final commanders = users
+          .where((user) =>
+              user.isActive &&
+              _eligibleCommanderRoles.contains(user.role) &&
+              seen.add(user.userId))
+          .toList();
+      commanders.sort((a, b) => a.fullName.compareTo(b.fullName));
+      _eligibleCommandersCache = commanders;
+      return commanders;
+    }).whenComplete(() {
+      _eligibleCommandersFuture = null;
+    });
+
+    _eligibleCommandersFuture = future;
+    return future;
+  }
+
+  Widget _buildCommanderDropdownLoader({
+    required Future<List<UserModel>> commandersFuture,
+    required String? selectedCommanderUserId,
+    required void Function(String?) onChanged,
+    String? legacyCommanderName,
+  }) {
+    return FutureBuilder<List<UserModel>>(
+      future: commandersFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return _buildCommanderLoadingState();
+        }
+
+        if (snapshot.hasError) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildCommanderDropdown(
+                commanders: const <UserModel>[],
+                selectedCommanderUserId: selectedCommanderUserId,
+                onChanged: onChanged,
+                legacyCommanderName: legacyCommanderName,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Could not load commanders. You can still save without changing this field.',
+                style: TextStyle(color: Color(0xFFFFC857), fontSize: 12),
+              ),
+            ],
+          );
+        }
+
+        final commanders = snapshot.data ?? const <UserModel>[];
+        return _buildCommanderDropdown(
+          commanders: commanders,
+          selectedCommanderUserId: selectedCommanderUserId,
+          onChanged: onChanged,
+          legacyCommanderName: legacyCommanderName,
+        );
+      },
+    );
+  }
+
+  Widget _buildCommanderLoadingState() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1F2E),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF37404F)),
+      ),
+      child: const Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              color: Color(0xFF1E88E5),
+              strokeWidth: 2,
+            ),
+          ),
+          SizedBox(width: 12),
+          Text(
+            'Loading commanders...',
+            style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 14),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatRoleLabel(String role) {
@@ -792,21 +896,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
   }
 
   Future<void> _showAddUnitDialog() async {
-    List<UserModel> commanderOptions = [];
-    try {
-      commanderOptions = await _loadEligibleCommanders();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Could not load commanders. You can still save without one.'),
-            backgroundColor: Color(0xFFFFC857),
-          ),
-        );
-      }
-    }
-
+    final commandersFuture = _loadEligibleCommanders();
     if (!mounted) return;
 
     final nameController = TextEditingController();
@@ -974,8 +1064,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                           // Commander Assignment Section
                           _buildFormSectionHeader('Commander Assignment'),
                           const SizedBox(height: 16),
-                          _buildCommanderDropdown(
-                            commanders: commanderOptions,
+                          _buildCommanderDropdownLoader(
+                            commandersFuture: commandersFuture,
                             selectedCommanderUserId: selectedCommanderUserId,
                             onChanged: (value) {
                               setDialogState(() {
@@ -1022,7 +1112,9 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                                   'is_active': isActive,
                                 });
                                 UserModel? selectedCommander;
-                                for (final commander in commanderOptions) {
+                                for (final commander
+                                    in _eligibleCommandersCache ??
+                                        const <UserModel>[]) {
                                   if (commander.userId ==
                                       selectedCommanderUserId) {
                                     selectedCommander = commander;
@@ -1078,21 +1170,7 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
   }
 
   Future<void> _showEditUnitDialog(dynamic unit) async {
-    List<UserModel> commanderOptions = [];
-    try {
-      commanderOptions = await _loadEligibleCommanders();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Could not load commanders. You can still keep current assignment.'),
-            backgroundColor: Color(0xFFFFC857),
-          ),
-        );
-      }
-    }
-
+    final commandersFuture = _loadEligibleCommanders();
     if (!mounted) return;
 
     final nameController = TextEditingController(text: unit['unit_name'] ?? '');
@@ -1266,8 +1344,8 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                           // Commander Assignment Section
                           _buildFormSectionHeader('Commander Assignment'),
                           const SizedBox(height: 16),
-                          _buildCommanderDropdown(
-                            commanders: commanderOptions,
+                          _buildCommanderDropdownLoader(
+                            commandersFuture: commandersFuture,
                             selectedCommanderUserId: selectedCommanderUserId,
                             onChanged: (value) {
                               setDialogState(() {
@@ -1320,7 +1398,9 @@ class _UnitsManagementScreenState extends State<UnitsManagementScreen> {
                                   },
                                 );
                                 UserModel? selectedCommander;
-                                for (final commander in commanderOptions) {
+                                for (final commander
+                                    in _eligibleCommandersCache ??
+                                        const <UserModel>[]) {
                                   if (commander.userId ==
                                       selectedCommanderUserId) {
                                     selectedCommander = commander;

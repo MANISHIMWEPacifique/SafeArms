@@ -41,6 +41,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     const { role, unit_id } = req.user;
     const isStationCmd = role === ROLES.STATION_COMMANDER;
     const unitParams = isStationCmd ? [unit_id] : [];
+    const includeRecent = req.query.include_recent !== 'false';
 
     // ── Build all queries up-front, then run in ONE Promise.all ──
     const queries = {};
@@ -81,7 +82,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         );
     }
 
-    queries.recentCustody = () => query(`
+    queries.recentCustody = includeRecent ? () => query(`
         SELECT 
             cr.custody_id, cr.issued_at, cr.returned_at,
             cr.assignment_reason, cr.custody_type,
@@ -99,9 +100,9 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
             : 'WHERE COALESCE(cr.returned_at, cr.issued_at) <= CURRENT_TIMESTAMP'}
         ORDER BY COALESCE(cr.returned_at, cr.issued_at) DESC
         LIMIT 10
-    `, unitParams);
+    `, unitParams) : async () => ({ rows: [] });
 
-    queries.recentActivities = () => query(`
+    queries.recentActivities = includeRecent ? () => query(`
         SELECT 
             al.log_id, al.action_type, al.table_name,
             al.record_id, al.created_at, al.success,
@@ -144,7 +145,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
         )` : ''}
         ORDER BY al.created_at DESC
         LIMIT 10
-    `, unitParams);
+    `, unitParams) : async () => ({ rows: [] });
 
     // Role-specific queries
     if (role === ROLES.HQ_COMMANDER || role === ROLES.ADMIN) {

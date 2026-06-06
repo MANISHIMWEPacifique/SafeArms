@@ -11,11 +11,14 @@ import 'api_client.dart';
 class UserService {
   /// Build query string from optional filters
   String _buildQuery(Map<String, String?> params) {
-    final filtered = params.entries
-        .where(
-            (e) => e.value != null && e.value!.isNotEmpty && e.value != 'all')
-        .map((e) => '${e.key}=${e.value}')
-        .toList();
+    final filtered = params.entries.where((e) {
+      return e.value != null && e.value!.isNotEmpty && e.value != 'all';
+    }).map((e) {
+      final key = Uri.encodeQueryComponent(e.key);
+      final value = Uri.encodeQueryComponent(e.value!);
+      return '$key=$value';
+    }).toList();
+
     return filtered.isEmpty ? '' : '?${filtered.join('&')}';
   }
 
@@ -24,12 +27,23 @@ class UserService {
     String? role,
     String? status,
     String? unitId,
+    bool? isActive,
+    int? limit,
+    int? offset,
   }) async {
     try {
+      final activeFilter = isActive?.toString() ??
+          (status == 'active'
+              ? 'true'
+              : status == 'inactive'
+                  ? 'false'
+                  : null);
       final query = _buildQuery({
         'role': role,
-        'status': status,
+        'is_active': activeFilter,
         'unit_id': unitId,
+        'limit': limit?.toString(),
+        'offset': offset?.toString(),
       });
       final data = await ApiClient.get('${ApiConfig.users}$query');
       final List<dynamic> items = data['data'] ?? [];

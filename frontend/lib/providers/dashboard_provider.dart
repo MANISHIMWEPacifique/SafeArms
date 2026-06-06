@@ -123,7 +123,11 @@ class DashboardProvider with ChangeNotifier {
   }
 
   // Load all dashboard statistics with one API call
-  Future<void> loadDashboardStats({bool force = false}) async {
+  Future<void> loadDashboardStats({
+    bool force = false,
+    bool includeRecent = true,
+    bool showLoading = true,
+  }) async {
     if (_loadDashboardFuture != null) {
       await _loadDashboardFuture;
       if (!force) {
@@ -138,7 +142,10 @@ class DashboardProvider with ChangeNotifier {
       return;
     }
 
-    final loadFuture = _loadDashboardStatsInternal();
+    final loadFuture = _loadDashboardStatsInternal(
+      includeRecent: includeRecent,
+      showLoading: showLoading,
+    );
     _loadDashboardFuture = loadFuture;
 
     try {
@@ -150,20 +157,31 @@ class DashboardProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _loadDashboardStatsInternal() async {
-    _isLoading = true;
+  Future<void> _loadDashboardStatsInternal({
+    required bool includeRecent,
+    required bool showLoading,
+  }) async {
+    if (showLoading) {
+      _isLoading = true;
+    }
     _error = null;
     notifyListeners();
 
     try {
-      _dashboardStats = await _dashboardService.getDashboardStats();
+      _dashboardStats = await _dashboardService.getDashboardStats(
+        includeRecent: includeRecent,
+      );
       _lastLoadedAt = DateTime.now();
       _error = null;
     } catch (e) {
       _error = e.toString();
-      _dashboardStats = null;
+      if (showLoading) {
+        _dashboardStats = null;
+      }
     } finally {
-      _isLoading = false;
+      if (showLoading) {
+        _isLoading = false;
+      }
       notifyListeners();
     }
   }

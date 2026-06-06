@@ -55,8 +55,19 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
     final unitId = authProvider.currentUser?['unit_id']?.toString();
 
-    // Load core stats first for faster first paint.
-    await dashboardProvider.loadDashboardStats(force: force);
+    // Load core stats first for faster first paint, then hydrate activity.
+    await dashboardProvider.loadDashboardStats(
+      force: force,
+      includeRecent: false,
+    );
+
+    if (!mounted) return;
+
+    unawaited(dashboardProvider.loadDashboardStats(
+      force: true,
+      includeRecent: true,
+      showLoading: false,
+    ));
 
     if (!mounted || unitId == null || !includeAnomalies) return;
 
@@ -661,102 +672,10 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
   Widget _buildRecentActivity(DashboardProvider provider,
       {bool isExpanded = false}) {
-    // Station commander sees custody events and general activities from their unit
-    final custodyEvents = provider.recentCustodyActivity;
-    final auditActivities = provider.recentActivities;
-    final nowWithSkewTolerance = DateTime.now().add(const Duration(minutes: 2));
-
-    // Maximum number of activities to display in the dashboard
     const int maxDisplayItems = 6;
-
-    // Build display list combining custody events and audit log activities
-    final List<Map<String, dynamic>> displayList = [];
-
-    // Add custody events
-    for (var event in custodyEvents) {
-      final eventMap = event is Map<String, dynamic>
-          ? event
-          : Map<String, dynamic>.from(event as Map);
-      final timestamp = eventMap['activity_at'] ??
-          eventMap['returned_at'] ??
-          eventMap['issued_at'] ??
-          '';
-      final parsedTimestamp = _parseTimestamp(timestamp);
-
-      // Ignore future-dated synthetic rows so true recent events stay visible.
-      if (parsedTimestamp != null &&
-          parsedTimestamp.isAfter(nowWithSkewTolerance)) {
-        continue;
-      }
-
-      displayList.add({
-        'type': 'custody',
-        'data': eventMap,
-        'timestamp': timestamp,
-        'parsedTimestamp': parsedTimestamp,
-      });
-    }
-
-    // Add audit log activities
-    for (var activity in auditActivities) {
-      final actMap = activity is Map<String, dynamic>
-          ? activity
-          : Map<String, dynamic>.from(activity as Map);
-      final timestamp = actMap['created_at'] ?? '';
-      final parsedTimestamp = _parseTimestamp(timestamp);
-
-      // Ignore future-dated rows for consistent chronological display.
-      if (parsedTimestamp != null &&
-          parsedTimestamp.isAfter(nowWithSkewTolerance)) {
-        continue;
-      }
-
-      displayList.add({
-        'type': 'audit',
-        'data': actMap,
-        'timestamp': timestamp,
-        'parsedTimestamp': parsedTimestamp,
-      });
-    }
-
-    // Sort by timestamp descending (most recent first)
-    displayList.sort((a, b) {
-      final aTime = a['parsedTimestamp'] as DateTime?;
-      final bTime = b['parsedTimestamp'] as DateTime?;
-
-      if (aTime == null && bTime == null) return 0;
-      if (aTime == null) return 1;
-      if (bTime == null) return -1;
-
-      return bTime.compareTo(aTime);
-    });
-
-    // Apply the display limit
-    final limitedList = displayList.take(maxDisplayItems).toList();
-
-    // Ensure at least one custody event remains visible when available.
-    if (custodyEvents.isNotEmpty &&
-        limitedList.isNotEmpty &&
-        limitedList.every((item) => item['type'] != 'custody')) {
-      final latestCustody = displayList.firstWhere(
-        (item) => item['type'] == 'custody',
-        orElse: () => <String, dynamic>{},
-      );
-      if (latestCustody.isNotEmpty) {
-        limitedList[limitedList.length - 1] = latestCustody;
-        // Re-sort to maintain order after replacing an item
-        limitedList.sort((a, b) {
-          final aTime = a['parsedTimestamp'] as DateTime?;
-          final bTime = b['parsedTimestamp'] as DateTime?;
-
-          if (aTime == null && bTime == null) return 0;
-          if (aTime == null) return 1;
-          if (bTime == null) return -1;
-
-          return bTime.compareTo(aTime);
-        });
-      }
-    }
+    final limitedList = provider.getCombinedStationActivity(
+      limit: maxDisplayItems,
+    );
 
     return Container(
       height: isExpanded ? 500 : null,
@@ -960,59 +879,11 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     );
   }
 
-  DateTime? _parseTimestamp(dynamic value) {
-    if (value == null) return null;
-    if (value is DateTime) return value.isUtc ? value.toLocal() : value;
-
-    if (value is int) {
-      final millis = value < 1000000000000 ? value * 1000 : value;
-      final parsed = DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
-      return parsed.toLocal();
-    }
-
-    final dateStr = value.toString().trim();
-    if (dateStr.isEmpty) return null;
-
-    if (RegExp(r'^\d{10,13}$').hasMatch(dateStr)) {
-      final epoch = int.tryParse(dateStr);
-      if (epoch != null) {
-        final millis = dateStr.length == 10 ? epoch * 1000 : epoch;
-        final parsed = DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
-        return parsed.toLocal();
-      }
-    }
-
-    DateTime? parsed = DateTime.tryParse(dateStr);
-    if (parsed == null) {
-      var normalized = dateStr;
-
-      if (normalized.contains(' ') && !normalized.contains('T')) {
-        normalized = normalized.replaceFirst(' ', 'T');
-      }
-
-      normalized = normalized.replaceFirstMapped(
-        RegExp(r'([+-]\d{2})$'),
-        (match) => '${match.group(1)}:00',
-      );
-
-      normalized = normalized.replaceFirstMapped(
-        RegExp(r'\.(\d{6})\d+(?=(Z|[+-]\d{2}:?\d{2})?$)'),
-        (match) => '.${match.group(1)}',
-      );
-
-      parsed = DateTime.tryParse(normalized);
-    }
-
-    if (parsed == null) return null;
-
-    return parsed.isUtc ? parsed.toLocal() : parsed;
-  }
-
   String _formatTimeAgo(dynamic timestamp) {
-    final parsed = _parseTimestamp(timestamp);
-    if (parsed == null) return 'N/A';
-
-    return DateFormatter.timeAgo(parsed.toIso8601String());
+    if (timestamp == null) return 'N/A';
+    final dateStr = timestamp.toString().trim();
+    if (dateStr.isEmpty) return 'N/A';
+    return DateFormatter.timeAgo(dateStr);
   }
 }
 

@@ -633,15 +633,17 @@ const Anomaly = {
             params.push(unit_id);
         }
 
+        const eventDateExpr = 'COALESCE(cr.returned_at, cr.issued_at, a.detected_at)';
+
         if (start_date) {
             pCount++;
-            where += ` AND a.detected_at >= $${pCount}`;
+            where += ` AND ${eventDateExpr} >= $${pCount}`;
             params.push(start_date);
         }
 
         if (end_date) {
             pCount++;
-            where += ` AND a.detected_at <= $${pCount}`;
+            where += ` AND ${eventDateExpr} <= $${pCount}`;
             params.push(end_date);
         }
 
@@ -673,6 +675,7 @@ const Anomaly = {
                    u.unit_name,
                    cr.issued_at,
                    cr.returned_at,
+                   COALESCE(cr.returned_at, cr.issued_at, a.detected_at) as event_at,
                    cr.custody_type,
                    cr.duration_type,
                    cr.issued_at as issue_date,
@@ -707,18 +710,23 @@ const Anomaly = {
             LEFT JOIN LATERAL (
                 SELECT COUNT(*)::INTEGER as investigation_count,
                        COALESCE(
-                           jsonb_agg(
+                           (SELECT jsonb_agg(
                                jsonb_build_object(
-                                   'investigation_id', ai_trace.investigation_id,
-                                   'investigation_date', ai_trace.investigation_date,
-                                   'investigator_id', ai_trace.investigator_id,
-                                   'investigator_name', trace_user.full_name,
-                                   'findings', ai_trace.findings,
-                                   'action_taken', ai_trace.action_taken,
-                                   'outcome', ai_trace.outcome
+                                   'investigation_id', ai_trace_ordered.investigation_id,
+                                   'investigation_date', ai_trace_ordered.investigation_date,
+                                   'investigator_id', ai_trace_ordered.investigator_id,
+                                   'investigator_name', ai_trace_ordered.full_name,
+                                   'findings', ai_trace_ordered.findings,
+                                   'action_taken', ai_trace_ordered.action_taken,
+                                   'outcome', ai_trace_ordered.outcome
                                )
-                               ORDER BY ai_trace.investigation_date DESC, ai_trace.created_at DESC
-                           ),
+                           ) FROM (
+                               SELECT ai_inner.*, trace_user_inner.full_name
+                               FROM anomaly_investigations ai_inner
+                               LEFT JOIN users trace_user_inner ON trace_user_inner.user_id = ai_inner.investigator_id
+                               WHERE ai_inner.anomaly_id = a.anomaly_id
+                               ORDER BY ai_inner.investigation_date DESC, ai_inner.created_at DESC
+                           ) ai_trace_ordered),
                            '[]'::jsonb
                        ) as investigation_trace
                 FROM anomaly_investigations ai_trace

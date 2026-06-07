@@ -135,9 +135,18 @@ const Officer = {
 
     async delete(officerId) {
         return await withTransaction(async (client) => {
+            const retainedHistory = await client.query(`
+                SELECT
+                    (SELECT COUNT(*)::int FROM anomalies WHERE officer_id = $1) AS anomaly_count,
+                    (SELECT COUNT(*)::int FROM ml_training_features WHERE officer_id = $1) AS feature_count
+            `, [officerId]);
+
+            const history = retainedHistory.rows[0] || {};
+            if ((history.anomaly_count || 0) > 0 || (history.feature_count || 0) > 0) {
+                throw new Error('Officer cannot be hard-deleted because retained anomaly or ML training history exists. Deactivate the officer instead.');
+            }
+
             // Delete from tables that reference this officer with NOT NULL constraints
-            await client.query('DELETE FROM ml_training_features WHERE officer_id = $1', [officerId]);
-            await client.query('DELETE FROM anomalies WHERE officer_id = $1', [officerId]);
             await client.query('DELETE FROM custody_records WHERE officer_id = $1', [officerId]);
 
             // Nullify nullable officer references

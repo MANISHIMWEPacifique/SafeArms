@@ -21,6 +21,25 @@ async function seedDatabase() {
     console.log('[INFO] Starting SafeArms Database Seeding...\n');
     console.log('[WARN] This will clear existing data and create fresh demo data.\n');
 
+    const destructiveResetAllowed = process.env.ALLOW_DESTRUCTIVE_SEED_RESET === 'true';
+    const retainedState = await client.query(`
+      SELECT
+        (SELECT COUNT(*)::int FROM anomalies) AS anomaly_count,
+        (SELECT COUNT(*)::int FROM ml_training_features) AS feature_count,
+        (SELECT COUNT(*)::int FROM ml_model_metadata) AS model_count
+    `);
+    const retained = retainedState.rows[0] || {};
+    const hasRetainedMlState =
+      (retained.anomaly_count || 0) > 0 ||
+      (retained.feature_count || 0) > 0 ||
+      (retained.model_count || 0) > 0;
+
+    if (hasRetainedMlState && !destructiveResetAllowed) {
+      throw new Error(
+        'Refusing to reset retained anomaly/model state. Set ALLOW_DESTRUCTIVE_SEED_RESET=true only when an intentional full reset is required.'
+      );
+    }
+
     // Generate password hash for all test users (Admin@123)
     const passwordHash = await bcrypt.hash('Admin@123', 10);
     console.log('[OK] Password hash generated for: Admin@123');

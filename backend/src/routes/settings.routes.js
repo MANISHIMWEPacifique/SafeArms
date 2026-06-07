@@ -333,7 +333,7 @@ router.get('/health', authenticate, asyncHandler(async (req, res) => {
             (SELECT COUNT(*) FROM users WHERE is_active = true) as active_users,
             (SELECT COUNT(*) FROM firearms WHERE is_active = true) as total_firearms,
             (SELECT COUNT(*) FROM custody_records WHERE returned_at IS NULL) as active_custody,
-            (SELECT COUNT(*) FROM anomalies WHERE status IN ('open', 'pending')) as pending_anomalies
+            (SELECT COUNT(*) FROM anomalies WHERE status IN ('open', 'pending') AND archived_at IS NULL AND COALESCE(removed_from_dashboard, false) = false) as pending_anomalies
     `);
     
     res.json({
@@ -532,15 +532,18 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
     
     const model = modelResult.rows[0] || null;
     
-    // Get training features count
+    // Get training feature counts. Training uses the full recent feature
+    // window, while new_training_samples remains useful as a drift signal.
     const featuresResult = await query(`
-        SELECT COUNT(*) as count
+        SELECT
+            COUNT(*) as total_count,
+            COUNT(*) FILTER (WHERE used_in_model_id IS NULL) as new_count
         FROM ml_training_features
         WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
-          AND used_in_model_id IS NULL
     `);
     
-    const availableSamples = parseInt(featuresResult.rows[0].count);
+    const availableSamples = parseInt(featuresResult.rows[0].total_count);
+    const newTrainingSamples = parseInt(featuresResult.rows[0].new_count);
     
     // Get recent anomaly stats
     const anomalyResult = await query(`
@@ -588,6 +591,7 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
         seeded_rows: parseInt(generationPayload?.seeded_rows || 0),
         extracted_features: parseInt(generationPayload?.extracted_features || 0),
         available_training_samples: parseInt(generationPayload?.available_training_samples || 0),
+        new_training_samples: parseInt(generationPayload?.new_training_samples || 0),
         can_train: generationPayload?.can_train === true
     } : null;
     
@@ -608,6 +612,7 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
                 false_positive_rate_estimate: parseFloat(model.false_positive_rate_estimate) || null
             } : null,
             available_training_samples: availableSamples,
+            new_training_samples: newTrainingSamples,
             minimum_required_samples: minimumRequiredSamples,
             can_train: availableSamples >= minimumRequiredSamples,
             recent_detections: totalDetections,

@@ -304,11 +304,14 @@ CREATE TABLE anomalies (
     is_mandatory_review BOOLEAN DEFAULT false,
     event_context JSONB,
     ballistic_access_context JSONB,
-    status VARCHAR(50) DEFAULT 'open' CHECK (status IN ('open', 'pending', 'investigating', 'resolved', 'false_positive', 'acceptable_change')),
+    status VARCHAR(50) DEFAULT 'open' CHECK (status IN ('open', 'pending', 'investigating', 'resolved', 'false_positive', 'acceptable_change', 'archived')),
     removed_from_dashboard BOOLEAN DEFAULT false,
     removed_from_dashboard_at TIMESTAMP,
     removed_from_dashboard_by VARCHAR(20) REFERENCES users(user_id),
     removed_from_dashboard_reason TEXT,
+    archived_at TIMESTAMP,
+    archived_by VARCHAR(20) REFERENCES users(user_id),
+    archive_note TEXT,
     investigated_by VARCHAR(20) REFERENCES users(user_id),
     investigation_notes TEXT,
     resolution_date TIMESTAMP,
@@ -466,6 +469,7 @@ CREATE INDEX idx_anomalies_severity ON anomalies(severity);
 CREATE INDEX idx_anomalies_status ON anomalies(status);
 CREATE INDEX idx_anomalies_detected_at ON anomalies(detected_at);
 CREATE INDEX idx_anomalies_removed_from_dashboard ON anomalies(removed_from_dashboard);
+CREATE INDEX idx_anomalies_archived_at ON anomalies(archived_at);
 
 -- Anomaly Dashboard Hide
 CREATE INDEX idx_anomaly_hides_user ON anomaly_dashboard_hides(user_id);

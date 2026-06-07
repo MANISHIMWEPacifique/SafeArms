@@ -1,6 +1,7 @@
 const ml = require('ml-kmeans');
 const { query } = require('../config/database');
 const logger = require('../utils/logger');
+const KMEANS_SEED = Number.parseInt(process.env.ML_KMEANS_SEED || '42', 10);
 
 /**
  * K-Means Clustering Algorithm for Anomaly Detection
@@ -42,7 +43,10 @@ const normalizeFeatures = (data) => {
 };
 
 /**
- * Train K-Means model on custody features
+ * Train K-Means model on custody features.
+ * The trainer uses the full recent feature window, including features already
+ * tied to older models, so retraining extends the learned baseline instead of
+ * starting from only brand-new samples.
  * @param {number} k - Number of clusters (default: 6)
  * @returns {Promise<Object>} Trained model metadata
  */
@@ -50,7 +54,9 @@ const trainKMeansModel = async (k = 6) => {
     try {
         logger.info(`Starting K-Means training with K=${k}...`);
 
-        // Fetch training data (last 6 months of custody records with features)
+        // Fetch training data (last 6 months of custody records with features).
+        // Do not filter out used_in_model_id here; those rows are historical
+        // baseline, not disposable one-shot training data.
         const result = await query(`
       SELECT
         officer_issue_frequency_30d,
@@ -65,7 +71,6 @@ const trainKMeansModel = async (k = 6) => {
         issue_frequency_zscore
             FROM ml_training_features
             WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
-                AND used_in_model_id IS NULL
     `);
 
         // Adapt k to available data (need at least k*3 samples for stable clusters)
@@ -114,6 +119,7 @@ const trainKMeansModel = async (k = 6) => {
         try {
             kmeansResult = ml.kmeans(sanitizedData, effectiveK, {
                 initialization: 'kmeans++',
+                seed: Number.isFinite(KMEANS_SEED) ? KMEANS_SEED : 42,
                 maxIterations: 100
             });
         } catch (error) {
@@ -127,6 +133,7 @@ const trainKMeansModel = async (k = 6) => {
             logger.warn('K-Means++ initialization failed with index error; retrying with random initialization');
             kmeansResult = ml.kmeans(sanitizedData, effectiveK, {
                 initialization: 'random',
+                seed: Number.isFinite(KMEANS_SEED) ? KMEANS_SEED : 42,
                 maxIterations: 100
             });
         }
@@ -138,7 +145,8 @@ const trainKMeansModel = async (k = 6) => {
         const distances = calculateClusterDistances(sanitizedData, kmeansResult.centroids, kmeansResult.clusters);
         const outlierThreshold = calculateOutlierThreshold(distances);
 
-        // Store model in database
+        // Store model in database as an inactive candidate. Promotion happens
+        // after metrics and preservation snapshots are written by modelTrainer.
         const modelVersion = '1.0.' + Date.now();
 
         // Generate model_id
@@ -151,7 +159,7 @@ const trainKMeansModel = async (k = 6) => {
         model_id, model_type, model_version, training_date, training_samples_count,
         num_clusters, cluster_centers, silhouette_score,
         outlier_threshold, normalization_params, is_active
-      ) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5, $6, $7, $8, $9, true)
+      ) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5, $6, $7, $8, $9, false)
       RETURNING model_id
     `, [
             modelId,
@@ -164,14 +172,6 @@ const trainKMeansModel = async (k = 6) => {
             outlierThreshold,
             JSON.stringify(normParams)
         ]);
-
-        // Deactivate old models
-        await query(`
-      UPDATE ml_model_metadata 
-      SET is_active = false 
-      WHERE model_type = 'kmeans' 
-      AND model_id != $1
-    `, [modelResult.rows[0].model_id]);
 
         logger.info(`K-Means model trained successfully. Model ID: ${modelResult.rows[0].model_id}, Silhouette: ${silhouetteScore.toFixed(4)}`);
 

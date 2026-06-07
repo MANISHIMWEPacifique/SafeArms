@@ -24,7 +24,8 @@ const { query } = require('../config/database');
  * IMPORTANT CONSTRAINTS:
  * - Ballistic profiles are IMMUTABLE after creation
  * - All access is logged for investigative traceability
- * - NO forensic analysis or matching capabilities (read-only traceability)
+ * - Forensic search returns candidate matches and custody context for human review
+ * - It does not make guilt, certainty, or automated decision claims
  */
 
 // Middleware to log ballistic access

@@ -11,10 +11,71 @@ import '../../providers/unit_provider.dart';
 import '../../utils/app_transitions.dart';
 import '../../widgets/anomaly_card_widget.dart';
 import '../../widgets/base_modal_widget.dart';
+import '../../widgets/confirmation_dialog.dart';
 import '../../widgets/searchable_dropdown.dart';
 
 const double _anomalyDesktopBreakpoint = 1024;
 const double _anomalyMobileBreakpoint = 768;
+
+const List<Map<String, String>> _anomalySeverityFilterItems = [
+  {'value': 'all', 'label': 'All Severities'},
+  {'value': 'critical', 'label': 'Critical'},
+  {'value': 'high', 'label': 'High'},
+  {'value': 'medium', 'label': 'Medium'},
+  {'value': 'low', 'label': 'Low'},
+];
+
+const List<Map<String, String>> _anomalyStatusFilterItems = [
+  {'value': 'all', 'label': 'All Statuses'},
+  {'value': 'open', 'label': 'Open'},
+  {'value': 'investigating', 'label': 'Investigating'},
+  {'value': 'resolved', 'label': 'Resolved'},
+  {'value': 'false_positive', 'label': 'False Positive'},
+  {'value': 'acceptable_change', 'label': 'Acceptable Change'},
+  {'value': 'archived', 'label': 'Archived'},
+];
+
+({Color color, IconData icon}) _statusStyle(String status) {
+  switch (status) {
+    case 'open':
+    case 'detected':
+      return (color: const Color(0xFFE85C5C), icon: Icons.circle);
+    case 'investigating':
+      return (color: const Color(0xFFFFCA28), icon: Icons.search);
+    case 'resolved':
+      return (color: const Color(0xFF3CCB7F), icon: Icons.check_circle);
+    case 'false_positive':
+      return (color: const Color(0xFF78909C), icon: Icons.cancel);
+    case 'acceptable_change':
+      return (color: const Color(0xFF42A5F5), icon: Icons.rule);
+    case 'archived':
+      return (color: const Color(0xFF78909C), icon: Icons.archive_outlined);
+    default:
+      return (color: const Color(0xFF78909C), icon: Icons.help_outline);
+  }
+}
+
+Widget _buildAnomalyStatusBadge(String status) {
+  final style = _statusStyle(status);
+  return Row(
+    children: [
+      Icon(style.icon, color: style.color, size: 12),
+      const SizedBox(width: 4),
+      Expanded(
+        child: Text(
+          status.toUpperCase(),
+          style: TextStyle(
+            color: style.color,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ],
+  );
+}
 
 String _formatDetectionMethod(dynamic method) {
   if (method == null) return 'N/A';
@@ -91,17 +152,27 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
     final anomalyProvider =
         Provider.of<AnomalyProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final selectedSeverity =
+        _selectedSeverity == 'all' ? null : _selectedSeverity;
+    final selectedStatus = _selectedStatus == 'all' ? null : _selectedStatus;
+    final includeArchived = _selectedStatus == 'archived';
 
     if (authProvider.currentUser?['role'] == 'station_commander') {
       await anomalyProvider.loadUnitAnomalies(
         authProvider.currentUser!['unit_id'],
         limit: 100,
+        severity: selectedSeverity,
+        status: selectedStatus,
+        includeRemoved: includeArchived,
+        force: true,
       );
     } else {
       await anomalyProvider.loadAnomalies(
         limit: 100,
-        severity: _selectedSeverity == 'all' ? null : _selectedSeverity,
-        status: _selectedStatus == 'all' ? null : _selectedStatus,
+        severity: selectedSeverity,
+        status: selectedStatus,
+        includeRemoved: includeArchived,
+        force: true,
       );
     }
   }
@@ -491,13 +562,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             final severityWidget = _buildFilterDropdown(
               label: 'Severity',
               value: _selectedSeverity,
-              items: [
-                {'value': 'all', 'label': 'All Severities'},
-                {'value': 'critical', 'label': 'Critical'},
-                {'value': 'high', 'label': 'High'},
-                {'value': 'medium', 'label': 'Medium'},
-                {'value': 'low', 'label': 'Low'},
-              ],
+              items: _anomalySeverityFilterItems,
               onChanged: (value) {
                 setState(() => _selectedSeverity = value!);
                 _loadAnomalies();
@@ -507,14 +572,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             final statusWidget = _buildFilterDropdown(
               label: 'Status',
               value: _selectedStatus,
-              items: [
-                {'value': 'all', 'label': 'All Statuses'},
-                {'value': 'open', 'label': 'Open'},
-                {'value': 'investigating', 'label': 'Investigating'},
-                {'value': 'resolved', 'label': 'Resolved'},
-                {'value': 'false_positive', 'label': 'False Positive'},
-                {'value': 'acceptable_change', 'label': 'Acceptable Change'},
-              ],
+              items: _anomalyStatusFilterItems,
               onChanged: (value) {
                 setState(() => _selectedStatus = value!);
                 _loadAnomalies();
@@ -1057,7 +1115,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
             if (!isMobileTable)
               Expanded(
                 flex: 1,
-                child: _buildStatusBadge(status),
+                child: _buildAnomalyStatusBadge(status),
               ),
             Expanded(
               flex: 1,
@@ -1072,57 +1130,6 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
         ),
       ),
       index,
-    );
-  }
-
-  Widget _buildStatusBadge(String status) {
-    Color statusColor;
-    IconData statusIcon;
-
-    switch (status) {
-      case 'open':
-      case 'detected':
-        statusColor = const Color(0xFFE85C5C);
-        statusIcon = Icons.circle;
-        break;
-      case 'investigating':
-        statusColor = const Color(0xFFFFCA28);
-        statusIcon = Icons.search;
-        break;
-      case 'resolved':
-        statusColor = const Color(0xFF3CCB7F);
-        statusIcon = Icons.check_circle;
-        break;
-      case 'false_positive':
-        statusColor = const Color(0xFF78909C);
-        statusIcon = Icons.cancel;
-        break;
-      case 'acceptable_change':
-        statusColor = const Color(0xFF42A5F5);
-        statusIcon = Icons.rule;
-        break;
-      default:
-        statusColor = const Color(0xFF78909C);
-        statusIcon = Icons.help_outline;
-    }
-
-    return Row(
-      children: [
-        Icon(statusIcon, color: statusColor, size: 12),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(
-            status.toUpperCase(),
-            style: TextStyle(
-              color: statusColor,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
     );
   }
 
@@ -1330,22 +1337,6 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
   }
 
   Widget _buildSearchForm() {
-    final severityItems = [
-      {'value': 'all', 'label': 'All Severities'},
-      {'value': 'critical', 'label': 'Critical'},
-      {'value': 'high', 'label': 'High'},
-      {'value': 'medium', 'label': 'Medium'},
-      {'value': 'low', 'label': 'Low'},
-    ];
-    final statusItems = [
-      {'value': 'all', 'label': 'All Statuses'},
-      {'value': 'open', 'label': 'Open'},
-      {'value': 'investigating', 'label': 'Investigating'},
-      {'value': 'resolved', 'label': 'Resolved'},
-      {'value': 'false_positive', 'label': 'False Positive'},
-      {'value': 'acceptable_change', 'label': 'Acceptable Change'},
-    ];
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1383,7 +1374,7 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
               child: _buildDropdownField(
                 'Severity',
                 _searchSeverity,
-                severityItems,
+                _anomalySeverityFilterItems,
                 (v) => setState(() => _searchSeverity = v!),
               ),
             ),
@@ -1392,7 +1383,7 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
               child: _buildDropdownField(
                 'Status',
                 _searchStatus,
-                statusItems,
+                _anomalyStatusFilterItems,
                 (v) => setState(() => _searchStatus = v!),
               ),
             ),
@@ -1817,7 +1808,7 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Expanded(flex: 1, child: _buildStatusBadgeStatic(status)),
+          Expanded(flex: 1, child: _buildAnomalyStatusBadge(status)),
           Expanded(
             flex: 1,
             child: Align(
@@ -1863,50 +1854,6 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
           style: TextStyle(
               color: color, fontSize: 11, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center),
-    );
-  }
-
-  Widget _buildStatusBadgeStatic(String status) {
-    Color statusColor;
-    IconData statusIcon;
-    switch (status) {
-      case 'open':
-      case 'detected':
-        statusColor = const Color(0xFFE85C5C);
-        statusIcon = Icons.circle;
-        break;
-      case 'investigating':
-        statusColor = const Color(0xFFFFCA28);
-        statusIcon = Icons.search;
-        break;
-      case 'resolved':
-        statusColor = const Color(0xFF3CCB7F);
-        statusIcon = Icons.check_circle;
-        break;
-      case 'false_positive':
-        statusColor = const Color(0xFF78909C);
-        statusIcon = Icons.cancel;
-        break;
-      case 'acceptable_change':
-        statusColor = const Color(0xFF42A5F5);
-        statusIcon = Icons.rule;
-        break;
-      default:
-        statusColor = const Color(0xFF78909C);
-        statusIcon = Icons.help_outline;
-    }
-    return Row(
-      children: [
-        Icon(statusIcon, color: statusColor, size: 12),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(status.toUpperCase(),
-              style: TextStyle(
-                  color: statusColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold)),
-        ),
-      ],
     );
   }
 
@@ -1981,6 +1928,20 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
     final anomalyId = widget.anomaly['anomaly_id']?.toString();
     if (anomalyId == null) return;
 
+    if (action == 'archive') {
+      final confirmed = await ConfirmationDialog.show(
+        context,
+        title: 'Archive anomaly?',
+        message:
+            'This will hide the anomaly from the active dashboard but keep it in the system for accountability and future review.',
+        confirmText: 'Archive',
+        icon: Icons.archive_outlined,
+      );
+
+      if (confirmed != true) return;
+      if (!mounted) return;
+    }
+
     setState(() => _isProcessing = true);
 
     final provider = Provider.of<AnomalyProvider>(context, listen: false);
@@ -2004,9 +1965,9 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
         success = await provider.markAcceptableChange(anomalyId,
             notes: notes.isNotEmpty ? notes : null);
         break;
-      case 'hide':
-        success = await provider.deleteFromDashboard(anomalyId,
-            reason: notes.isNotEmpty ? notes : null);
+      case 'archive':
+        success = await provider.archiveAnomaly(anomalyId,
+            note: notes.isNotEmpty ? notes : null);
         break;
       case 'explanation':
         final message = _explanationController.text.trim();
@@ -2030,8 +1991,8 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
       'false_positive':
           'Marked as false positive — this data will be used to improve ML model accuracy',
       'acceptable_change': 'Marked as acceptable operational change',
-      'hide':
-          'Deleted from dashboard view. It remains available in reports and system records.',
+      'archive':
+          'Archived from the active dashboard. It remains available in history and system records.',
       'explanation': 'Explanation submitted successfully',
     };
 
@@ -2121,18 +2082,20 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
       ]);
     }
 
-    actionButtons.add(
-      OutlinedButton.icon(
-        onPressed: _isProcessing ? null : () => _performAction('hide'),
-        icon: const Icon(Icons.visibility_off_outlined, size: 18),
-        label: const Text('Delete From Dashboard'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFFB0BEC5),
-          side: const BorderSide(color: Color(0xFF37404F)),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    if (role == 'station_commander' && status != 'archived') {
+      actionButtons.add(
+        OutlinedButton.icon(
+          onPressed: _isProcessing ? null : () => _performAction('archive'),
+          icon: const Icon(Icons.archive_outlined, size: 18),
+          label: const Text('Archive'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFFB0BEC5),
+            side: const BorderSide(color: Color(0xFF37404F)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
         ),
-      ),
-    );
+      );
+    }
 
     if (_isProcessing) {
       actionButtons.add(

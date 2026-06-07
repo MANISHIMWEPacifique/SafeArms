@@ -21,6 +21,83 @@ const isMissingCommanderUserIdColumnError = (error) => {
     return error && error.code === '42703' && typeof error.message === 'string' && error.message.includes('commander_user_id');
 };
 
+const isMissingArchiveColumnError = (error) => {
+    return error && error.code === '42703' && typeof error.message === 'string' && (
+        error.message.includes('archived_at') ||
+        error.message.includes('removed_from_dashboard')
+    );
+};
+
+const buildAnomalyCountSelect = (useArchiveFilters) => {
+    const archiveFilter = useArchiveFilters
+        ? 'AND a.archived_at IS NULL AND COALESCE(a.removed_from_dashboard, false) = false'
+        : '';
+
+    return `(SELECT CAST(COUNT(*) AS INTEGER)
+             FROM anomalies a
+             WHERE a.unit_id = u.unit_id
+               AND a.status IN ('open', 'pending')
+               ${archiveFilter}) as anomaly_count`;
+};
+
+const buildUnitSelect = ({ whereClause, includeCommanderJoin, useArchiveFilters, pageClause = '' }) => {
+    const commanderSelect = includeCommanderJoin
+        ? 'COALESCE(cmd.full_name, u.commander_name) as commander_name'
+        : 'u.commander_name as commander_name';
+    const commanderJoin = includeCommanderJoin
+        ? 'LEFT JOIN users cmd ON u.commander_user_id = cmd.user_id'
+        : '';
+
+    return `
+        SELECT u.*,
+               ${commanderSelect},
+               (SELECT CAST(COUNT(*) AS INTEGER) FROM firearms f WHERE f.assigned_unit_id = u.unit_id AND f.is_active = true) as firearm_count,
+               (SELECT CAST(COUNT(*) AS INTEGER) FROM officers o WHERE o.unit_id = u.unit_id AND o.is_active = true) as officer_count,
+               (SELECT CAST(COUNT(*) AS INTEGER) FROM custody_records c WHERE c.unit_id = u.unit_id AND c.returned_at IS NULL) as active_custody,
+               ${buildAnomalyCountSelect(useArchiveFilters)}
+        FROM units u
+        ${commanderJoin}
+        ${whereClause}
+        ORDER BY u.unit_name
+        ${pageClause}
+    `;
+};
+
+const queryUnitsWithFallback = async ({ whereClause, params, pageClause = '' }) => {
+    let includeCommanderJoin = true;
+    let useArchiveFilters = true;
+
+    for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+            return await query(buildUnitSelect({
+                whereClause,
+                includeCommanderJoin,
+                useArchiveFilters,
+                pageClause
+            }), params);
+        } catch (error) {
+            if (isMissingCommanderUserIdColumnError(error) && includeCommanderJoin) {
+                includeCommanderJoin = false;
+                continue;
+            }
+
+            if (isMissingArchiveColumnError(error) && useArchiveFilters) {
+                useArchiveFilters = false;
+                continue;
+            }
+
+            throw error;
+        }
+    }
+
+    return await query(buildUnitSelect({
+        whereClause,
+        includeCommanderJoin,
+        useArchiveFilters,
+        pageClause
+    }), params);
+};
+
 const syncStationCommanderForUnit = async (executeQuery, { unitId, previousCommanderUserId, nextCommanderUserId }) => {
     if (previousCommanderUserId && previousCommanderUserId !== nextCommanderUserId) {
         await executeQuery(
@@ -89,37 +166,10 @@ const Unit = {
     },
 
     async findById(unitId) {
-        let result;
-
-        try {
-            result = await query(`
-                SELECT u.*,
-                       COALESCE(cmd.full_name, u.commander_name) as commander_name,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM firearms f WHERE f.assigned_unit_id = u.unit_id AND f.is_active = true) as firearm_count,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM officers o WHERE o.unit_id = u.unit_id AND o.is_active = true) as officer_count,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM custody_records c WHERE c.unit_id = u.unit_id AND c.returned_at IS NULL) as active_custody,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM anomalies a WHERE a.unit_id = u.unit_id AND a.status IN ('open', 'pending')) as anomaly_count
-                FROM units u
-                LEFT JOIN users cmd ON u.commander_user_id = cmd.user_id
-                WHERE u.unit_id = $1
-            `, [unitId]);
-        } catch (error) {
-            if (!isMissingCommanderUserIdColumnError(error)) {
-                throw error;
-            }
-
-            // Legacy fallback for environments that have not applied commander assignment migration yet.
-            result = await query(`
-                SELECT u.*,
-                       u.commander_name as commander_name,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM firearms f WHERE f.assigned_unit_id = u.unit_id AND f.is_active = true) as firearm_count,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM officers o WHERE o.unit_id = u.unit_id AND o.is_active = true) as officer_count,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM custody_records c WHERE c.unit_id = u.unit_id AND c.returned_at IS NULL) as active_custody,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM anomalies a WHERE a.unit_id = u.unit_id AND a.status IN ('open', 'pending')) as anomaly_count
-                FROM units u
-                WHERE u.unit_id = $1
-            `, [unitId]);
-        }
+        const result = await queryUnitsWithFallback({
+            whereClause: 'WHERE u.unit_id = $1',
+            params: [unitId]
+        });
 
         return result.rows[0];
     },
@@ -147,41 +197,11 @@ const Unit = {
         pCount++;
         params.push(offset);
 
-        let result;
-
-        try {
-            result = await query(`
-                SELECT u.*,
-                       COALESCE(cmd.full_name, u.commander_name) as commander_name,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM firearms f WHERE f.assigned_unit_id = u.unit_id AND f.is_active = true) as firearm_count,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM officers o WHERE o.unit_id = u.unit_id AND o.is_active = true) as officer_count,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM custody_records c WHERE c.unit_id = u.unit_id AND c.returned_at IS NULL) as active_custody,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM anomalies a WHERE a.unit_id = u.unit_id AND a.status IN ('open', 'pending')) as anomaly_count
-                FROM units u
-                LEFT JOIN users cmd ON u.commander_user_id = cmd.user_id
-                ${where} 
-                ORDER BY u.unit_name 
-                LIMIT $${pCount - 1} OFFSET $${pCount}
-            `, params);
-        } catch (error) {
-            if (!isMissingCommanderUserIdColumnError(error)) {
-                throw error;
-            }
-
-            // Legacy fallback for environments that have not applied commander assignment migration yet.
-            result = await query(`
-                SELECT u.*,
-                       u.commander_name as commander_name,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM firearms f WHERE f.assigned_unit_id = u.unit_id AND f.is_active = true) as firearm_count,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM officers o WHERE o.unit_id = u.unit_id AND o.is_active = true) as officer_count,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM custody_records c WHERE c.unit_id = u.unit_id AND c.returned_at IS NULL) as active_custody,
-                       (SELECT CAST(COUNT(*) AS INTEGER) FROM anomalies a WHERE a.unit_id = u.unit_id AND a.status IN ('open', 'pending')) as anomaly_count
-                FROM units u
-                ${where} 
-                ORDER BY u.unit_name 
-                LIMIT $${pCount - 1} OFFSET $${pCount}
-            `, params);
-        }
+        const result = await queryUnitsWithFallback({
+            whereClause: where,
+            params,
+            pageClause: `LIMIT $${pCount - 1} OFFSET $${pCount}`
+        });
 
         return result.rows;
     },
@@ -337,9 +357,18 @@ const Unit = {
 
     async delete(unitId) {
         return await withTransaction(async (client) => {
+            const retainedHistory = await client.query(`
+                SELECT
+                    (SELECT COUNT(*)::int FROM anomalies WHERE unit_id = $1) AS anomaly_count,
+                    (SELECT COUNT(*)::int FROM ml_training_features WHERE unit_id = $1) AS feature_count
+            `, [unitId]);
+
+            const history = retainedHistory.rows[0] || {};
+            if ((history.anomaly_count || 0) > 0 || (history.feature_count || 0) > 0) {
+                throw new Error('Unit cannot be hard-deleted because retained anomaly or ML training history exists. Deactivate the unit instead.');
+            }
+
             // Delete records from tables that reference this unit with NOT NULL constraints
-            await client.query('DELETE FROM ml_training_features WHERE unit_id = $1', [unitId]);
-            await client.query('DELETE FROM anomalies WHERE unit_id = $1', [unitId]);
             await client.query('DELETE FROM loss_reports WHERE unit_id = $1', [unitId]);
             await client.query('DELETE FROM destruction_requests WHERE unit_id = $1', [unitId]);
             await client.query('DELETE FROM procurement_requests WHERE unit_id = $1', [unitId]);

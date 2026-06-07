@@ -1,5 +1,6 @@
 const { trainKMeansModel } = require('./kmeans');
-const { query } = require('../config/database');
+const { extractAllFeatures } = require('./featureExtractor');
+const { query, withTransaction } = require('../config/database');
 const logger = require('../utils/logger');
 
 const toPositiveInt = (value, fallback) => {
@@ -39,8 +40,167 @@ const estimateQualityMetrics = ({ sampleCount, silhouetteScore }) => {
 };
 
 const MIN_TRAINING_SAMPLES = toPositiveInt(process.env.ML_MIN_TRAINING_SAMPLES, 100);
+const SCORING_THRESHOLD_SETTING_KEYS = [
+    'anomaly_trigger_threshold',
+    'anomaly_medium_threshold',
+    'anomaly_high_threshold',
+    'anomaly_critical_threshold',
+    'anomaly_critical_min_confidence'
+];
 
 const getMinTrainingSamples = () => MIN_TRAINING_SAMPLES;
+
+const getMissingFeatureCustodyRecords = async () => {
+    const result = await query(`
+        SELECT cr.custody_id, cr.officer_id, cr.firearm_id, cr.unit_id,
+               cr.issued_at, cr.returned_at, cr.custody_type,
+               cr.duration_type,
+               cr.custody_duration_seconds,
+               cr.issue_hour, cr.issue_day_of_week,
+               cr.is_night_issue, cr.is_weekend_issue
+        FROM custody_records cr
+        WHERE cr.issued_at IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1
+              FROM ml_training_features mf
+              WHERE mf.custody_record_id = cr.custody_id
+          )
+        ORDER BY cr.issued_at ASC
+    `);
+
+    return result.rows;
+};
+
+const prepareTrainingFeatures = async () => {
+    const records = await getMissingFeatureCustodyRecords();
+    const summary = {
+        checked_records: records.length,
+        extracted: 0,
+        failed: 0
+    };
+
+    for (const record of records) {
+        try {
+            await extractAllFeatures(record);
+            summary.extracted += 1;
+        } catch (error) {
+            summary.failed += 1;
+            logger.warn(`Skipping feature extraction for ${record.custody_id}: ${error.message}`);
+        }
+    }
+
+    return summary;
+};
+
+const generateAuditLogId = () => (
+    `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`
+);
+
+const assertCandidateModelQuality = (modelResult, minSamples) => {
+    if (!modelResult?.model_id) {
+        throw new Error('Candidate model did not return a model_id');
+    }
+
+    if (toFiniteNumber(modelResult.training_samples, 0) < minSamples) {
+        throw new Error(
+            `Candidate model has insufficient training samples. Need at least ${minSamples}, got ${modelResult.training_samples || 0}`
+        );
+    }
+
+    if (!Number.isFinite(toFiniteNumber(modelResult.silhouette_score, NaN))) {
+        throw new Error('Candidate model silhouette score is invalid');
+    }
+
+    if (toFiniteNumber(modelResult.outlier_threshold, 0) <= 0) {
+        throw new Error('Candidate model outlier threshold is invalid');
+    }
+};
+
+const loadPromotionSnapshot = async (client) => {
+    const activeModelResult = await client.query(`
+        SELECT model_id, model_type, model_version, training_date,
+               training_samples_count, num_clusters, silhouette_score,
+               precision_score, recall_score, f1_score, effectiveness_score,
+               false_positive_rate_estimate, outlier_threshold, is_active
+        FROM ml_model_metadata
+        WHERE model_type = 'kmeans' AND is_active = true
+        ORDER BY training_date DESC
+        LIMIT 1
+    `);
+
+    const thresholdResult = await client.query(`
+        SELECT setting_key, setting_value
+        FROM system_settings
+        WHERE setting_key = ANY($1::text[])
+        ORDER BY setting_key
+    `, [SCORING_THRESHOLD_SETTING_KEYS]);
+
+    const thresholds = thresholdResult.rows.reduce((settings, row) => {
+        settings[row.setting_key] = row.setting_value;
+        return settings;
+    }, {});
+
+    return {
+        previousActiveModel: activeModelResult.rows[0] || null,
+        thresholds
+    };
+};
+
+const promoteCandidateModel = async ({ modelResult, metrics, minSamples }) => {
+    return withTransaction(async (client) => {
+        const { previousActiveModel, thresholds } = await loadPromotionSnapshot(client);
+
+        await client.query(`
+            INSERT INTO audit_logs (
+                log_id, user_id, action_type, table_name, record_id,
+                old_values, new_values, reason
+            ) VALUES ($1, NULL, 'ML_MODEL_PROMOTE', 'ml_model_metadata', $2, $3, $4, $5)
+        `, [
+            generateAuditLogId(),
+            modelResult.model_id,
+            JSON.stringify({ previous_active_model: previousActiveModel }),
+            JSON.stringify({
+                candidate_model: {
+                    model_id: modelResult.model_id,
+                    model_version: modelResult.model_version,
+                    training_samples: modelResult.training_samples,
+                    num_clusters: modelResult.num_clusters,
+                    silhouette_score: modelResult.silhouette_score,
+                    outlier_threshold: modelResult.outlier_threshold,
+                    quality_metrics: metrics
+                },
+                preserved_thresholds: thresholds,
+                minimum_required_samples: minSamples
+            }),
+            'Promoting validated K-Means candidate while preserving prior model metadata and thresholds.'
+        ]);
+
+        await client.query(`
+            UPDATE ml_model_metadata
+            SET is_active = false
+            WHERE model_type = 'kmeans'
+              AND is_active = true
+              AND model_id != $1
+        `, [modelResult.model_id]);
+
+        const promoted = await client.query(`
+            UPDATE ml_model_metadata
+            SET is_active = true
+            WHERE model_id = $1
+            RETURNING model_id
+        `, [modelResult.model_id]);
+
+        if (promoted.rows.length === 0) {
+            throw new Error(`Candidate model ${modelResult.model_id} not found for promotion`);
+        }
+
+        return {
+            previous_active_model_id: previousActiveModel?.model_id || null,
+            promoted_model_id: promoted.rows[0].model_id,
+            preserved_thresholds: thresholds
+        };
+    });
+};
 
 /**
  * Model Trainer
@@ -57,13 +217,19 @@ const trainModel = async (options = {}) => {
         const { k = 6, minSamples = getMinTrainingSamples() } = options;
 
         logger.info('Starting model training...');
+        const preparedFeatures = await prepareTrainingFeatures();
+        logger.info(
+            `Training preparation complete. Missing records checked: ${preparedFeatures.checked_records}, ` +
+            `extracted: ${preparedFeatures.extracted}, failed: ${preparedFeatures.failed}`
+        );
 
-        // Check if sufficient training data exists
-                const countResult = await query(`
+        // Check if sufficient training data exists across the full recent
+        // baseline. Previously used rows stay eligible so retraining extends
+        // learned patterns instead of starting from only new rows.
+        const countResult = await query(`
             SELECT COUNT(*) as count
             FROM ml_training_features
             WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
-                AND used_in_model_id IS NULL
         `);
 
         const sampleCount = parseInt(countResult.rows[0].count);
@@ -72,15 +238,16 @@ const trainModel = async (options = {}) => {
             throw new Error(`Insufficient training data. Need at least ${minSamples} samples, got ${sampleCount}`);
         }
 
-        // Train K-Means model
-                const modelResult = await trainKMeansModel(k);
+        // Train K-Means model as an inactive candidate.
+        const modelResult = await trainKMeansModel(k);
+        assertCandidateModelQuality(modelResult, minSamples);
 
-                const metrics = estimateQualityMetrics({
-                        sampleCount: modelResult.training_samples || sampleCount,
-                        silhouetteScore: modelResult.silhouette_score
-                });
+        const metrics = estimateQualityMetrics({
+            sampleCount: modelResult.training_samples || sampleCount,
+            silhouetteScore: modelResult.silhouette_score
+        });
 
-                await query(`
+        await query(`
             UPDATE ml_model_metadata
             SET precision_score = $2,
                     recall_score = $3,
@@ -97,7 +264,13 @@ const trainModel = async (options = {}) => {
                         metrics.false_positive_rate_estimate
                 ]);
 
-                await query(`
+        const promotion = await promoteCandidateModel({
+            modelResult,
+            metrics,
+            minSamples
+        });
+
+        await query(`
             UPDATE ml_training_features
             SET used_in_model_id = $1
             WHERE used_in_model_id IS NULL
@@ -109,7 +282,9 @@ const trainModel = async (options = {}) => {
         return {
             success: true,
             ...modelResult,
-            quality_metrics: metrics
+            prepared_features: preparedFeatures,
+            quality_metrics: metrics,
+            promotion
         };
     } catch (error) {
         logger.error('Model training error:', error);
@@ -257,6 +432,7 @@ const getModelMetrics = async (modelId) => {
 
 module.exports = {
     trainModel,
+    prepareTrainingFeatures,
     checkRetrainingNeeded,
     getModelMetrics,
     getMinTrainingSamples

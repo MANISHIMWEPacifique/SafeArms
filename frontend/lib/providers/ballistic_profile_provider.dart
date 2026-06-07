@@ -190,6 +190,7 @@ class BallisticProfileProvider with ChangeNotifier {
     String? forensicLab,
     String? generalSearch,
     String? incidentDate,
+    String incidentDateMode = 'filter',
     int page = 1,
     int limit = 20,
   }) async {
@@ -205,6 +206,7 @@ class BallisticProfileProvider with ChangeNotifier {
         forensicLab: forensicLab,
         generalSearch: generalSearch,
         incidentDate: incidentDate,
+        incidentDateMode: incidentDateMode,
         page: page,
         limit: limit,
       );

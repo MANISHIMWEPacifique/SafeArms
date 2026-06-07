@@ -7,7 +7,7 @@ import '../../services/auth_service.dart';
 import '../../utils/pdf_report_generator.dart';
 import '../../widgets/empty_state_widget.dart';
 
-/// System Admin – Audit, Compliance & System Oversight Reports
+/// System Admin - Audit, Compliance & System Oversight Reports
 /// Report types: User Activity Audit
 class AdminReportsScreen extends StatefulWidget {
   const AdminReportsScreen({super.key});
@@ -23,6 +23,8 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   DateTime? _dateFrom;
   DateTime? _dateTo;
   final TextEditingController _usernameController = TextEditingController();
+  final FocusNode _usernameFocusNode = FocusNode();
+  String? _selectedUserId;
   String _selectedRole = '';
   String _selectedReportType = 'user_activity';
 
@@ -54,6 +56,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   @override
   void dispose() {
     _usernameController.dispose();
+    _usernameFocusNode.dispose();
     super.dispose();
   }
 
@@ -98,18 +101,11 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       if (_dateTo != null) {
         queryParams['end_date'] = _dateTo!.toIso8601String();
       }
-      if (_usernameController.text.trim().isNotEmpty) {
-        final query = _usernameController.text.trim().toLowerCase();
-        // Find user by full name or username
-        final matchedUser = _users.firstWhere(
-          (u) =>
-              (u['full_name']?.toString() ?? '').toLowerCase().contains(query) ||
-              (u['username']?.toString() ?? '').toLowerCase().contains(query),
-          orElse: () => {},
-        );
-        if (matchedUser.isNotEmpty) {
-          queryParams['user_id'] = matchedUser['user_id'].toString();
-        }
+      final usernameFilter = _usernameController.text.trim();
+      if (_selectedUserId != null) {
+        queryParams['user_id'] = _selectedUserId!;
+      } else if (usernameFilter.isNotEmpty) {
+        queryParams['username'] = usernameFilter;
       }
       if (_selectedRole.isNotEmpty) {
         queryParams['role'] = _selectedRole;
@@ -154,7 +150,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       }
       if (_dateFrom != null && _dateTo != null) {
         metadata['Date Range'] =
-            '${DateFormat('MMM d, yyyy').format(_dateFrom!)} \u2013 ${DateFormat('MMM d, yyyy').format(_dateTo!)}';
+            '${DateFormat('MMM d, yyyy').format(_dateFrom!)} - ${DateFormat('MMM d, yyyy').format(_dateTo!)}';
       }
       await PdfReportGenerator.generate(
         reportTitle: reportLabel,
@@ -365,12 +361,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildFormTextField(
-            'USERNAME (OPTIONAL)',
-            _usernameController,
-            'Type username to filter',
-            Icons.person_outline,
-          ),
+          _buildUserFilterField(),
           const SizedBox(height: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -465,6 +456,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                           ? () {
                               setState(() {
                                 _usernameController.clear();
+                                _selectedUserId = null;
                                 _selectedRole = '';
                                 _dateFrom = null;
                                 _dateTo = null;
@@ -491,37 +483,108 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     );
   }
 
-  Widget _buildFormTextField(
-    String label,
-    TextEditingController controller,
-    String hint,
-    IconData icon,
-  ) {
+  Iterable<Map<String, dynamic>> _matchingUsers(String text) {
+    final query = text.trim().toLowerCase();
+    if (query.isEmpty) return <Map<String, dynamic>>[];
+
+    return _users.where((user) {
+      final username = user['username']?.toString().toLowerCase() ?? '';
+      final fullName = user['full_name']?.toString().toLowerCase() ?? '';
+      return username.contains(query) || fullName.contains(query);
+    }).take(8);
+  }
+
+  String _userOptionLabel(Map<String, dynamic> user) {
+    final username = user['username']?.toString() ?? '';
+    final fullName = user['full_name']?.toString() ?? '';
+    if (fullName.isEmpty || fullName == username) return username;
+    return '$username - $fullName';
+  }
+
+  Widget _buildUserFilterField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+        const Text('USERNAME (OPTIONAL)',
+            style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
         const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1F2E),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF37404F)),
-          ),
-          child: TextField(
-            controller: controller,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle:
-                  const TextStyle(color: Color(0xFF78909C), fontSize: 13),
-              prefixIcon: Icon(icon, color: const Color(0xFF78909C), size: 18),
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-          ),
+        RawAutocomplete<Map<String, dynamic>>(
+          textEditingController: _usernameController,
+          focusNode: _usernameFocusNode,
+          displayStringForOption: (user) =>
+              user['username']?.toString() ?? '',
+          optionsBuilder: (value) => _matchingUsers(value.text),
+          onSelected: (user) {
+            setState(() {
+              _selectedUserId = user['user_id']?.toString();
+              _usernameController.text = user['username']?.toString() ?? '';
+            });
+          },
+          fieldViewBuilder:
+              (context, controller, focusNode, onFieldSubmitted) {
+            return Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1F2E),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF37404F)),
+              ),
+              child: TextField(
+                controller: controller,
+                focusNode: focusNode,
+                onChanged: (_) => setState(() => _selectedUserId = null),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: const InputDecoration(
+                  hintText: 'Type username to filter',
+                  hintStyle: TextStyle(color: Color(0xFF78909C), fontSize: 13),
+                  prefixIcon: Icon(Icons.person_outline,
+                      color: Color(0xFF78909C), size: 18),
+                  border: InputBorder.none,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+              ),
+            );
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                color: Colors.transparent,
+                child: ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(maxWidth: 420, maxHeight: 220),
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF252A3A),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF37404F)),
+                    ),
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final user = options.elementAt(index);
+                        return InkWell(
+                          onTap: () => onSelected(user),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            child: Text(
+                              _userOptionLabel(user),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -638,7 +701,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     final reportLabel = _reportTypes
         .firstWhere((r) => r['value'] == _selectedReportType)['label']!;
     final generatedAt =
-        DateFormat('MMM d, yyyy – h:mm a').format(DateTime.now());
+        DateFormat('MMM d, yyyy - h:mm a').format(DateTime.now());
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -680,7 +743,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
             _buildHeaderMeta(
                 'Date Range',
                 _dateFrom != null && _dateTo != null
-                    ? '${DateFormat('MMM d, yyyy').format(_dateFrom!)} – ${DateFormat('MMM d, yyyy').format(_dateTo!)}'
+                    ? '${DateFormat('MMM d, yyyy').format(_dateFrom!)} - ${DateFormat('MMM d, yyyy').format(_dateTo!)}'
                     : 'All time'),
           ],
         ),
@@ -711,8 +774,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         List<Map<String, dynamic>>.from(_reportData['activities'] ?? []);
 
     if (activities.isEmpty) {
-      return _buildEmptyState(
-          'No user activity found for the selected filters.');
+      return _buildEmptyState(_emptyUserActivityMessage());
     }
 
     return Column(
@@ -828,6 +890,21 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     );
   }
 
+  String _emptyUserActivityMessage() {
+    final filters = <String>[];
+    final username = _usernameController.text.trim();
+
+    if (username.isNotEmpty) filters.add('username "$username"');
+    if (_selectedRole.isNotEmpty) filters.add('role "${_formatRole(_selectedRole)}"');
+    if (_dateFrom != null && _dateTo != null) {
+      filters.add(
+          'dates ${DateFormat('MMM d, yyyy').format(_dateFrom!)} - ${DateFormat('MMM d, yyyy').format(_dateTo!)}');
+    }
+
+    if (filters.isEmpty) return 'No user activity found.';
+    return 'No user activity found for ${filters.join(', ')}.';
+  }
+
   String _formatRole(String role) {
     switch (role) {
       case 'admin':
@@ -844,9 +921,9 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   }
 
   String _fmtDateTime(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return '–';
+    if (dateStr == null || dateStr.isEmpty) return '-';
     try {
-      return DateFormat('MMM d, yyyy – h:mm a').format(DateTime.parse(dateStr));
+      return DateFormat('MMM d, yyyy - h:mm a').format(DateTime.parse(dateStr));
     } catch (_) {
       return dateStr;
     }

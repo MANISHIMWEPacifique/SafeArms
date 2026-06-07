@@ -106,6 +106,7 @@ class BallisticProfileService {
     String? forensicLab,
     String? generalSearch,
     String? incidentDate,
+    String incidentDateMode = 'filter',
     int page = 1,
     int limit = 20,
   }) async {
@@ -140,6 +141,8 @@ class BallisticProfileService {
       }
       if (incidentDate != null && incidentDate.isNotEmpty) {
         queryParams.add('incident_date=${Uri.encodeComponent(incidentDate)}');
+        queryParams
+            .add('incident_date_mode=${Uri.encodeComponent(incidentDateMode)}');
       }
       queryParams.add('page=$page');
       queryParams.add('limit=$limit');

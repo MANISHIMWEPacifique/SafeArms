@@ -112,11 +112,13 @@ class AnomalyProvider with ChangeNotifier {
     String unitId, {
     int? limit,
     int? offset,
+    String? severity,
+    String? status,
     bool includeRemoved = false,
     bool force = false,
   }) async {
     final cacheKey =
-        'unit:$unitId:${limit ?? ''}:${offset ?? ''}:$includeRemoved';
+        'unit:$unitId:${limit ?? ''}:${offset ?? ''}:${severity ?? ''}:${status ?? ''}:$includeRemoved';
 
     await _loadAnomaliesWithCache(
       cacheKey: cacheKey,
@@ -125,6 +127,8 @@ class AnomalyProvider with ChangeNotifier {
         unitId,
         limit: limit,
         offset: offset,
+        severity: severity,
+        status: status,
         includeRemoved: includeRemoved,
       ),
     );
@@ -235,14 +239,14 @@ class AnomalyProvider with ChangeNotifier {
     }
   }
 
-  // Delete anomaly from dashboard views globally (record is retained).
-  Future<bool> deleteFromDashboard(String id, {String? reason}) async {
+  // Archive anomaly from active dashboard views globally (record is retained).
+  Future<bool> archiveAnomaly(String id, {String? note}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await _anomalyService.deleteFromDashboard(id, reason: reason);
+      await _anomalyService.archiveAnomaly(id, note: note);
       _invalidateAnomalyCache();
       _error = null;
       _isLoading = false;
@@ -276,12 +280,6 @@ class AnomalyProvider with ChangeNotifier {
       return false;
     }
   }
-
-  // Backward-compatible aliases.
-  Future<bool> hideFromDashboard(String id, {String? reason}) =>
-      deleteFromDashboard(id, reason: reason);
-
-  Future<bool> unhideFromDashboard(String id) => restoreToDashboard(id);
 
   // Submit explanation for critical anomaly
   Future<bool> submitExplanation(String id, {required String message}) async {

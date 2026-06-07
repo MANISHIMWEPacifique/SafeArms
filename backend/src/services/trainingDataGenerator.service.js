@@ -180,17 +180,20 @@ const extractFeaturesForBatch = async (batchCode) => {
 const getTrainingReadiness = async () => {
     const minimumRequiredSamples = getMinTrainingSamples();
     const samplesResult = await query(`
-        SELECT COUNT(*)::int AS count
+        SELECT
+            COUNT(*)::int AS total_count,
+            COUNT(*) FILTER (WHERE used_in_model_id IS NULL)::int AS new_count
         FROM ml_training_features
         WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
-          AND used_in_model_id IS NULL
     `);
 
-    const availableTrainingSamples = toPositiveInt(samplesResult.rows[0]?.count, 0);
+    const availableTrainingSamples = toPositiveInt(samplesResult.rows[0]?.total_count, 0);
+    const newTrainingSamples = toPositiveInt(samplesResult.rows[0]?.new_count, 0);
 
     return {
         minimum_required_samples: minimumRequiredSamples,
         available_training_samples: availableTrainingSamples,
+        new_training_samples: newTrainingSamples,
         can_train: availableTrainingSamples >= minimumRequiredSamples
     };
 };

@@ -76,6 +76,8 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
             `SELECT severity, COUNT(*) as count
             FROM anomalies
             WHERE detected_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
+            AND archived_at IS NULL
+            AND COALESCE(removed_from_dashboard, false) = false
             ${isStationCmd ? 'AND unit_id = $1' : ''}
             GROUP BY severity`,
             unitParams
@@ -218,6 +220,8 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
                 COUNT(*) FILTER (WHERE severity IN ('critical', 'high') AND status = 'open') as mandatory_pending
             FROM anomalies
             WHERE status IN ('open', 'investigating')
+            AND archived_at IS NULL
+            AND COALESCE(removed_from_dashboard, false) = false
         `);
         queries.recentProfiles = () => query(`
             SELECT 

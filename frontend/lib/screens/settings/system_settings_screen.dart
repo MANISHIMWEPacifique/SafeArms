@@ -15,7 +15,8 @@ class SystemSettingsScreen extends StatefulWidget {
 class _SystemSettingsScreenState extends State<SystemSettingsScreen>
     with SingleTickerProviderStateMixin {
   // Colors mapped from CSS vars
-  static const Color _bg = SafeArmsColors.background; // Used for top bar and tab bar background
+  static const Color _bg =
+      SafeArmsColors.background; // Used for top bar and tab bar background
   static const Color _mainBg = Color(0xFF1A2233);
   static const Color _panelSurface = Color(0xFF212D42);
   static const Color _panelAlt = Color(0xFF273047);
@@ -635,8 +636,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
     final lastRunReason = _safeString(lastRun?['reason'], fallback: '');
 
     final trainHint = canTrain
-      ? 'Sufficient operational records available for training'
-      : 'Need more operational records before training';
+        ? 'Ready to train from operational records and extracted features'
+        : 'Need more operational records before training';
 
     return _buildPanel(
       header: _buildPanelHeader(
@@ -667,7 +668,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
                   _MiniStatCard(label: 'MODEL ID', value: modelId),
                   _MiniStatCard(
                       label: 'LAST TRAINED', value: lastTrained, valueSize: 15),
-                    _MiniStatCard(
+                  _MiniStatCard(
                       label: 'TRAINED RECORDS', value: trainingSamples),
                   _MiniStatCard(label: 'SILHOUETTE SCORE', value: silhouette),
                 ],
@@ -730,7 +731,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
                     onPressed: isTraining || !canTrain
                         ? null
                         : () async {
-                            await sp.trainModel();
+                            await sp.trainModel(force: true, wait: true);
                             if (!mounted) {
                               return;
                             }

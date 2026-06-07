@@ -28,6 +28,7 @@ let latestTrainingRun = {
     error: null,
     model_id: null,
     training_samples: null,
+    prepared_features: null,
     silhouette_score: null,
     outlier_threshold: null
 };
@@ -45,6 +46,7 @@ const runModelTraining = async (options = {}) => {
         error: null,
         model_id: null,
         training_samples: null,
+        prepared_features: null,
         silhouette_score: null,
         outlier_threshold: null
     };
@@ -100,6 +102,7 @@ const runModelTraining = async (options = {}) => {
             reason: check.reason,
             model_id: result.model_id,
             training_samples: result.training_samples,
+            prepared_features: result.prepared_features,
             silhouette_score: result.silhouette_score,
             outlier_threshold: result.outlier_threshold,
             started_at: startedAt,
@@ -112,6 +115,7 @@ const runModelTraining = async (options = {}) => {
             reason: check.reason,
             model_id: result.model_id,
             training_samples: result.training_samples,
+            prepared_features: result.prepared_features,
             silhouette_score: result.silhouette_score,
             outlier_threshold: result.outlier_threshold,
             finished_at: completedResult.finished_at

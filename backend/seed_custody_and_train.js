@@ -49,6 +49,19 @@ async function runSeedAndTrain() {
         
         // Let's wipe out older custody to start fresh.
         console.log('Clearing old ML-seeded custody records...');
+        if (process.env.ALLOW_DESTRUCTIVE_SEED_RESET !== 'true') {
+            const retainedState = await query(`
+                SELECT
+                    (SELECT COUNT(*)::int FROM ml_training_features WHERE custody_record_id LIKE 'CSD-%') AS feature_count,
+                    (SELECT COUNT(*)::int FROM anomalies WHERE custody_record_id LIKE 'CSD-%') AS anomaly_count
+            `);
+            const retained = retainedState.rows[0] || {};
+            if ((retained.feature_count || 0) > 0 || (retained.anomaly_count || 0) > 0) {
+                throw new Error(
+                    'Refusing to clear retained CSD anomaly/model state. Set ALLOW_DESTRUCTIVE_SEED_RESET=true only for an intentional full reset.'
+                );
+            }
+        }
         await query(`DELETE FROM ml_training_features WHERE custody_record_id LIKE 'CSD-%'`);
         await query(`DELETE FROM anomalies WHERE custody_record_id LIKE 'CSD-%'`).catch(() => {});
         await query(`DELETE FROM custody_records WHERE custody_id LIKE 'CSD-%'`);

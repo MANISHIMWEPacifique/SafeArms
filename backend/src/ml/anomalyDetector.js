@@ -11,9 +11,7 @@ const { evaluateRules } = require('./rulesEngine');
 const { sendAnomalyAlert } = require('../services/email.service');
 const { getSystemSettings } = require('../services/systemSettings.service');
 const logger = require('../utils/logger');
-const { parseDecimalFields } = require('../utils/helpers');
 
-const ANOMALY_DECIMAL_FIELDS = ['anomaly_score', 'confidence_level'];
 const SCORING_THRESHOLD_SETTING_KEYS = [
     'anomaly_trigger_threshold',
     'anomaly_medium_threshold',
@@ -414,170 +412,6 @@ const getSeverityDescription = (severity) => {
 };
 
 /**
- * Get anomalies for a specific unit
- * @param {string} unitId
- * @param {Object} filters
- * @returns {Promise<Array>}
- */
-const getUnitAnomalies = async (unitId, filters = {}) => {
-    try {
-        const {
-            severity,
-            status,
-            firearm_id,
-            include_removed,
-            limit = 50,
-            offset = 0
-        } = filters;
-        const includeRemoved = include_removed === true || include_removed === 'true';
-
-        let whereClause = 'WHERE a.unit_id = $1';
-        let params = [unitId];
-        let paramCount = 1;
-
-        if (severity) {
-            paramCount++;
-            whereClause += ` AND a.severity = $${paramCount}`;
-            params.push(severity);
-        }
-
-        if (status) {
-            paramCount++;
-            whereClause += ` AND a.status = $${paramCount}`;
-            params.push(status);
-        }
-
-        if (firearm_id) {
-            paramCount++;
-            whereClause += ` AND a.firearm_id = $${paramCount}`;
-            params.push(firearm_id);
-        }
-
-        if (!includeRemoved) {
-            whereClause += ` AND COALESCE(a.removed_from_dashboard, false) = false`;
-        }
-
-        paramCount++;
-        params.push(limit);
-        const limitParam = `$${paramCount}`;
-
-        paramCount++;
-        params.push(offset);
-        const offsetParam = `$${paramCount}`;
-
-        const result = await query(`
-      SELECT 
-        a.*,
-        f.serial_number,
-        f.manufacturer,
-        f.model,
-        o.full_name as officer_name,
-        o.rank,
-        u.unit_name,
-        cr.issued_at
-      FROM anomalies a
-      JOIN firearms f ON a.firearm_id = f.firearm_id
-      JOIN officers o ON a.officer_id = o.officer_id
-      JOIN units u ON a.unit_id = u.unit_id
-      JOIN custody_records cr ON a.custody_record_id = cr.custody_id
-      ${whereClause}
-      ORDER BY a.detected_at DESC
-      LIMIT ${limitParam} OFFSET ${offsetParam}
-    `, params);
-
-        return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
-    } catch (error) {
-        logger.error('Get unit anomalies error:', error);
-        throw error;
-    }
-};
-
-/**
- * Get all anomalies (HQ view)
- * @param {Object} filters
- * @returns {Promise<Array>}
- */
-const getAllAnomalies = async (filters = {}) => {
-    try {
-        const {
-            severity,
-            status,
-            unit_id,
-            firearm_id,
-            include_removed,
-            limit = 100,
-            offset = 0
-        } = filters;
-        const includeRemoved = include_removed === true || include_removed === 'true';
-
-        let whereClause = 'WHERE 1=1';
-        let params = [];
-        let paramCount = 0;
-
-        if (severity) {
-            paramCount++;
-            whereClause += ` AND a.severity = $${paramCount}`;
-            params.push(severity);
-        }
-
-        if (status) {
-            paramCount++;
-            whereClause += ` AND a.status = $${paramCount}`;
-            params.push(status);
-        }
-
-        if (unit_id) {
-            paramCount++;
-            whereClause += ` AND a.unit_id = $${paramCount}`;
-            params.push(unit_id);
-        }
-
-        if (firearm_id) {
-            paramCount++;
-            whereClause += ` AND a.firearm_id = $${paramCount}`;
-            params.push(firearm_id);
-        }
-
-        if (!includeRemoved) {
-            whereClause += ` AND COALESCE(a.removed_from_dashboard, false) = false`;
-        }
-
-        paramCount++;
-        params.push(limit);
-        const limitParam = `$${paramCount}`;
-
-        paramCount++;
-        params.push(offset);
-        const offsetParam = `$${paramCount}`;
-
-        const result = await query(`
-      SELECT 
-        a.*,
-        f.serial_number,
-        f.manufacturer,
-        f.model,
-        o.full_name as officer_name,
-        o.rank,
-        u.unit_name,
-        cr.issued_at
-      FROM anomalies a
-      JOIN firearms f ON a.firearm_id = f.firearm_id
-      JOIN officers o ON a.officer_id = o.officer_id
-      JOIN units u ON a.unit_id = u.unit_id
-      JOIN custody_records cr ON a.custody_record_id = cr.custody_id
-      ${whereClause}
-      ORDER BY a.detected_at DESC
-      LIMIT ${limitParam} OFFSET ${offsetParam}
-    `, params);
-
-        return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
-    } catch (error) {
-        logger.error('Get all anomalies error:', error);
-        throw error;
-    }
-};
-
-/**
  * Record an overdue custody anomaly
  * Called by the overdue detection cron job when a custody record is past its expected return date
  *
@@ -682,7 +516,5 @@ const recordOverdueAnomaly = async (overdueRecord, hoursOverdue, severity) => {
 module.exports = {
     detectAnomaly,
     recordAnomaly,
-    recordOverdueAnomaly,
-    getUnitAnomalies,
-    getAllAnomalies
+    recordOverdueAnomaly
 };

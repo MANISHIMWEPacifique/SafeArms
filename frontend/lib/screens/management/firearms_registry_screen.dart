@@ -25,6 +25,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   FirearmModel? _firearmToEdit;
 
   static const double _desktopLayoutBreakpoint = 1024;
+  static const double _tabletGridBreakpoint = 1200;
 
   bool get _isInvestigator {
     final authProvider = context.read<AuthProvider>();
@@ -717,7 +718,9 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
         LayoutBuilder(
           builder: (context, constraints) {
             int crossAxisCount;
-            if (constraints.maxWidth >= 1200) {
+            final cardHeight = _firearmGridCardHeight(constraints.maxWidth);
+
+            if (constraints.maxWidth >= _tabletGridBreakpoint) {
               crossAxisCount = 4;
             } else if (constraints.maxWidth >= 900) {
               crossAxisCount = 3;
@@ -733,11 +736,13 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: constraints.maxWidth < 600 ? 0.88 : 0.83,
+                mainAxisExtent: cardHeight,
               ),
               itemCount: firearms.length,
-              itemBuilder: (context, index) =>
-                  _buildFirearmCard(firearms[index]),
+              itemBuilder: (context, index) => _buildFirearmCard(
+                firearms[index],
+                gridWidth: constraints.maxWidth,
+              ),
             );
           },
         ),
@@ -747,7 +752,23 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     );
   }
 
-  Widget _buildFirearmCard(FirearmModel firearm) {
+  double _firearmGridCardHeight(double width) {
+    if (width < 600) return 430;
+    if (width < 900) return 425;
+    if (width < _tabletGridBreakpoint) return 460;
+    return 490;
+  }
+
+  Widget _buildFirearmCard(FirearmModel firearm, {required double gridWidth}) {
+    final authProvider = context.read<AuthProvider>();
+    final role = authProvider.currentUser?['role']?.toString() ?? '';
+    final canManage = (!_isInvestigator && !role.contains('hq_')) ||
+        authProvider.currentUser?['role'] == 'admin';
+    final isPhone = gridWidth < 600;
+    final isNarrowTablet = gridWidth >= 600 && gridWidth < 900;
+    final imageSize = isPhone ? 88.0 : (isNarrowTablet ? 78.0 : 128.0);
+    final indicatorSize = isPhone ? 50.0 : (isNarrowTablet ? 44.0 : 72.0);
+
     return InkWell(
       onTap: () {
         setState(() => _selectedFirearmForDetail = firearm);
@@ -762,9 +783,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Header with status badges
             Row(
               children: [
                 _buildStatusBadge(firearm.currentStatus),
@@ -777,17 +796,17 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             // Firearm icon
             Center(
               child: Container(
-                width: 110,
-                height: 110,
+                width: imageSize,
+                height: imageSize,
                 decoration: const BoxDecoration(
                   color: Color(0xFF252A3A),
                   shape: BoxShape.circle,
                 ),
                 child: _buildFirearmIndicator(firearm,
-                    size: 60, fit: BoxFit.cover),
+                    size: indicatorSize, fit: BoxFit.cover),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
 
             // Firearm details
             Text(
@@ -840,7 +859,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             _buildSpecRow('Caliber', firearm.caliber ?? 'N/A'),
             _buildSpecRow('Year', firearm.manufactureYear?.toString() ?? 'N/A'),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
             // Assignment section
             if (firearm.assignedUnitId != null)
@@ -880,12 +899,10 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 ),
               ),
             if (firearm.assignedUnitId == null)
-              Container(
-                  height: 38), // placeholder to keep card height consistent
+              SizedBox(height: isNarrowTablet ? 30 : 38),
 
-            const Spacer(),
+            const SizedBox(height: 10),
 
-            // Action buttons
             Row(
               children: [
                 Expanded(
@@ -904,7 +921,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                         style: TextStyle(fontSize: 13)),
                   ),
                 ),
-                if ((!_isInvestigator && !context.read<AuthProvider>().currentUser!['role'].toString().contains('hq_')) || context.read<AuthProvider>().currentUser!['role'] == 'admin') ...[
+                if (canManage) ...[
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.edit,

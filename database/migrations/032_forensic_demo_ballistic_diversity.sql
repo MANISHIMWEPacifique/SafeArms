@@ -1,0 +1,28 @@
+-- Migration 032: Forensic demo ballistic diversity
+-- Improves investigation-search demo records without adding custody rows
+-- or touching anomaly/ML model state.
+
+UPDATE ballistic_profiles AS bp
+SET rifling_characteristics = v.rifling_characteristics,
+    firing_pin_impression = v.firing_pin_impression,
+    ejector_marks = v.ejector_marks,
+    extractor_marks = v.extractor_marks,
+    chamber_marks = v.chamber_marks,
+    notes = v.notes,
+    registration_hash = v.registration_hash,
+    updated_at = CURRENT_TIMESTAMP
+FROM (VALUES
+    ('BP-001', '4 grooves, right-hand twist, 1:9.5 pitch', 'Rectangular, centered, 1.20mm x 0.80mm with shallow drag tail', 'Rectangular mark at 3 o''clock with light brass smear', 'Linear extractor score at 9 o''clock, medium depth', 'Stamped receiver marks with diagonal feed-ramp striation', 'AK-47 profile; same broad family as AKM/AK-103 but distinct tool marks', '2075de025f630033cfca0ba7dd37832f4dc2be2539ef2d032ea2f7e80c989f1d'),
+    ('BP-002', '4 grooves, right-hand twist, 1:9.5 pitch', 'Rectangular, slight left offset, 1.10mm x 0.78mm', 'Rectangular mark at 4 o''clock with chipped lower edge', 'Linear extractor mark at 8 o''clock, faint double line', 'Receiver marks with light wear and crescent chamber rub', 'AKM comparison profile; close but not identical to BP-001', 'ab473adb0a3655869decd16e84d0f935572f7f8c6499a3955344dee2b6651223'),
+    ('BP-003', '6 grooves, right-hand twist, 1:7 pitch', 'Circular, centered, 1.00mm diameter with crisp rim', 'Rectangular ejector mark at 2 o''clock, clean shoulder', 'Linear extractor mark at 8 o''clock with short secondary scratch', 'Clean chamber with moderate parallel tool marks', 'M4 carbine profile; useful for 5.56 comparison searches', '9eab891fedf75adc17216b7f33820813c43ecd24c6e7c6886cbb883dce33c7c9'),
+    ('BP-004', '6 grooves, right-hand twist, 1:10 pitch', 'Oval, centered, 0.90mm x 0.70mm with polished edge', 'Semi-circular ejector mark at 4 o''clock', 'Faint linear extractor mark at 10 o''clock', 'Open-slide feed marks with moderate breech wear', 'Glock service pistol profile with visible breech wear', '570ab7ecfe1a5814f4ac40e68a710bc1e245861c199063f5d58ad20a51003f8b'),
+    ('BP-005', '4 grooves, right-hand twist, 1:9.5 pitch', 'Rectangular, centered, 1.15mm x 0.80mm with vertical nick', 'Rectangular ejector mark at 3 o''clock, sharp right corner', 'Angular extractor mark at 9 o''clock, deep start point', 'Tight headspace with narrow chamber scrape', 'AK-103 profile; strong demo candidate for 2025-08-04 incident search', 'c1bef7cc096a6ad2fe2d17c3557a4c4e479aa5ef5d8aca84fdc9d274714e6799'),
+    ('BP-006', '4 grooves, right-hand twist, 1:9.5 pitch', 'Rectangular, centered low, 1.10mm x 0.80mm', 'Rectangular ejector mark at 4 o''clock, rounded top edge', 'Angular extractor mark at 9 o''clock, shallow finish', 'Clean chamber with single feed-ramp polish line', 'AKM comparison profile with related but weaker traits', '22f748068c7469e4339e1704c32df7845f52b75ae7b39d526c2ae588bd6189ef'),
+    ('BP-007', '6 grooves, right-hand twist, 1:7 pitch', 'Circular, centered, 0.95mm diameter with light primer flow', 'Rectangular ejector mark at 2 o''clock, narrow face', 'Double scratch extractor marks at 11 o''clock', 'Crisp rifling with smooth chamber wall', 'AR-15 comparison profile; same rifling family as M4 but different extraction marks', '08492828b1cb06f9425d560c48586262e1c2a094b584e2ddbaaece63f0ff8a36'),
+    ('BP-008', '4 grooves, right-hand twist, 1:9.5 pitch', 'Rectangular, centered, 1.20mm x 0.80mm with flat base', 'Rectangular ejector mark at 3 o''clock, broad contact face', 'Faint extractor line at 8 o''clock', 'Receiver marks consistent with older AK-pattern wear', 'AK-47 station profile; broad family match with weaker extractor detail', '3d9d7900e65c3538bd0aa99153ce79d8d8f15c34a812d24b6021d3c6e796abe5'),
+    ('BP-009', '4 grooves, right-hand twist, 1:9.5 pitch', 'Rectangular, centered, 1.15mm x 0.80mm with bright rim', 'Rectangular ejector mark at 3 o''clock, pronounced lower corner', 'Pronounced extractor mark at 9 o''clock', 'Light chamber wear with two short feed scratches', 'AK-103 rapid response profile; similar to BP-005 but different custody timeline', '6d4e0ab4af7b132e4017a759bd4d98573d5198bf420f3b6b0f2f4987a68f1b2c'),
+    ('BP-010', '4 grooves, right-hand twist, 1:9.5 pitch', 'Rectangular, centered high, 1.10mm x 0.80mm', 'Rectangular ejector mark at 3 o''clock, faint upper edge', 'Faint extractor mark at 9 o''clock', 'Clean chamber with minimal feed marking', 'AKM Kicukiro profile; useful for 2025-08-08 custody explanation', 'af8a4b6e71cc74c94e304aab58d7b17db87d1f68650434496acee46f0b2b2e81'),
+    ('BP-011', '6 grooves, right-hand twist, 1:10 pitch', 'Circular, perfectly centered, 0.81mm with smooth rim', 'Clean rectangular ejector mark at 3 o''clock', 'Light linear extractor mark at 9 o''clock', 'Factory-new feed ramp with shallow chamber polish', 'HQ Glock reference profile; contrasts with worn station pistol profile', 'ea94ae443c39935a20522cb4f45999117a921ad79aa6876c0929ef26eb956656'),
+    ('BP-012', '6 grooves, right-hand twist, 1:7 pitch', 'Circular, centered, 1.00mm diameter with slight primer wipe', 'Rectangular ejector mark at 2 o''clock, deeper face', 'Double linear extractor mark at 10 o''clock', 'Sharp lands with clean chamber and fine longitudinal marks', 'M4 reference profile; useful for 2025-08-09 incident custody demo', '380a4c497c70caf716d69089a56a3c02c65fc52737edd11443746ec4653a5ab1')
+) AS v(ballistic_id, rifling_characteristics, firing_pin_impression, ejector_marks, extractor_marks, chamber_marks, notes, registration_hash)
+WHERE bp.ballistic_id = v.ballistic_id;

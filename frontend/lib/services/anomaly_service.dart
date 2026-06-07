@@ -55,12 +55,16 @@ class AnomalyService {
     String unitId, {
     int? limit,
     int? offset,
+    String? severity,
+    String? status,
     bool includeRemoved = false,
   }) async {
     try {
       Map<String, String> queryParams = {};
       if (limit != null) queryParams['limit'] = limit.toString();
       if (offset != null) queryParams['offset'] = offset.toString();
+      _addQueryParam(queryParams, 'severity', severity);
+      _addQueryParam(queryParams, 'status', status);
       if (includeRemoved) queryParams['include_removed'] = 'true';
       _disableResponseCache(queryParams);
 
@@ -154,19 +158,19 @@ class AnomalyService {
     }
   }
 
-  // Delete anomaly from dashboard views (record retained in system).
-  Future<Map<String, dynamic>> deleteFromDashboard(
+  // Archive anomaly from active dashboard views (record retained in system).
+  Future<Map<String, dynamic>> archiveAnomaly(
     String id, {
-    String? reason,
+    String? note,
   }) async {
     try {
       final data = await ApiClient.post(
-        '${ApiConfig.anomaliesUrl}/$id/delete-from-dashboard',
-        body: {'reason': reason ?? 'Deleted from dashboard'},
+        '${ApiConfig.anomaliesUrl}/$id/archive',
+        body: {'note': note ?? 'Archived from active dashboard'},
       );
       return data['data'];
     } catch (e) {
-      throw Exception('Error deleting anomaly from dashboard: $e');
+      throw Exception('Error archiving anomaly: $e');
     }
   }
 
@@ -180,16 +184,6 @@ class AnomalyService {
       throw Exception('Error restoring anomaly to dashboard: $e');
     }
   }
-
-  // Backward-compatible aliases.
-  Future<Map<String, dynamic>> hideFromDashboard(
-    String id, {
-    String? reason,
-  }) =>
-      deleteFromDashboard(id, reason: reason);
-
-  Future<Map<String, dynamic>> unhideFromDashboard(String id) =>
-      restoreToDashboard(id);
 
   // Submit explanation for critical anomaly
   Future<Map<String, dynamic>> submitExplanation(

@@ -1,6 +1,69 @@
 const { query } = require('../config/database');
 const crypto = require('crypto');
 
+const normalizeSearchValue = (value) => (
+    typeof value === 'string' && value.trim().length > 0
+        ? value.trim()
+        : null
+);
+
+const evidenceStrength = (score, heldAtIncident) => {
+    if (heldAtIncident && score >= 70) return 'Strong candidate';
+    if (score >= 45 || heldAtIncident) return 'Partial candidate';
+    return 'Reference match';
+};
+
+const parseMatchedFields = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter(Boolean);
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+        } catch (_) {
+            return [];
+        }
+    }
+    return [];
+};
+
+const mapSearchResult = (row, hasIncidentDate) => {
+    const heldAtIncident = row.held_at_incident === true || row.held_at_incident === 'true';
+    const matchScore = Number.parseInt(row.match_score, 10) || 0;
+    const matchedFields = parseMatchedFields(row.matched_fields);
+
+    return {
+        ...row,
+        match_score: matchScore,
+        matched_fields: matchedFields,
+        evidence_strength: evidenceStrength(matchScore, heldAtIncident),
+        incident_custody: hasIncidentDate
+            ? {
+                held_at_incident: heldAtIncident,
+                custody_id: row.incident_custody_id || null,
+                officer_id: row.incident_officer_id || null,
+                officer_name: row.incident_officer_name || null,
+                officer_rank: row.incident_officer_rank || null,
+                unit_id: row.incident_unit_id || null,
+                unit_name: row.incident_unit_name || null,
+                issued_at: row.incident_issued_at || null,
+                returned_at: row.incident_returned_at || null
+            }
+            : {
+                held_at_incident: false
+            },
+        incident_custody_id: undefined,
+        incident_officer_id: undefined,
+        incident_officer_name: undefined,
+        incident_officer_rank: undefined,
+        incident_unit_id: undefined,
+        incident_unit_name: undefined,
+        incident_issued_at: undefined,
+        incident_returned_at: undefined,
+        held_at_incident: undefined
+    };
+};
+
 /**
  * BallisticProfile Model
  * 
@@ -152,6 +215,7 @@ const BallisticProfile = {
             search,
             // Date-based custody search
             incident_date,
+            incident_date_mode = 'filter',
             // Pagination
             page = 1,
             limit = 20 
@@ -159,89 +223,172 @@ const BallisticProfile = {
         const pageNum = Math.max(1, parseInt(page) || 1);
         const pageSize = Math.min(100, Math.max(1, parseInt(limit) || 20));
         const offset = (pageNum - 1) * pageSize;
+        const incidentDateMode = incident_date_mode === 'annotate' ? 'annotate' : 'filter';
+        const hasIncidentDate = Boolean(normalizeSearchValue(incident_date));
 
         let where = 'WHERE 1=1';
         let joins = '';
         let params = [];
         let pCount = 0;
+        const scoreParts = [];
+        const matchedFieldParts = [];
 
-        if (test_location) {
-            pCount++;
-            where += ` AND bp.test_location ILIKE $${pCount}`;
-            params.push(`%${test_location}%`);
-        }
+        const addFilter = ({ value, condition, paramValue, score, label }) => {
+            const cleanValue = normalizeSearchValue(value);
+            if (!cleanValue) return;
 
-        if (forensic_lab) {
             pCount++;
-            where += ` AND bp.forensic_lab ILIKE $${pCount}`;
-            params.push(`%${forensic_lab}%`);
-        }
+            where += ` AND ${condition(pCount)}`;
+            params.push(paramValue(cleanValue));
+            scoreParts.push(`CASE WHEN ${condition(pCount)} THEN ${score} ELSE 0 END`);
+            matchedFieldParts.push(`CASE WHEN ${condition(pCount)} THEN '${label}' ELSE NULL END`);
+        };
 
-        if (firearm_serial) {
-            pCount++;
-            where += ` AND f.serial_number ILIKE $${pCount}`;
-            params.push(`%${firearm_serial}%`);
-        }
+        addFilter({
+            value: test_location,
+            condition: (param) => `bp.test_location ILIKE $${param}`,
+            paramValue: (value) => `%${value}%`,
+            score: 5,
+            label: 'Test location'
+        });
+
+        addFilter({
+            value: forensic_lab,
+            condition: (param) => `bp.forensic_lab ILIKE $${param}`,
+            paramValue: (value) => `%${value}%`,
+            score: 5,
+            label: 'Forensic lab'
+        });
+
+        addFilter({
+            value: firearm_serial,
+            condition: (param) => `f.serial_number ILIKE $${param}`,
+            paramValue: (value) => `%${value}%`,
+            score: 20,
+            label: 'Serial number'
+        });
 
         // 1. Firing Pin Shape/Pattern
-        if (firing_pin) {
-            pCount++;
-            where += ` AND bp.firing_pin_impression ILIKE $${pCount}`;
-            params.push(`%${firing_pin}%`);
-        }
+        addFilter({
+            value: firing_pin,
+            condition: (param) => `bp.firing_pin_impression ILIKE $${param}`,
+            paramValue: (value) => `%${value}%`,
+            score: 20,
+            label: 'Firing pin'
+        });
 
         // 2. Caliber/Chambering
-        if (caliber) {
-            pCount++;
-            where += ` AND f.caliber ILIKE $${pCount}`;
-            params.push(`%${caliber}%`);
-        }
+        addFilter({
+            value: caliber,
+            condition: (param) => `f.caliber ILIKE $${param}`,
+            paramValue: (value) => `%${value}%`,
+            score: 15,
+            label: 'Caliber'
+        });
 
         // 3. Barrel Rifling
-        if (rifling) {
-            pCount++;
-            where += ` AND bp.rifling_characteristics ILIKE $${pCount}`;
-            params.push(`%${rifling}%`);
-        }
+        addFilter({
+            value: rifling,
+            condition: (param) => `bp.rifling_characteristics ILIKE $${param}`,
+            paramValue: (value) => `%${value}%`,
+            score: 20,
+            label: 'Rifling'
+        });
 
         // 4. Chamber/Feed System
-        if (chamber_feed) {
-            pCount++;
-            where += ` AND bp.chamber_marks ILIKE $${pCount}`;
-            params.push(`%${chamber_feed}%`);
-        }
+        addFilter({
+            value: chamber_feed,
+            condition: (param) => `bp.chamber_marks ILIKE $${param}`,
+            paramValue: (value) => `%${value}%`,
+            score: 15,
+            label: 'Chamber/feed'
+        });
 
         // 5. Breech Face Pattern (searches both ejector and extractor marks)
-        if (breech_face) {
-            pCount++;
-            where += ` AND (bp.ejector_marks ILIKE $${pCount} OR bp.extractor_marks ILIKE $${pCount})`;
-            params.push(`%${breech_face}%`);
-        }
+        addFilter({
+            value: breech_face,
+            condition: (param) => `(bp.ejector_marks ILIKE $${param} OR bp.extractor_marks ILIKE $${param})`,
+            paramValue: (value) => `%${value}%`,
+            score: 20,
+            label: 'Breech face'
+        });
 
         // General search across all characteristics
-        if (search) {
-            pCount++;
-            where += ` AND (
-                f.serial_number ILIKE $${pCount} OR 
-                f.manufacturer ILIKE $${pCount} OR 
-                f.model ILIKE $${pCount} OR 
-                f.caliber ILIKE $${pCount} OR
-                bp.firing_pin_impression ILIKE $${pCount} OR 
-                bp.rifling_characteristics ILIKE $${pCount} OR 
-                bp.chamber_marks ILIKE $${pCount} OR 
-                bp.ejector_marks ILIKE $${pCount} OR 
-                bp.extractor_marks ILIKE $${pCount}
-            )`;
-            params.push(`%${search}%`);
-        }
+        addFilter({
+            value: search,
+            condition: (param) => `(
+                f.serial_number ILIKE $${param} OR
+                f.manufacturer ILIKE $${param} OR
+                f.model ILIKE $${param} OR
+                f.caliber ILIKE $${param} OR
+                bp.firing_pin_impression ILIKE $${param} OR
+                bp.rifling_characteristics ILIKE $${param} OR
+                bp.chamber_marks ILIKE $${param} OR
+                bp.ejector_marks ILIKE $${param} OR
+                bp.extractor_marks ILIKE $${param}
+            )`,
+            paramValue: (value) => `%${value}%`,
+            score: 10,
+            label: 'General evidence'
+        });
 
         // Date-based custody search: find firearms that had custody on a specific date
-        if (incident_date) {
+        if (hasIncidentDate) {
             pCount++;
-            joins += ` JOIN custody_records cr ON cr.firearm_id = f.firearm_id`;
-            where += ` AND cr.issued_at::date <= $${pCount}::date AND (cr.returned_at IS NULL OR cr.returned_at::date >= $${pCount}::date)`;
+            const incidentDateParam = pCount;
+            const incidentCustodyJoin = `
+                LEFT JOIN LATERAL (
+                    SELECT cr.custody_id, cr.officer_id, o.full_name as officer_name,
+                           o.rank as officer_rank, cr.unit_id, u.unit_name,
+                           cr.issued_at, cr.returned_at
+                    FROM custody_records cr
+                    JOIN officers o ON cr.officer_id = o.officer_id
+                    JOIN units u ON cr.unit_id = u.unit_id
+                    WHERE cr.firearm_id = f.firearm_id
+                      AND cr.issued_at::date <= $${incidentDateParam}::date
+                      AND (cr.returned_at IS NULL OR cr.returned_at::date >= $${incidentDateParam}::date)
+                    ORDER BY cr.issued_at DESC
+                    LIMIT 1
+                ) incident_cr ON true
+            `;
+            joins += incidentCustodyJoin;
+            if (incidentDateMode === 'filter') {
+                where += ` AND incident_cr.custody_id IS NOT NULL`;
+            }
             params.push(incident_date);
         }
+
+        const scoreExpression = scoreParts.length > 0 ? scoreParts.join(' + ') : '0';
+        const incidentBonusExpression = hasIncidentDate
+            ? 'CASE WHEN COALESCE(incident_cr.custody_id IS NOT NULL, false) THEN 25 ELSE 0 END'
+            : '0';
+        const matchedFieldsExpression = matchedFieldParts.length > 0
+            ? `to_jsonb(array_remove(ARRAY[${matchedFieldParts.join(', ')}], NULL))`
+            : `'[]'::jsonb`;
+        const orderBy = hasIncidentDate && incidentDateMode === 'annotate'
+            ? 'held_at_incident DESC, match_score DESC, sort_test_date DESC'
+            : 'match_score DESC, sort_test_date DESC';
+        const incidentSelect = hasIncidentDate
+            ? `
+                   COALESCE(incident_cr.custody_id IS NOT NULL, false) as held_at_incident,
+                   incident_cr.custody_id as incident_custody_id,
+                   incident_cr.officer_id as incident_officer_id,
+                   incident_cr.officer_name as incident_officer_name,
+                   incident_cr.officer_rank as incident_officer_rank,
+                   incident_cr.unit_id as incident_unit_id,
+                   incident_cr.unit_name as incident_unit_name,
+                   incident_cr.issued_at as incident_issued_at,
+                   incident_cr.returned_at as incident_returned_at,`
+            : `
+                   false as held_at_incident,
+                   NULL::varchar as incident_custody_id,
+                   NULL::varchar as incident_officer_id,
+                   NULL::text as incident_officer_name,
+                   NULL::text as incident_officer_rank,
+                   NULL::varchar as incident_unit_id,
+                   NULL::text as incident_unit_name,
+                   NULL::timestamp as incident_issued_at,
+                   NULL::timestamp as incident_returned_at,`;
 
         // Count total results first
         const countParams = [...params];
@@ -263,13 +410,17 @@ const BallisticProfile = {
 
         const result = await query(`
             SELECT DISTINCT bp.*, f.serial_number, f.manufacturer, f.model, f.caliber, f.firearm_type,
-                   f.current_status, f.assigned_unit_id, u.unit_name as assigned_unit_name
+                   f.current_status, f.assigned_unit_id, u.unit_name as assigned_unit_name,
+                   (${scoreExpression}) + ${incidentBonusExpression} as match_score,
+                   ${matchedFieldsExpression} as matched_fields,
+                   ${incidentSelect}
+                   bp.test_date as sort_test_date
             FROM ballistic_profiles bp
             JOIN firearms f ON bp.firearm_id = f.firearm_id
             LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
             ${joins}
             ${where}
-            ORDER BY bp.test_date DESC
+            ORDER BY ${orderBy}
             LIMIT $${pCount - 1} OFFSET $${pCount}
         `, params);
 
@@ -294,7 +445,7 @@ const BallisticProfile = {
         }
 
         return {
-            data: result.rows,
+            data: result.rows.map((row) => mapSearchResult(row, hasIncidentDate)),
             total,
             page: pageNum,
             pageSize,

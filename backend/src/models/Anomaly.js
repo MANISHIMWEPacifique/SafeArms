@@ -4,6 +4,11 @@ const { parseDecimalFields } = require('../utils/helpers');
 const ANOMALY_DECIMAL_FIELDS = ['anomaly_score', 'confidence_level', 'avg_score'];
 const toBoolean = (value) => value === true || value === 'true';
 const INVESTIGATION_ID_LOCK_KEY = 947214;
+const activeAnomalyCondition = (alias = 'a') => (
+    `COALESCE(${alias}.removed_from_dashboard, false) = false ` +
+    `AND ${alias}.archived_at IS NULL ` +
+    `AND ${alias}.status != 'archived'`
+);
 
 const getExecutor = (client) => (
     client && typeof client.query === 'function'
@@ -48,6 +53,59 @@ const createAnomalyAuditLog = async ({ userId, anomalyId, actionType, payload = 
     `, [logId, userId, actionType, anomalyId, JSON.stringify(payload)]);
 };
 
+const applyAnomalyDecision = async ({
+    anomalyId,
+    userId,
+    status,
+    notes,
+    defaultNotes,
+    actionTaken,
+    outcome,
+    actionType,
+    resolve = false
+}) => {
+    const investigationNotes = notes || defaultNotes;
+    const anomalyRow = await withTransaction(async (client) => {
+        const result = await client.query(`
+            UPDATE anomalies
+            SET status = $4,
+                investigated_by = COALESCE(investigated_by, $2),
+                investigation_notes = CASE
+                    WHEN investigation_notes IS NOT NULL AND investigation_notes != ''
+                    THEN investigation_notes || E'\n' || $3
+                    ELSE $3
+                END,
+                resolution_date = CASE WHEN $5 THEN CURRENT_TIMESTAMP ELSE resolution_date END,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE anomaly_id = $1
+            RETURNING *
+        `, [anomalyId, userId, investigationNotes, status, resolve]);
+
+        if (result.rows.length === 0) return null;
+
+        await createInvestigationRecord({
+            anomalyId,
+            userId,
+            findings: investigationNotes,
+            actionTaken,
+            outcome,
+            client
+        });
+
+        await createAnomalyAuditLog({
+            userId,
+            anomalyId,
+            actionType,
+            payload: { notes: investigationNotes },
+            client
+        });
+
+        return result.rows[0];
+    });
+
+    return anomalyRow ? parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS) : null;
+};
+
 /**
  * Anomaly Model - EVENT-BASED Anomaly Records
  * 
@@ -88,6 +146,7 @@ const Anomaly = {
             severity,
             status,
             unit_id,
+            firearm_id,
             anomaly_type,
             is_mandatory_review,
             include_removed,
@@ -117,6 +176,12 @@ const Anomaly = {
             params.push(unit_id);
         }
 
+        if (firearm_id) {
+            pCount++;
+            where += ` AND a.firearm_id = $${pCount}`;
+            params.push(firearm_id);
+        }
+
         if (anomaly_type) {
             pCount++;
             where += ` AND a.anomaly_type = $${pCount}`;
@@ -130,7 +195,7 @@ const Anomaly = {
         }
 
         if (!includeRemoved) {
-            where += ` AND COALESCE(a.removed_from_dashboard, false) = false`;
+            where += ` AND ${activeAnomalyCondition('a')}`;
         }
 
         pCount++;
@@ -142,11 +207,13 @@ const Anomaly = {
       SELECT a.*,
              f.serial_number, f.manufacturer, f.model,
              o.full_name as officer_name, o.rank,
-             u.unit_name
+             u.unit_name,
+             cr.issued_at
       FROM anomalies a
       JOIN firearms f ON a.firearm_id = f.firearm_id
       JOIN officers o ON a.officer_id = o.officer_id
       JOIN units u ON a.unit_id = u.unit_id
+      LEFT JOIN custody_records cr ON a.custody_record_id = cr.custody_id
       ${where}
       ORDER BY 
         CASE a.severity 
@@ -161,7 +228,7 @@ const Anomaly = {
         return parseDecimalFields(result.rows, ANOMALY_DECIMAL_FIELDS);
     },
 
-    async update(anomalyId, updates) {
+    async update(anomalyId, updates, userId = null) {
         const ALLOWED_FIELDS = [
             'status', 'investigated_by', 'investigation_notes',
             'resolution_date'
@@ -184,187 +251,85 @@ const Anomaly = {
         pCount++;
         values.push(anomalyId);
 
-        const result = await query(
-            `UPDATE anomalies SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
-       WHERE anomaly_id = $${pCount} RETURNING *`,
-            values
-        );
-        return parseDecimalFields(result.rows[0], ANOMALY_DECIMAL_FIELDS);
+        const anomalyRow = await withTransaction(async (client) => {
+            const result = await client.query(
+                `UPDATE anomalies SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+         WHERE anomaly_id = $${pCount} RETURNING *`,
+                values
+            );
+
+            if (result.rows.length === 0) return null;
+
+            if (userId) {
+                await createAnomalyAuditLog({
+                    userId,
+                    anomalyId,
+                    actionType: 'ANOMALY_UPDATE',
+                    payload: updates,
+                    client
+                });
+            }
+
+            return result.rows[0];
+        });
+
+        if (!anomalyRow) return null;
+        return parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS);
     },
 
     async investigate(anomalyId, userId, notes) {
-        const investigationNotes = notes || 'Investigation started';
-        const anomalyRow = await withTransaction(async (client) => {
-            const anomalyResult = await client.query(`
-                UPDATE anomalies
-                SET status = 'investigating',
-                    investigated_by = COALESCE(investigated_by, $2),
-                    investigation_notes = CASE
-                        WHEN investigation_notes IS NOT NULL AND investigation_notes != ''
-                        THEN investigation_notes || E'\n' || $3
-                        ELSE $3
-                    END,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE anomaly_id = $1
-                RETURNING *
-            `, [anomalyId, userId, investigationNotes]);
-
-            if (anomalyResult.rows.length === 0) return null;
-
-            await createInvestigationRecord({
-                anomalyId,
-                userId,
-                findings: investigationNotes,
-                actionTaken: 'Investigation initiated',
-                outcome: 'needs_further_review',
-                client
-            });
-
-            await createAnomalyAuditLog({
-                userId,
-                anomalyId,
-                actionType: 'ANOMALY_INVESTIGATE',
-                payload: { notes: investigationNotes },
-                client
-            });
-
-            return anomalyResult.rows[0];
+        return applyAnomalyDecision({
+            anomalyId,
+            userId,
+            notes,
+            status: 'investigating',
+            defaultNotes: 'Investigation started',
+            actionTaken: 'Investigation initiated',
+            outcome: 'needs_further_review',
+            actionType: 'ANOMALY_INVESTIGATE'
         });
-
-        if (!anomalyRow) return null;
-        return parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS);
     },
 
     async resolve(anomalyId, userId, notes) {
-        const investigationNotes = notes || 'Resolved';
-        const anomalyRow = await withTransaction(async (client) => {
-            const result = await client.query(`
-                UPDATE anomalies
-                SET status = 'resolved',
-                    investigated_by = COALESCE(investigated_by, $2),
-                    investigation_notes = CASE
-                        WHEN investigation_notes IS NOT NULL AND investigation_notes != ''
-                        THEN investigation_notes || E'\n' || $3
-                        ELSE $3
-                    END,
-                    resolution_date = CURRENT_TIMESTAMP,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE anomaly_id = $1
-                RETURNING *
-            `, [anomalyId, userId, investigationNotes]);
-
-            if (result.rows.length === 0) return null;
-
-            await createInvestigationRecord({
-                anomalyId,
-                userId,
-                findings: investigationNotes,
-                actionTaken: 'Anomaly resolved',
-                outcome: 'confirmed',
-                client
-            });
-
-            await createAnomalyAuditLog({
-                userId,
-                anomalyId,
-                actionType: 'ANOMALY_RESOLVE',
-                payload: { notes: investigationNotes },
-                client
-            });
-
-            return result.rows[0];
+        return applyAnomalyDecision({
+            anomalyId,
+            userId,
+            notes,
+            status: 'resolved',
+            defaultNotes: 'Resolved',
+            actionTaken: 'Anomaly resolved',
+            outcome: 'confirmed',
+            actionType: 'ANOMALY_RESOLVE',
+            resolve: true
         });
-
-        if (!anomalyRow) return null;
-        return parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS);
     },
 
     async markFalsePositive(anomalyId, userId, notes) {
-        const investigationNotes = notes || 'Marked as false positive';
-        const anomalyRow = await withTransaction(async (client) => {
-            const result = await client.query(`
-                UPDATE anomalies
-                SET status = 'false_positive',
-                    investigated_by = COALESCE(investigated_by, $2),
-                    investigation_notes = CASE
-                        WHEN investigation_notes IS NOT NULL AND investigation_notes != ''
-                        THEN investigation_notes || E'\n' || $3
-                        ELSE $3
-                    END,
-                    resolution_date = CURRENT_TIMESTAMP,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE anomaly_id = $1
-                RETURNING *
-            `, [anomalyId, userId, investigationNotes]);
-
-            if (result.rows.length === 0) return null;
-
-            await createInvestigationRecord({
-                anomalyId,
-                userId,
-                findings: investigationNotes,
-                actionTaken: 'Marked as false positive',
-                outcome: 'false_positive',
-                client
-            });
-
-            await createAnomalyAuditLog({
-                userId,
-                anomalyId,
-                actionType: 'ANOMALY_FALSE_POSITIVE',
-                payload: { notes: investigationNotes },
-                client
-            });
-
-            return result.rows[0];
+        return applyAnomalyDecision({
+            anomalyId,
+            userId,
+            notes,
+            status: 'false_positive',
+            defaultNotes: 'Marked as false positive',
+            actionTaken: 'Marked as false positive',
+            outcome: 'false_positive',
+            actionType: 'ANOMALY_FALSE_POSITIVE',
+            resolve: true
         });
-
-        if (!anomalyRow) return null;
-        return parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS);
     },
 
     async markAcceptableChange(anomalyId, userId, notes) {
-        const investigationNotes = notes || 'Marked as acceptable change';
-        const anomalyRow = await withTransaction(async (client) => {
-            const result = await client.query(`
-                UPDATE anomalies
-                SET status = 'acceptable_change',
-                    investigated_by = COALESCE(investigated_by, $2),
-                    investigation_notes = CASE
-                        WHEN investigation_notes IS NOT NULL AND investigation_notes != ''
-                        THEN investigation_notes || E'\n' || $3
-                        ELSE $3
-                    END,
-                    resolution_date = CURRENT_TIMESTAMP,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE anomaly_id = $1
-                RETURNING *
-            `, [anomalyId, userId, investigationNotes]);
-
-            if (result.rows.length === 0) return null;
-
-            await createInvestigationRecord({
-                anomalyId,
-                userId,
-                findings: investigationNotes,
-                actionTaken: 'Marked as acceptable operational change',
-                outcome: 'acceptable_change',
-                client
-            });
-
-            await createAnomalyAuditLog({
-                userId,
-                anomalyId,
-                actionType: 'ANOMALY_ACCEPTABLE_CHANGE',
-                payload: { notes: investigationNotes },
-                client
-            });
-
-            return result.rows[0];
+        return applyAnomalyDecision({
+            anomalyId,
+            userId,
+            notes,
+            status: 'acceptable_change',
+            defaultNotes: 'Marked as acceptable change',
+            actionTaken: 'Marked as acceptable operational change',
+            outcome: 'acceptable_change',
+            actionType: 'ANOMALY_ACCEPTABLE_CHANGE',
+            resolve: true
         });
-
-        if (!anomalyRow) return null;
-        return parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS);
     },
 
     async getStatsByUnit(unitId) {
@@ -373,9 +338,9 @@ const Anomaly = {
         severity,
         COUNT(*) as count,
         COUNT(*) FILTER (WHERE is_mandatory_review = true) as mandatory_reviews
-      FROM anomalies
+      FROM anomalies a
       WHERE unit_id = $1
-            AND COALESCE(removed_from_dashboard, false) = false
+            AND ${activeAnomalyCondition('a')}
       AND detected_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
       GROUP BY severity
     `, [unitId]);
@@ -490,7 +455,7 @@ const Anomaly = {
         let pCount = 1;
 
         if (!includeRemoved) {
-            where += ` AND COALESCE(a.removed_from_dashboard, false) = false`;
+            where += ` AND ${activeAnomalyCondition('a')}`;
         }
 
         if (unit_id) {
@@ -559,53 +524,77 @@ const Anomaly = {
         return parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS);
     },
 
-    async removeFromDashboard(anomalyId, userId, reason) {
-        const result = await query(`
-            UPDATE anomalies
-            SET removed_from_dashboard = true,
-                removed_from_dashboard_at = CURRENT_TIMESTAMP,
-                removed_from_dashboard_by = $2,
-                removed_from_dashboard_reason = $3,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE anomaly_id = $1
-            RETURNING anomaly_id, removed_from_dashboard, removed_from_dashboard_at,
-                      removed_from_dashboard_by, removed_from_dashboard_reason
-        `, [anomalyId, userId, reason || 'Deleted from dashboard']);
+    async archive(anomalyId, userId, note) {
+        const archiveNote = note || 'Archived from active dashboard';
+        const anomalyRow = await withTransaction(async (client) => {
+            const result = await client.query(`
+                UPDATE anomalies
+                SET status = 'archived',
+                    archived_at = CURRENT_TIMESTAMP,
+                    archived_by = $2,
+                    archive_note = $3,
+                    removed_from_dashboard = true,
+                    removed_from_dashboard_at = CURRENT_TIMESTAMP,
+                    removed_from_dashboard_by = $2,
+                    removed_from_dashboard_reason = $3,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE anomaly_id = $1
+                RETURNING *
+            `, [anomalyId, userId, archiveNote]);
 
-        if (result.rows.length === 0) return null;
+            if (result.rows.length === 0) return null;
 
-        await createAnomalyAuditLog({
-            userId,
-            anomalyId,
-            actionType: 'ANOMALY_DASHBOARD_DELETE',
-            payload: { reason: reason || 'Deleted from dashboard' }
+            await createAnomalyAuditLog({
+                userId,
+                anomalyId,
+                actionType: 'ANOMALY_ARCHIVE',
+                payload: { note: archiveNote },
+                client
+            });
+
+            return result.rows[0];
         });
 
-        return result.rows[0];
+        if (!anomalyRow) return null;
+        return parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS);
+    },
+
+    async removeFromDashboard(anomalyId, userId, reason) {
+        return this.archive(anomalyId, userId, reason);
     },
 
     async restoreToDashboard(anomalyId, userId) {
-        const result = await query(`
-            UPDATE anomalies
-            SET removed_from_dashboard = false,
-                removed_from_dashboard_at = NULL,
-                removed_from_dashboard_by = NULL,
-                removed_from_dashboard_reason = NULL,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE anomaly_id = $1
-            RETURNING anomaly_id, removed_from_dashboard
-        `, [anomalyId]);
+        const anomalyRow = await withTransaction(async (client) => {
+            const result = await client.query(`
+                UPDATE anomalies
+                SET status = CASE WHEN status = 'archived' THEN 'open' ELSE status END,
+                    archived_at = NULL,
+                    archived_by = NULL,
+                    archive_note = NULL,
+                    removed_from_dashboard = false,
+                    removed_from_dashboard_at = NULL,
+                    removed_from_dashboard_by = NULL,
+                    removed_from_dashboard_reason = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE anomaly_id = $1
+                RETURNING *
+            `, [anomalyId]);
 
-        if (result.rows.length === 0) return null;
+            if (result.rows.length === 0) return null;
 
-        await createAnomalyAuditLog({
-            userId,
-            anomalyId,
-            actionType: 'ANOMALY_DASHBOARD_RESTORE',
-            payload: {}
+            await createAnomalyAuditLog({
+                userId,
+                anomalyId,
+                actionType: 'ANOMALY_RESTORE',
+                payload: {},
+                client
+            });
+
+            return result.rows[0];
         });
 
-        return result.rows[0];
+        if (!anomalyRow) return null;
+        return parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS);
     },
 
     /**
@@ -660,7 +649,7 @@ const Anomaly = {
         }
 
         if (!includeRemoved) {
-            where += ` AND COALESCE(a.removed_from_dashboard, false) = false`;
+            where += ` AND ${activeAnomalyCondition('a')}`;
         }
 
         pCount++;

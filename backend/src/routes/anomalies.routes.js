@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { getAllAnomalies, getUnitAnomalies } = require('../ml/anomalyDetector');
 const Anomaly = require('../models/Anomaly');
 const { authenticate } = require('../middleware/authentication');
 const { requireCommander, requireRole, ROLES } = require('../middleware/authorization');
@@ -50,7 +49,25 @@ const getScopedAnomaly = async (req, res, anomalyId) => {
     return anomaly;
 };
 
-// Get anomalies - role-based scope, excluding dashboard-deleted records by default.
+const parseArchiveNote = (req, res) => {
+    const { note, reason } = req.body || {};
+    const archiveNote = typeof note === 'string' ? note : reason;
+
+    if (archiveNote !== undefined && archiveNote !== null && typeof archiveNote !== 'string') {
+        res.status(400).json({ success: false, message: 'Archive note must be text.' });
+        return null;
+    }
+
+    const trimmed = archiveNote?.trim();
+    if (trimmed && trimmed.length > 1000) {
+        res.status(400).json({ success: false, message: 'Archive note must be 1000 characters or fewer.' });
+        return null;
+    }
+
+    return trimmed || undefined;
+};
+
+// Get anomalies - role-based scope, excluding archived records by default.
 router.get('/', authenticate, requireAnomalyAccess, asyncHandler(async (req, res) => {
     const { role, unit_id } = req.user;
     const filters = {
@@ -60,11 +77,10 @@ router.get('/', authenticate, requireAnomalyAccess, asyncHandler(async (req, res
     };
 
     if (role === ROLES.STATION_COMMANDER) {
-        const anomalies = await getUnitAnomalies(unit_id, filters);
-        return res.json({ success: true, data: anomalies });
+        filters.unit_id = unit_id;
     }
 
-    const anomalies = await getAllAnomalies(filters);
+    const anomalies = await Anomaly.findAll(filters);
     res.json({ success: true, data: anomalies });
 }));
 
@@ -98,8 +114,9 @@ router.get('/unit/:unit_id', authenticate, requireCommander, asyncHandler(async 
         });
     }
 
-    const anomalies = await getUnitAnomalies(req.params.unit_id, {
+    const anomalies = await Anomaly.findAll({
         ...parseListFilters(req),
+        unit_id: req.params.unit_id,
         limit: parsePositiveInt(req.query.limit, 50),
         offset: parsePositiveInt(req.query.offset, 0)
     });
@@ -128,7 +145,7 @@ router.put('/:id', authenticate, requireStationDecision, asyncHandler(async (req
     const scoped = await getScopedAnomaly(req, res, req.params.id);
     if (!scoped) return;
 
-    const anomaly = await Anomaly.update(req.params.id, req.body);
+    const anomaly = await Anomaly.update(req.params.id, req.body, req.user.user_id);
     if (!anomaly) return res.status(404).json({ success: false, message: 'Anomaly not found' });
     res.json({ success: true, data: anomaly });
 }));
@@ -191,50 +208,40 @@ router.post('/:id/explanation', authenticate, requireStationDecision, asyncHandl
     res.json({ success: true, data: anomaly });
 }));
 
-// Delete anomaly from dashboard views globally (soft delete/archive style).
-router.post('/:id/delete-from-dashboard', authenticate, requireAnomalyAccess, asyncHandler(async (req, res) => {
+const archiveAnomaly = async (req, res) => {
     const scoped = await getScopedAnomaly(req, res, req.params.id);
     if (!scoped) return;
 
-    const { reason } = req.body || {};
-    const removed = await Anomaly.removeFromDashboard(req.params.id, req.user.user_id, reason);
-    res.json({ success: true, data: removed });
-}));
+    const archiveNote = parseArchiveNote(req, res);
+    if (archiveNote === null) return;
 
-// Backward-compatible alias for existing clients.
-router.post('/:id/hide', authenticate, requireAnomalyAccess, asyncHandler(async (req, res) => {
-    const scoped = await getScopedAnomaly(req, res, req.params.id);
-    if (!scoped) return;
+    const archived = await Anomaly.archive(req.params.id, req.user.user_id, archiveNote);
+    if (!archived) return res.status(404).json({ success: false, message: 'Anomaly not found' });
 
-    const { reason } = req.body || {};
-    const result = await Anomaly.removeFromDashboard(req.params.id, req.user.user_id, reason);
-    res.json({ success: true, data: result });
-}));
+    res.json({ success: true, data: archived });
+};
 
-// Restore anomaly into dashboard views.
-router.delete('/:id/delete-from-dashboard', authenticate, requireAnomalyAccess, asyncHandler(async (req, res) => {
+const restoreAnomaly = async (req, res) => {
     const scoped = await getScopedAnomaly(req, res, req.params.id);
     if (!scoped) return;
 
     const result = await Anomaly.restoreToDashboard(req.params.id, req.user.user_id);
     if (!result) {
-        return res.status(404).json({ success: false, message: 'Anomaly was not deleted from dashboard' });
+        return res.status(404).json({ success: false, message: 'Anomaly was not archived' });
     }
 
     res.json({ success: true, data: result });
-}));
+};
 
-// Backward-compatible alias for existing clients.
-router.delete('/:id/hide', authenticate, requireAnomalyAccess, asyncHandler(async (req, res) => {
-    const scoped = await getScopedAnomaly(req, res, req.params.id);
-    if (!scoped) return;
+// Archive an anomaly from active dashboard views while retaining the record permanently.
+router.post('/:id/archive', authenticate, requireStationDecision, asyncHandler(archiveAnomaly));
 
-    const result = await Anomaly.restoreToDashboard(req.params.id, req.user.user_id);
-    if (!result) {
-        return res.status(404).json({ success: false, message: 'Anomaly was not deleted from dashboard' });
-    }
+// Backward-compatible aliases for existing clients. Internally archives; it does not delete.
+router.post('/:id/delete-from-dashboard', authenticate, requireStationDecision, asyncHandler(archiveAnomaly));
+router.post('/:id/hide', authenticate, requireStationDecision, asyncHandler(archiveAnomaly));
 
-    res.json({ success: true, data: result });
-}));
+// Restore anomaly into active dashboard views for legacy clients.
+router.delete('/:id/delete-from-dashboard', authenticate, requireStationDecision, asyncHandler(restoreAnomaly));
+router.delete('/:id/hide', authenticate, requireStationDecision, asyncHandler(restoreAnomaly));
 
 module.exports = router;

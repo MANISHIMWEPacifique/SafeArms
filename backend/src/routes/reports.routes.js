@@ -61,7 +61,7 @@ const ensureDeleteAccess = (req, reportRow, reportLabel) => {
 // ============================================
 
 router.get('/generate', authenticate, asyncHandler(async (req, res) => {
-    const { type, start_date, end_date, unit_id, serial_number, case_ref, user_id, role: filterRole, page = 1, limit = 100 } = req.query;
+    const { type, start_date, end_date, unit_id, serial_number, case_ref, user_id, username, role: filterRole, page = 1, limit = 100 } = req.query;
     const userRole = req.user.role;
 
     const parsedLimit = Math.min(parseInt(limit), 500); // Max 500 per page
@@ -324,6 +324,10 @@ router.get('/generate', authenticate, asyncHandler(async (req, res) => {
             if (user_id) {
                 uaFilter += ` AND al.user_id = $${uaIdx}`;
                 uaParams.push(user_id);
+                uaIdx++;
+            } else if (username) {
+                uaFilter += ` AND LOWER(u.username) = LOWER($${uaIdx})`;
+                uaParams.push(String(username).trim());
                 uaIdx++;
             }
             if (filterRole) {

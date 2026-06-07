@@ -372,6 +372,11 @@ class SettingsProvider with ChangeNotifier {
           ? result['data'] as Map<String, dynamic>
           : <String, dynamic>{};
       final status = payload['status']?.toString() ?? '';
+      final prepared = payload['prepared_features'] is Map<String, dynamic>
+          ? payload['prepared_features'] as Map<String, dynamic>
+          : <String, dynamic>{};
+      final extractedFeatures =
+          int.tryParse(prepared['extracted']?.toString() ?? '0') ?? 0;
 
       if (wait) {
         // Give the backend a short window to commit model metadata updates.
@@ -388,6 +393,9 @@ class SettingsProvider with ChangeNotifier {
             : 'Model training skipped: $reason';
       } else if (status == 'started' || status == 'running') {
         _successMessage = 'Model training started in background';
+      } else if (extractedFeatures > 0) {
+        _successMessage =
+            'Extracted $extractedFeatures feature records and trained the model';
       } else {
         _successMessage =
             result['message']?.toString() ?? 'Model training completed';

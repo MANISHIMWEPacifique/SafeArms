@@ -106,7 +106,7 @@ class SettingsService {
           'force': force,
           'wait': wait,
         },
-        timeout: const Duration(seconds: 120),
+        timeout: const Duration(seconds: 240),
       );
       return data;
     } catch (e) {

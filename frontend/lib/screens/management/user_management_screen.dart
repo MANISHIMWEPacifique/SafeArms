@@ -18,6 +18,8 @@ const int _unitColumnFlex = 2;
 const int _statusColumnFlex = 2;
 const int _actionsColumnFlex = 2;
 
+bool _useCompactUserCards(double width) => width < _desktopBreakpoint;
+
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
 
@@ -430,7 +432,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       );
     }
 
-    if (availableWidth < _mobileBreakpoint) {
+    if (_useCompactUserCards(availableWidth)) {
       return Column(
         children: users
             .map((user) => Padding(

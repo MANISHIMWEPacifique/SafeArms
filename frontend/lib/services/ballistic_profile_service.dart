@@ -111,45 +111,35 @@ class BallisticProfileService {
     int limit = 20,
   }) async {
     try {
-      List<String> queryParams = [];
-      if (firingPin != null && firingPin.isNotEmpty) {
-        queryParams.add('firing_pin=${Uri.encodeComponent(firingPin)}');
-      }
-      if (caliber != null && caliber.isNotEmpty) {
-        queryParams.add('caliber=${Uri.encodeComponent(caliber)}');
-      }
-      if (rifling != null && rifling.isNotEmpty) {
-        queryParams.add('rifling=${Uri.encodeComponent(rifling)}');
-      }
-      if (chamberFeed != null && chamberFeed.isNotEmpty) {
-        queryParams.add('chamber_feed=${Uri.encodeComponent(chamberFeed)}');
-      }
-      if (breechFace != null && breechFace.isNotEmpty) {
-        queryParams.add('breech_face=${Uri.encodeComponent(breechFace)}');
-      }
-      if (firearmSerial != null && firearmSerial.isNotEmpty) {
-        queryParams.add('firearm_serial=${Uri.encodeComponent(firearmSerial)}');
-      }
-      if (testLocation != null && testLocation.isNotEmpty) {
-        queryParams.add('test_location=${Uri.encodeComponent(testLocation)}');
-      }
-      if (forensicLab != null && forensicLab.isNotEmpty) {
-        queryParams.add('forensic_lab=${Uri.encodeComponent(forensicLab)}');
-      }
-      if (generalSearch != null && generalSearch.isNotEmpty) {
-        queryParams.add('search=${Uri.encodeComponent(generalSearch)}');
-      }
-      if (incidentDate != null && incidentDate.isNotEmpty) {
-        queryParams.add('incident_date=${Uri.encodeComponent(incidentDate)}');
-        queryParams
-            .add('incident_date_mode=${Uri.encodeComponent(incidentDateMode)}');
-      }
-      queryParams.add('page=$page');
-      queryParams.add('limit=$limit');
+      final queryParams = <String, String>{
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
 
-      final url =
-          '${ApiConfig.ballisticUrl}/forensic-search?${queryParams.join('&')}';
-      final data = await ApiClient.get(url);
+      void addQueryParam(String key, String? value) {
+        final cleanValue = value?.trim();
+        if (cleanValue != null && cleanValue.isNotEmpty) {
+          queryParams[key] = cleanValue;
+        }
+      }
+
+      addQueryParam('firing_pin', firingPin);
+      addQueryParam('caliber', caliber);
+      addQueryParam('rifling', rifling);
+      addQueryParam('chamber_feed', chamberFeed);
+      addQueryParam('breech_face', breechFace);
+      addQueryParam('firearm_serial', firearmSerial);
+      addQueryParam('test_location', testLocation);
+      addQueryParam('forensic_lab', forensicLab);
+      addQueryParam('search', generalSearch);
+      addQueryParam('incident_date', incidentDate);
+      if (incidentDate != null && incidentDate.trim().isNotEmpty) {
+        queryParams['incident_date_mode'] = incidentDateMode;
+      }
+
+      final uri = Uri.parse('${ApiConfig.ballisticUrl}/forensic-search')
+          .replace(queryParameters: queryParams);
+      final data = await ApiClient.get(uri.toString());
 
       return {
         'data': List<Map<String, dynamic>>.from(data['data'] ?? []),

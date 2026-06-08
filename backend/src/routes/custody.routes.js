@@ -1,10 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { assignCustody, returnCustody, getActiveCustody, getUnitCustody, getFirearmCustodyHistory, getOfficerCustodyHistory } = require('../services/custody.service');
 const {
-    createCustodyAssignmentVerificationRequest,
-    markVerificationConsumed
-} = require('../services/officerVerification.service');
+    getCustodyRecords,
+    getActiveCustody,
+    getUnitCustody,
+    getFirearmCustodyHistory,
+    getOfficerCustodyHistory
+} = require('../services/custody.service');
+const {
+    assignCustodyWithVerification,
+    returnCustodyWithVerification
+} = require('../services/custodyVerificationWorkflow.service');
 const CustodyRecord = require('../models/CustodyRecord');
 const { authenticate } = require('../middleware/authentication');
 const { 
@@ -66,88 +72,16 @@ const enforceUnitCustodyAccess = async (req, res, next) => {
 router.get('/', authenticate, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
     const { status, custody_type, officer_id, firearm_id, limit = 100 } = req.query;
-    
-    let whereClause = 'WHERE 1=1';
-    let params = [];
-    let pCount = 0;
-    
-    // Station commanders can only see their unit's records
-    if (role === ROLES.STATION_COMMANDER) {
-        pCount++;
-        whereClause += ` AND cr.unit_id = $${pCount}`;
-        params.push(userUnitId);
-    }
-    
-    // Filter by status
-    if (status && status !== 'all') {
-        if (status === 'active') {
-            whereClause += ' AND cr.returned_at IS NULL';
-        } else if (status === 'returned') {
-            whereClause += ' AND cr.returned_at IS NOT NULL';
-        }
-    }
-    
-    // Filter by custody type
-    if (custody_type && custody_type !== 'all') {
-        pCount++;
-        whereClause += ` AND cr.custody_type = $${pCount}`;
-        params.push(custody_type);
-    }
-    
-    // Filter by officer
-    if (officer_id) {
-        pCount++;
-        whereClause += ` AND cr.officer_id = $${pCount}`;
-        params.push(officer_id);
-    }
-    
-    // Filter by firearm
-    if (firearm_id) {
-        pCount++;
-        whereClause += ` AND cr.firearm_id = $${pCount}`;
-        params.push(firearm_id);
-    }
-    
-    pCount++;
-    params.push(parseInt(limit));
-    
-    const result = await query(`
-        SELECT cr.*, 
-               cr.duration_type,
-               f.serial_number as firearm_serial, f.manufacturer, f.model,
-               o.full_name as officer_name, o.rank,
-               u.unit_name,
-               cr.issued_at as assigned_date,
-               COALESCE(vr_latest.decision, 'not_requested') as verification_status,
-               COALESCE(vr_latest.decision = 'approved', false) as is_verified,
-               vr_latest.verification_id,
-               vr_latest.decision as verification_decision,
-               vr_latest.decided_at as verification_decided_at,
-               vr_latest.decided_device_key as verification_decided_device_key,
-               vr_latest.consumed_at as verification_consumed_at,
-               vr_latest.created_at as verification_requested_at
-        FROM custody_records cr
-        JOIN firearms f ON cr.firearm_id = f.firearm_id
-        JOIN officers o ON cr.officer_id = o.officer_id
-        JOIN units u ON cr.unit_id = u.unit_id
-        LEFT JOIN LATERAL (
-            SELECT vr.verification_id,
-                   vr.decision,
-                   vr.decided_at,
-                   vr.decided_device_key,
-                   vr.consumed_at,
-                   vr.created_at
-            FROM officer_verification_requests vr
-            WHERE vr.custody_id = cr.custody_id
-            ORDER BY vr.created_at DESC
-            LIMIT 1
-        ) vr_latest ON true
-        ${whereClause}
-        ORDER BY cr.issued_at DESC
-        LIMIT $${pCount}
-    `, params);
-    
-    res.json({ success: true, data: result.rows });
+    const records = await getCustodyRecords({
+        unit_id: role === ROLES.STATION_COMMANDER ? userUnitId : req.query.unit_id,
+        status,
+        custody_type,
+        officer_id,
+        firearm_id,
+        limit
+    });
+
+    res.json({ success: true, data: records });
 }));
 
 // GET /custody/stats - Get custody statistics
@@ -207,60 +141,10 @@ router.get('/anomalies/today', authenticate, asyncHandler(async (req, res) => {
 
 // Assign custody - restricted to unit access
 router.post('/assign', authenticate, requireCommander, logCustodyAssignment, asyncHandler(async (req, res) => {
-    const { role, unit_id: userUnitId } = req.user;
-    
-    // SECURITY: Station commanders can only assign custody within their unit
-    // They cannot override this by passing a different unit_id
-    if (role === ROLES.STATION_COMMANDER) {
-        // Force their unit_id - ignore any manually passed value
-        if (req.body.unit_id && req.body.unit_id !== userUnitId) {
-            logger.warn(`[SECURITY] Station commander ${req.user.user_id} attempted custody assign in unit ${req.body.unit_id} (assigned: ${userUnitId})`);
-        }
-        req.body.unit_id = userUnitId;
-    }
-
-    // For HQ commanders and admins: if unit_id not provided, derive from the officer
-    if (!req.body.unit_id && req.body.officer_id) {
-        const officerResult = await query('SELECT unit_id FROM officers WHERE officer_id = $1', [req.body.officer_id]);
-        if (officerResult.rows.length > 0) {
-            req.body.unit_id = officerResult.rows[0].unit_id;
-        }
-    }
-    
-    const custodyRecord = await assignCustody({ ...req.body, issued_by: req.user.user_id });
-
-    let verification = null;
-    try {
-        const verificationRequest = await createCustodyAssignmentVerificationRequest({
-            custodyId: custodyRecord.custody_id,
-            requestedBy: req.user.user_id,
-            requestingUser: req.user,
-            ttlMinutes: req.body.verification_ttl_minutes,
-            targetDeviceKey: req.body.verification_device_key
-        });
-
-        const requestMetadata =
-            verificationRequest.metadata && typeof verificationRequest.metadata === 'object'
-                ? verificationRequest.metadata
-                : {};
-
-        verification = {
-            created: true,
-            verification_id: verificationRequest.verification_id,
-            challenge_code: verificationRequest.challenge_code,
-            expires_at: verificationRequest.expires_at,
-            is_existing: verificationRequest.is_existing,
-            target_device_key: requestMetadata.target_device_key || null
-        };
-    } catch (verificationError) {
-        logger.warn(
-            `Unable to create assignment verification for custody ${custodyRecord.custody_id}: ${verificationError.message}`
-        );
-        verification = {
-            created: false,
-            message: verificationError.message
-        };
-    }
+    const { custodyRecord, verification } = await assignCustodyWithVerification({
+        payload: req.body,
+        user: req.user
+    });
 
     res.status(201).json({
         success: true,
@@ -272,84 +156,16 @@ router.post('/assign', authenticate, requireCommander, logCustodyAssignment, asy
 
 // Return custody - restricted to unit access
 router.post('/:id/return', authenticate, requireCommander, logCustodyReturn, asyncHandler(async (req, res) => {
-    const custodyLookup = await query(
-        `SELECT custody_id, officer_id, unit_id, returned_at
-         FROM custody_records
-         WHERE custody_id = $1`,
-        [req.params.id]
-    );
-
-    if (custodyLookup.rows.length === 0) {
-        return res.status(404).json({ success: false, message: 'Custody record not found' });
-    }
-
-    const custody = custodyLookup.rows[0];
-
-    if (req.user.role === ROLES.STATION_COMMANDER && req.user.unit_id !== custody.unit_id) {
-        return res.status(403).json({
-            success: false,
-            message: 'Access denied. You can only return custody records for your unit.'
-        });
-    }
-
-    const requestedVerificationId = String(req.body.verification_id || '').trim();
-
-    const custodyRecord = await returnCustody(req.params.id, {
-        ...req.body,
-        returned_to: req.user.user_id
+    const { custodyRecord, verification } = await returnCustodyWithVerification({
+        custodyId: req.params.id,
+        payload: req.body,
+        user: req.user
     });
-
-    let verificationConsumed = null;
-    let verificationWarning = null;
-    let verificationIdToConsume = requestedVerificationId;
-
-    if (!verificationIdToConsume) {
-        const approvedVerificationResult = await query(
-            `SELECT verification_id
-             FROM officer_verification_requests
-             WHERE custody_id = $1
-               AND decision = 'approved'
-               AND consumed_at IS NULL
-             ORDER BY COALESCE(decided_at, updated_at, created_at) DESC
-             LIMIT 1`,
-            [custody.custody_id]
-        );
-
-        verificationIdToConsume =
-            approvedVerificationResult.rows[0]?.verification_id || '';
-    }
-
-    if (verificationIdToConsume) {
-        try {
-            verificationConsumed = await markVerificationConsumed({
-                verificationId: verificationIdToConsume,
-                custodyId: custody.custody_id,
-                consumedBy: req.user.user_id
-            });
-        } catch (verificationError) {
-            if (requestedVerificationId) {
-                throw verificationError;
-            }
-
-            verificationWarning =
-                'Custody return completed, but approved verification could not be marked as consumed automatically.';
-            logger.warn(
-                `Custody ${custody.custody_id} returned without verification consumption: ${verificationError.message}`
-            );
-        }
-    }
 
     res.json({
         success: true,
         data: custodyRecord,
-        verification: {
-            consumed: verificationConsumed !== null,
-            verification_id:
-                verificationConsumed?.verification_id ||
-                verificationIdToConsume ||
-                null,
-            warning: verificationWarning
-        },
+        verification,
         message: 'Custody returned successfully'
     });
 }));

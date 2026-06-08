@@ -6,7 +6,9 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/approval_provider.dart';
+import '../../providers/approvals_provider.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../models/lifecycle_request.dart';
 import '../../services/report_service.dart';
 import '../../services/firearm_service.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
@@ -16,8 +18,19 @@ import 'procurement_request_dialog.dart';
 
 class ReportsScreen extends StatefulWidget {
   final String? roleType; // 'station', 'hq', 'investigator', 'admin'
+  final bool autoLoad;
+  final List<Map<String, dynamic>>? initialLossReports;
+  final List<Map<String, dynamic>>? initialDestructionRequests;
+  final List<Map<String, dynamic>>? initialProcurementRequests;
 
-  const ReportsScreen({super.key, this.roleType});
+  const ReportsScreen({
+    super.key,
+    this.roleType,
+    this.autoLoad = true,
+    this.initialLossReports,
+    this.initialDestructionRequests,
+    this.initialProcurementRequests,
+  });
 
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -40,7 +53,14 @@ class _ReportsScreenState extends State<ReportsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+    _lossReports = widget.initialLossReports ?? _lossReports;
+    _destructionRequests =
+        widget.initialDestructionRequests ?? _destructionRequests;
+    _procurementRequests =
+        widget.initialProcurementRequests ?? _procurementRequests;
+    if (widget.autoLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+    }
   }
 
   @override
@@ -52,9 +72,9 @@ class _ReportsScreenState extends State<ReportsScreen>
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final unitId = authProvider.currentUser?['unit_id']?.toString();
-      final role = authProvider.currentUser?['role'];
+      final authProvider = Provider.of<AuthProvider?>(context, listen: false);
+      final unitId = authProvider?.currentUser?['unit_id']?.toString();
+      final role = authProvider?.currentUser?['role'] ?? _roleFromType();
 
       final futures = <Future>[];
 
@@ -64,8 +84,10 @@ class _ReportsScreenState extends State<ReportsScreen>
             unitId: unitId,
             status: _filterStatus == 'all' ? null : _filterStatus));
         futures.add(_reportService.getDestructionRequests(
+            unitId: unitId,
             status: _filterStatus == 'all' ? null : _filterStatus));
         futures.add(_reportService.getProcurementRequests(
+            unitId: unitId,
             status: _filterStatus == 'all' ? null : _filterStatus));
         futures.add(_firearmService.getAllFirearms(unitId: unitId));
       } else {
@@ -107,8 +129,8 @@ class _ReportsScreenState extends State<ReportsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final role = authProvider.currentUser?['role'];
+    final authProvider = Provider.of<AuthProvider?>(context);
+    final role = authProvider?.currentUser?['role'] ?? _roleFromType();
     final isStation = role == 'station_commander';
     final isHQ = role == 'hq_firearm_commander';
     final isInvestigator = role == 'investigator';
@@ -141,6 +163,21 @@ class _ReportsScreenState extends State<ReportsScreen>
     );
   }
 
+  String? _roleFromType() {
+    switch (widget.roleType) {
+      case 'station':
+        return 'station_commander';
+      case 'hq':
+        return 'hq_firearm_commander';
+      case 'investigator':
+        return 'investigator';
+      case 'admin':
+        return 'admin';
+      default:
+        return null;
+    }
+  }
+
   Widget _buildHeader(bool isStation, bool isHQ, bool isInvestigator) {
     String title;
     String subtitle;
@@ -163,50 +200,121 @@ class _ReportsScreenState extends State<ReportsScreen>
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFF37404F))),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isPhone = constraints.maxWidth < 600;
+          final isTablet = constraints.maxWidth < 1000;
+          final heading = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: isPhone ? 21 : 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                softWrap: true,
+                style: const TextStyle(
+                  color: Color(0xFF78909C),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          );
+
+          final actions = isStation
+              ? [
+                  _buildActionButton('Report Loss', Icons.report_problem,
+                      const Color(0xFF1E88E5), _showLossReportDialog,
+                      expanded: isPhone),
+                  _buildActionButton(
+                      'Request Destruction',
+                      Icons.delete_forever,
+                      const Color(0xFF1E88E5),
+                      _showDestructionRequestDialog,
+                      expanded: isPhone),
+                  _buildActionButton(
+                      'Request Firearms',
+                      Icons.add_shopping_cart,
+                      const Color(0xFF1E88E5),
+                      _showProcurementRequestDialog,
+                      expanded: isPhone),
+                ]
+              : <Widget>[];
+
+          if (!isStation) {
+            return heading;
+          }
+
+          if (isPhone) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                heading,
+                const SizedBox(height: 16),
+                ...actions.asMap().entries.map((entry) => Padding(
+                      padding: EdgeInsets.only(top: entry.key == 0 ? 0 : 10),
+                      child: entry.value,
+                    )),
+              ],
+            );
+          }
+
+          if (isTablet) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style:
-                      const TextStyle(color: Color(0xFF78909C), fontSize: 14),
+                heading,
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
+                  children: actions,
                 ),
               ],
-            ),
-          ),
-          if (isStation) ...[
-            _buildActionButton('Report Loss', Icons.report_problem,
-                const Color(0xFF1E88E5), _showLossReportDialog),
-            const SizedBox(width: 12),
-            _buildActionButton('Request Destruction', Icons.delete_forever,
-                const Color(0xFF1E88E5), _showDestructionRequestDialog),
-            const SizedBox(width: 12),
-            _buildActionButton('Request Firearms', Icons.add_shopping_cart,
-                const Color(0xFF1E88E5), _showProcurementRequestDialog),
-          ],
-        ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: heading),
+              const SizedBox(width: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 10,
+                alignment: WrapAlignment.end,
+                children: actions,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildActionButton(
-      String label, IconData icon, Color color, VoidCallback onPressed) {
-    return ElevatedButton.icon(
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onPressed, {
+    bool expanded = false,
+  }) {
+    final button = ElevatedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 18),
-      label: Text(label),
+      label: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,
@@ -214,6 +322,8 @@ class _ReportsScreenState extends State<ReportsScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
+
+    return expanded ? SizedBox(width: double.infinity, child: button) : button;
   }
 
   Widget _buildStatsRow() {
@@ -228,32 +338,65 @@ class _ReportsScreenState extends State<ReportsScreen>
       padding: const EdgeInsets.all(16),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final isPhone = constraints.maxWidth < 600;
+          final isTinyPhone = constraints.maxWidth < 380;
+          final isNarrow = constraints.maxWidth < 760;
           final cards = [
-            _buildStatCard(
-                'Loss Reports',
-                _lossReports.length.toString(),
-                pendingLoss,
-                const Color(0xFF1E88E5)),
+            _buildStatCard('Loss Reports', _lossReports.length.toString(),
+                pendingLoss, const Color(0xFF1E88E5),
+                compact: isPhone),
             _buildStatCard(
                 'Destruction Requests',
                 _destructionRequests.length.toString(),
                 pendingDestruction,
-                const Color(0xFF1E88E5)),
+                const Color(0xFF1E88E5),
+                compact: isPhone),
             _buildStatCard(
                 'Procurement Requests',
                 _procurementRequests.length.toString(),
                 pendingProcurement,
-                const Color(0xFF1E88E5)),
+                const Color(0xFF1E88E5),
+                compact: isPhone),
           ];
 
-          if (constraints.maxWidth < 700) {
+          if (isTinyPhone) {
             return Column(
+              children: cards
+                  .asMap()
+                  .entries
+                  .map((entry) => Padding(
+                        padding: EdgeInsets.only(top: entry.key == 0 ? 0 : 10),
+                        child: entry.value,
+                      ))
+                  .toList(),
+            );
+          }
+
+          if (isPhone) {
+            return SizedBox(
+              height: 78,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: cards.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, index) => SizedBox(
+                  width: 240,
+                  child: cards[index],
+                ),
+              ),
+            );
+          }
+
+          if (isNarrow) {
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: [
-                cards[0],
-                const SizedBox(height: 12),
-                cards[1],
-                const SizedBox(height: 12),
-                cards[2],
+                SizedBox(
+                    width: (constraints.maxWidth - 12) / 2, child: cards[0]),
+                SizedBox(
+                    width: (constraints.maxWidth - 12) / 2, child: cards[1]),
+                SizedBox(width: constraints.maxWidth, child: cards[2]),
               ],
             );
           }
@@ -272,9 +415,10 @@ class _ReportsScreenState extends State<ReportsScreen>
     );
   }
 
-  Widget _buildStatCard(String title, String total, int pending, Color color) {
+  Widget _buildStatCard(String title, String total, int pending, Color color,
+      {bool compact = false}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(compact ? 10 : 16),
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         borderRadius: BorderRadius.circular(8),
@@ -283,8 +427,8 @@ class _ReportsScreenState extends State<ReportsScreen>
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: compact ? 42 : 48,
+            height: compact ? 42 : 48,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
@@ -293,27 +437,32 @@ class _ReportsScreenState extends State<ReportsScreen>
               child: Text(
                 total,
                 style: TextStyle(
-                    color: color, fontSize: 20, fontWeight: FontWeight.bold),
+                    color: color,
+                    fontSize: compact ? 17 : 20,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: compact ? 10 : 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(title,
-                    style: const TextStyle(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: compact ? 12 : 14,
                         fontWeight: FontWeight.w500)),
-                const SizedBox(height: 4),
+                SizedBox(height: compact ? 2 : 4),
                 Text('$pending pending',
                     style: TextStyle(
                         color: pending > 0
                             ? const Color(0xFFFFC857)
                             : const Color(0xFF78909C),
-                        fontSize: 12)),
+                        fontSize: compact ? 11 : 12)),
               ],
             ),
           ),
@@ -328,39 +477,67 @@ class _ReportsScreenState extends State<ReportsScreen>
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFF37404F))),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              indicatorColor: const Color(0xFF1E88E5),
-              labelColor: const Color(0xFF1E88E5),
-              unselectedLabelColor: const Color(0xFF78909C),
-              tabs: [
-                Tab(text: 'Loss Reports (${_lossReports.length})'),
-                Tab(text: 'Destruction (${_destructionRequests.length})'),
-                Tab(text: 'Procurement (${_procurementRequests.length})'),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 560;
+          final tabs = TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            indicatorColor: const Color(0xFF1E88E5),
+            labelColor: const Color(0xFF1E88E5),
+            unselectedLabelColor: const Color(0xFF78909C),
+            tabs: [
+              Tab(text: 'Loss Reports (${_lossReports.length})'),
+              Tab(text: 'Destruction (${_destructionRequests.length})'),
+              Tab(text: 'Procurement (${_procurementRequests.length})'),
+            ],
+          );
+          final tools = Row(
+            mainAxisAlignment: isCompact
+                ? MainAxisAlignment.spaceBetween
+                : MainAxisAlignment.end,
+            children: [
+              SizedBox(
+                width: isCompact ? 180 : null,
+                child: _buildFilterDropdown(compact: isCompact),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Color(0xFF78909C)),
+                onPressed: _loadData,
+                tooltip: 'Refresh',
+              ),
+            ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                tabs,
+                const SizedBox(height: 6),
+                tools,
+                const SizedBox(height: 8),
               ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          _buildFilterDropdown(),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFF78909C)),
-            onPressed: _loadData,
-            tooltip: 'Refresh',
-          ),
-        ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: tabs),
+              const SizedBox(width: 16),
+              tools,
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildFilterDropdown() {
+  Widget _buildFilterDropdown({bool compact = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
       decoration: BoxDecoration(
         color: const Color(0xFF2A3040),
         borderRadius: BorderRadius.circular(8),
@@ -369,6 +546,7 @@ class _ReportsScreenState extends State<ReportsScreen>
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _filterStatus,
+          isExpanded: compact,
           dropdownColor: const Color(0xFF2A3040),
           style: const TextStyle(color: Colors.white, fontSize: 13),
           items: const [
@@ -410,7 +588,7 @@ class _ReportsScreenState extends State<ReportsScreen>
       {bool canApprove = false, bool canDelete = false, bool isHQ = false}) {
     final status = report['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
-    final deleteEnabled = canDelete && !(isHQ && status == 'pending');
+    final deleteEnabled = canDelete && status != 'pending';
     final createdAt = report['created_at'] != null
         ? DateFormat('MMM dd, yyyy')
             .format(DateTime.parse(report['created_at']))
@@ -427,20 +605,12 @@ class _ReportsScreenState extends State<ReportsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.report_problem,
-                  color: Color(0xFFE85C5C), size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Loss Report #${report['loss_id']?.toString() ?? 'N/A'}',
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-              _buildStatusBadge(status, statusColor),
-            ],
+          _buildReportCardHeader(
+            icon: Icons.report_problem,
+            iconColor: const Color(0xFFE85C5C),
+            title: 'Loss Report #${report['loss_id']?.toString() ?? 'N/A'}',
+            status: status,
+            statusColor: statusColor,
           ),
           const SizedBox(height: 12),
           _buildInfoRow('Firearm', report['serial_number'] ?? 'N/A'),
@@ -452,77 +622,24 @@ class _ReportsScreenState extends State<ReportsScreen>
             _buildInfoRow('Reporting Unit', report['unit_name']),
           if (canApprove && status == 'pending') ...[
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (deleteEnabled) ...[
-                  OutlinedButton(
-                    onPressed: () => _handleDeleteReport(report, 'loss'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFE85C5C),
-                      side: const BorderSide(color: Color(0xFF37404F)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Delete'),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                OutlinedButton(
+            _buildResponsiveActions([
+              if (deleteEnabled)
+                _buildDeleteAction(
+                    onPressed: () => _handleDeleteReport(report, 'loss')),
+              _buildRejectAction(
                   onPressed: () =>
-                      _handleReportAction(report, 'loss', 'rejected'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFE85C5C),
-                    side: const BorderSide(color: Color(0xFF37404F)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Reject'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
+                      _handleReportAction(report, 'loss', 'rejected')),
+              _buildApproveAction(
                   onPressed: () =>
-                      _handleReportAction(report, 'loss', 'approved'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E88E5),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Approve'),
-                ),
-              ],
-            ),
+                      _handleReportAction(report, 'loss', 'approved')),
+            ]),
           ],
           if ((!canApprove || status != 'pending') && deleteEnabled) ...[
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton(
-                  onPressed: () => _handleDeleteReport(report, 'loss'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFE85C5C),
-                    side: const BorderSide(color: Color(0xFF37404F)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
+            _buildResponsiveActions([
+              _buildDeleteAction(
+                  onPressed: () => _handleDeleteReport(report, 'loss')),
+            ]),
           ],
         ],
       ),
@@ -554,7 +671,7 @@ class _ReportsScreenState extends State<ReportsScreen>
       {bool canApprove = false, bool canDelete = false, bool isHQ = false}) {
     final status = request['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
-    final deleteEnabled = canDelete && !(isHQ && status == 'pending');
+    final deleteEnabled = canDelete && status != 'pending';
     final createdAt = request['created_at'] != null
         ? DateFormat('MMM dd, yyyy')
             .format(DateTime.parse(request['created_at']))
@@ -571,20 +688,13 @@ class _ReportsScreenState extends State<ReportsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.delete_forever,
-                  color: Color(0xFFFFC857), size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Destruction Request #${request['destruction_id']?.toString() ?? 'N/A'}',
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-              _buildStatusBadge(status, statusColor),
-            ],
+          _buildReportCardHeader(
+            icon: Icons.delete_forever,
+            iconColor: const Color(0xFFFFC857),
+            title:
+                'Destruction Request #${request['destruction_id']?.toString() ?? 'N/A'}',
+            status: status,
+            statusColor: statusColor,
           ),
           const SizedBox(height: 12),
           _buildInfoRow('Firearm', request['serial_number'] ?? 'N/A'),
@@ -596,78 +706,25 @@ class _ReportsScreenState extends State<ReportsScreen>
             _buildInfoRow('Requesting Unit', request['unit_name']),
           if (canApprove && status == 'pending') ...[
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (deleteEnabled) ...[
-                  OutlinedButton(
+            _buildResponsiveActions([
+              if (deleteEnabled)
+                _buildDeleteAction(
                     onPressed: () =>
-                        _handleDeleteReport(request, 'destruction'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFE85C5C),
-                      side: const BorderSide(color: Color(0xFF37404F)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Delete'),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                OutlinedButton(
+                        _handleDeleteReport(request, 'destruction')),
+              _buildRejectAction(
                   onPressed: () =>
-                      _handleReportAction(request, 'destruction', 'rejected'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFE85C5C),
-                    side: const BorderSide(color: Color(0xFF37404F)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Reject'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
+                      _handleReportAction(request, 'destruction', 'rejected')),
+              _buildApproveAction(
                   onPressed: () =>
-                      _handleReportAction(request, 'destruction', 'approved'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E88E5),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Approve'),
-                ),
-              ],
-            ),
+                      _handleReportAction(request, 'destruction', 'approved')),
+            ]),
           ],
           if ((!canApprove || status != 'pending') && deleteEnabled) ...[
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton(
-                  onPressed: () => _handleDeleteReport(request, 'destruction'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFE85C5C),
-                    side: const BorderSide(color: Color(0xFF37404F)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
+            _buildResponsiveActions([
+              _buildDeleteAction(
+                  onPressed: () => _handleDeleteReport(request, 'destruction')),
+            ]),
           ],
         ],
       ),
@@ -699,7 +756,7 @@ class _ReportsScreenState extends State<ReportsScreen>
       {bool canApprove = false, bool canDelete = false, bool isHQ = false}) {
     final status = request['status'] ?? 'pending';
     final statusColor = _getStatusColor(status);
-    final deleteEnabled = canDelete && !(isHQ && status == 'pending');
+    final deleteEnabled = canDelete && status != 'pending';
     final createdAt = request['created_at'] != null
         ? DateFormat('MMM dd, yyyy')
             .format(DateTime.parse(request['created_at']))
@@ -716,20 +773,13 @@ class _ReportsScreenState extends State<ReportsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.add_shopping_cart,
-                  color: Color(0xFF1E88E5), size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Procurement Request #${request['procurement_id']?.toString() ?? 'N/A'}',
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-              _buildStatusBadge(status, statusColor),
-            ],
+          _buildReportCardHeader(
+            icon: Icons.add_shopping_cart,
+            iconColor: const Color(0xFF1E88E5),
+            title:
+                'Procurement Request #${request['procurement_id']?.toString() ?? 'N/A'}',
+            status: status,
+            statusColor: statusColor,
           ),
           const SizedBox(height: 12),
           _buildInfoRow('Firearm Type', request['firearm_type'] ?? 'N/A'),
@@ -740,100 +790,187 @@ class _ReportsScreenState extends State<ReportsScreen>
             _buildInfoRow('Requesting Unit', request['unit_name']),
           if (canApprove && status == 'pending') ...[
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (deleteEnabled) ...[
-                  OutlinedButton(
+            _buildResponsiveActions([
+              if (deleteEnabled)
+                _buildDeleteAction(
                     onPressed: () =>
-                        _handleDeleteReport(request, 'procurement'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFE85C5C),
-                      side: const BorderSide(color: Color(0xFF37404F)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Delete'),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                OutlinedButton(
-                  onPressed: () =>
-                      _showReviewActionDialog(request, 'procurement', 'rejected'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFE85C5C),
-                    side: const BorderSide(color: Color(0xFF37404F)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Reject'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () =>
-                      _showReviewActionDialog(request, 'procurement', 'approved'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E88E5),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Approve'),
-                ),
-              ],
-            ),
+                        _handleDeleteReport(request, 'procurement')),
+              _buildRejectAction(
+                  onPressed: () => _showReviewActionDialog(
+                      request, 'procurement', 'rejected')),
+              _buildApproveAction(
+                  onPressed: () => _showReviewActionDialog(
+                      request, 'procurement', 'approved')),
+            ]),
           ],
           if ((!canApprove || status != 'pending') && deleteEnabled) ...[
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton(
-                  onPressed: () => _handleDeleteReport(request, 'procurement'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFE85C5C),
-                    side: const BorderSide(color: Color(0xFF37404F)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
+            _buildResponsiveActions([
+              _buildDeleteAction(
+                  onPressed: () => _handleDeleteReport(request, 'procurement')),
+            ]),
           ],
         ],
       ),
     );
   }
 
+  Widget _buildResponsiveActions(List<Widget> actions) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 420) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: actions
+                .asMap()
+                .entries
+                .map((entry) => Padding(
+                      padding: EdgeInsets.only(top: entry.key == 0 ? 0 : 8),
+                      child: entry.value,
+                    ))
+                .toList(),
+          );
+        }
+
+        return OverflowBar(
+          alignment: MainAxisAlignment.end,
+          spacing: 8,
+          overflowSpacing: 8,
+          children: actions,
+        );
+      },
+    );
+  }
+
+  Widget _buildDeleteAction({required VoidCallback onPressed}) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFFE85C5C),
+        side: const BorderSide(color: Color(0xFF37404F)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: const Text('Delete'),
+    );
+  }
+
+  Widget _buildRejectAction({required VoidCallback onPressed}) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFFE85C5C),
+        side: const BorderSide(color: Color(0xFF37404F)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: const Text('Reject'),
+    );
+  }
+
+  Widget _buildApproveAction({required VoidCallback onPressed}) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF1E88E5),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: const Text('Approve'),
+    );
+  }
+
+  Widget _buildReportCardHeader({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String status,
+    required Color statusColor,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 420;
+        final titleRow = Row(
+          children: [
+            Icon(icon, color: iconColor, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: isNarrow ? 2 : 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+
+        if (isNarrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              titleRow,
+              const SizedBox(height: 8),
+              _buildStatusBadge(status, statusColor),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: titleRow),
+            const SizedBox(width: 12),
+            _buildStatusBadge(status, statusColor),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text('$label:',
-                style: const TextStyle(color: Color(0xFF78909C), fontSize: 13)),
-          ),
-          Expanded(
-            child: Text(value,
-                style: const TextStyle(color: Colors.white, fontSize: 13)),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 340) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('$label:',
+                    style: const TextStyle(
+                        color: Color(0xFF78909C), fontSize: 12)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: const TextStyle(color: Colors.white, fontSize: 13)),
+              ],
+            );
+          }
+
+          final labelWidth = constraints.maxWidth < 460 ? 96.0 : 120.0;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: labelWidth,
+                child: Text('$label:',
+                    style: const TextStyle(
+                        color: Color(0xFF78909C), fontSize: 13)),
+              ),
+              Expanded(
+                child: Text(value,
+                    style: const TextStyle(color: Colors.white, fontSize: 13)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -858,6 +995,8 @@ class _ReportsScreenState extends State<ReportsScreen>
     return EmptyStateWidget(
       icon: icon,
       subtitle: message,
+      iconSize: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
     );
   }
 
@@ -897,7 +1036,9 @@ class _ReportsScreenState extends State<ReportsScreen>
             ],
           ),
           content: SizedBox(
-            width: 500,
+            width: MediaQuery.of(context).size.width < 560
+                ? MediaQuery.of(context).size.width - 64
+                : 500,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1008,7 +1149,9 @@ class _ReportsScreenState extends State<ReportsScreen>
             ],
           ),
           content: SizedBox(
-            width: 500,
+            width: MediaQuery.of(context).size.width < 560
+                ? MediaQuery.of(context).size.width - 64
+                : 500,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1105,11 +1248,13 @@ class _ReportsScreenState extends State<ReportsScreen>
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => ProcurementRequestDialog(
-        onSubmit: (List<Map<String, dynamic>> requests, String priority, DateTime requiredBy, String justification) async {
+        onSubmit: (List<Map<String, dynamic>> requests, String priority,
+            DateTime requiredBy, String justification) async {
           try {
             final formattedDate = DateFormat('MMM dd, yyyy').format(requiredBy);
-            final combinedJustification = "Required by: $formattedDate\n\n$justification";
-            
+            final combinedJustification =
+                "Required by: $formattedDate\n\n$justification";
+
             // Loop through each firearm type requested and submit sequentially
             for (var requestItem in requests) {
               await _reportService.createProcurementRequest(
@@ -1122,7 +1267,8 @@ class _ReportsScreenState extends State<ReportsScreen>
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content: Text('Procurement requests submitted successfully'),
+                    content:
+                        Text('Procurement requests submitted successfully'),
                     backgroundColor: Color(0xFF3CCB7F)),
               );
               _loadData();
@@ -1216,19 +1362,21 @@ class _ReportsScreenState extends State<ReportsScreen>
   }
 
   Future<void> _handleReportAction(
-      Map<String, dynamic> report, String type, String action, {String? reviewNotes}) async {
+      Map<String, dynamic> report, String type, String action,
+      {String? reviewNotes}) async {
     try {
-      // Handle approval/rejection based on type
-      if (type == 'loss') {
-        await _reportService.updateLossReportStatus(
-            report['loss_id'].toString(), action);
-      } else if (type == 'destruction') {
-        await _reportService.updateDestructionRequestStatus(
-            report['destruction_id'].toString(), action);
-      } else if (type == 'procurement') {
-        await _reportService.updateProcurementRequestStatus(
-            report['procurement_id'].toString(), action,
-            reviewNotes: reviewNotes);
+      final requestType = LifecycleRequestTypeX.fromKey(type);
+      final approvalsProvider = context.read<ApprovalsProvider>();
+      final success = await approvalsProvider.updateRequestStatus(
+        lifecycleRequestId(report, requestType),
+        type,
+        action,
+        remarks: reviewNotes,
+      );
+
+      if (!success) {
+        throw Exception(approvalsProvider.errorMessage ??
+            'Unable to update request status');
       }
 
       if (mounted) {
@@ -1299,12 +1447,15 @@ class _ReportsScreenState extends State<ReportsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFFB0BEC5))),
+            child: const Text('Cancel',
+                style: TextStyle(color: Color(0xFFB0BEC5))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isApproval ? const Color(0xFF3CCB7F) : const Color(0xFFE85C5C),
+              backgroundColor: isApproval
+                  ? const Color(0xFF3CCB7F)
+                  : const Color(0xFFE85C5C),
             ),
             child: Text(isApproval ? 'Approve' : 'Reject'),
           ),
@@ -1337,13 +1488,10 @@ class _ReportsScreenState extends State<ReportsScreen>
     }
 
     try {
-      if (type == 'loss') {
-        await _reportService.deleteLossReport(recordId);
-      } else if (type == 'destruction') {
-        await _reportService.deleteDestructionRequest(recordId);
-      } else if (type == 'procurement') {
-        await _reportService.deleteProcurementRequest(recordId);
-      }
+      await _reportService.deleteLifecycleRequest(
+        type: LifecycleRequestTypeX.fromKey(type),
+        requestId: recordId,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1369,23 +1517,10 @@ class _ReportsScreenState extends State<ReportsScreen>
   }
 
   String _getReportId(Map<String, dynamic> report, String type) {
-    if (type == 'loss') {
-      return report['loss_id'].toString();
-    }
-    if (type == 'destruction') {
-      return report['destruction_id'].toString();
-    }
-    return report['procurement_id'].toString();
+    return lifecycleRequestId(report, LifecycleRequestTypeX.fromKey(type));
   }
 
   String _typeLabel(String type) {
-    switch (type) {
-      case 'loss':
-        return 'Loss Report';
-      case 'destruction':
-        return 'Destruction Request';
-      default:
-        return 'Procurement Request';
-    }
+    return LifecycleRequestTypeX.fromKey(type).label;
   }
 }

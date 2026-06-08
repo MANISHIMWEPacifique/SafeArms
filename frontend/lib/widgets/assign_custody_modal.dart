@@ -44,13 +44,11 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   bool _isLoadingOfficerDevices = false;
-  bool _hasMultipleActiveDevices = false;
 
   // Form state
   String? _selectedFirearmId;
   String? _selectedOfficerId;
-  String? _selectedVerificationDeviceKey;
-  String? _resolvedVerificationDeviceLabel;
+  OfficerDeviceResolution? _deviceResolution;
   String _custodyType = 'permanent';
   String? _selectedDurationType;
   final TextEditingController _reasonController = TextEditingController();
@@ -66,9 +64,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
   void _onOfficerChanged(String? officerId) {
     setState(() {
       _selectedOfficerId = officerId;
-      _selectedVerificationDeviceKey = null;
-      _resolvedVerificationDeviceLabel = null;
-      _hasMultipleActiveDevices = false;
+      _deviceResolution = null;
     });
 
     if (officerId == null || officerId.isEmpty) {
@@ -82,32 +78,14 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
     setState(() => _isLoadingOfficerDevices = true);
 
     try {
-      final devices = await _verificationService.getOfficerDevices(officerId);
+      final resolution =
+          await _verificationService.resolveAssignmentDevice(officerId);
       if (!mounted || _selectedOfficerId != officerId) {
         return;
       }
 
-      final hasMultipleActiveDevices = devices.length > 1;
-      final selectedDevice = hasMultipleActiveDevices
-          ? null
-          : (devices.isNotEmpty ? devices.first : null);
-      final selectedDeviceKey = selectedDevice?['device_key']?.toString();
-      final selectedDeviceName =
-          selectedDevice?['device_name']?.toString().trim() ?? '';
-      final selectedDevicePlatform =
-          selectedDevice?['platform']?.toString().toUpperCase() ?? 'UNKNOWN';
-      final resolvedLabel = hasMultipleActiveDevices
-          ? 'Multiple active devices detected. Remove extra devices before assignment.'
-          : selectedDeviceKey == null
-              ? null
-              : selectedDeviceName.isNotEmpty
-                  ? '$selectedDeviceName ($selectedDevicePlatform)'
-                  : selectedDeviceKey;
-
       setState(() {
-        _selectedVerificationDeviceKey = selectedDeviceKey;
-        _resolvedVerificationDeviceLabel = resolvedLabel;
-        _hasMultipleActiveDevices = hasMultipleActiveDevices;
+        _deviceResolution = resolution;
         _isLoadingOfficerDevices = false;
       });
     } catch (_) {
@@ -116,9 +94,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       }
 
       setState(() {
-        _selectedVerificationDeviceKey = null;
-        _resolvedVerificationDeviceLabel = null;
-        _hasMultipleActiveDevices = false;
+        _deviceResolution = null;
         _isLoadingOfficerDevices = false;
       });
     }
@@ -190,7 +166,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       return;
     }
 
-    if (_hasMultipleActiveDevices) {
+    if (_deviceResolution?.hasMultipleDevices == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -213,7 +189,8 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       expectedReturnDate: _expectedReturnDate,
       durationType: _custodyType == 'temporary' ? _selectedDurationType : null,
       notes: _notesController.text.trim(),
-      verificationDeviceKey: _selectedVerificationDeviceKey,
+      verificationDeviceKey: _deviceResolution?.deviceKey,
+      reloadAfterMutation: false,
     );
 
     setState(() => _isSubmitting = false);
@@ -547,7 +524,20 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               ],
             ),
           )
-        else if (_selectedVerificationDeviceKey == null)
+        else if (_deviceResolution?.hasMultipleDevices == true)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE85C5C).withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE85C5C)),
+            ),
+            child: Text(
+              _deviceResolution!.message,
+              style: const TextStyle(color: Color(0xFFFFA8A8)),
+            ),
+          )
+        else if (_deviceResolution?.hasSingleDevice != true)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -555,9 +545,10 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFFF59E0B)),
             ),
-            child: const Text(
-              'No active enrolled device found for this officer. Custody assignment can continue, but mobile verification request may not be delivered.',
-              style: TextStyle(color: Color(0xFFFFC857)),
+            child: Text(
+              _deviceResolution?.message ??
+                  'No active enrolled device found for this officer. Custody assignment can continue, but mobile verification request may not be delivered.',
+              style: const TextStyle(color: Color(0xFFFFC857)),
             ),
           )
         else
@@ -573,7 +564,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _resolvedVerificationDeviceLabel ?? 'Enrolled device',
+                  _deviceResolution?.label ?? 'Enrolled device',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -581,7 +572,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Device key: ${_selectedVerificationDeviceKey!}',
+                  'Device key: ${_deviceResolution!.deviceKey!}',
                   style:
                       const TextStyle(color: Color(0xFF78909C), fontSize: 12),
                 ),

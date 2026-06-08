@@ -676,20 +676,6 @@ const expireStaleRequests = async (custodyId = null) => {
     return { expiredCount: result.rowCount };
 };
 
-const getNextVerificationId = async () => {
-    const idResult = await query(
-        `SELECT 'VRQ-' || LPAD(
-            CAST(COALESCE(MAX(CAST(SUBSTRING(verification_id FROM 5) AS INTEGER)), 0) + 1 AS TEXT),
-            6,
-            '0'
-        ) AS next_id
-        FROM officer_verification_requests
-        WHERE verification_id ~ '^VRQ-[0-9]+$'`
-    );
-
-    return idResult.rows[0].next_id;
-};
-
 const createCustodyAssignmentVerificationRequest = async ({
     custodyId,
     requestedBy,
@@ -850,12 +836,23 @@ const createCustodyAssignmentVerificationRequest = async ({
         Math.min(60, ttlMinutes ? Number(ttlMinutes) : policy.ttlMinutes)
     );
 
-    const verificationId = await getNextVerificationId();
     const challengeCode = generateChallengeCode();
 
     try {
         const createResult = await query(
-            `INSERT INTO officer_verification_requests (
+            `WITH lock AS (
+                SELECT pg_advisory_xact_lock(947212)
+            ),
+            next_request AS (
+                SELECT 'VRQ-' || LPAD(
+                    CAST(COALESCE(MAX(CAST(SUBSTRING(verification_id FROM 5) AS INTEGER)), 0) + 1 AS TEXT),
+                    6,
+                    '0'
+                ) AS verification_id
+                FROM officer_verification_requests
+                WHERE verification_id ~ '^VRQ-[0-9]+$'
+            )
+            INSERT INTO officer_verification_requests (
                 verification_id,
                 request_type,
                 custody_id,
@@ -867,21 +864,20 @@ const createCustodyAssignmentVerificationRequest = async ({
                 expires_at,
                 metadata
             )
-            VALUES (
-                $1,
+            SELECT
+                next_request.verification_id,
                 'custody_assignment',
+                $1,
                 $2,
                 $3,
                 $4,
                 $5,
                 $6,
-                $7,
-                CURRENT_TIMESTAMP + ($8::TEXT || ' minutes')::INTERVAL,
-                $9::jsonb
-            )
+                CURRENT_TIMESTAMP + ($7::TEXT || ' minutes')::INTERVAL,
+                $8::jsonb
+            FROM next_request, lock
             RETURNING *`,
             [
-                verificationId,
                 custody.custody_id,
                 custody.officer_id,
                 custody.unit_id,
@@ -902,6 +898,7 @@ const createCustodyAssignmentVerificationRequest = async ({
             ]
         );
 
+        const verificationId = createResult.rows[0].verification_id;
         await recordVerificationEvent({
             verificationId,
             custodyId: custody.custody_id,

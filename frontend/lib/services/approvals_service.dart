@@ -2,6 +2,7 @@
 // SafeArms Frontend
 
 import '../config/api_config.dart';
+import '../models/lifecycle_request.dart';
 import 'api_client.dart';
 
 class ApprovalsService {
@@ -179,6 +180,51 @@ class ApprovalsService {
     } catch (e) {
       throw Exception('Error rejecting procurement request: $e');
     }
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingRequests({
+    required LifecycleRequestType type,
+    String? priority,
+    String? unit,
+  }) {
+    switch (type) {
+      case LifecycleRequestType.loss:
+        return getPendingLossReports(priority: priority, unit: unit);
+      case LifecycleRequestType.destruction:
+        return getPendingDestructionRequests(priority: priority, unit: unit);
+      case LifecycleRequestType.procurement:
+        return getPendingProcurementRequests(priority: priority, unit: unit);
+    }
+  }
+
+  Future<bool> updateRequestStatus({
+    required LifecycleRequestType type,
+    required String requestId,
+    required String status,
+    String? remarks,
+  }) async {
+    final action = status.toLowerCase();
+    if (action != 'approved' && action != 'rejected') {
+      throw ArgumentError('Invalid lifecycle approval status: $status');
+    }
+
+    await ApiClient.put(
+      '${ApiConfig.approvalsUrl}/${type.approvalPath}/$requestId/${action == 'approved' ? 'approve' : 'reject'}',
+      body: action == 'approved'
+          ? {
+              'approval_notes':
+                  remarks == null || remarks.isEmpty ? null : remarks,
+            }
+          : {
+              'rejection_reason': remarks == null || remarks.isEmpty
+                  ? 'Rejected from list view'
+                  : remarks,
+              'detailed_feedback': remarks == null || remarks.isEmpty
+                  ? 'No detailed feedback provided.'
+                  : remarks,
+            },
+    );
+    return true;
   }
 
   // ===== STATISTICS =====

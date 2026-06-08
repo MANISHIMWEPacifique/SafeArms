@@ -129,6 +129,7 @@ class CustodyProvider with ChangeNotifier {
     String? durationType,
     String? notes,
     String? verificationDeviceKey,
+    bool reloadAfterMutation = true,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -149,8 +150,9 @@ class CustodyProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      // Reload all data in parallel for faster refresh
-      await Future.wait([loadCustody(), loadStats(), loadAnomalyStatus()]);
+      if (reloadAfterMutation) {
+        await Future.wait([loadCustody(), loadStats(), loadAnomalyStatus()]);
+      }
 
       return result;
     } catch (e) {
@@ -167,6 +169,7 @@ class CustodyProvider with ChangeNotifier {
     required String returnCondition,
     DateTime? returnDate,
     String? returnNotes,
+    bool reloadAfterMutation = true,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -183,8 +186,9 @@ class CustodyProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      // Reload all data in parallel for faster refresh
-      await Future.wait([loadCustody(), loadStats()]);
+      if (reloadAfterMutation) {
+        await Future.wait([loadCustody(), loadStats()]);
+      }
 
       return true;
     } catch (e) {

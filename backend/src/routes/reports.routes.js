@@ -4,10 +4,16 @@ const LossReport = require('../models/LossReport');
 const DestructionRequest = require('../models/DestructionRequest');
 const ProcurementRequest = require('../models/ProcurementRequest');
 const { authenticate } = require('../middleware/authentication');
-const { requireCommander, requireRole, PERMISSIONS, ROLES } = require('../middleware/authorization');
+const { requireCommander, requireRole, ROLES } = require('../middleware/authorization');
 const { logCreate, logDelete, logLossReport, exportLegalChainOfCustody, verifyChainIntegrity } = require('../middleware/auditLogger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query } = require('../config/database');
+const { generateAnalyticalReport } = require('../services/reportGeneration.service');
+const {
+    processLossReport,
+    processDestructionRequest,
+    processProcurementRequest
+} = require('../services/workflow.service');
 
 const ensureDeleteAccess = (req, reportRow, reportLabel) => {
     if (!reportRow) {
@@ -18,13 +24,13 @@ const ensureDeleteAccess = (req, reportRow, reportLabel) => {
         };
     }
 
-    if (req.user.role === ROLES.HQ_COMMANDER && reportRow.status === 'pending') {
+    if (reportRow.status === 'pending') {
         return {
             allowed: false,
             status: 403,
             payload: {
                 success: false,
-                message: 'Access denied. HQ Commanders cannot delete pending requests. Please approve or reject them first.'
+                message: 'Pending lifecycle requests cannot be deleted. Please approve or reject them first.'
             }
         };
     }
@@ -61,338 +67,15 @@ const ensureDeleteAccess = (req, reportRow, reportLabel) => {
 // ============================================
 
 router.get('/generate', authenticate, asyncHandler(async (req, res) => {
-    const { type, start_date, end_date, unit_id, serial_number, case_ref, user_id, username, role: filterRole, page = 1, limit = 100 } = req.query;
-    const userRole = req.user.role;
+    const generatedReport = await generateAnalyticalReport(req.query, req.user.role);
 
-    const parsedLimit = Math.min(parseInt(limit), 500); // Max 500 per page
-    const parsedOffset = (Math.max(parseInt(page), 1) - 1) * parsedLimit;
-
-    // Build date filter
-    let dateFilter = '';
-    const dateParams = [];
-    let paramIdx = 1;
-
-    if (start_date) {
-        dateFilter += ` AND created_at >= $${paramIdx}`;
-        dateParams.push(new Date(start_date));
-        paramIdx++;
-    }
-    if (end_date) {
-        const endDate = new Date(end_date);
-        endDate.setHours(23, 59, 59, 999);
-        dateFilter += ` AND created_at <= $${paramIdx}`;
-        dateParams.push(endDate);
-        paramIdx++;
+    if (generatedReport.error) {
+        return res
+            .status(generatedReport.error.status)
+            .json(generatedReport.error.payload);
     }
 
-    let data = {};
-
-    switch (type) {
-        // ===== FIREARM HISTORY =====
-        case 'firearm_history': {
-            let firearmFilter = 'WHERE 1=1';
-            let custodyFilter = '';
-            const fParams = [...dateParams];
-            let fIdx = paramIdx;
-
-            if (serial_number) {
-                firearmFilter += ` AND f.serial_number ILIKE $${fIdx}`;
-                fParams.push(`%${serial_number}%`);
-                fIdx++;
-            }
-            if (unit_id) {
-                firearmFilter += ` AND f.assigned_unit_id = $${fIdx}`;
-                fParams.push(unit_id);
-                fIdx++;
-            }
-
-            fParams.push(parsedLimit, parsedOffset);
-            // A firearm falls in the date range if its creation overlaps OR it has custody records intersecting the range.
-            const firearms = await query(`
-                SELECT f.firearm_id, f.serial_number, f.firearm_type, f.caliber,
-                       f.manufacturer, f.model, f.acquisition_date, f.current_status,
-                       u.unit_name
-                FROM firearms f
-                LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
-                ${firearmFilter} AND (
-                    EXISTS (
-                        SELECT 1 FROM custody_records cr 
-                        WHERE cr.firearm_id = f.firearm_id
-                        ${dateFilter.replace(/created_at/g, 'cr.issued_at')}
-                    )
-                    ${dateFilter ? `OR (${dateFilter.replace(/created_at/g, 'f.created_at').replace(/^ AND /, '')})` : ''}
-                )
-                ORDER BY f.created_at DESC
-                LIMIT $${fParams.length - 1} OFFSET $${fParams.length}
-            `, fParams);
-
-            // Get custody records strictly bound by the interval
-            const firearmIds = firearms.rows.map(f => f.firearm_id);
-            let custodyRecords = [];
-
-            if (firearmIds.length > 0) {
-                let custParams = [...dateParams];
-                // Append the array parameter after the date params
-                custParams.push(firearmIds);
-                
-                const custodyResult = await query(`
-                    SELECT cr.custody_id, cr.firearm_id, cr.issued_at, cr.returned_at,
-                           cr.custody_type, f.serial_number,
-                           CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as custody_status,
-                           o.full_name as officer_name, o.officer_id,
-                           u.unit_name,
-                           CASE WHEN cr.returned_at IS NOT NULL 
-                                THEN EXTRACT(DAY FROM (cr.returned_at - cr.issued_at)) || ' days'
-                                ELSE 'Active'
-                           END as duration
-                    FROM custody_records cr
-                    LEFT JOIN firearms f ON cr.firearm_id = f.firearm_id
-                    LEFT JOIN officers o ON cr.officer_id = o.officer_id
-                    LEFT JOIN units u ON cr.unit_id = u.unit_id
-                    WHERE cr.firearm_id = ANY($${custParams.length})
-                    ${dateFilter.replace(/created_at/g, 'cr.issued_at')}
-                    ORDER BY cr.issued_at ASC
-                    LIMIT 500
-                `, custParams);
-                custodyRecords = custodyResult.rows;
-            }
-
-            data = {
-                firearms: firearms.rows,
-                custody_records: custodyRecords
-            };
-            break;
-        }
-
-        // ===== BALLISTIC REFERENCE SUMMARY =====
-        case 'ballistic_summary': {
-            let bpFilter = 'WHERE 1=1';
-            const bParams = [...dateParams];
-            let bIdx = paramIdx;
-
-            if (serial_number) {
-                bpFilter += ` AND f.serial_number ILIKE $${bIdx}`;
-                bParams.push(`%${serial_number}%`);
-                bIdx++;
-            }
-            if (unit_id) {
-                bpFilter += ` AND f.assigned_unit_id = $${bIdx}`;
-                bParams.push(unit_id);
-                bIdx++;
-            }
-
-            const profiles = await query(`
-                SELECT bp.ballistic_id, bp.firearm_id, bp.rifling_characteristics, bp.firing_pin_impression,
-                       bp.ejector_marks, bp.extractor_marks, bp.chamber_marks,
-                       bp.test_date, bp.test_location, bp.forensic_lab,
-                       bp.is_locked, bp.registration_hash,
-                       bp.created_at,
-                       f.serial_number, f.firearm_type, f.caliber
-                FROM ballistic_profiles bp
-                LEFT JOIN firearms f ON bp.firearm_id = f.firearm_id
-                ${(bpFilter + dateFilter).replace(/created_at/g, 'bp.created_at')}
-                ORDER BY bp.created_at DESC
-                LIMIT 100
-            `, bParams);
-
-            const firearmIds = profiles.rows.map(p => p.firearm_id).filter(Boolean);
-            let activities = [];
-
-            if (firearmIds.length > 0) {
-                let actParams = [...dateParams];
-                actParams.push(firearmIds);
-                
-                // Fetch Ballistic Access Logs (Investigator Searches/Views)
-                const accessLogs = await query(`
-                    SELECT bal.access_id as id, 'Access Log' as activity_type, bal.access_type as action,
-                           bal.access_reason as notes, u.full_name as investigator_name,
-                           bal.accessed_at as activity_date, f.serial_number
-                    FROM ballistic_access_logs bal
-                    LEFT JOIN users u ON bal.accessed_by = u.user_id
-                    LEFT JOIN firearms f ON bal.firearm_id = f.firearm_id
-                    WHERE bal.firearm_id = ANY($${actParams.length})
-                    ${dateFilter.replace(/created_at/g, 'bal.accessed_at')}
-                `, actParams);
-
-                // Fetch Anomaly Investigations (Investigator cases for these firearms)
-                const investigations = await query(`
-                    SELECT ai.investigation_id as id, 'Investigation' as activity_type, ai.outcome as action,
-                           ai.findings as notes, u.full_name as investigator_name,
-                           ai.investigation_date as activity_date, f.serial_number
-                    FROM anomaly_investigations ai
-                    LEFT JOIN anomalies a ON ai.anomaly_id = a.anomaly_id
-                    LEFT JOIN users u ON ai.investigator_id = u.user_id
-                    LEFT JOIN firearms f ON a.firearm_id = f.firearm_id
-                    WHERE a.firearm_id = ANY($${actParams.length})
-                    ${dateFilter.replace(/created_at/g, 'ai.investigation_date')}
-                `, actParams);
-
-                // Combine and sort
-                activities = [...accessLogs.rows, ...investigations.rows].sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
-            }
-
-            data = { 
-                profiles: profiles.rows,
-                investigator_activities: activities
-            };
-            break;
-        }
-
-        // ===== ANOMALY SUMMARY =====
-        case 'anomaly_summary': {
-            if (userRole === ROLES.ADMIN) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Access denied. Admin role cannot access anomaly summary reports.'
-                });
-            }
-
-            let aFilter = 'WHERE 1=1';
-            const aParams = [...dateParams];
-            let aIdx = paramIdx;
-
-            if (unit_id) {
-                aFilter += ` AND a.unit_id = $${aIdx}`;
-                aParams.push(unit_id);
-                aIdx++;
-            }
-            if (serial_number) {
-                aFilter += ` AND f.serial_number ILIKE $${aIdx}`;
-                aParams.push(`%${serial_number}%`);
-                aIdx++;
-            }
-
-            aParams.push(parsedLimit, parsedOffset);
-            const anomalies = await query(`
-                SELECT a.anomaly_id, a.severity, a.status,
-                       a.detected_at, a.anomaly_type,
-                       f.serial_number,
-                       u.unit_name
-                FROM anomalies a
-                LEFT JOIN firearms f ON a.firearm_id = f.firearm_id
-                LEFT JOIN units u ON a.unit_id = u.unit_id
-                ${(aFilter + dateFilter).replace(/created_at/g, 'a.detected_at')}
-                ORDER BY a.detected_at DESC
-                LIMIT $${aParams.length - 1} OFFSET $${aParams.length}
-            `, aParams);
-
-            // Group anomalies
-            const groupedAnomalies = {};
-            anomalies.rows.forEach(a => {
-                // Determine group key: prioritize unit_name unless only serial_number was filtered
-                const groupKey = (unit_id || !serial_number) 
-                    ? (a.unit_name || 'Unassigned Unit') 
-                    : (a.serial_number || 'Unknown Firearm');
-                if (!groupedAnomalies[groupKey]) {
-                    groupedAnomalies[groupKey] = [];
-                }
-                groupedAnomalies[groupKey].push(a);
-            });
-
-            // Convert to array of groups for PDF generator
-            const anomalyGroups = Object.keys(groupedAnomalies).map(g => ({
-                group_name: g,
-                records: groupedAnomalies[g]
-            }));
-
-            // Summary counts
-            const total = anomalies.rows.length;
-            const high = anomalies.rows.filter(a => a.severity?.toLowerCase() === 'high' || a.severity?.toLowerCase() === 'critical').length;
-            const medium = anomalies.rows.filter(a => a.severity?.toLowerCase() === 'medium').length;
-            const low = anomalies.rows.filter(a => a.severity?.toLowerCase() === 'low').length;
-            const reviewed = anomalies.rows.filter(a => a.status?.toLowerCase() === 'reviewed' || a.status?.toLowerCase() === 'resolved').length;
-            const pending = anomalies.rows.filter(a => a.status?.toLowerCase() === 'investigating' || a.status?.toLowerCase() === 'detected').length;
-
-            data = { 
-                anomalies: anomalies.rows,
-                anomaly_groups: anomalyGroups,
-                summary: { total, high, medium, low, reviewed, pending }
-            };
-            break;
-        }
-
-        // ===== USER ACTIVITY (Admin only) =====
-        case 'user_activity': {
-            if (userRole !== ROLES.ADMIN) {
-                return res.status(403).json({ success: false, message: 'Admin access required' });
-            }
-
-            let uaFilter = 'WHERE al.success = true';
-            const uaParams = [...dateParams];
-            let uaIdx = paramIdx;
-
-            if (user_id) {
-                uaFilter += ` AND al.user_id = $${uaIdx}`;
-                uaParams.push(user_id);
-                uaIdx++;
-            } else if (username) {
-                uaFilter += ` AND LOWER(u.username) = LOWER($${uaIdx})`;
-                uaParams.push(String(username).trim());
-                uaIdx++;
-            }
-            if (filterRole) {
-                uaFilter += ` AND u.role = $${uaIdx}`;
-                uaParams.push(filterRole);
-                uaIdx++;
-            }
-
-            const activities = await query(`
-                SELECT al.log_id, al.action_type, al.table_name,
-                       al.record_id, al.created_at,
-                       u.username, u.role, u.full_name
-                FROM audit_logs al
-                LEFT JOIN users u ON al.user_id = u.user_id
-                ${(uaFilter + dateFilter).replace(/created_at/g, 'al.created_at')}
-                ORDER BY al.created_at DESC
-                LIMIT 300
-            `, uaParams);
-
-            data = { activities: activities.rows };
-            break;
-        }
-
-        // ===== SYSTEM AUDIT LOG (Admin only) =====
-        case 'audit_log': {
-            if (userRole !== ROLES.ADMIN) {
-                return res.status(403).json({ success: false, message: 'Admin access required' });
-            }
-
-            let alFilter = 'WHERE 1=1';
-            const alParams = [...dateParams];
-            let alIdx = paramIdx;
-
-            if (user_id) {
-                alFilter += ` AND al.user_id = $${alIdx}`;
-                alParams.push(user_id);
-                alIdx++;
-            }
-            if (filterRole) {
-                alFilter += ` AND u.role = $${alIdx}`;
-                alParams.push(filterRole);
-                alIdx++;
-            }
-
-            const logs = await query(`
-                SELECT al.log_id, al.action_type, al.table_name,
-                       al.record_id, al.created_at, al.success,
-                       al.ip_address,
-                       u.username, u.full_name as actor_name, u.role
-                FROM audit_logs al
-                LEFT JOIN users u ON al.user_id = u.user_id
-                ${(alFilter + dateFilter).replace(/created_at/g, 'al.created_at')}
-                ORDER BY al.created_at DESC
-                LIMIT 300
-            `, alParams);
-
-            data = { audit_logs: logs.rows };
-            break;
-        }
-
-        default:
-            return res.status(400).json({ success: false, message: `Unknown report type: ${type}` });
-    }
-
-    res.json({ success: true, data });
+    res.json({ success: true, data: generatedReport.data, meta: generatedReport.meta });
 }));
 
 // ============================================
@@ -616,12 +299,18 @@ router.patch('/loss/:id/status', authenticate, requireRole([ROLES.HQ_COMMANDER, 
     if (!['approved', 'rejected', 'under_investigation'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Invalid status' });
     }
-    const report = await LossReport.update(req.params.id, { 
-        status, 
-        review_notes,
-        reviewed_by: req.user.user_id,
-        review_date: new Date().toISOString()
-    });
+    const report = status === 'under_investigation'
+        ? await LossReport.update(req.params.id, {
+            status,
+            review_notes,
+            reviewed_by: req.user.user_id,
+            review_date: new Date().toISOString()
+        })
+        : await processLossReport(req.params.id, {
+            status,
+            review_notes,
+            reviewed_by: req.user.user_id
+        });
     if (!report) return res.status(404).json({ success: false, message: 'Loss report not found' });
     res.json({ success: true, data: report });
 }));
@@ -671,11 +360,10 @@ router.patch('/destruction/:id/status', authenticate, requireRole([ROLES.HQ_COMM
     if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Invalid status' });
     }
-    const request = await DestructionRequest.update(req.params.id, { 
-        status, 
+    const request = await processDestructionRequest(req.params.id, {
+        status,
         review_notes,
-        reviewed_by: req.user.user_id,
-        review_date: new Date().toISOString()
+        reviewed_by: req.user.user_id
     });
     if (!request) return res.status(404).json({ success: false, message: 'Destruction request not found' });
     res.json({ success: true, data: request });
@@ -724,11 +412,10 @@ router.patch('/procurement/:id/status', authenticate, requireRole([ROLES.HQ_COMM
     if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Invalid status' });
     }
-    const request = await ProcurementRequest.update(req.params.id, { 
-        status, 
+    const request = await processProcurementRequest(req.params.id, {
+        status,
         review_notes,
-        reviewed_by: req.user.user_id,
-        review_date: new Date().toISOString()
+        reviewed_by: req.user.user_id
     });
     if (!request) return res.status(404).json({ success: false, message: 'Procurement request not found' });
     res.json({ success: true, data: request });

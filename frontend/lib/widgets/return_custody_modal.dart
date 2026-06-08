@@ -41,6 +41,7 @@ class _ReturnCustodyModalState extends State<ReturnCustodyModal> {
       returnCondition: _returnCondition,
       returnDate: _returnDate,
       returnNotes: _notesController.text.trim(),
+      reloadAfterMutation: false,
     );
 
     if (!mounted) return;

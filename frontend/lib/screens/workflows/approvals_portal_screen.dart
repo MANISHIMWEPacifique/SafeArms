@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/lifecycle_request.dart';
 import '../../providers/approvals_provider.dart';
 import '../../widgets/expandable_report_card.dart';
 
@@ -23,9 +24,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<ApprovalsProvider>();
-      provider.loadPendingLossReports();
-      provider.loadPendingDestructionRequests();
-      provider.loadPendingProcurementRequests();
+      provider.loadAllPendingRequests();
       provider.loadStats();
     });
   }
@@ -387,10 +386,12 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                 circumstancesLabel: 'CIRCUMSTANCES',
                 circumstances: report['circumstances'] ?? 'N/A',
                 severityColor: const Color(0xFFF59E0B),
-                initialRemarks: report['review_notes'] ?? report['rejection_reason'],
+                initialRemarks:
+                    report['review_notes'] ?? report['rejection_reason'],
                 onStatusChanged: (newStatus, remarks) {
-                  provider.updateRequestStatus(
-                      report['loss_id'], 'loss', newStatus, remarks: remarks);
+                  provider.updateRequestStatus(report['loss_id'],
+                      LifecycleRequestType.loss.key, newStatus,
+                      remarks: remarks);
                 },
                 detailsWidget: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,8 +437,9 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                 severityColor: const Color(0xFFEF4444),
                 initialRemarks: req['review_notes'] ?? req['rejection_reason'],
                 onStatusChanged: (newStatus, remarks) {
-                  provider.updateRequestStatus(
-                      req['destruction_id'], 'destruction', newStatus, remarks: remarks);
+                  provider.updateRequestStatus(req['destruction_id'],
+                      LifecycleRequestType.destruction.key, newStatus,
+                      remarks: remarks);
                 },
                 detailsWidget: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -483,8 +485,9 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                 severityColor: const Color(0xFF3B82F6),
                 initialRemarks: req['review_notes'] ?? req['rejection_reason'],
                 onStatusChanged: (newStatus, remarks) {
-                  provider.updateRequestStatus(
-                      req['procurement_id'], 'procurement', newStatus, remarks: remarks);
+                  provider.updateRequestStatus(req['procurement_id'],
+                      LifecycleRequestType.procurement.key, newStatus,
+                      remarks: remarks);
                 },
                 detailsWidget: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

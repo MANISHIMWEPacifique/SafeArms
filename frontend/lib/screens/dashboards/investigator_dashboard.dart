@@ -926,48 +926,58 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Recent System Activity',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Audit trail across all units',
-                    style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
-                  ),
-                ],
+              const Icon(Icons.history, color: Color(0xFF1E88E5), size: 22),
+              const SizedBox(width: 10),
+              const Text(
+                'Recent System Activity',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              IconButton(
-                onPressed: _loadDashboardData,
-                icon: const Icon(Icons.refresh, color: Color(0xFF78909C)),
-                tooltip: 'Refresh',
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E88E5).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${recentActivities.length} entries',
+                  style: const TextStyle(
+                    color: Color(0xFF1E88E5),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           if (dashboardProvider.isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
               ),
             )
           else if (recentActivities.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Text(
-                  'No recent activity recorded',
-                  style: TextStyle(color: Color(0xFF78909C)),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.inbox_outlined,
+                        color: Color(0xFF78909C), size: 40),
+                    SizedBox(height: 12),
+                    Text(
+                      'No recent activity',
+                      style: TextStyle(color: Color(0xFF78909C), fontSize: 15),
+                    ),
+                  ],
                 ),
               ),
             )
@@ -985,100 +995,131 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
     final tableName = activity['table_name']?.toString() ?? '';
     final actorName = activity['actor_name']?.toString() ?? 'System';
     final createdAt = activity['created_at']?.toString();
-    final subjectDesc = activity['subject_description']?.toString() ?? '';
     final timeAgo = _formatTimeAgo(createdAt);
+    final actionInfo = _getInvestigatorActionInfo(actionType, tableName);
 
-    // Determine icon and label by action type
-    IconData actIcon;
-    String actLabel;
+    return _buildRecentAction(
+      actionInfo['icon'] as IconData,
+      actionInfo['color'] as Color,
+      actionInfo['title'] as String,
+      actorName,
+      timeAgo,
+    );
+  }
 
+  Map<String, dynamic> _getInvestigatorActionInfo(
+    String actionType,
+    String tableName,
+  ) {
     switch (actionType.toUpperCase()) {
       case 'CUSTODY_ASSIGN':
+        return {
+          'icon': Icons.swap_horiz,
+          'color': const Color(0xFF42A5F5),
+          'title': 'Custody Assigned',
+        };
       case 'CUSTODY_RETURN':
-        actIcon = Icons.swap_horiz;
-        actLabel = actionType == 'CUSTODY_ASSIGN'
-            ? 'Custody Assigned'
-            : 'Custody Returned';
-        break;
+        return {
+          'icon': Icons.swap_horiz,
+          'color': const Color(0xFF3CCB7F),
+          'title': 'Custody Returned',
+        };
       case 'BALLISTIC_ACCESS':
-        actIcon = Icons.fingerprint;
-        actLabel = 'Ballistic Access';
-        break;
+        return {
+          'icon': Icons.fingerprint,
+          'color': const Color(0xFF1E88E5),
+          'title': 'Ballistic Access',
+        };
       case 'CREATE':
-        actIcon = Icons.add_circle_outline;
-        actLabel = 'Record Created';
-        break;
+        return {
+          'icon': Icons.add_circle_outline,
+          'color': const Color(0xFF3CCB7F),
+          'title': 'Created $tableName',
+        };
       case 'UPDATE':
-        actIcon = Icons.edit;
-        actLabel = 'Record Updated';
-        break;
+        return {
+          'icon': Icons.edit_outlined,
+          'color': const Color(0xFF42A5F5),
+          'title': 'Updated $tableName',
+        };
+      case 'DELETE':
+        return {
+          'icon': Icons.delete_outline,
+          'color': const Color(0xFFE85C5C),
+          'title': 'Deleted $tableName',
+        };
       case 'LOGIN':
-        actIcon = Icons.login;
-        actLabel = 'User Login';
-        break;
+        return {
+          'icon': Icons.login,
+          'color': const Color(0xFF1E88E5),
+          'title': 'User Login',
+        };
       case 'SEARCH':
-        actIcon = Icons.search;
-        actLabel = 'Search Performed';
-        break;
+        return {
+          'icon': Icons.search,
+          'color': const Color(0xFF1E88E5),
+          'title': 'Search Performed',
+        };
       default:
-        actIcon = Icons.info_outline;
-        actLabel = actionType.replaceAll('_', ' ');
+        return {
+          'icon': Icons.info_outline,
+          'color': const Color(0xFF1E88E5),
+          'title': tableName.isEmpty ? actionType : '$actionType on $tableName',
+        };
     }
+  }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF252A3A),
-        borderRadius: BorderRadius.circular(6),
-      ),
+  Widget _buildRecentAction(
+    IconData icon,
+    Color iconColor,
+    String title,
+    String description,
+    String time,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF37404F),
-              borderRadius: BorderRadius.circular(8),
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(actIcon, color: const Color(0xFFB0BEC5), size: 20),
+            child: Icon(icon, color: iconColor, size: 16),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  actLabel,
+                  title,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${tableName.isNotEmpty ? '[$tableName] ' : ''}$subjectDesc',
+                  description,
                   style: const TextStyle(
                     color: Color(0xFFB0BEC5),
-                    fontSize: 12,
+                    fontSize: 13,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
-                  'By $actorName',
+                  time,
                   style: const TextStyle(
                     color: Color(0xFF78909C),
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
-          ),
-          Text(
-            timeAgo,
-            style: const TextStyle(color: Color(0xFF78909C), fontSize: 11),
           ),
         ],
       ),
@@ -1094,7 +1135,6 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
     final dashboardStats = dashboardProvider.dashboardStats;
     final custodyEvents =
         (dashboardStats?['recent_custody_events'] as List<dynamic>?) ?? [];
-    final isNarrow = MediaQuery.of(context).size.width < 900;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1149,156 +1189,171 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
               ),
             )
           else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(
-                  const Color(0xFF252A3A),
-                ),
-                dataRowColor: WidgetStateProperty.all(const Color(0xFF2A3040)),
-                headingRowHeight: 44,
-                dataRowMinHeight: 48,
-                dataRowMaxHeight: 48,
-                columnSpacing: 20,
-                columns: [
-                  const DataColumn(
-                    label: Text(
-                      'STATUS',
-                      style: TextStyle(
-                        color: Color(0xFFB0BEC5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const DataColumn(
-                    label: Text(
-                      'FIREARM',
-                      style: TextStyle(
-                        color: Color(0xFFB0BEC5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const DataColumn(
-                    label: Text(
-                      'OFFICER',
-                      style: TextStyle(
-                        color: Color(0xFFB0BEC5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  if (!isNarrow)
-                    const DataColumn(
-                      label: Text(
-                        'UNIT',
-                        style: TextStyle(
-                          color: Color(0xFFB0BEC5),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  if (!isNarrow)
-                    const DataColumn(
-                      label: Text(
-                        'TYPE',
-                        style: TextStyle(
-                          color: Color(0xFFB0BEC5),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  if (!isNarrow)
-                    const DataColumn(
-                      label: Text(
-                        'ISSUED',
-                        style: TextStyle(
-                          color: Color(0xFFB0BEC5),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-                rows: custodyEvents.take(6).map<DataRow>((event) {
-                  final custodyStatus =
-                      event['custody_status']?.toString() ?? 'active';
-                  final isActive = custodyStatus == 'active';
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 900;
+                final columnSpacing = constraints.maxWidth < 700
+                    ? 18.0
+                    : constraints.maxWidth < 1100
+                        ? 32.0
+                        : 52.0;
 
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      Text(
-                        isActive ? 'Active' : 'Returned',
-                        style: const TextStyle(
-                          color: Color(0xFFB0BEC5),
-                          fontSize: 13,
-                        ),
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.all(
+                        const Color(0xFF252A3A),
                       ),
+                      dataRowColor:
+                          WidgetStateProperty.all(const Color(0xFF2A3040)),
+                      headingRowHeight: 44,
+                      dataRowMinHeight: 48,
+                      dataRowMaxHeight: 48,
+                      columnSpacing: columnSpacing,
+                      columns: [
+                        const DataColumn(
+                          label: Text(
+                            'STATUS',
+                            style: TextStyle(
+                              color: Color(0xFFB0BEC5),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const DataColumn(
+                          label: Text(
+                            'FIREARM',
+                            style: TextStyle(
+                              color: Color(0xFFB0BEC5),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const DataColumn(
+                          label: Text(
+                            'OFFICER',
+                            style: TextStyle(
+                              color: Color(0xFFB0BEC5),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (!isNarrow)
+                          const DataColumn(
+                            label: Text(
+                              'UNIT',
+                              style: TextStyle(
+                                color: Color(0xFFB0BEC5),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        if (!isNarrow)
+                          const DataColumn(
+                            label: Text(
+                              'TYPE',
+                              style: TextStyle(
+                                color: Color(0xFFB0BEC5),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        if (!isNarrow)
+                          const DataColumn(
+                            label: Text(
+                              'ISSUED',
+                              style: TextStyle(
+                                color: Color(0xFFB0BEC5),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                      rows: custodyEvents.take(6).map<DataRow>((event) {
+                        final custodyStatus =
+                            event['custody_status']?.toString() ?? 'active';
+                        final isActive = custodyStatus == 'active';
+
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              Text(
+                                isActive ? 'Active' : 'Returned',
+                                style: const TextStyle(
+                                  color: Color(0xFFB0BEC5),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                '${event['manufacturer'] ?? ''} ${event['model'] ?? ''} - ${event['serial_number'] ?? ''}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                event['officer_name']?.toString() ?? 'N/A',
+                                style: const TextStyle(
+                                  color: Color(0xFFB0BEC5),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            if (!isNarrow)
+                              DataCell(
+                                Text(
+                                  event['unit_name']?.toString() ?? 'N/A',
+                                  style: const TextStyle(
+                                    color: Color(0xFFB0BEC5),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            if (!isNarrow)
+                              DataCell(
+                                Text(
+                                  (event['custody_type']?.toString() ?? '')
+                                      .replaceAll('_', ' '),
+                                  style: const TextStyle(
+                                    color: Color(0xFFB0BEC5),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            if (!isNarrow)
+                              DataCell(
+                                Text(
+                                  _formatTimeAgo(
+                                    (event['custody_status'] == 'returned'
+                                            ? event['returned_at']?.toString()
+                                            : event['issued_at']?.toString()) ??
+                                        event['issued_at']?.toString(),
+                                  ),
+                                  style: const TextStyle(
+                                    color: Color(0xFF78909C),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      }).toList(),
                     ),
-                    DataCell(
-                      Text(
-                        '${event['manufacturer'] ?? ''} ${event['model'] ?? ''} - ${event['serial_number'] ?? ''}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Text(
-                        event['officer_name']?.toString() ?? 'N/A',
-                        style: const TextStyle(
-                          color: Color(0xFFB0BEC5),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    if (!isNarrow)
-                      DataCell(
-                        Text(
-                          event['unit_name']?.toString() ?? 'N/A',
-                          style: const TextStyle(
-                            color: Color(0xFFB0BEC5),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    if (!isNarrow)
-                      DataCell(
-                        Text(
-                          (event['custody_type']?.toString() ?? '')
-                              .replaceAll('_', ' '),
-                          style: const TextStyle(
-                            color: Color(0xFFB0BEC5),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    if (!isNarrow)
-                      DataCell(
-                        Text(
-                          _formatTimeAgo(
-                            (event['custody_status'] == 'returned'
-                                    ? event['returned_at']?.toString()
-                                    : event['issued_at']?.toString()) ??
-                                event['issued_at']?.toString(),
-                          ),
-                          style: const TextStyle(
-                            color: Color(0xFF78909C),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                  ],
+                  ),
                 );
-              }).toList(),
-            ),
+              },
             ),
         ],
       ),

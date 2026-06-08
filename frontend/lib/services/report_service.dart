@@ -1,7 +1,8 @@
-﻿// Report Service
+// Report Service
 // API calls for report generation
 
 import '../config/api_config.dart';
+import '../models/lifecycle_request.dart';
 import 'api_client.dart';
 
 class ReportService {
@@ -13,6 +14,57 @@ class ReportService {
         .map((e) => '${e.key}=${e.value}')
         .toList();
     return filtered.isEmpty ? '' : '?${filtered.join('&')}';
+  }
+
+  String _buildEncodedUrl(String baseUrl, Map<String, String?> params) {
+    final filtered = <String, String>{};
+    for (final entry in params.entries) {
+      final value = entry.value;
+      if (value != null && value.isNotEmpty && value != 'all') {
+        filtered[entry.key] = value;
+      }
+    }
+
+    return Uri.parse(baseUrl)
+        .replace(queryParameters: filtered.isEmpty ? null : filtered)
+        .toString();
+  }
+
+  // ============================================
+  // ANALYTICAL REPORT GENERATION
+  // ============================================
+
+  Future<Map<String, dynamic>> generateAnalyticalReport({
+    required String type,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? unitId,
+    String? serialNumber,
+    String? userId,
+    String? username,
+    String? role,
+    int page = 1,
+    int limit = 100,
+  }) async {
+    try {
+      final url = _buildEncodedUrl('${ApiConfig.reportsUrl}/generate', {
+        'type': type,
+        'start_date': startDate?.toIso8601String(),
+        'end_date': endDate?.toIso8601String(),
+        'unit_id': unitId,
+        'serial_number': serialNumber,
+        'user_id': userId,
+        'username': username,
+        'role': role,
+        'page': page.toString(),
+        'limit': limit.toString(),
+      });
+
+      final data = await ApiClient.get(url);
+      return Map<String, dynamic>.from(data['data'] ?? {});
+    } catch (e) {
+      throw Exception('Error generating analytical report: $e');
+    }
   }
 
   // ============================================
@@ -72,12 +124,13 @@ class ReportService {
 
   Future<List<Map<String, dynamic>>> getDestructionRequests({
     String? status,
+    String? unitId,
   }) async {
     try {
-      var url = '${ApiConfig.reportsUrl}/destruction';
-      if (status != null && status.isNotEmpty && status != 'all') {
-        url += '?status=$status';
-      }
+      final url = _buildEncodedUrl('${ApiConfig.reportsUrl}/destruction', {
+        'status': status,
+        'unit_id': unitId,
+      });
       final data = await ApiClient.get(url);
       return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
@@ -119,12 +172,13 @@ class ReportService {
 
   Future<List<Map<String, dynamic>>> getProcurementRequests({
     String? status,
+    String? unitId,
   }) async {
     try {
-      var url = '${ApiConfig.reportsUrl}/procurement';
-      if (status != null && status.isNotEmpty && status != 'all') {
-        url += '?status=$status';
-      }
+      final url = _buildEncodedUrl('${ApiConfig.reportsUrl}/procurement', {
+        'status': status,
+        'unit_id': unitId,
+      });
       final data = await ApiClient.get(url);
       return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
@@ -222,6 +276,35 @@ class ReportService {
       return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error updating loss report: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getLifecycleRequests({
+    required LifecycleRequestType type,
+    String? status,
+    String? unitId,
+  }) {
+    switch (type) {
+      case LifecycleRequestType.loss:
+        return getLossReports(status: status, unitId: unitId);
+      case LifecycleRequestType.destruction:
+        return getDestructionRequests(status: status, unitId: unitId);
+      case LifecycleRequestType.procurement:
+        return getProcurementRequests(status: status, unitId: unitId);
+    }
+  }
+
+  Future<void> deleteLifecycleRequest({
+    required LifecycleRequestType type,
+    required String requestId,
+  }) {
+    switch (type) {
+      case LifecycleRequestType.loss:
+        return deleteLossReport(requestId);
+      case LifecycleRequestType.destruction:
+        return deleteDestructionRequest(requestId);
+      case LifecycleRequestType.procurement:
+        return deleteProcurementRequest(requestId);
     }
   }
 

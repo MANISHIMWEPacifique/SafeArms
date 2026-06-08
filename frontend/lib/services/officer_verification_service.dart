@@ -1,6 +1,71 @@
 import '../config/api_config.dart';
 import 'api_client.dart';
 
+enum OfficerDeviceResolutionStatus {
+  none,
+  single,
+  multiple,
+}
+
+class OfficerDeviceResolution {
+  final OfficerDeviceResolutionStatus status;
+  final String? deviceKey;
+  final String? label;
+  final String message;
+
+  const OfficerDeviceResolution({
+    required this.status,
+    this.deviceKey,
+    this.label,
+    required this.message,
+  });
+
+  bool get hasSingleDevice => status == OfficerDeviceResolutionStatus.single;
+  bool get hasMultipleDevices =>
+      status == OfficerDeviceResolutionStatus.multiple;
+
+  factory OfficerDeviceResolution.fromDevices(
+    List<Map<String, dynamic>> devices,
+  ) {
+    if (devices.isEmpty) {
+      return const OfficerDeviceResolution(
+        status: OfficerDeviceResolutionStatus.none,
+        message:
+            'No active enrolled device found for this officer. Custody assignment can continue, but mobile verification request may not be delivered.',
+      );
+    }
+
+    if (devices.length > 1) {
+      return const OfficerDeviceResolution(
+        status: OfficerDeviceResolutionStatus.multiple,
+        message:
+            'Multiple active devices detected. Remove extra devices before assignment.',
+      );
+    }
+
+    final device = devices.first;
+    final deviceKey = device['device_key']?.toString();
+    if (deviceKey == null || deviceKey.trim().isEmpty) {
+      return const OfficerDeviceResolution(
+        status: OfficerDeviceResolutionStatus.none,
+        message:
+            'Active device enrollment is missing a device key. Remove and re-enroll this officer phone before assigning custody.',
+      );
+    }
+
+    final deviceName = device['device_name']?.toString().trim() ?? '';
+    final platform = device['platform']?.toString().toUpperCase() ?? 'UNKNOWN';
+    final label = deviceName.isNotEmpty ? '$deviceName ($platform)' : deviceKey;
+
+    return OfficerDeviceResolution(
+      status: OfficerDeviceResolutionStatus.single,
+      deviceKey: deviceKey,
+      label: label,
+      message: 'Active enrolled device resolved.',
+    );
+  }
+}
+
 class OfficerVerificationService {
   String get _baseUrl => '${ApiConfig.apiBase}/officer-verification';
 
@@ -73,6 +138,13 @@ class OfficerVerificationService {
     } catch (e) {
       throw Exception('Error loading officer devices: $e');
     }
+  }
+
+  Future<OfficerDeviceResolution> resolveAssignmentDevice(
+    String officerId,
+  ) async {
+    final devices = await getOfficerDevices(officerId);
+    return OfficerDeviceResolution.fromDevices(devices);
   }
 
   Future<List<Map<String, dynamic>>> getUnitOfficerDevices(

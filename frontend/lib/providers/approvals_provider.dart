@@ -2,6 +2,7 @@
 // SafeArms Frontend
 
 import 'package:flutter/foundation.dart';
+import '../models/lifecycle_request.dart';
 import '../services/approvals_service.dart';
 import '../utils/auth_error_utils.dart';
 
@@ -38,23 +39,60 @@ class ApprovalsProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
 
-  // Load pending loss reports
-  Future<void> loadPendingLossReports() async {
+  String _priorityForType(LifecycleRequestType type) {
+    switch (type) {
+      case LifecycleRequestType.loss:
+        return _lossReportPriority;
+      case LifecycleRequestType.destruction:
+        return _destructionPriority;
+      case LifecycleRequestType.procurement:
+        return _procurementPriority;
+    }
+  }
+
+  void _setRequestsForType(
+    LifecycleRequestType type,
+    List<Map<String, dynamic>> requests,
+  ) {
+    switch (type) {
+      case LifecycleRequestType.loss:
+        _pendingLossReports = requests;
+        break;
+      case LifecycleRequestType.destruction:
+        _pendingDestructionRequests = requests;
+        break;
+      case LifecycleRequestType.procurement:
+        _pendingProcurementRequests = requests;
+        break;
+    }
+  }
+
+  Future<void> loadPendingRequests(LifecycleRequestType type) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
-      _pendingLossReports = await _approvalsService.getPendingLossReports(
-        priority: _lossReportPriority != 'all' ? _lossReportPriority : null,
+      final requests = await _approvalsService.getPendingRequests(
+        type: type,
+        priority:
+            _priorityForType(type) != 'all' ? _priorityForType(type) : null,
         unit: _unitFilter != 'all' ? _unitFilter : null,
       );
-      _isLoading = false;
-      notifyListeners();
+      _setRequestsForType(type, requests);
     } catch (e) {
       _errorMessage = e.toString();
+    } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> loadAllPendingRequests() => _reloadAll();
+
+  // Load pending loss reports
+  Future<void> loadPendingLossReports() async {
+    await loadPendingRequests(LifecycleRequestType.loss);
   }
 
   // Approve loss report
@@ -129,22 +167,7 @@ class ApprovalsProvider with ChangeNotifier {
 
   // Load pending destruction requests
   Future<void> loadPendingDestructionRequests() async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      _pendingDestructionRequests =
-          await _approvalsService.getPendingDestructionRequests(
-        priority: _destructionPriority != 'all' ? _destructionPriority : null,
-        unit: _unitFilter != 'all' ? _unitFilter : null,
-      );
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
-      notifyListeners();
-    }
+    await loadPendingRequests(LifecycleRequestType.destruction);
   }
 
   // Approve destruction request
@@ -215,22 +238,7 @@ class ApprovalsProvider with ChangeNotifier {
 
   // Load pending procurement requests
   Future<void> loadPendingProcurementRequests() async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      _pendingProcurementRequests =
-          await _approvalsService.getPendingProcurementRequests(
-        priority: _procurementPriority != 'all' ? _procurementPriority : null,
-        unit: _unitFilter != 'all' ? _unitFilter : null,
-      );
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
-      notifyListeners();
-    }
+    await loadPendingRequests(LifecycleRequestType.procurement);
   }
 
   // Approve procurement request
@@ -304,42 +312,36 @@ class ApprovalsProvider with ChangeNotifier {
       dynamic requestIdDynamic, String type, String status,
       {String? remarks}) async {
     final requestId = requestIdDynamic.toString();
-    if (status == 'approved') {
-      if (type == 'loss') {
-        return await approveLossReport(
-            reportId: requestId,
-            approvalNotes: remarks ?? 'Approved directly from list view');
-      } else if (type == 'destruction') {
-        return await approveDestruction(
-            requestId: requestId,
-            approvalNotes: remarks ?? 'Approved directly from list view');
-      } else if (type == 'procurement') {
-        return await approveProcurement(
-            requestId: requestId,
-            approvalNotes: remarks ?? 'Approved directly from list view');
+    final requestType = LifecycleRequestTypeX.fromKey(type);
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final success = await _approvalsService.updateRequestStatus(
+        type: requestType,
+        requestId: requestId,
+        status: status,
+        remarks: remarks,
+      );
+
+      if (success) {
+        _successMessage =
+            '${requestType.label} ${status == 'approved' ? 'approved' : 'rejected'}';
+        await Future.wait([
+          _loadPendingRequestsSilent(requestType),
+          loadStats(),
+        ]);
       }
-    } else if (status == 'rejected') {
-      if (type == 'loss') {
-        return await rejectLossReport(
-          reportId: requestId,
-          rejectionReason: remarks != null && remarks.isNotEmpty ? remarks : 'Rejected from list view',
-          feedback: remarks != null && remarks.isNotEmpty ? remarks : 'No detailed feedback provided.',
-        );
-      } else if (type == 'destruction') {
-        return await rejectDestruction(
-          requestId: requestId,
-          rejectionReason: remarks != null && remarks.isNotEmpty ? remarks : 'Rejected from list view',
-          feedback: remarks != null && remarks.isNotEmpty ? remarks : 'No detailed feedback provided.',
-        );
-      } else if (type == 'procurement') {
-        return await rejectProcurement(
-          requestId: requestId,
-          rejectionReason: remarks != null && remarks.isNotEmpty ? remarks : 'Rejected from list view',
-          feedback: remarks != null && remarks.isNotEmpty ? remarks : 'No detailed feedback provided.',
-        );
-      }
+
+      return success;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    return false;
   }
 
   // Load statistics
@@ -394,7 +396,7 @@ class ApprovalsProvider with ChangeNotifier {
     _reloadAll();
   }
 
-  /// Reload all tabs concurrently — notifies once at start, once at end.
+  /// Reload all tabs concurrently; notifies once at start, once at end.
   Future<void> _reloadAll() async {
     _isLoading = true;
     notifyListeners();
@@ -410,35 +412,26 @@ class ApprovalsProvider with ChangeNotifier {
   }
 
   Future<void> _loadLossReportsSilent() async {
-    try {
-      _pendingLossReports = await _approvalsService.getPendingLossReports(
-        priority: _lossReportPriority != 'all' ? _lossReportPriority : null,
-        unit: _unitFilter != 'all' ? _unitFilter : null,
-      );
-    } catch (e) {
-      _errorMessage = e.toString();
-    }
+    await _loadPendingRequestsSilent(LifecycleRequestType.loss);
   }
 
   Future<void> _loadDestructionSilent() async {
-    try {
-      _pendingDestructionRequests =
-          await _approvalsService.getPendingDestructionRequests(
-        priority: _destructionPriority != 'all' ? _destructionPriority : null,
-        unit: _unitFilter != 'all' ? _unitFilter : null,
-      );
-    } catch (e) {
-      _errorMessage = e.toString();
-    }
+    await _loadPendingRequestsSilent(LifecycleRequestType.destruction);
   }
 
   Future<void> _loadProcurementSilent() async {
+    await _loadPendingRequestsSilent(LifecycleRequestType.procurement);
+  }
+
+  Future<void> _loadPendingRequestsSilent(LifecycleRequestType type) async {
     try {
-      _pendingProcurementRequests =
-          await _approvalsService.getPendingProcurementRequests(
-        priority: _procurementPriority != 'all' ? _procurementPriority : null,
+      final requests = await _approvalsService.getPendingRequests(
+        type: type,
+        priority:
+            _priorityForType(type) != 'all' ? _priorityForType(type) : null,
         unit: _unitFilter != 'all' ? _unitFilter : null,
       );
+      _setRequestsForType(type, requests);
     } catch (e) {
       _errorMessage = e.toString();
     }

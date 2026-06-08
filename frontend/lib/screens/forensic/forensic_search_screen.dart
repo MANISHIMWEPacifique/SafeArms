@@ -9,8 +9,48 @@ import '../../services/forensic_traceability_service.dart';
 import '../../utils/pdf_report_generator.dart';
 import '../../widgets/custody_timeline_widget.dart';
 
+enum _ResultLayout { full, compact, stacked }
+
+class _BallisticTrait {
+  final String label;
+  final String matchKey;
+  final String? value;
+
+  const _BallisticTrait({
+    required this.label,
+    required this.matchKey,
+    required this.value,
+  });
+}
+
+class _BallisticSummary {
+  final String primaryText;
+  final int remainingCount;
+
+  const _BallisticSummary({
+    required this.primaryText,
+    required this.remainingCount,
+  });
+
+  String get displayText =>
+      remainingCount > 0 ? '$primaryText +$remainingCount more' : primaryText;
+}
+
 class ForensicSearchScreen extends StatefulWidget {
-  const ForensicSearchScreen({super.key});
+  final List<Map<String, dynamic>> initialSearchResults;
+  final int? initialTotalResults;
+  final int initialCurrentPage;
+  final int? initialTotalPages;
+  final String? initialIncidentDate;
+
+  const ForensicSearchScreen({
+    super.key,
+    this.initialSearchResults = const [],
+    this.initialTotalResults,
+    this.initialCurrentPage = 1,
+    this.initialTotalPages,
+    this.initialIncidentDate,
+  });
 
   @override
   State<ForensicSearchScreen> createState() => _ForensicSearchScreenState();
@@ -50,6 +90,23 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
 
   final ForensicTraceabilityService _traceabilityService =
       ForensicTraceabilityService();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialSearchResults.isNotEmpty) {
+      _searchResults = List<Map<String, dynamic>>.from(
+        widget.initialSearchResults,
+      );
+      _totalResults = widget.initialTotalResults ?? _searchResults.length;
+      _currentPage = widget.initialCurrentPage;
+      _totalPages = widget.initialTotalPages ??
+          (_totalResults / _resultsPerPage).ceil().clamp(1, 999999).toInt();
+    }
+    if (widget.initialIncidentDate != null) {
+      _incidentDateController.text = widget.initialIncidentDate!;
+    }
+  }
 
   @override
   void dispose() {
@@ -375,23 +432,24 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
-              children: [
-                Text(
-                  'INVESTIGATION SEARCH CRITERIA',
-                  style: TextStyle(
-                    color: Color(0xFFCFD8DC),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-              ],
+            const Text(
+              'INVESTIGATION SEARCH CRITERIA',
+              style: TextStyle(
+                color: Color(0xFFCFD8DC),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.0,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 16),
             LayoutBuilder(
               builder: (context, constraints) {
-                final fieldWidth = (constraints.maxWidth - 12) / 2;
+                final isNarrow = constraints.maxWidth < 720;
+                final fieldWidth = isNarrow
+                    ? constraints.maxWidth
+                    : (constraints.maxWidth - 12) / 2;
                 return Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -997,119 +1055,21 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Results header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF4CAF50),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '$_totalResults result${_totalResults != 1 ? 's' : ''} found${_totalPages > 1 ? '  \u2022  Page $_currentPage of $_totalPages' : ''}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  hasIncidentDate
-                      ? 'Incident date annotates custody overlap; click a row for full chain'
-                      : 'Click a row to view custody chain',
-                  style: const TextStyle(
-                      color: Color(0xFF78909C),
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic),
-                ),
-              ],
-            ),
-          ),
+          _buildResultsHeader(hasIncidentDate),
           const Divider(color: Color(0xFF2E3546), height: 1),
 
-          // Table
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(const Color(0xFF1E2333)),
-              headingRowHeight: 44,
-              dataRowMinHeight: 64,
-              dataRowMaxHeight: 80,
-              columnSpacing: 16,
-              horizontalMargin: 16,
-              showCheckboxColumn: false,
-              columns: const [
-                DataColumn(label: Text('FIREARM', style: _columnHeaderStyle)),
-                DataColumn(
-                    label:
-                        Text('EVIDENCE STRENGTH', style: _columnHeaderStyle)),
-                DataColumn(
-                    label: Text('MATCHED TRAITS', style: _columnHeaderStyle)),
-                DataColumn(
-                    label: Text('INCIDENT CUSTODY', style: _columnHeaderStyle)),
-                DataColumn(
-                    label: Text('KEY BALLISTICS', style: _columnHeaderStyle)),
-                DataColumn(
-                    label: Text('DATA INTEGRITY', style: _columnHeaderStyle)),
-                DataColumn(label: Text('TRACE', style: _columnHeaderStyle)),
-              ],
-              rows: _searchResults.asMap().entries.map<DataRow>((entry) {
-                final index = entry.key;
-                final profile = entry.value;
-                final isSelected = _selectedFirearmId ==
-                    (profile['firearm_id']?.toString() ?? '');
-                final isLocked = profile['is_locked'] == true;
-                final hasHash = profile['registration_hash'] != null &&
-                    profile['registration_hash'].toString().isNotEmpty;
-                final firearmId = profile['firearm_id']?.toString() ?? '';
-                final firearmLabel =
-                    '${profile['manufacturer'] ?? ''} ${profile['model'] ?? ''}'
-                        .trim();
-                final serial = profile['serial_number']?.toString() ?? 'N/A';
-
-                return DataRow(
-                  selected: isSelected,
-                  color: WidgetStateProperty.resolveWith((states) {
-                    if (isSelected) {
-                      return const Color(0xFF1E88E5).withValues(alpha: 0.08);
-                    }
-                    if (states.contains(WidgetState.hovered)) {
-                      return const Color(0xFF2E3546).withValues(alpha: 0.5);
-                    }
-                    return index.isEven
-                        ? const Color(0xFF232838)
-                        : const Color(0xFF1E2333);
-                  }),
-                  onSelectChanged: (_) {
-                    if (firearmId.isNotEmpty) {
-                      _loadCustodyTimeline(firearmId, firearmLabel);
-                    }
-                  },
-                  cells: [
-                    DataCell(_buildFirearmSummary(
-                        firearmLabel, serial, profile['caliber']?.toString())),
-                    DataCell(_buildEvidenceStrengthBadge(profile)),
-                    DataCell(_buildMatchedTraits(profile)),
-                    DataCell(_buildIncidentCustodySummary(profile)),
-                    DataCell(_buildKeyBallistics(profile)),
-                    DataCell(_buildIntegrityBadge(profile, isLocked, hasHash)),
-                    DataCell(_buildTraceButton(
-                      isSelected: isSelected,
-                      onTap: firearmId.isEmpty
-                          ? null
-                          : () => _loadCustodyTimeline(firearmId, firearmLabel),
-                    )),
-                  ],
-                );
-              }).toList(),
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final layout = _resultLayoutForWidth(constraints.maxWidth);
+              return Column(
+                children: [
+                  if (layout != _ResultLayout.stacked)
+                    _buildResultHeaderRow(layout),
+                  for (int index = 0; index < _searchResults.length; index++)
+                    _buildResultRow(_searchResults[index], index, layout),
+                ],
+              );
+            },
           ),
 
           // Pagination controls
@@ -1178,41 +1138,460 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
     );
   }
 
-  Widget _buildFirearmSummary(
-      String firearmLabel, String serial, String? caliber) {
-    return SizedBox(
-      width: 190,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            firearmLabel.isNotEmpty ? firearmLabel : 'N/A',
+  Widget _buildResultsHeader(bool hasIncidentDate) {
+    final countText =
+        '$_totalResults result${_totalResults != 1 ? 's' : ''} found'
+        '${_totalPages > 1 ? ' - Page $_currentPage of $_totalPages' : ''}';
+    final hintText = hasIncidentDate
+        ? 'Incident date annotates custody overlap; click a row for full chain'
+        : 'Click a row to view custody chain';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final status = Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF4CAF50),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  countText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          );
+          final hint = Text(
+            hintText,
             style: const TextStyle(
-              color: Colors.white,
+              color: Color(0xFF78909C),
               fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontStyle: FontStyle.italic,
             ),
             overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 3),
-          Text(
-            serial,
-            style: const TextStyle(
-              color: Color(0xFF64B5F6),
-              fontSize: 12,
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.w500,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          Text(
-            caliber ?? '\u2014',
-            style: const TextStyle(color: Color(0xFF90A4AE), fontSize: 12),
-            overflow: TextOverflow.ellipsis,
+          );
+
+          if (constraints.maxWidth < 620) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                status,
+                const SizedBox(height: 6),
+                hint,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: status),
+              const SizedBox(width: 16),
+              Flexible(child: hint),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  _ResultLayout _resultLayoutForWidth(double width) {
+    if (width >= 1100) return _ResultLayout.full;
+    if (width >= 820) return _ResultLayout.compact;
+    return _ResultLayout.stacked;
+  }
+
+  Widget _buildResultHeaderRow(_ResultLayout layout) {
+    final isFull = layout == _ResultLayout.full;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      color: const Color(0xFF1E2333),
+      child: Row(
+        children: [
+          _buildHeaderCell('FIREARM', flex: isFull ? 18 : 20),
+          _buildHeaderCell('EVIDENCE', flex: isFull ? 14 : 16),
+          _buildHeaderCell('MATCHED TRAITS', flex: isFull ? 14 : 16),
+          _buildHeaderCell('INCIDENT CUSTODY', flex: isFull ? 16 : 18),
+          _buildHeaderCell('KEY BALLISTICS', flex: isFull ? 18 : 18),
+          if (isFull) _buildHeaderCell('DATA INTEGRITY', flex: 14),
+          const SizedBox(
+            width: 58,
+            child: Text('TRACE', style: _columnHeaderStyle),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeaderCell(String label, {required int flex}) {
+    return Expanded(
+      flex: flex,
+      child: Text(
+        label,
+        style: _columnHeaderStyle,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _buildResultRow(
+    Map<String, dynamic> profile,
+    int index,
+    _ResultLayout layout,
+  ) {
+    final firearmId = profile['firearm_id']?.toString() ?? '';
+    final firearmLabel =
+        '${profile['manufacturer'] ?? ''} ${profile['model'] ?? ''}'.trim();
+    final serial = profile['serial_number']?.toString() ?? 'N/A';
+    final isSelected = _selectedFirearmId == firearmId;
+    final onTrace = firearmId.isEmpty
+        ? null
+        : () => _loadCustodyTimeline(firearmId, firearmLabel);
+    final rowColor = isSelected
+        ? const Color(0xFF1E88E5).withValues(alpha: 0.08)
+        : index.isEven
+            ? const Color(0xFF232838)
+            : const Color(0xFF1E2333);
+
+    return Material(
+      color: rowColor,
+      child: InkWell(
+        onTap: onTrace,
+        hoverColor: const Color(0xFF2E3546).withValues(alpha: 0.5),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: layout == _ResultLayout.stacked ? 12 : 14,
+            vertical: layout == _ResultLayout.stacked ? 12 : 10,
+          ),
+          decoration: const BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: Color(0xFF2E3546), width: 1),
+            ),
+          ),
+          child: switch (layout) {
+            _ResultLayout.full => _buildFullResultRow(
+                profile,
+                firearmLabel,
+                serial,
+                isSelected,
+                onTrace,
+              ),
+            _ResultLayout.compact => _buildCompactResultRow(
+                profile,
+                firearmLabel,
+                serial,
+                isSelected,
+                onTrace,
+              ),
+            _ResultLayout.stacked => _buildStackedResultRow(
+                profile,
+                firearmLabel,
+                serial,
+                isSelected,
+                onTrace,
+              ),
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullResultRow(
+    Map<String, dynamic> profile,
+    String firearmLabel,
+    String serial,
+    bool isSelected,
+    VoidCallback? onTrace,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          flex: 18,
+          child: _buildFirearmSummary(
+            firearmLabel,
+            serial,
+            profile['caliber']?.toString(),
+          ),
+        ),
+        Expanded(flex: 14, child: _buildEvidenceStrengthBadge(profile)),
+        Expanded(flex: 14, child: _buildMatchedTraits(profile, maxTraits: 3)),
+        Expanded(flex: 16, child: _buildIncidentCustodySummary(profile)),
+        Expanded(flex: 18, child: _buildKeyBallistics(profile)),
+        Expanded(flex: 14, child: _buildIntegrityBadge(profile)),
+        SizedBox(
+          width: 58,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _buildTraceButton(
+              isSelected: isSelected,
+              onTap: onTrace,
+              iconOnly: true,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactResultRow(
+    Map<String, dynamic> profile,
+    String firearmLabel,
+    String serial,
+    bool isSelected,
+    VoidCallback? onTrace,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          flex: 20,
+          child: _buildFirearmSummary(
+            firearmLabel,
+            serial,
+            profile['caliber']?.toString(),
+            profile: profile,
+          ),
+        ),
+        Expanded(flex: 16, child: _buildEvidenceStrengthBadge(profile)),
+        Expanded(flex: 16, child: _buildMatchedTraits(profile, maxTraits: 2)),
+        Expanded(flex: 18, child: _buildIncidentCustodySummary(profile)),
+        Expanded(flex: 18, child: _buildKeyBallistics(profile)),
+        SizedBox(
+          width: 58,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _buildTraceButton(
+              isSelected: isSelected,
+              onTap: onTrace,
+              iconOnly: true,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStackedResultRow(
+    Map<String, dynamic> profile,
+    String firearmLabel,
+    String serial,
+    bool isSelected,
+    VoidCallback? onTrace,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildFirearmSummary(
+                firearmLabel,
+                serial,
+                profile['caliber']?.toString(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _buildTraceButton(
+              isSelected: isSelected,
+              onTap: onTrace,
+              iconOnly: true,
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildMetadataChip('EVIDENCE', _evidenceStrengthText(profile)),
+            _buildMetadataChip('MATCHED', _matchedTraitsText(profile)),
+            _buildMetadataChip(
+              'INCIDENT CUSTODY',
+              _incidentCustodyText(profile),
+            ),
+            _buildMetadataChip(
+              'KEY BALLISTICS',
+              _ballisticSummary(profile).displayText,
+            ),
+            _buildMetadataChip('INTEGRITY', _integrityText(profile)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFirearmSummary(
+    String firearmLabel,
+    String serial,
+    String? caliber, {
+    Map<String, dynamic>? profile,
+  }) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ellipsizedText(
+          firearmLabel.isNotEmpty ? firearmLabel : 'N/A',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 3),
+        _ellipsizedText(
+          serial,
+          style: const TextStyle(
+            color: Color(0xFF64B5F6),
+            fontSize: 12,
+            fontFamily: 'monospace',
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        _ellipsizedText(
+          caliber ?? '-',
+          style: const TextStyle(color: Color(0xFF90A4AE), fontSize: 12),
+        ),
+        if (profile != null) ...[
+          const SizedBox(height: 3),
+          _buildIntegrityInline(profile),
+        ],
+      ],
+    );
+  }
+
+  Widget _ellipsizedText(
+    String text, {
+    required TextStyle style,
+    int maxLines = 1,
+  }) {
+    return Tooltip(
+      message: text,
+      waitDuration: const Duration(milliseconds: 500),
+      child: Text(
+        text,
+        style: style,
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+        softWrap: false,
+      ),
+    );
+  }
+
+  Widget _buildMetadataChip(String label, String value) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 310),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1F2E),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFF37404F)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: _columnHeaderStyle),
+            const SizedBox(height: 3),
+            _ellipsizedText(
+              value,
+              style: const TextStyle(
+                color: Color(0xFFCFD8DC),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _evidenceStrengthText(Map<String, dynamic> profile) {
+    final strength =
+        profile['evidence_strength']?.toString() ?? 'Reference match';
+    final score = int.tryParse(profile['match_score']?.toString() ?? '0') ?? 0;
+    return '$strength - score $score';
+  }
+
+  String _matchedTraitsText(Map<String, dynamic> profile) {
+    final traits = _matchedTraits(profile);
+    if (traits.isEmpty) return 'Reference profile';
+    final shown = traits.take(2).join(', ');
+    final remaining = traits.length - 2;
+    return remaining > 0 ? '$shown +$remaining more' : shown;
+  }
+
+  String _incidentCustodyText(Map<String, dynamic> profile) {
+    final hasIncidentDate = _incidentDateController.text.trim().isNotEmpty;
+    if (!hasIncidentDate) return 'No incident date';
+
+    final custody = profile['incident_custody'];
+    final custodyMap = custody is Map ? custody : const {};
+    final heldAtIncident = custodyMap['held_at_incident'] == true;
+    if (!heldAtIncident) return 'No custody overlap';
+
+    final officer = custodyMap['officer_name']?.toString();
+    return officer == null || officer.isEmpty ? 'Held at incident' : officer;
+  }
+
+  String _integrityText(Map<String, dynamic> profile) {
+    final isLocked = profile['is_locked'] == true;
+    final hash = profile['registration_hash']?.toString();
+    final hasHash = hash != null && hash.isNotEmpty;
+    if (!isLocked || !hasHash) return 'Unverified record';
+    final shortHash = hash.length > 8 ? hash.substring(0, 8) : hash;
+    return 'Sealed - Hash $shortHash';
+  }
+
+  List<String> _matchedTraits(Map<String, dynamic> profile) {
+    final raw = profile['matched_fields'];
+    return raw is List
+        ? raw
+            .map((item) => item.toString())
+            .where((item) => item.isNotEmpty)
+            .toList()
+        : <String>[];
+  }
+
+  Widget _buildIntegrityInline(Map<String, dynamic> profile) {
+    final verified = profile['is_locked'] == true &&
+        profile['registration_hash'] != null &&
+        profile['registration_hash'].toString().isNotEmpty;
+    final color = verified ? const Color(0xFF81C784) : const Color(0xFFFFB74D);
+    return Row(
+      children: [
+        Icon(
+          verified ? Icons.verified_user : Icons.warning_amber_rounded,
+          color: color,
+          size: 12,
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: _ellipsizedText(
+            verified ? 'Sealed profile' : 'Unverified record',
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1227,7 +1606,6 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
     };
 
     return Container(
-      width: 150,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
@@ -1238,17 +1616,16 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          _ellipsizedText(
             strength,
             style: TextStyle(
               color: color,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
-            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
-          Text(
+          _ellipsizedText(
             'Evidence score $score',
             style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11),
           ),
@@ -1257,12 +1634,11 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
     );
   }
 
-  Widget _buildMatchedTraits(Map<String, dynamic> profile) {
-    final raw = profile['matched_fields'];
-    final traits = raw is List
-        ? raw.map((item) => item.toString()).where((item) => item.isNotEmpty)
-        : <String>[];
-
+  Widget _buildMatchedTraits(
+    Map<String, dynamic> profile, {
+    int maxTraits = 4,
+  }) {
+    final traits = _matchedTraits(profile);
     if (traits.isEmpty) {
       return const Text(
         'Reference profile',
@@ -1270,34 +1646,37 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       );
     }
 
-    return SizedBox(
-      width: 180,
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 4,
-        children: traits
-            .take(4)
-            .map(
-              (trait) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5).withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: const Color(0xFF1E88E5).withValues(alpha: 0.22),
-                  ),
-                ),
-                child: Text(
-                  trait,
-                  style: const TextStyle(
-                    color: Color(0xFF90CAF9),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            )
-            .toList(),
+    final visibleTraits = traits.take(maxTraits).toList();
+    final remaining = traits.length - visibleTraits.length;
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: [
+        ...visibleTraits.map(_buildTraitChip),
+        if (remaining > 0) _buildTraitChip('+$remaining more'),
+      ],
+    );
+  }
+
+  Widget _buildTraitChip(String trait) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E88E5).withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: const Color(0xFF1E88E5).withValues(alpha: 0.22),
+        ),
+      ),
+      child: Text(
+        trait,
+        style: const TextStyle(
+          color: Color(0xFF90CAF9),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -1309,12 +1688,11 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
     final heldAtIncident = custodyMap['held_at_incident'] == true;
 
     if (!hasIncidentDate) {
-      return const SizedBox(
-        width: 170,
-        child: Text(
-          'No incident date entered',
-          style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
-        ),
+      return const Text(
+        'No incident date entered',
+        style: TextStyle(color: Color(0xFF78909C), fontSize: 12),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
     }
 
@@ -1324,86 +1702,144 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
     final officer = custodyMap['officer_name']?.toString();
     final unit = custodyMap['unit_name']?.toString();
 
-    return SizedBox(
-      width: 190,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                heldAtIncident ? Icons.priority_high : Icons.info_outline,
-                color: color,
-                size: 14,
-              ),
-              const SizedBox(width: 5),
-              Text(
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              heldAtIncident ? Icons.priority_high : Icons.info_outline,
+              color: color,
+              size: 14,
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Text(
                 label,
                 style: TextStyle(
                   color: color,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
-          ),
-          if (heldAtIncident) ...[
-            const SizedBox(height: 3),
-            Text(
-              officer ?? 'Unknown officer',
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              unit ?? 'Unknown unit',
-              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11),
-              overflow: TextOverflow.ellipsis,
             ),
           ],
+        ),
+        if (heldAtIncident) ...[
+          const SizedBox(height: 3),
+          _ellipsizedText(
+            officer ?? 'Unknown officer',
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+          _ellipsizedText(
+            unit ?? 'Unknown unit',
+            style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11),
+          ),
         ],
-      ),
+      ],
     );
   }
 
   Widget _buildKeyBallistics(Map<String, dynamic> profile) {
-    final values = [
-      'Pin: ${profile['firing_pin_impression'] ?? '\u2014'}',
-      'Rifling: ${profile['rifling_characteristics'] ?? '\u2014'}',
-      'Chamber: ${profile['chamber_marks'] ?? '\u2014'}',
-      'Breech: ${_combineBreechFace(
-            profile['ejector_marks']?.toString(),
-            profile['extractor_marks']?.toString(),
-          ) ?? '\u2014'}',
-    ];
-
-    return SizedBox(
-      width: 260,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: values
-            .map(
-              (value) => Text(
-                value,
-                style: const TextStyle(
-                  color: Color(0xFFB0BEC5),
-                  fontSize: 11,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            )
-            .toList(),
-      ),
+    final summary = _ballisticSummary(profile);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ellipsizedText(
+          summary.primaryText,
+          style: const TextStyle(
+            color: Color(0xFFB0BEC5),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (summary.remainingCount > 0) ...[
+          const SizedBox(height: 3),
+          Text(
+            '+${summary.remainingCount} more',
+            style: const TextStyle(
+              color: Color(0xFF78909C),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ],
     );
   }
 
-  Widget _buildIntegrityBadge(
-    Map<String, dynamic> profile,
-    bool isLocked,
-    bool hasHash,
-  ) {
+  _BallisticSummary _ballisticSummary(Map<String, dynamic> profile) {
+    final matched =
+        _matchedTraits(profile).map((trait) => trait.toLowerCase()).toSet();
+    final candidates = <_BallisticTrait>[
+      _BallisticTrait(
+        label: 'Pin',
+        matchKey: 'firing pin',
+        value: profile['firing_pin_impression']?.toString(),
+      ),
+      _BallisticTrait(
+        label: 'Rifling',
+        matchKey: 'rifling',
+        value: profile['rifling_characteristics']?.toString(),
+      ),
+      _BallisticTrait(
+        label: 'Chamber',
+        matchKey: 'chamber/feed',
+        value: profile['chamber_marks']?.toString(),
+      ),
+      _BallisticTrait(
+        label: 'Breech',
+        matchKey: 'breech face',
+        value: _combineBreechFace(
+          profile['ejector_marks']?.toString(),
+          profile['extractor_marks']?.toString(),
+        ),
+      ),
+      _BallisticTrait(
+        label: 'Caliber',
+        matchKey: 'caliber',
+        value: profile['caliber']?.toString(),
+      ),
+    ];
+
+    final useful = candidates
+        .where((trait) => _isUsefulProfileValue(trait.value))
+        .toList();
+    if (useful.isEmpty) {
+      return const _BallisticSummary(
+        primaryText: 'No ballistic trait',
+        remainingCount: 0,
+      );
+    }
+
+    final matchedTrait = useful.cast<_BallisticTrait?>().firstWhere(
+          (trait) => matched.contains(trait!.matchKey),
+          orElse: () => null,
+        );
+    final primary = matchedTrait ?? useful.first;
+    return _BallisticSummary(
+      primaryText: '${primary.label}: ${primary.value}',
+      remainingCount: useful.length - 1,
+    );
+  }
+
+  bool _isUsefulProfileValue(String? value) {
+    if (value == null) return false;
+    final normalized = value.trim().toLowerCase();
+    return normalized.isNotEmpty &&
+        normalized != 'null' &&
+        normalized != '-' &&
+        normalized != 'n/a';
+  }
+
+  Widget _buildIntegrityBadge(Map<String, dynamic> profile) {
+    final isLocked = profile['is_locked'] == true;
+    final hash = profile['registration_hash']?.toString();
+    final hasHash = hash != null && hash.isNotEmpty;
     if (!isLocked || !hasHash) {
       return const Text(
         'Unverified record',
@@ -1411,51 +1847,56 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       );
     }
 
-    final hash = profile['registration_hash'].toString();
     final shortHash = hash.length > 8 ? hash.substring(0, 8) : hash;
-    return SizedBox(
-      width: 165,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.verified_user, color: Color(0xFF4CAF50), size: 13),
-              SizedBox(width: 4),
-              Text(
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.verified_user, color: Color(0xFF4CAF50), size: 13),
+            SizedBox(width: 4),
+            Flexible(
+              child: Text(
                 'Sealed profile',
                 style: TextStyle(
                   color: Color(0xFF81C784),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Hash $shortHash',
-            style: const TextStyle(
-              color: Color(0xFFCFD8DC),
-              fontSize: 11,
-              fontFamily: 'monospace',
             ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        _ellipsizedText(
+          'Hash $shortHash',
+          style: const TextStyle(
+            color: Color(0xFFCFD8DC),
+            fontSize: 11,
+            fontFamily: 'monospace',
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildTraceButton({
     required bool isSelected,
     required VoidCallback? onTap,
+    bool iconOnly = false,
   }) {
-    return InkWell(
+    final color =
+        isSelected ? const Color(0xFF64B5F6) : const Color(0xFF78909C);
+    final button = InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        width: iconOnly ? 36 : null,
+        height: 32,
+        padding: EdgeInsets.symmetric(horizontal: iconOnly ? 0 : 10),
         decoration: BoxDecoration(
           color: isSelected
               ? const Color(0xFF1E88E5).withValues(alpha: 0.15)
@@ -1467,28 +1908,28 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.timeline,
-              size: 15,
-              color: isSelected
-                  ? const Color(0xFF64B5F6)
-                  : const Color(0xFF546E7A),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              'Trace',
-              style: TextStyle(
-                color: isSelected
-                    ? const Color(0xFF64B5F6)
-                    : const Color(0xFF78909C),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+            Icon(Icons.timeline, size: 15, color: color),
+            if (!iconOnly) ...[
+              const SizedBox(width: 4),
+              Text(
+                'Trace',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
+    );
+
+    return Tooltip(
+      message: 'Trace custody chain',
+      child: button,
     );
   }
 

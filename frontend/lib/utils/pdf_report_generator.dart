@@ -166,6 +166,8 @@ class PdfReportGenerator {
   static List<pw.Widget> _firearmHistory(Map<String, dynamic> data) {
     final firearms = _asList(data['firearms']);
     final custody = _asList(data['custody_records']);
+    final unitHistory = _asList(data['unit_history']);
+    final anomalies = _asList(data['anomalies']);
 
     final widgets = <pw.Widget>[];
 
@@ -193,6 +195,23 @@ class PdfReportGenerator {
                   f['caliber']?.toString() ?? '',
                   f['current_status']?.toString() ?? '',
                   f['unit_name']?.toString() ?? 'Unassigned',
+                ])
+            .toList(),
+      ));
+    }
+
+    if (unitHistory.isNotEmpty) {
+      widgets.add(pw.SizedBox(height: 16));
+      widgets.add(_sectionTitle('Unit Assignment History'));
+      widgets.add(_table(
+        headers: ['Serial Number', 'From Unit', 'To Unit', 'Type', 'Assigned'],
+        rows: unitHistory
+            .map((h) => [
+                  h['serial_number']?.toString() ?? '',
+                  h['from_unit_name']?.toString() ?? '-',
+                  h['unit_name']?.toString() ?? '-',
+                  h['movement_type']?.toString() ?? '',
+                  _fmtDate(h['assigned_date']?.toString()),
                 ])
             .toList(),
       ));
@@ -226,6 +245,23 @@ class PdfReportGenerator {
       ));
     }
 
+    if (anomalies.isNotEmpty) {
+      widgets.add(pw.SizedBox(height: 16));
+      widgets.add(_sectionTitle('Linked Anomalies'));
+      widgets.add(_table(
+        headers: ['Anomaly ID', 'Serial Number', 'Unit', 'Severity', 'Status'],
+        rows: anomalies
+            .map((a) => [
+                  a['anomaly_id']?.toString() ?? '',
+                  a['serial_number']?.toString() ?? '-',
+                  a['unit_name']?.toString() ?? '-',
+                  a['severity']?.toString() ?? '',
+                  a['status']?.toString() ?? '',
+                ])
+            .toList(),
+      ));
+    }
+
     return widgets;
   }
 
@@ -235,6 +271,7 @@ class PdfReportGenerator {
   static List<pw.Widget> _ballisticSummary(Map<String, dynamic> data) {
     final profiles = _asList(data['profiles']);
     final activities = _asList(data['investigator_activities']);
+    final recentCustodyLogs = _asList(data['recent_custody_logs']);
 
     if (profiles.isEmpty) {
       return [
@@ -297,6 +334,31 @@ class PdfReportGenerator {
                   a['activity_type']?.toString() ?? '',
                   a['action']?.toString() ?? '',
                   a['notes']?.toString() ?? '-',
+                ])
+            .toList(),
+      ));
+    }
+
+    if (recentCustodyLogs.isNotEmpty) {
+      widgets.add(pw.SizedBox(height: 16));
+      widgets.add(_sectionTitle('Recent Custody Logs'));
+      widgets.add(_table(
+        headers: [
+          'Custody ID',
+          'Serial Number',
+          'Officer',
+          'Unit',
+          'Issued',
+          'Returned'
+        ],
+        rows: recentCustodyLogs
+            .map((c) => [
+                  c['custody_id']?.toString() ?? '',
+                  c['serial_number']?.toString() ?? '-',
+                  c['officer_name']?.toString() ?? '-',
+                  c['unit_name']?.toString() ?? '-',
+                  _fmtDate(c['issued_at']?.toString()),
+                  _fmtDate(c['returned_at']?.toString()),
                 ])
             .toList(),
       ));

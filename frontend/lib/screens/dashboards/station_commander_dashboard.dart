@@ -20,7 +20,12 @@ import '../../widgets/responsive_dashboard_scaffold.dart';
 import '../../widgets/user_avatar.dart';
 
 class StationCommanderDashboard extends StatefulWidget {
-  const StationCommanderDashboard({super.key});
+  final bool autoLoad;
+
+  const StationCommanderDashboard({
+    super.key,
+    this.autoLoad = true,
+  });
 
   @override
   State<StationCommanderDashboard> createState() =>
@@ -33,10 +38,12 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
   @override
   void initState() {
     super.initState();
-    // Use addPostFrameCallback to avoid calling notifyListeners during build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadDashboardData(force: true);
-    });
+    if (widget.autoLoad) {
+      // Use addPostFrameCallback to avoid calling notifyListeners during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadDashboardData(force: true);
+      });
+    }
   }
 
   @override
@@ -120,8 +127,8 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
   }
 
   Widget _buildSideNavigation() {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.currentUser;
+    final authProvider = Provider.of<AuthProvider?>(context);
+    final user = authProvider?.currentUser;
 
     return Container(
       width: 220,
@@ -322,28 +329,37 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
   }
 
   Widget _buildTopNavBar() {
-    return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: const BoxDecoration(
-        color: Color(0xFF252A3A),
-        border: Border(
-          bottom: BorderSide(color: Color(0xFF37404F), width: 1),
-        ),
-      ),
-      child: Row(
-        children: [
-          Text(
-            _buildNavItems(context)[_selectedIndex].label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isPhone = constraints.maxWidth < 600;
+
+        return Container(
+          height: isPhone ? 56 : 64,
+          padding: EdgeInsets.symmetric(horizontal: isPhone ? 16 : 24),
+          decoration: const BoxDecoration(
+            color: Color(0xFF252A3A),
+            border: Border(
+              bottom: BorderSide(color: Color(0xFF37404F), width: 1),
             ),
           ),
-          const Spacer(),
-        ],
-      ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _buildNavItems(context)[_selectedIndex].label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isPhone ? 18 : 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -384,7 +400,11 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(
-            MediaQuery.of(context).size.width < 1200 ? 16 : 24,
+            MediaQuery.of(context).size.width < 600
+                ? 12
+                : MediaQuery.of(context).size.width < 1200
+                    ? 16
+                    : 24,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -433,44 +453,58 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     final inCustody = stats?['active_custody']?.toString() ?? '0';
     final anomalyCount = context.watch<AnomalyProvider>().anomalies.length;
 
-    final cards = [
-      _buildStatCard('Total Firearms', totalFirearms, Icons.security_outlined,
-          const Color(0xFF1E88E5)),
-      _buildStatCard('Active Custody', inCustody, Icons.swap_horiz_rounded,
-          const Color(0xFF1E88E5)),
-      _buildStatCard('Officers', provider.officersCount.toString(),
-          Icons.badge_outlined, const Color(0xFF1E88E5)),
-      _buildStatCard('Anomalies', anomalyCount.toString(),
-          Icons.report_problem_outlined, const Color(0xFF1E88E5)),
-    ];
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 700) {
+        final isPhone = constraints.maxWidth < 600;
+        final useSingleColumn = constraints.maxWidth < 390;
+        final gap = isPhone ? 10.0 : 16.0;
+        final cards = [
+          _buildStatCard('Total Firearms', totalFirearms,
+              Icons.security_outlined, const Color(0xFF1E88E5),
+              compact: isPhone),
+          _buildStatCard('Active Custody', inCustody, Icons.swap_horiz_rounded,
+              const Color(0xFF1E88E5),
+              compact: isPhone),
+          _buildStatCard('Officers', provider.officersCount.toString(),
+              Icons.badge_outlined, const Color(0xFF1E88E5),
+              compact: isPhone),
+          _buildStatCard('Anomalies', anomalyCount.toString(),
+              Icons.report_problem_outlined, const Color(0xFF1E88E5),
+              compact: isPhone),
+        ];
+
+        if (useSingleColumn) {
           return Column(
-            children: [
-              Row(children: [
-                Expanded(child: cards[0]),
-                const SizedBox(width: 16),
-                Expanded(child: cards[1])
-              ]),
-              const SizedBox(height: 16),
-              Row(children: [
-                Expanded(child: cards[2]),
-                const SizedBox(width: 16),
-                Expanded(child: cards[3])
-              ]),
-            ],
+            children: cards
+                .asMap()
+                .entries
+                .map((entry) => Padding(
+                      padding: EdgeInsets.only(top: entry.key == 0 ? 0 : gap),
+                      child: entry.value,
+                    ))
+                .toList(),
           );
         }
+
+        if (constraints.maxWidth < 900) {
+          final cardWidth = (constraints.maxWidth - gap) / 2;
+          return Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: cards
+                .map((card) => SizedBox(width: cardWidth, child: card))
+                .toList(),
+          );
+        }
+
         return Row(
           children: [
             Expanded(child: cards[0]),
-            const SizedBox(width: 16),
+            SizedBox(width: gap),
             Expanded(child: cards[1]),
-            const SizedBox(width: 16),
+            SizedBox(width: gap),
             Expanded(child: cards[2]),
-            const SizedBox(width: 16),
+            SizedBox(width: gap),
             Expanded(child: cards[3]),
           ],
         );
@@ -482,10 +516,11 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     String label,
     String value,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    bool compact = false,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(compact ? 12 : 20),
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
         borderRadius: BorderRadius.circular(12),
@@ -496,24 +531,26 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 28),
+              Icon(icon, color: color, size: compact ? 22 : 28),
               const Spacer(),
               Text(
                 value,
                 style: TextStyle(
                   color: color,
-                  fontSize: 28,
+                  fontSize: compact ? 22 : 28,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: compact ? 6 : 8),
           Text(
             label,
-            style: const TextStyle(
-              color: Color(0xFFB0BEC5),
-              fontSize: 14,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: const Color(0xFFB0BEC5),
+              fontSize: compact ? 12 : 14,
             ),
           ),
         ],
@@ -523,130 +560,150 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
 
   Widget _buildFirearmStatusChart(DashboardProvider provider,
       {bool isExpanded = false}) {
-    final stats = provider.dashboardStats;
-    final firearms = stats?['firearms'];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stats = provider.dashboardStats;
+        final firearms = stats?['firearms'];
+        final isPhone = constraints.maxWidth < 600;
+        final isTablet = constraints.maxWidth < 900;
 
-    final available =
-        double.tryParse(firearms?['available']?.toString() ?? '0') ?? 0;
-    final inCustody =
-        double.tryParse(firearms?['in_custody']?.toString() ?? '0') ?? 0;
-    final maintenance =
-        double.tryParse(firearms?['maintenance']?.toString() ?? '0') ?? 0;
-    final total = available + inCustody + maintenance;
+        final available =
+            double.tryParse(firearms?['available']?.toString() ?? '0') ?? 0;
+        final inCustody =
+            double.tryParse(firearms?['in_custody']?.toString() ?? '0') ?? 0;
+        final maintenance =
+            double.tryParse(firearms?['maintenance']?.toString() ?? '0') ?? 0;
+        final total = available + inCustody + maintenance;
 
-    final double centerRadius = isExpanded ? 60 : 40;
-    final double sectionRadius = isExpanded ? 70 : 50;
+        final centerRadius = isPhone ? 34.0 : (isExpanded ? 56.0 : 40.0);
+        final sectionRadius = isPhone ? 46.0 : (isExpanded ? 66.0 : 50.0);
+        final contentHeight = isPhone ? 270.0 : (isTablet ? 220.0 : 200.0);
+        final expandedHeight = isTablet ? 420.0 : 500.0;
 
-    final chartContent = total == 0
-        ? const Center(
-            child: Text(
-              'No firearm data available',
-              style: TextStyle(color: Color(0xFF78909C)),
-            ),
-          )
-        : Row(
-            children: [
-              Expanded(
-                child: PieChart(
-                  PieChartData(
-                    sectionsSpace: 2,
-                    centerSpaceRadius: centerRadius,
-                    sections: [
-                      if (available > 0)
-                        PieChartSectionData(
-                          value: available,
-                          title:
-                              '${(available / total * 100).toStringAsFixed(0)}%',
-                          color: const Color(0xFF3CCB7F),
-                          radius: sectionRadius,
-                          titleStyle: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      if (inCustody > 0)
-                        PieChartSectionData(
-                          value: inCustody,
-                          title:
-                              '${(inCustody / total * 100).toStringAsFixed(0)}%',
-                          color: const Color(0xFF42A5F5),
-                          radius: sectionRadius,
-                          titleStyle: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      if (maintenance > 0)
-                        PieChartSectionData(
-                          value: maintenance,
-                          title:
-                              '${(maintenance / total * 100).toStringAsFixed(0)}%',
-                          color: const Color(0xFFFFB74D),
-                          radius: sectionRadius,
-                          titleStyle: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                    ],
+        Widget pieChart() {
+          if (total == 0) {
+            return const Center(
+              child: Text(
+                'No firearm data available',
+                style: TextStyle(color: Color(0xFF78909C)),
+              ),
+            );
+          }
+
+          return PieChart(
+            PieChartData(
+              sectionsSpace: 2,
+              centerSpaceRadius: centerRadius,
+              sections: [
+                if (available > 0)
+                  PieChartSectionData(
+                    value: available,
+                    title: '${(available / total * 100).toStringAsFixed(0)}%',
+                    color: const Color(0xFF3CCB7F),
+                    radius: sectionRadius,
+                    titleStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                if (inCustody > 0)
+                  PieChartSectionData(
+                    value: inCustody,
+                    title: '${(inCustody / total * 100).toStringAsFixed(0)}%',
+                    color: const Color(0xFF42A5F5),
+                    radius: sectionRadius,
+                    titleStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                if (maintenance > 0)
+                  PieChartSectionData(
+                    value: maintenance,
+                    title: '${(maintenance / total * 100).toStringAsFixed(0)}%',
+                    color: const Color(0xFFFFB74D),
+                    radius: sectionRadius,
+                    titleStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }
+
+        final legend = Wrap(
+          spacing: isPhone ? 14 : 0,
+          runSpacing: 10,
+          direction: isPhone ? Axis.horizontal : Axis.vertical,
+          children: [
+            _buildLegendItem(
+                const Color(0xFF3CCB7F), 'Available', available.toInt()),
+            _buildLegendItem(
+                const Color(0xFF42A5F5), 'In Custody', inCustody.toInt()),
+            _buildLegendItem(
+                const Color(0xFFFFB74D), 'Maintenance', maintenance.toInt()),
+          ],
+        );
+
+        final chartContent = total == 0
+            ? pieChart()
+            : isPhone
+                ? Column(
+                    children: [
+                      Expanded(child: pieChart()),
+                      const SizedBox(height: 16),
+                      legend,
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(child: pieChart()),
+                      const SizedBox(width: 24),
+                      legend,
+                    ],
+                  );
+
+        return Container(
+          height: isExpanded ? expandedHeight : null,
+          padding: EdgeInsets.all(isPhone ? 16 : 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF252A3A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF37404F), width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Unit Firearm Status',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: isPhone ? 16 : 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 24),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildLegendItem(
-                      const Color(0xFF3CCB7F), 'Available', available.toInt()),
-                  const SizedBox(height: 12),
-                  _buildLegendItem(
-                      const Color(0xFF42A5F5), 'In Custody', inCustody.toInt()),
-                  const SizedBox(height: 12),
-                  _buildLegendItem(const Color(0xFFFFB74D), 'Maintenance',
-                      maintenance.toInt()),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                'Total: ${total.toInt()} firearms in your unit',
+                style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
               ),
+              SizedBox(height: isPhone ? 16 : 24),
+              if (isExpanded)
+                Expanded(child: chartContent)
+              else
+                SizedBox(
+                  height: contentHeight,
+                  child: chartContent,
+                ),
             ],
-          );
-
-    return Container(
-      height: isExpanded ? 500 : null,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF252A3A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF37404F), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Unit Firearm Status',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Total: ${total.toInt()} firearms in your unit',
-            style: const TextStyle(color: Color(0xFF78909C), fontSize: 13),
-          ),
-          const SizedBox(height: 24),
-          if (isExpanded)
-            Expanded(child: chartContent)
-          else
-            SizedBox(
-              height: 200,
-              child: chartContent,
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -673,13 +730,16 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
   Widget _buildRecentActivity(DashboardProvider provider,
       {bool isExpanded = false}) {
     const int maxDisplayItems = 6;
+    final width = MediaQuery.of(context).size.width;
+    final isPhone = width < 600;
+    final isTablet = width < 1200;
     final limitedList = provider.getCombinedStationActivity(
       limit: maxDisplayItems,
     );
 
     return Container(
-      height: isExpanded ? 500 : null,
-      padding: const EdgeInsets.all(20),
+      height: isExpanded ? (isTablet ? 420 : 500) : null,
+      padding: EdgeInsets.all(isPhone ? 16 : 20),
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
         borderRadius: BorderRadius.circular(12),
@@ -690,12 +750,12 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Recent Station Activity',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: isPhone ? 16 : 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -716,7 +776,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
             'Custody events in your unit',
             style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isPhone ? 12 : 16),
           if (limitedList.isEmpty)
             const Center(
               child: Padding(
@@ -815,67 +875,98 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     // Format the table name for display
     final displayTable = tableName.replaceAll('_', ' ');
 
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: color, size: 20),
-      ),
-      title: Text(
-        '$actionLabel $displayTable',
-        style: const TextStyle(color: Colors.white, fontSize: 14),
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        'by $actorName${subject.isNotEmpty && subject != tableName ? ' - $subject' : ''}',
-        style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Text(
-        _formatTimeAgo(activity['created_at']),
-        style: const TextStyle(color: Color(0xFF78909C), fontSize: 11),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 420;
+        final timeAgo = _formatTimeAgo(activity['created_at']);
+        final subtitle =
+            'by $actorName${subject.isNotEmpty && subject != tableName ? ' - $subject' : ''}';
+
+        return ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Container(
+            width: isNarrow ? 32 : 36,
+            height: isNarrow ? 32 : 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: isNarrow ? 18 : 20),
+          ),
+          title: Text(
+            '$actionLabel $displayTable',
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            isNarrow ? '$subtitle • $timeAgo' : subtitle,
+            style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+            maxLines: isNarrow ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: isNarrow
+              ? null
+              : Text(
+                  timeAgo,
+                  style:
+                      const TextStyle(color: Color(0xFF78909C), fontSize: 11),
+                ),
+        );
+      },
     );
   }
 
   Widget _buildCustodyItem(Map<String, dynamic> activity) {
     final isAssigned = activity['returned_at'] == null;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color:
-              (isAssigned ? const Color(0xFFE85C5C) : const Color(0xFF3CCB7F))
-                  .withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          isAssigned ? Icons.arrow_forward : Icons.arrow_back,
-          color: isAssigned ? const Color(0xFFE85C5C) : const Color(0xFF3CCB7F),
-          size: 20,
-        ),
-      ),
-      title: Text(
-        '${activity['firearm_type'] ?? ''} - ${activity['serial_number'] ?? 'Unknown'}',
-        style: const TextStyle(color: Colors.white, fontSize: 14),
-      ),
-      subtitle: Text(
-        '${isAssigned ? 'Assigned to' : 'Returned by'} ${activity['officer_name'] ?? 'N/A'}',
-        style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
-      ),
-      trailing: Text(
-        _formatTimeAgo(isAssigned
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 420;
+        final timeAgo = _formatTimeAgo(isAssigned
             ? activity['issued_at']
-            : (activity['returned_at'] ?? activity['issued_at'])),
-        style: const TextStyle(color: Color(0xFF78909C), fontSize: 11),
-      ),
+            : (activity['returned_at'] ?? activity['issued_at']));
+        final subtitle =
+            '${isAssigned ? 'Assigned to' : 'Returned by'} ${activity['officer_name'] ?? 'N/A'}';
+
+        return ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Container(
+            width: isNarrow ? 32 : 36,
+            height: isNarrow ? 32 : 36,
+            decoration: BoxDecoration(
+              color: (isAssigned
+                      ? const Color(0xFFE85C5C)
+                      : const Color(0xFF3CCB7F))
+                  .withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              isAssigned ? Icons.arrow_forward : Icons.arrow_back,
+              color: isAssigned
+                  ? const Color(0xFFE85C5C)
+                  : const Color(0xFF3CCB7F),
+              size: isNarrow ? 18 : 20,
+            ),
+          ),
+          title: Text(
+            '${activity['firearm_type'] ?? ''} - ${activity['serial_number'] ?? 'Unknown'}',
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            isNarrow ? '$subtitle • $timeAgo' : subtitle,
+            style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+            maxLines: isNarrow ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: isNarrow
+              ? null
+              : Text(
+                  timeAgo,
+                  style:
+                      const TextStyle(color: Color(0xFF78909C), fontSize: 11),
+                ),
+        );
+      },
     );
   }
 

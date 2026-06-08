@@ -1,9 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import '../../config/api_config.dart';
-import '../../services/auth_service.dart';
+import '../../services/report_service.dart';
 import '../../utils/pdf_report_generator.dart';
 import '../../widgets/empty_state_widget.dart';
 
@@ -18,7 +15,7 @@ class InvestigatorReportsScreen extends StatefulWidget {
 }
 
 class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
-  final AuthService _authService = AuthService();
+  final ReportService _reportService = ReportService();
 
   // Filter state
   final TextEditingController _serialController = TextEditingController();
@@ -43,14 +40,6 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
     super.dispose();
   }
 
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _authService.getToken();
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<void> _generateReport() async {
     setState(() {
       _isLoading = true;
@@ -59,37 +48,19 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
     });
 
     try {
-      final headers = await _getHeaders();
-      final queryParams = <String, String>{
-        'type': _selectedReportType,
-      };
-      if (_serialController.text.trim().isNotEmpty) {
-        queryParams['serial_number'] = _serialController.text.trim();
-      }
-      if (_dateFrom != null) {
-        queryParams['start_date'] = _dateFrom!.toIso8601String();
-      }
-      if (_dateTo != null) {
-        queryParams['end_date'] = _dateTo!.toIso8601String();
-      }
+      final data = await _reportService.generateAnalyticalReport(
+        type: _selectedReportType,
+        serialNumber: _serialController.text.trim().isEmpty
+            ? null
+            : _serialController.text.trim(),
+        startDate: _dateFrom,
+        endDate: _dateTo,
+      );
 
-      final uri = Uri.parse('${ApiConfig.reportsUrl}/generate')
-          .replace(queryParameters: queryParams);
-      final response =
-          await http.get(uri, headers: headers).timeout(ApiConfig.timeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          _reportData = Map<String, dynamic>.from(data['data'] ?? {});
-          _reportGenerated = true;
-        });
-      } else {
-        final err = json.decode(response.body);
-        setState(() {
-          _error = err['message'] ?? 'Failed to generate report';
-        });
-      }
+      setState(() {
+        _reportData = data;
+        _reportGenerated = true;
+      });
     } catch (e) {
       setState(() {
         _error = 'Error generating report: $e';
@@ -722,6 +693,8 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
   Widget _buildBallisticSummaryReport() {
     final profiles =
         List<Map<String, dynamic>>.from(_reportData['profiles'] ?? []);
+    final investigatorActivities = List<Map<String, dynamic>>.from(
+        _reportData['investigator_activities'] ?? []);
 
     if (profiles.isEmpty) {
       return _buildEmptyState(
@@ -774,6 +747,31 @@ class _InvestigatorReportsScreenState extends State<InvestigatorReportsScreen> {
             ),
           );
         }),
+        if (investigatorActivities.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildSectionTitle('Investigator Activities & Traceability Logs'),
+          const SizedBox(height: 12),
+          _buildDataTable(
+            columns: const [
+              'Date',
+              'Serial',
+              'Investigator',
+              'Type',
+              'Action',
+              'Notes'
+            ],
+            rows: investigatorActivities
+                .map((activity) => [
+                      _fmtDate(activity['activity_date']?.toString()),
+                      activity['serial_number']?.toString() ?? '',
+                      activity['investigator_name']?.toString() ?? 'N/A',
+                      activity['activity_type']?.toString() ?? '',
+                      activity['action']?.toString() ?? '',
+                      activity['notes']?.toString() ?? 'N/A',
+                    ])
+                .toList(),
+          ),
+        ],
       ],
     );
   }

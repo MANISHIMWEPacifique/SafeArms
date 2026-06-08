@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../config/api_config.dart';
 import '../../services/auth_service.dart';
+import '../../services/report_service.dart';
 import '../../utils/pdf_report_generator.dart';
 import '../../widgets/empty_state_widget.dart';
 
@@ -18,6 +19,7 @@ class AdminReportsScreen extends StatefulWidget {
 
 class _AdminReportsScreenState extends State<AdminReportsScreen> {
   final AuthService _authService = AuthService();
+  final ReportService _reportService = ReportService();
 
   // Filter state
   DateTime? _dateFrom;
@@ -91,43 +93,23 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     });
 
     try {
-      final headers = await _getHeaders();
-      final queryParams = <String, String>{
-        'type': _selectedReportType,
-      };
-      if (_dateFrom != null) {
-        queryParams['start_date'] = _dateFrom!.toIso8601String();
-      }
-      if (_dateTo != null) {
-        queryParams['end_date'] = _dateTo!.toIso8601String();
-      }
       final usernameFilter = _usernameController.text.trim();
-      if (_selectedUserId != null) {
-        queryParams['user_id'] = _selectedUserId!;
-      } else if (usernameFilter.isNotEmpty) {
-        queryParams['username'] = usernameFilter;
-      }
-      if (_selectedRole.isNotEmpty) {
-        queryParams['role'] = _selectedRole;
-      }
 
-      final uri = Uri.parse('${ApiConfig.reportsUrl}/generate')
-          .replace(queryParameters: queryParams);
-      final response =
-          await http.get(uri, headers: headers).timeout(ApiConfig.timeout);
+      final data = await _reportService.generateAnalyticalReport(
+        type: _selectedReportType,
+        startDate: _dateFrom,
+        endDate: _dateTo,
+        userId: _selectedUserId,
+        username: _selectedUserId == null && usernameFilter.isNotEmpty
+            ? usernameFilter
+            : null,
+        role: _selectedRole.isEmpty ? null : _selectedRole,
+      );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          _reportData = Map<String, dynamic>.from(data['data'] ?? {});
-          _reportGenerated = true;
-        });
-      } else {
-        final err = json.decode(response.body);
-        setState(() {
-          _error = err['message'] ?? 'Failed to generate report';
-        });
-      }
+      setState(() {
+        _reportData = data;
+        _reportGenerated = true;
+      });
     } catch (e) {
       setState(() {
         _error = 'Error generating report: $e';

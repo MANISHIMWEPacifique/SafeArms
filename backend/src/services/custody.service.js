@@ -28,6 +28,85 @@ const DURATION_TYPE_HOURS = {
 
 const ANOMALY_RETRY_DELAYS_MS = [0, 1500, 5000];
 
+const parseBoundedInteger = (value, fallback, max = 500) => {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+        return fallback;
+    }
+    return Math.min(parsed, max);
+};
+
+const CUSTODY_LIST_SELECT = `
+       SELECT
+        cr.*,
+        cr.issued_at as assigned_date,
+        cr.duration_type,
+        cr.expected_return_date,
+        f.serial_number as firearm_serial,
+        f.serial_number as serial_number,
+        f.manufacturer,
+        f.model,
+        f.firearm_type,
+        f.caliber,
+        o.full_name as officer_name,
+        o.officer_number,
+        o.rank,
+        u.unit_name,
+        CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as status,
+        COALESCE(vr_latest.decision, 'not_requested') as verification_status,
+        COALESCE(vr_latest.decision = 'approved', false) as is_verified,
+        vr_latest.verification_id,
+        vr_latest.decision as verification_decision,
+        vr_latest.decided_at as verification_decided_at,
+        vr_latest.decided_device_key as verification_decided_device_key,
+        vr_latest.consumed_at as verification_consumed_at,
+        vr_latest.created_at as verification_requested_at
+       FROM custody_records cr
+       JOIN firearms f ON cr.firearm_id = f.firearm_id
+       JOIN officers o ON cr.officer_id = o.officer_id
+       JOIN units u ON cr.unit_id = u.unit_id
+       LEFT JOIN LATERAL (
+        SELECT vr.verification_id,
+               vr.decision,
+               vr.decided_at,
+               vr.decided_device_key,
+               vr.consumed_at,
+               vr.created_at
+        FROM officer_verification_requests vr
+        WHERE vr.custody_id = cr.custody_id
+        ORDER BY vr.created_at DESC
+        LIMIT 1
+       ) vr_latest ON true`;
+
+const addLimitOffset = ({ params, paramCount, limit, offset }) => {
+    const safeLimit = parseBoundedInteger(limit, 100);
+    const safeOffset = parseBoundedInteger(offset, 0, Number.MAX_SAFE_INTEGER);
+
+    paramCount++;
+    params.push(safeLimit);
+    const limitParam = `$${paramCount}`;
+
+    paramCount++;
+    params.push(safeOffset);
+    const offsetParam = `$${paramCount}`;
+
+    return { paramCount, limitParam, offsetParam };
+};
+
+const runCustodyListQuery = async ({ whereClause, params, paramCount, limit, offset }) => {
+    const paging = addLimitOffset({ params, paramCount, limit, offset });
+
+    const result = await query(
+        `${CUSTODY_LIST_SELECT}
+       ${whereClause}
+       ORDER BY cr.issued_at DESC
+       LIMIT ${paging.limitParam} OFFSET ${paging.offsetParam}`,
+        params
+    );
+
+    return result.rows;
+};
+
 const normalizeExpectedReturnDate = (value) => {
     if (!value) {
         return null;
@@ -403,6 +482,70 @@ const getOfficerCustodyHistory = async (officerId, options = {}) => {
 };
 
 /**
+ * Get custody assignments with filters.
+ * @param {Object} filters
+ * @returns {Promise<Array>}
+ */
+const getCustodyRecords = async (filters = {}) => {
+    try {
+        const {
+            unit_id,
+            status,
+            custody_type,
+            officer_id,
+            firearm_id,
+            limit = 100,
+            offset = 0
+        } = filters;
+
+        let whereClause = 'WHERE 1=1';
+        const params = [];
+        let paramCount = 0;
+
+        if (unit_id) {
+            paramCount++;
+            whereClause += ` AND cr.unit_id = $${paramCount}`;
+            params.push(unit_id);
+        }
+
+        if (status === 'active') {
+            whereClause += ' AND cr.returned_at IS NULL';
+        } else if (status === 'returned') {
+            whereClause += ' AND cr.returned_at IS NOT NULL';
+        }
+
+        if (custody_type && custody_type !== 'all') {
+            paramCount++;
+            whereClause += ` AND cr.custody_type = $${paramCount}`;
+            params.push(custody_type);
+        }
+
+        if (officer_id) {
+            paramCount++;
+            whereClause += ` AND cr.officer_id = $${paramCount}`;
+            params.push(officer_id);
+        }
+
+        if (firearm_id) {
+            paramCount++;
+            whereClause += ` AND cr.firearm_id = $${paramCount}`;
+            params.push(firearm_id);
+        }
+
+        return await runCustodyListQuery({
+            whereClause,
+            params,
+            paramCount,
+            limit,
+            offset
+        });
+    } catch (error) {
+        logger.error('Get custody records error:', error);
+        throw error;
+    }
+};
+
+/**
  * Get active custody assignments
  * @param {Object} filters
  * @returns {Promise<Array>}
@@ -427,60 +570,13 @@ const getActiveCustody = async (filters = {}) => {
             params.push(officer_id);
         }
 
-        paramCount++;
-        params.push(limit);
-        const limitParam = `$${paramCount}`;
-
-        paramCount++;
-        params.push(offset);
-        const offsetParam = `$${paramCount}`;
-
-        const result = await query(
-            `SELECT 
-        cr.*,
-        cr.issued_at as assigned_date,
-        cr.duration_type,
-        cr.expected_return_date,
-        f.serial_number as firearm_serial,
-        f.manufacturer,
-        f.model,
-        f.firearm_type,
-        o.full_name as officer_name,
-        o.officer_number,
-        o.rank,
-        u.unit_name,
-        CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as status,
-        COALESCE(vr_latest.decision, 'not_requested') as verification_status,
-        COALESCE(vr_latest.decision = 'approved', false) as is_verified,
-        vr_latest.verification_id,
-        vr_latest.decision as verification_decision,
-        vr_latest.decided_at as verification_decided_at,
-        vr_latest.decided_device_key as verification_decided_device_key,
-        vr_latest.consumed_at as verification_consumed_at,
-        vr_latest.created_at as verification_requested_at
-       FROM custody_records cr
-       JOIN firearms f ON cr.firearm_id = f.firearm_id
-       JOIN officers o ON cr.officer_id = o.officer_id
-       JOIN units u ON cr.unit_id = u.unit_id
-       LEFT JOIN LATERAL (
-        SELECT vr.verification_id,
-               vr.decision,
-               vr.decided_at,
-               vr.decided_device_key,
-               vr.consumed_at,
-               vr.created_at
-        FROM officer_verification_requests vr
-        WHERE vr.custody_id = cr.custody_id
-        ORDER BY vr.created_at DESC
-        LIMIT 1
-       ) vr_latest ON true
-       ${whereClause}
-       ORDER BY cr.issued_at DESC
-       LIMIT ${limitParam} OFFSET ${offsetParam}`,
-            params
-        );
-
-        return result.rows;
+        return await runCustodyListQuery({
+            whereClause,
+            params,
+            paramCount,
+            limit,
+            offset
+        });
     } catch (error) {
         logger.error('Get active custody error:', error);
         throw error;
@@ -540,67 +636,13 @@ const getUnitCustody = async (unitId, options = {}) => {
             params.push(custody_type);
         }
 
-        paramCount++;
-        params.push(limit);
-        const limitParam = `$${paramCount}`;
-
-        paramCount++;
-        params.push(offset);
-        const offsetParam = `$${paramCount}`;
-
-        const result = await query(
-            `SELECT 
-        cr.custody_id,
-        cr.firearm_id,
-        cr.officer_id,
-        cr.custody_type,
-        cr.duration_type,
-        cr.issued_at as assigned_date,
-        cr.expected_return_date,
-        cr.returned_at,
-        cr.return_condition,
-        cr.notes,
-        f.serial_number as firearm_serial,
-        f.manufacturer,
-        f.model,
-        f.firearm_type,
-        f.caliber,
-        o.full_name as officer_name,
-        o.officer_number,
-        o.rank,
-        u.unit_name,
-        CASE WHEN cr.returned_at IS NULL THEN 'active' ELSE 'returned' END as status,
-        COALESCE(vr_latest.decision, 'not_requested') as verification_status,
-        COALESCE(vr_latest.decision = 'approved', false) as is_verified,
-        vr_latest.verification_id,
-        vr_latest.decision as verification_decision,
-        vr_latest.decided_at as verification_decided_at,
-        vr_latest.decided_device_key as verification_decided_device_key,
-        vr_latest.consumed_at as verification_consumed_at,
-        vr_latest.created_at as verification_requested_at
-       FROM custody_records cr
-       JOIN firearms f ON cr.firearm_id = f.firearm_id
-       JOIN officers o ON cr.officer_id = o.officer_id
-       JOIN units u ON cr.unit_id = u.unit_id
-       LEFT JOIN LATERAL (
-        SELECT vr.verification_id,
-               vr.decision,
-               vr.decided_at,
-               vr.decided_device_key,
-               vr.consumed_at,
-               vr.created_at
-        FROM officer_verification_requests vr
-        WHERE vr.custody_id = cr.custody_id
-        ORDER BY vr.created_at DESC
-        LIMIT 1
-       ) vr_latest ON true
-       ${whereClause}
-       ORDER BY cr.issued_at DESC
-       LIMIT ${limitParam} OFFSET ${offsetParam}`,
-            params
-        );
-
-        return result.rows;
+        return await runCustodyListQuery({
+            whereClause,
+            params,
+            paramCount,
+            limit,
+            offset
+        });
     } catch (error) {
         logger.error('Get unit custody error:', error);
         throw error;
@@ -612,6 +654,7 @@ module.exports = {
     returnCustody,
     getFirearmCustodyHistory,
     getOfficerCustodyHistory,
+    getCustodyRecords,
     getActiveCustody,
     getUnitCustody,
     getUnitCustodyStats

@@ -16,6 +16,8 @@ import '../../widgets/searchable_dropdown.dart';
 
 const double _anomalyDesktopBreakpoint = 1024;
 const double _anomalyMobileBreakpoint = 768;
+const double _investigationFormGap = 16;
+const double _investigationControlHeight = 48;
 
 const List<Map<String, String>> _anomalySeverityFilterItems = [
   {'value': 'all', 'label': 'All Severities'},
@@ -1338,56 +1340,47 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
 
   Widget _buildSearchForm() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: const Color(0xFF252A3A),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF37404F)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isSingleColumn = constraints.maxWidth < 680;
-          final fieldWidth = isSingleColumn
-              ? constraints.maxWidth
-              : (constraints.maxWidth - 16) / 2;
-
           final fields = [
-            SizedBox(width: fieldWidth, child: _buildUnitDropdown()),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildDatePicker(
-                'Start Date',
-                _startDate,
-                () => _selectDate(true),
-              ),
+            _buildUnitDropdown(),
+            _buildDatePicker(
+              'Start Date',
+              _startDate,
+              () => _selectDate(true),
             ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildDatePicker(
-                'End Date',
-                _endDate,
-                () => _selectDate(false),
-              ),
+            _buildDatePicker(
+              'End Date',
+              _endDate,
+              () => _selectDate(false),
             ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildDropdownField(
-                'Severity',
-                _searchSeverity,
-                _anomalySeverityFilterItems,
-                (v) => setState(() => _searchSeverity = v!),
-              ),
+            _buildDropdownField(
+              'Severity',
+              _searchSeverity,
+              _anomalySeverityFilterItems,
+              (v) => setState(() => _searchSeverity = v!),
             ),
-            SizedBox(
-              width: fieldWidth,
-              child: _buildDropdownField(
-                'Status',
-                _searchStatus,
-                _anomalyStatusFilterItems,
-                (v) => setState(() => _searchStatus = v!),
-              ),
+            _buildDropdownField(
+              'Status',
+              _searchStatus,
+              _anomalyStatusFilterItems,
+              (v) => setState(() => _searchStatus = v!),
             ),
-            SizedBox(width: fieldWidth, child: _buildSearchActions()),
+            _buildSearchActions(),
           ];
 
           return Column(
@@ -1399,6 +1392,7 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.search,
@@ -1432,16 +1426,49 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: fields,
+              const SizedBox(height: 22),
+              _buildInvestigationFormGrid(
+                fields: fields,
+                isSingleColumn: isSingleColumn,
               ),
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildInvestigationFormGrid({
+    required List<Widget> fields,
+    required bool isSingleColumn,
+  }) {
+    if (isSingleColumn) {
+      return Column(
+        children: [
+          for (int i = 0; i < fields.length; i++) ...[
+            fields[i],
+            if (i < fields.length - 1)
+              const SizedBox(height: _investigationFormGap),
+          ],
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        for (int i = 0; i < fields.length; i += 2) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: fields[i]),
+              const SizedBox(width: _investigationFormGap),
+              Expanded(child: fields[i + 1]),
+            ],
+          ),
+          if (i + 2 < fields.length)
+            const SizedBox(height: _investigationFormGap),
+        ],
+      ],
     );
   }
 
@@ -1453,41 +1480,62 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
           'Actions',
           style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11),
         ),
-        const SizedBox(height: 2),
-        Row(
-          children: [
-            Expanded(
+        const SizedBox(height: 6),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final stackButtons = constraints.maxWidth < 300;
+            final searchButton = SizedBox(
+              height: _investigationControlHeight,
               child: ElevatedButton.icon(
                 onPressed: _performSearch,
                 icon: const Icon(Icons.search, size: 18),
-                label: const Text('Search'),
+                label: const Text('Search', overflow: TextOverflow.ellipsis),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E88E5),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
+            );
+            final clearButton = SizedBox(
+              height: _investigationControlHeight,
               child: OutlinedButton.icon(
                 onPressed: _clearFilters,
                 icon: const Icon(Icons.filter_list_off, size: 18),
-                label: const Text('Clear'),
+                label: const Text('Clear', overflow: TextOverflow.ellipsis),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFB0BEC5),
                   side: const BorderSide(color: Color(0xFF37404F)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
-            ),
-          ],
+            );
+
+            if (stackButtons) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  searchButton,
+                  const SizedBox(height: 10),
+                  clearButton,
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: searchButton),
+                const SizedBox(width: 10),
+                Expanded(child: clearButton),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -1512,7 +1560,7 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
           children: [
             const Text('Unit',
                 style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
-            const SizedBox(height: 2),
+            const SizedBox(height: 6),
             SearchableDropdown<String?>(
               items: [
                 const SearchableDropdownItem<String?>(
@@ -1532,6 +1580,8 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
               value: _selectedUnitId,
               hintText: 'Search unit or keep all units',
               prefixIcon: Icons.account_tree_outlined,
+              fieldHeight: _investigationControlHeight,
+              fillColor: const Color(0xFF1A1F2E),
               onChanged: (value) => setState(() => _selectedUnitId = value),
             ),
           ],
@@ -1550,11 +1600,13 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
       children: [
         Text(label,
             style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
-        const SizedBox(height: 2),
+        const SizedBox(height: 6),
         InkWell(
           onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            height: _investigationControlHeight,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: const Color(0xFF1A1F2E),
               border: Border.all(color: const Color(0xFF37404F)),
@@ -1564,14 +1616,18 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
               children: [
                 const Icon(Icons.calendar_today,
                     color: Colors.white54, size: 16),
-                const SizedBox(width: 8),
-                Text(
-                  date != null
-                      ? DateFormat('dd/MM/yyyy').format(date)
-                      : 'Select date',
-                  style: TextStyle(
-                    color: date != null ? Colors.white : Colors.white54,
-                    fontSize: 13,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    date != null
+                        ? DateFormat('dd/MM/yyyy').format(date)
+                        : 'Select date',
+                    style: TextStyle(
+                      color: date != null ? Colors.white : Colors.white54,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -1589,8 +1645,9 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
       children: [
         Text(label,
             style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
-        const SizedBox(height: 2),
+        const SizedBox(height: 6),
         Container(
+          height: _investigationControlHeight,
           decoration: BoxDecoration(
             color: const Color(0xFF1A1F2E),
             border: Border.all(color: const Color(0xFF37404F)),
@@ -1604,10 +1661,15 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
                   color: Color(0xFF78909C)),
               dropdownColor: const Color(0xFF2A3040),
               style: const TextStyle(color: Colors.white, fontSize: 13),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               items: items
                   .map((item) => DropdownMenuItem<String>(
-                      value: item['value'], child: Text(item['label']!)))
+                        value: item['value'],
+                        child: Text(
+                          item['label']!,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ))
                   .toList(),
               onChanged: onChanged,
             ),

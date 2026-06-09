@@ -362,7 +362,7 @@ const extractBallisticContext = async (firearmId, custodyRecord = null) => {
  * @param {Object} custodyRecord
  * @returns {Promise<Object>} Complete feature set for this event
  */
-const extractAllFeatures = async (custodyRecord) => {
+const extractAllFeatures = async (custodyRecord, options = {}) => {
     try {
         const { officer_id, firearm_id, custody_id, unit_id } = custodyRecord;
 
@@ -381,6 +381,19 @@ const extractAllFeatures = async (custodyRecord) => {
         const temporal = extractTemporalFeatures(custodyRecord);
         const statistical = await extractStatisticalFeatures(custodyRecord, behavioral);
 
+        const isCrossUnitTransfer =
+            custodyRecord.is_cross_unit_transfer === true ||
+            custodyRecord.event_context?.is_cross_unit_transfer === true;
+        const previousUnitId =
+            custodyRecord.previous_unit_id ||
+            custodyRecord.event_context?.previous_unit_id ||
+            null;
+        const previousUnitName =
+            custodyRecord.previous_unit_name ||
+            custodyRecord.previous_unit ||
+            custodyRecord.event_context?.previous_unit_name ||
+            null;
+
         // Build event context for anomaly records
         const eventContext = {
             event_type: 'custody_assignment',
@@ -388,9 +401,9 @@ const extractAllFeatures = async (custodyRecord) => {
             firearm_id,
             officer_id,
             unit_id,
-            is_cross_unit_transfer: false,
-            previous_unit_id: null,
-            previous_unit_name: null,
+            is_cross_unit_transfer: isCrossUnitTransfer,
+            previous_unit_id: previousUnitId,
+            previous_unit_name: previousUnitName,
             is_first_custody: false
         };
 
@@ -398,6 +411,9 @@ const extractAllFeatures = async (custodyRecord) => {
         const features = {
             custody_id,
             event_context: eventContext,
+            is_cross_unit_transfer: isCrossUnitTransfer,
+            previous_unit_id: previousUnitId,
+            previous_unit_name: previousUnitName,
             ...temporal,
             ...behavioral,
             ...patternFlags,
@@ -409,7 +425,7 @@ const extractAllFeatures = async (custodyRecord) => {
         logger.info(`Features extracted for custody: ${custody_id}`);
 
         // Store features in database for model training
-        await storeFeatures(custodyRecord, features);
+        await storeFeatures(custodyRecord, features, options);
 
         return features;
     } catch (error) {
@@ -424,7 +440,7 @@ const extractAllFeatures = async (custodyRecord) => {
  * @param {Object} features
  * @returns {Promise<void>}
  */
-const storeFeatures = async (custodyRecord, features) => {
+const storeFeatures = async (custodyRecord, features, options = {}) => {
     try {
         // Keep feature_id within VARCHAR(20). Use readable IDs when short,
         // and fall back to a stable hash for longer custody IDs.
@@ -452,7 +468,27 @@ const storeFeatures = async (custodyRecord, features) => {
         custody_duration_zscore, issue_frequency_zscore,
         has_ballistic_profile, ballistic_accesses_7d
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
-      ON CONFLICT (feature_id) DO NOTHING`,
+      ON CONFLICT (custody_record_id) DO UPDATE
+      SET officer_id = EXCLUDED.officer_id,
+          firearm_id = EXCLUDED.firearm_id,
+          unit_id = EXCLUDED.unit_id,
+          custody_duration_seconds = EXCLUDED.custody_duration_seconds,
+          issue_hour = EXCLUDED.issue_hour,
+          issue_day_of_week = EXCLUDED.issue_day_of_week,
+          is_night_issue = EXCLUDED.is_night_issue,
+          is_weekend_issue = EXCLUDED.is_weekend_issue,
+          officer_issue_frequency_30d = EXCLUDED.officer_issue_frequency_30d,
+          officer_avg_custody_duration_30d = EXCLUDED.officer_avg_custody_duration_30d,
+          firearm_exchange_rate_7d = EXCLUDED.firearm_exchange_rate_7d,
+          officer_unit_consistency_score = EXCLUDED.officer_unit_consistency_score,
+          time_since_last_return_seconds = EXCLUDED.time_since_last_return_seconds,
+          consecutive_same_firearm_count = EXCLUDED.consecutive_same_firearm_count,
+          cross_unit_movement_flag = EXCLUDED.cross_unit_movement_flag,
+          rapid_exchange_flag = EXCLUDED.rapid_exchange_flag,
+          custody_duration_zscore = EXCLUDED.custody_duration_zscore,
+          issue_frequency_zscore = EXCLUDED.issue_frequency_zscore,
+          has_ballistic_profile = EXCLUDED.has_ballistic_profile,
+          ballistic_accesses_7d = EXCLUDED.ballistic_accesses_7d`,
             [
                 featureId,
                 custodyRecord.officer_id,
@@ -480,7 +516,10 @@ const storeFeatures = async (custodyRecord, features) => {
         );
     } catch (error) {
         logger.error('Store features error:', error);
-        // Don't throw - feature storage failure shouldn't break custody operations
+        if (options.throwOnStoreFailure) {
+            throw error;
+        }
+        // Don't throw during normal custody operations; detection can still continue.
     }
 };
 

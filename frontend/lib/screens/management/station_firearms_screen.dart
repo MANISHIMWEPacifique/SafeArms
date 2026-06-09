@@ -40,8 +40,7 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
     final unitId = authProvider.currentUser?['unit_id']?.toString();
 
     if (unitId != null) {
-      await firearmProvider.loadUnitFirearms(unitId);
-      await firearmProvider.loadStats(unitId: unitId);
+      await firearmProvider.loadRegistry(unitId: unitId);
     }
   }
 
@@ -249,7 +248,7 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
     final cards = [
       _buildStatCard(
         'Total Firearms',
-        stats['total']?.toString() ?? '0',
+        stats['total']?.toString() ?? provider.unfilteredCount.toString(),
         Icons.gavel,
         const Color(0xFF1E88E5),
       ),
@@ -465,7 +464,7 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
     final firearms = provider.filteredFirearms;
 
     if (firearms.isEmpty) {
-      return _buildEmptyState();
+      return _buildEmptyState(provider);
     }
 
     return LayoutBuilder(
@@ -505,7 +504,7 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
     final firearms = provider.filteredFirearms;
 
     if (firearms.isEmpty) {
-      return _buildEmptyState();
+      return _buildEmptyState(provider);
     }
 
     return ListView.builder(
@@ -884,7 +883,9 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(FirearmProvider provider) {
+    final isFilteredEmpty = provider.isFilteredEmpty;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(64.0),
@@ -893,39 +894,46 @@ class _StationFirearmsScreenState extends State<StationFirearmsScreen> {
           children: [
             const Icon(Icons.gavel, size: 64, color: Color(0xFF78909C)),
             const SizedBox(height: 16),
-            const Text(
-              'No firearms in your unit',
-              style: TextStyle(
+            Text(
+              isFilteredEmpty
+                  ? 'No firearms match these filters'
+                  : 'No firearms in your unit',
+              style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Firearms are registered at HQ level and assigned to your unit',
-              style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+            Text(
+              isFilteredEmpty
+                  ? 'Clear search or filters to show your unit inventory'
+                  : 'Firearms are registered at HQ level and assigned to your unit',
+              style: const TextStyle(color: Color(0xFF78909C), fontSize: 14),
             ),
             const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
+            if (!isFilteredEmpty)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: const Color(0xFF1E88E5).withValues(alpha: 0.3)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline,
+                        color: Color(0xFF42A5F5), size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Contact HQ to request new firearms',
+                      style: TextStyle(color: Color(0xFF42A5F5), fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.info_outline, color: Color(0xFF42A5F5), size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'Contact HQ to request new firearms',
-                    style: TextStyle(color: Color(0xFF42A5F5), fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),

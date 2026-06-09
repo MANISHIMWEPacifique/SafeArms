@@ -300,7 +300,9 @@ const assignCustody = async (custodyData) => {
                 `Anomaly detection for custody ${custodyRecord.custody_id}`,
                 () => detectAnomaly({
                     ...custodyRecord,
-                    is_cross_unit_transfer: isCrossUnitTransfer
+                    is_cross_unit_transfer: isCrossUnitTransfer,
+                    previous_unit_id: isCrossUnitTransfer ? crossUnitCheck.previousUnitId : null,
+                    previous_unit_name: isCrossUnitTransfer ? crossUnitCheck.previousUnitName : null
                 })
             );
 

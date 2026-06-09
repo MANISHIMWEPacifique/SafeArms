@@ -518,11 +518,7 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
             training_samples_count as training_samples,
             num_clusters,
             silhouette_score,
-            precision_score,
-            recall_score,
-            f1_score,
-            effectiveness_score,
-            false_positive_rate_estimate,
+            outlier_threshold,
             is_active
         FROM ml_model_metadata
         WHERE is_active = true
@@ -561,13 +557,7 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
         ? falsePositives / totalDetections
         : null;
 
-    const estimatedFalsePositiveRate = model && Number.isFinite(parseFloat(model.false_positive_rate_estimate))
-        ? parseFloat(model.false_positive_rate_estimate)
-        : null;
-
-    const displayFalsePositiveRate = totalDetections >= 15 && actualFalsePositiveRate !== null
-        ? actualFalsePositiveRate
-        : (estimatedFalsePositiveRate ?? actualFalsePositiveRate ?? 0.032);
+    const displayFalsePositiveRate = actualFalsePositiveRate;
     const latestTrainingRun = getLatestTrainingRun();
 
     const generationResult = await query(`
@@ -605,18 +595,17 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
                 training_samples: model.training_samples,
                 num_clusters: model.num_clusters,
                 silhouette_score: parseFloat(model.silhouette_score) || 0,
-                precision_score: parseFloat(model.precision_score) || null,
-                recall_score: parseFloat(model.recall_score) || null,
-                f1_score: parseFloat(model.f1_score) || null,
-                effectiveness_score: parseFloat(model.effectiveness_score) || null,
-                false_positive_rate_estimate: parseFloat(model.false_positive_rate_estimate) || null
+                outlier_threshold: parseFloat(model.outlier_threshold) || 0
             } : null,
             available_training_samples: availableSamples,
             new_training_samples: newTrainingSamples,
             minimum_required_samples: minimumRequiredSamples,
             can_train: availableSamples >= minimumRequiredSamples,
             recent_detections: totalDetections,
-            false_positive_rate: (displayFalsePositiveRate * 100).toFixed(1) + '%',
+            false_positive_rate: displayFalsePositiveRate === null
+                ? 'N/A'
+                : (displayFalsePositiveRate * 100).toFixed(1) + '%',
+            false_positive_rate_source: displayFalsePositiveRate === null ? 'no_reviewed_detections' : 'reviewed_anomalies',
             last_training_run: latestTrainingRun,
             last_generation_run: lastGenerationRun
         }

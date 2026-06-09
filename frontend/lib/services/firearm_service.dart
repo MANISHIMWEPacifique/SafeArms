@@ -9,14 +9,21 @@ import '../models/firearm_model.dart';
 import 'api_client.dart';
 
 class FirearmService {
+  static const int registryFetchLimit = 10000;
+
   /// Build query string from optional filters
-  String _buildQuery(Map<String, String?> params) {
-    final filtered = params.entries
-        .where(
-            (e) => e.value != null && e.value!.isNotEmpty && e.value != 'all')
-        .map((e) => '${e.key}=${e.value}')
-        .toList();
-    return filtered.isEmpty ? '' : '?${filtered.join('&')}';
+  String _buildQuery(Map<String, Object?> params) {
+    final filtered = <String, String>{};
+    for (final entry in params.entries) {
+      final value = entry.value;
+      if (value == null) continue;
+      final text = value.toString();
+      if (text.isEmpty || text == 'all') continue;
+      filtered[entry.key] = text;
+    }
+
+    final query = Uri(queryParameters: filtered).query;
+    return query.isEmpty ? '' : '?$query';
   }
 
   // Get all firearms with filters
@@ -25,6 +32,8 @@ class FirearmService {
     String? type,
     String? unitId,
     String? manufacturer,
+    int limit = registryFetchLimit,
+    int offset = 0,
   }) async {
     try {
       final query = _buildQuery({
@@ -32,6 +41,8 @@ class FirearmService {
         'type': type,
         'unit_id': unitId,
         'manufacturer': manufacturer,
+        'limit': limit,
+        'offset': offset,
       });
       final data = await ApiClient.get('${ApiConfig.firearms}$query');
       final List<dynamic> items = data['data'] ?? [];
@@ -82,10 +93,8 @@ class FirearmService {
   // Get firearm statistics
   Future<Map<String, dynamic>> getFirearmStats({String? unitId}) async {
     try {
-      var url = '${ApiConfig.firearms}/stats';
-      if (unitId != null && unitId.isNotEmpty) {
-        url += '?unit_id=$unitId';
-      }
+      final query = _buildQuery({'unit_id': unitId});
+      final url = '${ApiConfig.firearms}/stats$query';
       final data = await ApiClient.get(url);
       return data['data'] ?? {};
     } catch (e) {
@@ -96,7 +105,9 @@ class FirearmService {
   // Search firearms
   Future<List<FirearmModel>> searchFirearms(String query) async {
     try {
-      final data = await ApiClient.get('${ApiConfig.firearms}/search?q=$query');
+      final requestQuery = _buildQuery({'q': query});
+      final data =
+          await ApiClient.get('${ApiConfig.firearms}/search$requestQuery');
       final List<dynamic> items = data['data'] ?? [];
       return items.map((json) => FirearmModel.fromJson(json)).toList();
     } catch (e) {
@@ -202,9 +213,16 @@ class FirearmService {
     required String unitId,
     String? status,
     String? type,
+    int limit = registryFetchLimit,
+    int offset = 0,
   }) async {
     try {
-      final query = _buildQuery({'status': status, 'type': type});
+      final query = _buildQuery({
+        'status': status,
+        'type': type,
+        'limit': limit,
+        'offset': offset,
+      });
       final data =
           await ApiClient.get('${ApiConfig.firearms}/unit/$unitId$query');
       final List<dynamic> items = data['data'] ?? [];

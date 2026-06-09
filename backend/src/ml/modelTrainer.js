@@ -8,35 +8,9 @@ const toPositiveInt = (value, fallback) => {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
-const clampNumber = (value, min, max) => Math.min(max, Math.max(min, value));
-
 const toFiniteNumber = (value, fallback = 0) => {
     const parsed = Number.parseFloat(value);
     return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const estimateQualityMetrics = ({ sampleCount, silhouetteScore }) => {
-    const samples = Math.max(0, toFiniteNumber(sampleCount, 0));
-    const silhouette = clampNumber(toFiniteNumber(silhouetteScore, 0), 0, 1);
-    const progress = clampNumber(
-        Math.log10(samples + 20) / Math.log10(5000),
-        0,
-        1
-    );
-
-    const precision = clampNumber(0.84 + 0.10 * progress + 0.03 * silhouette, 0.84, 0.97);
-    const recall = clampNumber(0.81 + 0.12 * progress + 0.03 * silhouette, 0.80, 0.96);
-    const f1 = (2 * precision * recall) / (precision + recall);
-    const effectiveness = clampNumber(0.83 + 0.12 * progress + 0.02 * silhouette, 0.83, 0.97);
-    const falsePositiveRateEstimate = clampNumber(0.042 - 0.02 * progress - 0.01 * silhouette, 0.018, 0.042);
-
-    return {
-        precision_score: precision,
-        recall_score: recall,
-        f1_score: f1,
-        effectiveness_score: effectiveness,
-        false_positive_rate_estimate: falsePositiveRateEstimate
-    };
 };
 
 const MIN_TRAINING_SAMPLES = toPositiveInt(process.env.ML_MIN_TRAINING_SAMPLES, 100);
@@ -81,7 +55,7 @@ const prepareTrainingFeatures = async () => {
 
     for (const record of records) {
         try {
-            await extractAllFeatures(record);
+            await extractAllFeatures(record, { throwOnStoreFailure: true });
             summary.extracted += 1;
         } catch (error) {
             summary.failed += 1;
@@ -95,6 +69,31 @@ const prepareTrainingFeatures = async () => {
 const generateAuditLogId = () => (
     `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`
 );
+
+const normalizeJsonValue = (value) => {
+    if (typeof value !== 'string') {
+        return value;
+    }
+
+    try {
+        return JSON.parse(value);
+    } catch (error) {
+        return null;
+    }
+};
+
+const normalizeCandidateRow = (row = {}) => ({
+    model_id: row.model_id,
+    model_type: row.model_type || 'kmeans',
+    model_version: row.model_version,
+    training_date: row.training_date,
+    training_samples: parseInt(row.training_samples_count ?? row.training_samples ?? 0, 10),
+    num_clusters: parseInt(row.num_clusters ?? 0, 10),
+    silhouette_score: toFiniteNumber(row.silhouette_score, NaN),
+    outlier_threshold: toFiniteNumber(row.outlier_threshold, NaN),
+    cluster_centers: normalizeJsonValue(row.cluster_centers),
+    normalization_params: normalizeJsonValue(row.normalization_params)
+});
 
 const assertCandidateModelQuality = (modelResult, minSamples) => {
     if (!modelResult?.model_id) {
@@ -114,14 +113,67 @@ const assertCandidateModelQuality = (modelResult, minSamples) => {
     if (toFiniteNumber(modelResult.outlier_threshold, 0) <= 0) {
         throw new Error('Candidate model outlier threshold is invalid');
     }
+
+    if (!Number.isInteger(modelResult.num_clusters) || modelResult.num_clusters < 2) {
+        throw new Error('Candidate model cluster count is invalid');
+    }
+
+    if (!Array.isArray(modelResult.cluster_centers) || modelResult.cluster_centers.length < modelResult.num_clusters) {
+        throw new Error('Candidate model cluster centers are invalid');
+    }
+
+    const normalization = modelResult.normalization_params;
+    if (
+        !normalization ||
+        !Array.isArray(normalization.mins) ||
+        !Array.isArray(normalization.maxs) ||
+        normalization.mins.length === 0 ||
+        normalization.mins.length !== normalization.maxs.length
+    ) {
+        throw new Error('Candidate model normalization parameters are invalid');
+    }
+};
+
+const findLatestPromotableCandidate = async ({ minSamples, requiredSampleCount }) => {
+    const result = await query(`
+        WITH active_model AS (
+            SELECT training_date
+            FROM ml_model_metadata
+            WHERE model_type = 'kmeans' AND is_active = true
+            ORDER BY training_date DESC
+            LIMIT 1
+        )
+        SELECT model_id, model_type, model_version, training_date,
+               training_samples_count, num_clusters, cluster_centers,
+               silhouette_score, outlier_threshold, normalization_params
+        FROM ml_model_metadata
+        WHERE model_type = 'kmeans'
+          AND is_active = false
+          AND training_samples_count >= $1
+          AND training_samples_count >= $2
+          AND num_clusters >= 2
+          AND cluster_centers IS NOT NULL
+          AND normalization_params IS NOT NULL
+          AND outlier_threshold > 0
+          AND training_date >= COALESCE((SELECT training_date FROM active_model), '-infinity'::timestamp)
+        ORDER BY training_date DESC
+        LIMIT 1
+    `, [minSamples, requiredSampleCount]);
+
+    if (result.rows.length === 0) {
+        return null;
+    }
+
+    const candidate = normalizeCandidateRow(result.rows[0]);
+    assertCandidateModelQuality(candidate, minSamples);
+    return candidate;
 };
 
 const loadPromotionSnapshot = async (client) => {
     const activeModelResult = await client.query(`
         SELECT model_id, model_type, model_version, training_date,
                training_samples_count, num_clusters, silhouette_score,
-               precision_score, recall_score, f1_score, effectiveness_score,
-               false_positive_rate_estimate, outlier_threshold, is_active
+               outlier_threshold, is_active
         FROM ml_model_metadata
         WHERE model_type = 'kmeans' AND is_active = true
         ORDER BY training_date DESC
@@ -146,9 +198,38 @@ const loadPromotionSnapshot = async (client) => {
     };
 };
 
-const promoteCandidateModel = async ({ modelResult, metrics, minSamples }) => {
+const promoteCandidateModel = async ({ modelResult, minSamples }) => {
     return withTransaction(async (client) => {
+        await client.query('SELECT pg_advisory_xact_lock($1)', [947216]);
+
+        const candidateResult = await client.query(`
+            SELECT model_id, model_type, model_version, training_date,
+                   training_samples_count, num_clusters, cluster_centers,
+                   silhouette_score, outlier_threshold, normalization_params
+            FROM ml_model_metadata
+            WHERE model_id = $1
+              AND model_type = 'kmeans'
+            FOR UPDATE
+        `, [modelResult.model_id]);
+
+        if (candidateResult.rows.length === 0) {
+            throw new Error(`Candidate model ${modelResult.model_id} not found for promotion`);
+        }
+
+        const candidate = normalizeCandidateRow(candidateResult.rows[0]);
+        assertCandidateModelQuality(candidate, minSamples);
+
         const { previousActiveModel, thresholds } = await loadPromotionSnapshot(client);
+
+        await client.query(`
+            UPDATE ml_model_metadata
+            SET precision_score = NULL,
+                recall_score = NULL,
+                f1_score = NULL,
+                effectiveness_score = NULL,
+                false_positive_rate_estimate = NULL
+            WHERE model_id = $1
+        `, [candidate.model_id]);
 
         await client.query(`
             INSERT INTO audit_logs (
@@ -157,22 +238,21 @@ const promoteCandidateModel = async ({ modelResult, metrics, minSamples }) => {
             ) VALUES ($1, NULL, 'ML_MODEL_PROMOTE', 'ml_model_metadata', $2, $3, $4, $5)
         `, [
             generateAuditLogId(),
-            modelResult.model_id,
+            candidate.model_id,
             JSON.stringify({ previous_active_model: previousActiveModel }),
             JSON.stringify({
                 candidate_model: {
-                    model_id: modelResult.model_id,
-                    model_version: modelResult.model_version,
-                    training_samples: modelResult.training_samples,
-                    num_clusters: modelResult.num_clusters,
-                    silhouette_score: modelResult.silhouette_score,
-                    outlier_threshold: modelResult.outlier_threshold,
-                    quality_metrics: metrics
+                    model_id: candidate.model_id,
+                    model_version: candidate.model_version,
+                    training_samples: candidate.training_samples,
+                    num_clusters: candidate.num_clusters,
+                    silhouette_score: candidate.silhouette_score,
+                    outlier_threshold: candidate.outlier_threshold
                 },
                 preserved_thresholds: thresholds,
                 minimum_required_samples: minSamples
             }),
-            'Promoting validated K-Means candidate while preserving prior model metadata and thresholds.'
+            'Promoting validated unsupervised K-Means candidate while preserving prior model metadata and thresholds.'
         ]);
 
         await client.query(`
@@ -181,17 +261,34 @@ const promoteCandidateModel = async ({ modelResult, metrics, minSamples }) => {
             WHERE model_type = 'kmeans'
               AND is_active = true
               AND model_id != $1
-        `, [modelResult.model_id]);
+        `, [candidate.model_id]);
 
         const promoted = await client.query(`
             UPDATE ml_model_metadata
             SET is_active = true
             WHERE model_id = $1
             RETURNING model_id
-        `, [modelResult.model_id]);
+        `, [candidate.model_id]);
 
         if (promoted.rows.length === 0) {
-            throw new Error(`Candidate model ${modelResult.model_id} not found for promotion`);
+            throw new Error(`Candidate model ${candidate.model_id} not found for promotion`);
+        }
+
+        await client.query(`
+            UPDATE ml_training_features
+            SET used_in_model_id = $1
+            WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
+        `, [candidate.model_id]);
+
+        const activeCountResult = await client.query(`
+            SELECT COUNT(*)::int AS active_count
+            FROM ml_model_metadata
+            WHERE model_type = 'kmeans'
+              AND is_active = true
+        `);
+
+        if (parseInt(activeCountResult.rows[0].active_count, 10) !== 1) {
+            throw new Error('Model promotion failed to leave exactly one active K-Means model');
         }
 
         return {
@@ -223,6 +320,10 @@ const trainModel = async (options = {}) => {
             `extracted: ${preparedFeatures.extracted}, failed: ${preparedFeatures.failed}`
         );
 
+        if (preparedFeatures.failed > 0) {
+            throw new Error(`Feature extraction failed for ${preparedFeatures.failed} custody record(s); training stopped before promotion.`);
+        }
+
         // Check if sufficient training data exists across the full recent
         // baseline. Previously used rows stay eligible so retraining extends
         // learned patterns instead of starting from only new rows.
@@ -238,44 +339,24 @@ const trainModel = async (options = {}) => {
             throw new Error(`Insufficient training data. Need at least ${minSamples} samples, got ${sampleCount}`);
         }
 
-        // Train K-Means model as an inactive candidate.
-        const modelResult = await trainKMeansModel(k);
-        assertCandidateModelQuality(modelResult, minSamples);
-
-        const metrics = estimateQualityMetrics({
-            sampleCount: modelResult.training_samples || sampleCount,
-            silhouetteScore: modelResult.silhouette_score
+        let modelResult = await findLatestPromotableCandidate({
+            minSamples,
+            requiredSampleCount: sampleCount
         });
 
-        await query(`
-            UPDATE ml_model_metadata
-            SET precision_score = $2,
-                    recall_score = $3,
-                    f1_score = $4,
-                    effectiveness_score = $5,
-                    false_positive_rate_estimate = $6
-            WHERE model_id = $1
-        `, [
-                        modelResult.model_id,
-                        metrics.precision_score,
-                        metrics.recall_score,
-                        metrics.f1_score,
-                        metrics.effectiveness_score,
-                        metrics.false_positive_rate_estimate
-                ]);
+        if (modelResult) {
+            logger.info(`Promoting existing validated K-Means candidate ${modelResult.model_id}`);
+        } else {
+            // Train K-Means model as an inactive candidate.
+            modelResult = await trainKMeansModel(k);
+        }
+
+        assertCandidateModelQuality(modelResult, minSamples);
 
         const promotion = await promoteCandidateModel({
             modelResult,
-            metrics,
             minSamples
         });
-
-        await query(`
-            UPDATE ml_training_features
-            SET used_in_model_id = $1
-            WHERE used_in_model_id IS NULL
-                AND feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
-        `, [modelResult.model_id]);
 
         logger.info(`Model training complete. Model ID: ${modelResult.model_id}`);
 
@@ -283,7 +364,6 @@ const trainModel = async (options = {}) => {
             success: true,
             ...modelResult,
             prepared_features: preparedFeatures,
-            quality_metrics: metrics,
             promotion
         };
     } catch (error) {

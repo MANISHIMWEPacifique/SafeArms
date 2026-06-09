@@ -48,8 +48,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
         unitId = authProvider.currentUser?['unit_id'] as String?;
       }
 
-      context.read<FirearmProvider>().loadFirearms(unitId: unitId);
-      context.read<FirearmProvider>().loadStats(unitId: unitId);
+      context.read<FirearmProvider>().loadRegistry(unitId: unitId);
     });
   }
 
@@ -139,8 +138,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                   _showRegisterModal = false;
                   _firearmToEdit = null;
                 });
-                firearmProvider.loadFirearms();
-                firearmProvider.loadStats();
+                firearmProvider.loadRegistry(
+                    unitId: firearmProvider.activeUnitId);
               },
             ),
 
@@ -710,7 +709,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     final firearms = provider.paginatedFirearms;
 
     if (firearms.isEmpty) {
-      return _buildEmptyState();
+      return _buildEmptyState(provider);
     }
 
     return Column(
@@ -1049,7 +1048,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     final firearms = provider.paginatedFirearms;
 
     if (firearms.isEmpty) {
-      return _buildEmptyState();
+      return _buildEmptyState(provider);
     }
 
     return LayoutBuilder(
@@ -1246,7 +1245,14 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                     child: const Text('View', style: TextStyle(fontSize: 12)),
                   ),
                 ),
-                if ((!_isInvestigator && !context.read<AuthProvider>().currentUser!['role'].toString().contains('hq_')) || context.read<AuthProvider>().currentUser!['role'] == 'admin') ...[
+                if ((!_isInvestigator &&
+                        !context
+                            .read<AuthProvider>()
+                            .currentUser!['role']
+                            .toString()
+                            .contains('hq_')) ||
+                    context.read<AuthProvider>().currentUser!['role'] ==
+                        'admin') ...[
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.edit,
@@ -1385,7 +1391,14 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
-                  if ((!_isInvestigator && !context.read<AuthProvider>().currentUser!['role'].toString().contains('hq_')) || context.read<AuthProvider>().currentUser!['role'] == 'admin') ...[
+                  if ((!_isInvestigator &&
+                          !context
+                              .read<AuthProvider>()
+                              .currentUser!['role']
+                              .toString()
+                              .contains('hq_')) ||
+                      context.read<AuthProvider>().currentUser!['role'] ==
+                          'admin') ...[
                     const SizedBox(width: 8),
                     IconButton(
                       icon: const Icon(Icons.edit,
@@ -1421,11 +1434,16 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return const EmptyStateWidget(
+  Widget _buildEmptyState(FirearmProvider provider) {
+    final isFilteredEmpty = provider.isFilteredEmpty;
+    return EmptyStateWidget(
       icon: Icons.inventory_2_outlined,
-      title: 'No firearms found',
-      subtitle: 'Try adjusting your filters or register a new firearm',
+      title: isFilteredEmpty
+          ? 'No firearms match these filters'
+          : 'No firearms found',
+      subtitle: isFilteredEmpty
+          ? 'Clear search or filters to show the full firearm inventory'
+          : 'Register a new firearm to start building the inventory',
     );
   }
 
@@ -1440,10 +1458,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isTablet = constraints.maxWidth < 900;
-          final summaryText =
-              'Showing ${(provider.currentPage - 1) * provider.itemsPerPage + 1}-'
-              '${(provider.currentPage * provider.itemsPerPage).clamp(0, provider.totalItems)} '
-              'of ${provider.totalItems} firearms';
+          final summaryText = provider.paginationSummary;
 
           final controls = Row(
             mainAxisSize: MainAxisSize.min,

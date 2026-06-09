@@ -42,6 +42,18 @@ const normalizeFeatures = (data) => {
     };
 };
 
+const normalizeCentroid = (centroid) => {
+    if (Array.isArray(centroid)) {
+        return centroid;
+    }
+
+    if (Array.isArray(centroid?.centroid)) {
+        return centroid.centroid;
+    }
+
+    return [];
+};
+
 /**
  * Train K-Means model on custody features.
  * The trainer uses the full recent feature window, including features already
@@ -167,7 +179,7 @@ const trainKMeansModel = async (k = 6) => {
             modelVersion,
             result.rows.length,
             effectiveK,
-            JSON.stringify(kmeansResult.centroids),
+            JSON.stringify(kmeansResult.centroids.map(normalizeCentroid)),
             silhouetteScore,
             outlierThreshold,
             JSON.stringify(normParams)
@@ -181,7 +193,9 @@ const trainKMeansModel = async (k = 6) => {
             num_clusters: effectiveK,
             training_samples: result.rows.length,
             silhouette_score: silhouetteScore,
-            outlier_threshold: outlierThreshold
+            outlier_threshold: outlierThreshold,
+            cluster_centers: kmeansResult.centroids.map(normalizeCentroid),
+            normalization_params: normParams
         };
     } catch (error) {
         logger.error('K-Means training error:', error);
@@ -197,14 +211,16 @@ const trainKMeansModel = async (k = 6) => {
  */
 const predictKMeans = (features, model) => {
     try {
-        const centroids = typeof model.cluster_centers === 'string' ? JSON.parse(model.cluster_centers) : model.cluster_centers;
+        const centroids = (typeof model.cluster_centers === 'string' ? JSON.parse(model.cluster_centers) : model.cluster_centers)
+            .map(normalizeCentroid);
         const normParams = typeof model.normalization_params === 'string' ? JSON.parse(model.normalization_params) : model.normalization_params;
 
         // Normalize input features
         const { mins, maxs } = normParams;
         const normalized = features.map((value, idx) => {
             const range = maxs[idx] - mins[idx];
-            return range === 0 ? 0 : (value - mins[idx]) / range;
+            const normalizedValue = range === 0 ? 0 : (value - mins[idx]) / range;
+            return Number.isFinite(normalizedValue) ? normalizedValue : 0;
         });
 
         // Find nearest cluster
@@ -280,7 +296,7 @@ const calculateSilhouetteScore = (data, clusters) => {
  */
 const calculateClusterDistances = (data, centroids, clusters) => {
     return data.map((point, idx) => {
-        const centroid = centroids[clusters[idx]];
+        const centroid = normalizeCentroid(centroids[clusters[idx]]);
         return euclideanDistance(point, centroid);
     });
 };

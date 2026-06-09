@@ -34,6 +34,8 @@ class SearchableDropdown<T> extends StatefulWidget {
   final int maxVisibleItems;
   final double itemHeight;
   final bool showScrollbar;
+  final double? fieldHeight;
+  final Color? fillColor;
 
   const SearchableDropdown({
     super.key,
@@ -48,6 +50,8 @@ class SearchableDropdown<T> extends StatefulWidget {
     this.maxVisibleItems = 4,
     this.itemHeight = 60,
     this.showScrollbar = true,
+    this.fieldHeight,
+    this.fillColor,
   });
 
   @override
@@ -350,83 +354,94 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                     _updateDisplayText();
                   }
                 },
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _focusNode,
-                  enabled: widget.enabled,
-                  onTapOutside: (_) {}, // Prevent aggressive unfocus
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: widget.hintText,
-                    hintStyle: const TextStyle(color: Color(0xFF78909C)),
-                    labelText: widget.labelText,
-                    labelStyle: const TextStyle(color: Color(0xFF78909C)),
-                    prefixIcon: widget.prefixIcon != null
-                        ? Icon(widget.prefixIcon,
-                            color: const Color(0xFF78909C), size: 20)
-                        : const Icon(Icons.search,
-                            color: Color(0xFF78909C), size: 20),
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (widget.value != null)
-                          IconButton(
-                            icon: const Icon(Icons.clear,
-                                color: Color(0xFF78909C), size: 18),
-                            onPressed: _onClear,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                                minWidth: 32, minHeight: 32),
+                child: SizedBox(
+                  height: widget.fieldHeight,
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _focusNode,
+                    enabled: widget.enabled,
+                    onTapOutside: (_) {}, // Prevent aggressive unfocus
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: widget.hintText,
+                      hintStyle: const TextStyle(color: Color(0xFF78909C)),
+                      labelText: widget.labelText,
+                      labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                      prefixIcon: widget.prefixIcon != null
+                          ? Icon(widget.prefixIcon,
+                              color: const Color(0xFF78909C), size: 20)
+                          : const Icon(Icons.search,
+                              color: Color(0xFF78909C), size: 20),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.value != null)
+                            IconButton(
+                              icon: const Icon(Icons.clear,
+                                  color: Color(0xFF78909C), size: 18),
+                              onPressed: _onClear,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                  minWidth: 32, minHeight: 32),
+                            ),
+                          Icon(
+                            _isOpen
+                                ? Icons.arrow_drop_up
+                                : Icons.arrow_drop_down,
+                            color: const Color(0xFF78909C),
                           ),
-                        Icon(
-                          _isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                          color: const Color(0xFF78909C),
+                        ],
+                      ),
+                      filled: true,
+                      fillColor: widget.fillColor ?? const Color(0xFF2A3040),
+                      isDense: widget.fieldHeight != null,
+                      constraints: widget.fieldHeight == null
+                          ? null
+                          : BoxConstraints.tightFor(
+                              height: widget.fieldHeight,
+                            ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: field.hasError
+                              ? const Color(0xFFE85C5C)
+                              : const Color(0xFF37404F),
                         ),
-                      ],
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFF2A3040),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: field.hasError
-                            ? const Color(0xFFE85C5C)
-                            : const Color(0xFF37404F),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: field.hasError
+                              ? const Color(0xFFE85C5C)
+                              : const Color(0xFF37404F),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: field.hasError
+                              ? const Color(0xFFE85C5C)
+                              : const Color(0xFF1E88E5),
+                          width: 2,
+                        ),
+                      ),
+                      disabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF2A3040)),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                            color: Color(0xFFE85C5C), width: 2),
                       ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: field.hasError
-                            ? const Color(0xFFE85C5C)
-                            : const Color(0xFF37404F),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: field.hasError
-                            ? const Color(0xFFE85C5C)
-                            : const Color(0xFF1E88E5),
-                        width: 2,
-                      ),
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF2A3040)),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Color(0xFFE85C5C), width: 2),
-                    ),
+                    onChanged: _onSearchChanged,
+                    onTap: () {
+                      if (!_isOpen) _openDropdown();
+                    },
                   ),
-                  onChanged: _onSearchChanged,
-                  onTap: () {
-                    if (!_isOpen) _openDropdown();
-                  },
                 ),
               ), // End of TapRegion
               if (field.hasError)

@@ -100,6 +100,14 @@ CREATE TABLE system_settings (
     updated_by VARCHAR(20) REFERENCES users(user_id)
 );
 
+INSERT INTO system_settings (setting_key, setting_value, description)
+VALUES
+    ('anomaly_trigger_threshold', '0.35'::jsonb, 'Minimum ensemble score required to record an anomaly event'),
+    ('anomaly_medium_threshold', '0.50'::jsonb, 'Minimum score mapped to medium review urgency'),
+    ('anomaly_high_threshold', '0.70'::jsonb, 'Minimum score mapped to high review urgency'),
+    ('anomaly_critical_threshold', '0.85'::jsonb, 'Minimum score mapped to critical review urgency when confidence gate also passes'),
+    ('anomaly_critical_min_confidence', '0.60'::jsonb, 'Minimum detector confidence required for critical severity');
+
 ALTER TABLE units
 ADD CONSTRAINT fk_units_commander_user
 FOREIGN KEY (commander_user_id)
@@ -480,6 +488,7 @@ CREATE INDEX idx_anomaly_hides_hidden_at ON anomaly_dashboard_hides(hidden_at);
 CREATE INDEX idx_ml_features_officer ON ml_training_features(officer_id);
 CREATE INDEX idx_ml_features_firearm ON ml_training_features(firearm_id);
 CREATE INDEX idx_ml_features_date ON ml_training_features(feature_extraction_date);
+CREATE UNIQUE INDEX idx_ml_training_features_custody_record_unique ON ml_training_features(custody_record_id);
 
 -- Audit Logs
 CREATE INDEX idx_audit_user ON audit_logs(user_id);

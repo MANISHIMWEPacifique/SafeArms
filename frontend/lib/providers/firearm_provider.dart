@@ -7,11 +7,14 @@ import '../services/firearm_service.dart';
 import '../utils/auth_error_utils.dart';
 
 class FirearmProvider with ChangeNotifier {
-  final FirearmService _firearmService = FirearmService();
+  final FirearmService _firearmService;
+
+  FirearmProvider({FirearmService? firearmService})
+      : _firearmService = firearmService ?? FirearmService();
 
   @override
   void notifyListeners() {
-    _filteredCache = null; // Invalidate cache on any state change
+    _filteredCache = null; // Invalidate cache on any state change.
     super.notifyListeners();
   }
 
@@ -21,6 +24,7 @@ class FirearmProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   Map<String, dynamic> _stats = {};
+  String? _activeUnitId;
 
   // View mode
   bool _isGridView = true;
@@ -35,7 +39,6 @@ class FirearmProvider with ChangeNotifier {
   // Pagination
   int _currentPage = 1;
   int _itemsPerPage = 12; // For grid view
-  int _totalItems = 0;
 
   // Getters
   List<FirearmModel> get firearms => _firearms;
@@ -44,6 +47,7 @@ class FirearmProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   Map<String, dynamic> get stats => _stats;
   bool get isGridView => _isGridView;
+  String? get activeUnitId => _activeUnitId;
 
   String get statusFilter => _statusFilter;
   String get typeFilter => _typeFilter;
@@ -53,8 +57,37 @@ class FirearmProvider with ChangeNotifier {
 
   int get currentPage => _currentPage;
   int get itemsPerPage => _itemsPerPage;
-  int get totalItems => _totalItems;
-  int get totalPages => (_totalItems / _itemsPerPage).ceil();
+  int get totalItems => filteredCount;
+  int get filteredCount => filteredFirearms.length;
+  int get unfilteredCount => _firearms.length;
+  int get totalPages =>
+      filteredCount == 0 ? 0 : (filteredCount / _itemsPerPage).ceil();
+  bool get hasActiveFilters =>
+      _statusFilter != 'all' ||
+      _typeFilter != 'all' ||
+      _unitFilter != 'all' ||
+      _manufacturerFilter != 'all' ||
+      _searchQuery.trim().isNotEmpty;
+  bool get isFilteredEmpty => _firearms.isNotEmpty && filteredCount == 0;
+  bool get isInventoryEmpty => _firearms.isEmpty;
+  int get pageStartItem =>
+      filteredCount == 0 ? 0 : ((_currentPage - 1) * _itemsPerPage) + 1;
+  int get pageEndItem {
+    if (filteredCount == 0) return 0;
+    final end = _currentPage * _itemsPerPage;
+    return end > filteredCount ? filteredCount : end;
+  }
+
+  String get paginationSummary {
+    if (filteredCount == 0) {
+      return hasActiveFilters
+          ? 'Showing 0 matching firearms'
+          : 'Showing 0 firearms';
+    }
+
+    final suffix = hasActiveFilters ? ' matching firearms' : ' firearms';
+    return 'Showing $pageStartItem-$pageEndItem of $filteredCount$suffix';
+  }
 
   // Cached filtered list — invalidated by notifyListeners().
   List<FirearmModel>? _filteredCache;
@@ -88,7 +121,6 @@ class FirearmProvider with ChangeNotifier {
       return true;
     }).toList();
 
-    _totalItems = filtered.length;
     _filteredCache = filtered;
     return filtered;
   }
@@ -104,20 +136,61 @@ class FirearmProvider with ChangeNotifier {
     return filtered.sublist(startIndex, endIndex);
   }
 
+  void _clampCurrentPage() {
+    _filteredCache = null;
+    final pages = totalPages;
+    if (pages == 0) {
+      _currentPage = 1;
+      return;
+    }
+    if (_currentPage > pages) {
+      _currentPage = pages;
+    } else if (_currentPage < 1) {
+      _currentPage = 1;
+    }
+  }
+
+  Future<void> loadRegistry({String? unitId}) async {
+    _activeUnitId = unitId;
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final listFuture = unitId == null || unitId.isEmpty
+          ? _firearmService.getAllFirearms()
+          : _firearmService.getAllFirearms(unitId: unitId);
+      final statsFuture = _firearmService.getFirearmStats(unitId: unitId);
+      final results = await Future.wait<dynamic>([listFuture, statsFuture]);
+
+      _firearms = (results[0] as List<FirearmModel>);
+      _stats = (results[1] as Map<String, dynamic>);
+      _clampCurrentPage();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      if (isAuthFailureError(e)) {
+        _stats = {};
+      }
+      _clampCurrentPage();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   // Load all firearms
   Future<void> loadFirearms({String? unitId}) async {
+    _activeUnitId = unitId;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
       _firearms = await _firearmService.getAllFirearms(
-        status: _statusFilter != 'all' ? _statusFilter : null,
-        type: _typeFilter != 'all' ? _typeFilter : null,
-        unitId: unitId ?? (_unitFilter != 'all' ? _unitFilter : null),
-        manufacturer: _manufacturerFilter != 'all' ? _manufacturerFilter : null,
+        unitId: unitId,
       );
-      _totalItems = _firearms.length;
+      _clampCurrentPage();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -129,6 +202,7 @@ class FirearmProvider with ChangeNotifier {
 
   // Load firearms for a specific unit (with RBAC enforcement)
   Future<void> loadUnitFirearms(String unitId) async {
+    _activeUnitId = unitId;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -136,10 +210,8 @@ class FirearmProvider with ChangeNotifier {
     try {
       _firearms = await _firearmService.getUnitFirearms(
         unitId: unitId,
-        status: _statusFilter != 'all' ? _statusFilter : null,
-        type: _typeFilter != 'all' ? _typeFilter : null,
       );
-      _totalItems = _firearms.length;
+      _clampCurrentPage();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -152,7 +224,8 @@ class FirearmProvider with ChangeNotifier {
   // Load firearm statistics
   Future<void> loadStats({String? unitId}) async {
     try {
-      _stats = await _firearmService.getFirearmStats(unitId: unitId);
+      _stats = await _firearmService.getFirearmStats(
+          unitId: unitId ?? _activeUnitId);
       notifyListeners();
     } catch (e) {
       if (isAuthFailureError(e)) {
@@ -198,13 +271,12 @@ class FirearmProvider with ChangeNotifier {
         ballisticProfile: ballisticProfile,
       );
 
-      _firearms.add(newFirearm);
-      _totalItems = _firearms.length;
+      _firearms = [..._firearms, newFirearm];
+      _clampCurrentPage();
       _isLoading = false;
       notifyListeners();
 
-      // Reload stats
-      await loadStats();
+      await loadStats(unitId: _activeUnitId);
 
       return true;
     } catch (e) {
@@ -238,6 +310,10 @@ class FirearmProvider with ChangeNotifier {
       if (index != -1) {
         _firearms[index] = updatedFirearm;
       }
+      if (_selectedFirearm?.firearmId == firearmId) {
+        _selectedFirearm = updatedFirearm;
+      }
+      _clampCurrentPage();
 
       _isLoading = false;
       notifyListeners();
@@ -274,6 +350,7 @@ class FirearmProvider with ChangeNotifier {
       if (_selectedFirearm?.firearmId == firearmId) {
         _selectedFirearm = updatedFirearm;
       }
+      _clampCurrentPage();
 
       _isLoading = false;
       notifyListeners();
@@ -298,10 +375,11 @@ class FirearmProvider with ChangeNotifier {
       if (_selectedFirearm?.firearmId == firearmId) {
         _selectedFirearm = null;
       }
-      _totalItems = _firearms.length;
+      _clampCurrentPage();
 
       _isLoading = false;
       notifyListeners();
+      await loadStats(unitId: _activeUnitId);
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -327,7 +405,7 @@ class FirearmProvider with ChangeNotifier {
     _isGridView = !_isGridView;
     _itemsPerPage =
         _isGridView ? 12 : 25; // Adjust items per page based on view
-    _currentPage = 1; // Reset to first page
+    _clampCurrentPage();
     notifyListeners();
   }
 
@@ -335,30 +413,35 @@ class FirearmProvider with ChangeNotifier {
   void setStatusFilter(String status) {
     _statusFilter = status;
     _currentPage = 1;
+    _clampCurrentPage();
     notifyListeners();
   }
 
   void setTypeFilter(String type) {
     _typeFilter = type;
     _currentPage = 1;
+    _clampCurrentPage();
     notifyListeners();
   }
 
   void setUnitFilter(String unitId) {
     _unitFilter = unitId;
     _currentPage = 1;
+    _clampCurrentPage();
     notifyListeners();
   }
 
   void setManufacturerFilter(String manufacturer) {
     _manufacturerFilter = manufacturer;
     _currentPage = 1;
+    _clampCurrentPage();
     notifyListeners();
   }
 
   void setSearchQuery(String query) {
     _searchQuery = query;
     _currentPage = 1;
+    _clampCurrentPage();
     notifyListeners();
   }
 
@@ -369,15 +452,15 @@ class FirearmProvider with ChangeNotifier {
     _manufacturerFilter = 'all';
     _searchQuery = '';
     _currentPage = 1;
+    _clampCurrentPage();
     notifyListeners();
   }
 
   // Pagination
   void setPage(int page) {
-    if (page >= 1 && page <= totalPages) {
-      _currentPage = page;
-      notifyListeners();
-    }
+    _currentPage = page;
+    _clampCurrentPage();
+    notifyListeners();
   }
 
   void nextPage() {

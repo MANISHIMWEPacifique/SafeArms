@@ -559,9 +559,7 @@ const Anomaly = {
         return parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS);
     },
 
-    async removeFromDashboard(anomalyId, userId, reason) {
-        return this.archive(anomalyId, userId, reason);
-    },
+    // removeFromDashboard is consolidated into archive()
 
     async restoreToDashboard(anomalyId, userId) {
         const anomalyRow = await withTransaction(async (client) => {

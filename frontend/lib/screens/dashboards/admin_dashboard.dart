@@ -403,7 +403,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildDashboardContent() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isTablet = constraints.maxWidth < 1000;
+        final isTablet = constraints.maxWidth < 600;
         final padding = isTablet ? 16.0 : 32.0;
         return SingleChildScrollView(
           padding: EdgeInsets.all(padding),
@@ -435,7 +435,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final isNarrow = constraints.maxWidth < 800;
+            final isNarrow = constraints.maxWidth < 600;
             final cards = [
               _buildStatCard(
                 icon: Icons.people,

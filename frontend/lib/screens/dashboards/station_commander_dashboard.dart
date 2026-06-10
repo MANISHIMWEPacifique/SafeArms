@@ -398,49 +398,49 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
           );
         }
 
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(
-            MediaQuery.of(context).size.width < 600
-                ? 12
-                : MediaQuery.of(context).size.width < 1200
-                    ? 16
-                    : 24,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildStatsCards(provider),
-              const SizedBox(height: 24),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  if (constraints.maxWidth < 800) {
-                    return Column(
-                      children: [
-                        _buildFirearmStatusChart(provider),
-                        const SizedBox(height: 16),
-                        _buildRecentActivity(provider),
-                      ],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 5,
-                        child: _buildFirearmStatusChart(provider,
-                            isExpanded: true),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        flex: 5,
-                        child: _buildRecentActivity(provider, isExpanded: true),
-                      ),
-                    ],
-                  );
-                },
+        return LayoutBuilder(
+          builder: (context, outerConstraints) {
+            final pad = outerConstraints.maxWidth < 480 ? 12.0 : 24.0;
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(pad),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildStatsCards(provider),
+                  const SizedBox(height: 24),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      if (constraints.maxWidth < 600) {
+                        return Column(
+                          children: [
+                            _buildFirearmStatusChart(provider),
+                            const SizedBox(height: 16),
+                            _buildRecentActivity(provider),
+                          ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: _buildFirearmStatusChart(provider,
+                                isExpanded: true),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 5,
+                            child:
+                                _buildRecentActivity(provider, isExpanded: true),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -486,7 +486,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
           );
         }
 
-        if (constraints.maxWidth < 900) {
+        if (constraints.maxWidth < 600) {
           final cardWidth = (constraints.maxWidth - gap) / 2;
           return Wrap(
             spacing: gap,
@@ -565,7 +565,7 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
         final stats = provider.dashboardStats;
         final firearms = stats?['firearms'];
         final isPhone = constraints.maxWidth < 600;
-        final isTablet = constraints.maxWidth < 900;
+        final isTablet = constraints.maxWidth < 600;
 
         final available =
             double.tryParse(firearms?['available']?.toString() ?? '0') ?? 0;
@@ -731,8 +731,8 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
       {bool isExpanded = false}) {
     const int maxDisplayItems = 6;
     final width = MediaQuery.of(context).size.width;
-    final isPhone = width < 600;
-    final isTablet = width < 1200;
+    final isPhone = width < 480;
+    final isTablet = width < 600;
     final limitedList = provider.getCombinedStationActivity(
       limit: maxDisplayItems,
     );

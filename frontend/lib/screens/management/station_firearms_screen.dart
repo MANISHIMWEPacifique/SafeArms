@@ -12,8 +12,8 @@ import '../../models/firearm_model.dart';
 import '../../widgets/firearm_detail_modal.dart';
 import '../../widgets/filter_dropdown_widget.dart';
 
-const double _desktopBreakpoint = 1024;
-const double _mobileBreakpoint = 768;
+const double _desktopBreakpoint = 820;
+const double _mobileBreakpoint = 560;
 
 class StationFirearmsScreen extends StatefulWidget {
   const StationFirearmsScreen({super.key});

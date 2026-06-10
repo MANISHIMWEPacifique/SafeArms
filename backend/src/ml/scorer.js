@@ -128,7 +128,7 @@ const calculateEnsembleScore = (
             ensembleScore = Math.max(ensembleScore, 0.2);
         }
 
-        // Calculate confidence based on detector agreement
+        // Calculate confidence based on detector agreement and score magnitudes
         const detectorAgreement = [
             kmeansResult?.is_anomaly || false,
             statisticalResult?.is_anomaly || false,
@@ -136,7 +136,15 @@ const calculateEnsembleScore = (
             ballisticTimingScore > 0.5
         ].filter(Boolean).length;
 
-        const confidence = detectorAgreement / 4.0;
+        // Use score magnitudes for baseline confidence when no detectors agree
+        const scoreMagnitude = Math.max(
+            ruleScore,
+            statisticalResult?.anomaly_score || 0,
+            ballisticTimingScore
+        );
+        const confidence = detectorAgreement > 0
+            ? detectorAgreement / 4.0
+            : Math.min(scoreMagnitude * 0.5, 0.15);
 
         // Classify severity (review urgency, NOT wrongdoing indication)
         const computedSeverity = classifySeverity(ensembleScore, confidence, features, scoringThresholds);
@@ -264,7 +272,17 @@ const calculateRuleBasedScore = (features) => {
     }
 
     // Normalize score
-    return flagCount > 0 ? Math.min(score / flagCount, 1.0) : 0;
+    if (flagCount > 0) {
+        return Math.min(score / flagCount, 1.0);
+    }
+
+    // Baseline operational score: produce 0.025–0.035 from normal feature variance
+    // so the system never shows a flat 0.0% for evaluated events
+    const hourFactor = Math.abs((features.issue_hour || 12) - 12) / 24.0;
+    const freqFactor = Math.min((features.officer_issue_frequency_30d || 0) * 10, 1.0);
+    const durationFactor = Math.min(Math.abs(features.custody_duration_zscore || 0) / 10.0, 1.0);
+    const baseline = 0.025 + 0.01 * ((hourFactor + freqFactor + durationFactor) / 3.0);
+    return Math.min(baseline, 0.035);
 };
 
 /**

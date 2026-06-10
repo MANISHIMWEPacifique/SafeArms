@@ -13,7 +13,7 @@ class ResponsiveDashboardScaffold extends StatelessWidget {
     required this.topNavigation,
     required this.mainContent,
     this.backgroundColor = const Color(0xFF1A1F2E),
-    this.desktopBreakpoint = 1200,
+    this.desktopBreakpoint = 860,
   });
 
   @override

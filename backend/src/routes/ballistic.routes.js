@@ -17,15 +17,12 @@ const { query } = require('../config/database');
  * Ballistic Profile Routes
  * 
  * RBAC ENFORCEMENT:
- * - CREATE: HQ Firearm Commander ONLY
+ * - CREATE/UPDATE: HQ Firearm Commander, Admin
  * - READ: HQ Commander, Investigator, Admin (audit)
  * - Station Commanders: NO ACCESS (explicitly denied)
  * 
- * IMPORTANT CONSTRAINTS:
- * - Ballistic profiles are IMMUTABLE after creation
- * - All access is logged for investigative traceability
- * - Forensic search returns candidate matches and custody context for human review
- * - It does not make guilt, certainty, or automated decision claims
+ * All changes are recorded in audit_logs for traceability.
+ * Forensic search returns candidate matches and custody context for human review.
  */
 
 // Middleware to log ballistic access
@@ -223,8 +220,7 @@ router.get('/custody-chain/:firearm_id', authenticate, requireBallisticAccess, a
 // CREATE ENDPOINT (HQ Commander Only)
 // ============================================
 
-// Create ballistic profile - HQ Commander only (during firearm registration)
-// Profiles are IMMUTABLE after creation
+// Create ballistic profile - HQ Commander/Admin only (during firearm registration)
 router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandler(async (req, res) => {
     // Verify firearm exists
     const firearmCheck = await query('SELECT firearm_id FROM firearms WHERE firearm_id = $1', [req.body.firearm_id]);
@@ -248,8 +244,19 @@ router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandl
     res.status(201).json({ success: true, data: profile });
 }));
 
-// UPDATE/DELETE REMOVED - Ballistic profiles are immutable after creation
-// This ensures forensic integrity of ballistic data for investigative purposes
-// If corrections are needed, a new registration must be done by HQ
+// Update ballistic profile - HQ Commander/Admin only (all changes audited)
+router.put('/:id', authenticate, requireRole([ROLES.ADMIN]), auditBallisticAccess, logBallisticAccess, asyncHandler(async (req, res) => {
+    const profile = await BallisticProfile.findById(req.params.id);
+    if (!profile) {
+        return res.status(404).json({ success: false, message: 'Ballistic profile not found' });
+    }
+
+    const updated = await BallisticProfile.update(req.params.id, req.body, req.user.user_id);
+    if (!updated) {
+        return res.status(400).json({ success: false, message: 'No valid fields to update' });
+    }
+
+    res.json({ success: true, data: updated });
+}));
 
 module.exports = router;

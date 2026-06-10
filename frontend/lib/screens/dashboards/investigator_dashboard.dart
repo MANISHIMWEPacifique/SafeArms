@@ -558,7 +558,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   Widget _buildDashboardOverview() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isTablet = constraints.maxWidth < 900;
+        final isTablet = constraints.maxWidth < 600;
         final padding = isTablet ? 16.0 : 32.0;
         return SingleChildScrollView(
           padding: EdgeInsets.all(padding),
@@ -599,7 +599,7 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 800;
+        final isNarrow = constraints.maxWidth < 600;
         final cards = [
           _buildActiveCasesCard(dashboardStats, dashboardProvider.isLoading),
           _buildBallisticProfilesCard(dashboardStats),

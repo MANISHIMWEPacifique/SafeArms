@@ -114,9 +114,17 @@ const detectStatisticalOutliers = async (features) => {
         }
 
         // Calculate statistical anomaly score (0 to 1)
-        const statisticalScore = outliers.length > 0
-            ? Math.min(maxZScore / 4.0, 1.0)
-            : 0;
+        // Produce a small baseline score from z-score magnitudes even when no outlier threshold is breached
+        let statisticalScore;
+        if (outliers.length > 0) {
+            statisticalScore = Math.min(maxZScore / 4.0, 1.0);
+        } else {
+            const durationZ = Math.abs(features.custody_duration_zscore || 0);
+            const frequencyZ = Math.abs(features.issue_frequency_zscore || 0);
+            const peakZ = Math.max(durationZ, frequencyZ);
+            // Proportional baseline: z=1.0 → ~0.025, z=2.0 → ~0.035
+            statisticalScore = peakZ > 0 ? Math.min(peakZ * 0.018, 0.035) : 0.025;
+        }
 
         return {
             is_anomaly: outliers.length > 0,

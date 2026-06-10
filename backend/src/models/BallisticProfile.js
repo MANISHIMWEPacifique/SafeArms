@@ -67,10 +67,9 @@ const mapSearchResult = (row, hasIncidentDate) => {
 /**
  * BallisticProfile Model
  * 
- * IMPORTANT: Ballistic profiles are IMMUTABLE after creation.
- * - No UPDATE operations allowed (forensic integrity)
- * - All access is logged for audit trail
- * - Chain-of-custody integration for traceability
+ * Ballistic profiles can be updated by authorized personnel.
+ * All changes are recorded in audit_logs with old/new values.
+ * The registration_hash is recalculated on each update.
  */
 
 const BallisticProfile = {
@@ -157,7 +156,7 @@ const BallisticProfile = {
     },
 
     /**
-     * Create ballistic profile (IMMUTABLE after creation)
+     * Create ballistic profile
      * Only HQ Commander can create during firearm registration
      */
     async create(profileData, createdByUserId) {
@@ -194,8 +193,72 @@ const BallisticProfile = {
         return result.rows[0];
     },
 
-    // UPDATE REMOVED - Ballistic profiles are immutable after HQ registration
-    // This ensures forensic integrity for investigative purposes
+    /**
+     * Update ballistic profile with full audit trail
+     */
+    async update(ballisticId, updateData, updatedByUserId) {
+        const ALLOWED_FIELDS = [
+            'test_date', 'test_location', 'rifling_characteristics',
+            'firing_pin_impression', 'ejector_marks', 'extractor_marks',
+            'chamber_marks', 'test_conducted_by', 'forensic_lab',
+            'test_ammunition', 'notes'
+        ];
+
+        // Fetch old values for audit trail
+        const oldResult = await query(
+            'SELECT * FROM ballistic_profiles WHERE ballistic_id = $1',
+            [ballisticId]
+        );
+        if (!oldResult.rows[0]) return null;
+        const oldValues = oldResult.rows[0];
+
+        const fields = [];
+        const values = [];
+        let pCount = 0;
+
+        for (const [key, value] of Object.entries(updateData)) {
+            if (value !== undefined && ALLOWED_FIELDS.includes(key)) {
+                pCount++;
+                fields.push(`${key} = $${pCount}`);
+                values.push(value);
+            }
+        }
+
+        if (fields.length === 0) return null;
+
+        // Recalculate registration hash with new data
+        const merged = { ...oldValues, ...updateData };
+        const newHash = this.generateRegistrationHash(merged);
+        pCount++;
+        fields.push(`registration_hash = $${pCount}`);
+        values.push(newHash);
+
+        pCount++;
+        values.push(ballisticId);
+
+        const result = await query(
+            `UPDATE ballistic_profiles SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+             WHERE ballistic_id = $${pCount} RETURNING *`,
+            values
+        );
+
+        if (!result.rows[0]) return null;
+
+        // Log to audit trail
+        const logId = `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+        await query(`
+            INSERT INTO audit_logs (log_id, user_id, action_type, table_name, record_id, old_values, new_values)
+            VALUES ($1, $2, 'BALLISTIC_UPDATE', 'ballistic_profiles', $3, $4, $5)
+        `, [
+            logId,
+            updatedByUserId,
+            ballisticId,
+            JSON.stringify(oldValues),
+            JSON.stringify(result.rows[0])
+        ]);
+
+        return result.rows[0];
+    },
 
     /**
      * Search ballistic profiles with access logging

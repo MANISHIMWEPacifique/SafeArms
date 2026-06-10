@@ -84,6 +84,43 @@ class BallisticProfileService {
     }
   }
 
+  // Update existing ballistic profile
+  Future<Map<String, dynamic>> updateProfile(
+    String profileId, {
+    String? testLocation,
+    String? riflingCharacteristics,
+    String? firingPinImpression,
+    String? ejectorMarks,
+    String? extractorMarks,
+    String? chamberMarks,
+    String? testConductedBy,
+    String? forensicLab,
+    String? testAmmunition,
+    String? notes,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (testLocation != null) body['test_location'] = testLocation;
+      if (riflingCharacteristics != null) body['rifling_characteristics'] = riflingCharacteristics;
+      if (firingPinImpression != null) body['firing_pin_impression'] = firingPinImpression;
+      if (ejectorMarks != null) body['ejector_marks'] = ejectorMarks;
+      if (extractorMarks != null) body['extractor_marks'] = extractorMarks;
+      if (chamberMarks != null) body['chamber_marks'] = chamberMarks;
+      if (testConductedBy != null) body['test_conducted_by'] = testConductedBy;
+      if (forensicLab != null) body['forensic_lab'] = forensicLab;
+      if (testAmmunition != null) body['test_ammunition'] = testAmmunition;
+      if (notes != null) body['notes'] = notes;
+
+      final data = await ApiClient.put(
+        '${ApiConfig.ballisticUrl}/$profileId',
+        body: body,
+      );
+      return data['data'];
+    } catch (e) {
+      throw Exception('Error updating profile: $e');
+    }
+  }
+
   // Get profile statistics
   Future<Map<String, dynamic>> getProfileStats() async {
     try {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/ballistic_profile_provider.dart';
 import '../../widgets/empty_state_widget.dart';
+import '../../services/ballistic_profile_service.dart';
 
 class BallisticProfilesScreen extends StatefulWidget {
   const BallisticProfilesScreen({super.key});
@@ -101,23 +102,23 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
             style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
           ),
           const SizedBox(height: 8),
-          // Read-only indicator for investigators
+          // All changes are recorded in audit trail
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1565C0).withValues(alpha: 0.2),
+              color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF1565C0)),
+              border: Border.all(color: const Color(0xFF3CCB7F)),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.visibility, color: Color(0xFF42A5F5), size: 16),
+                Icon(Icons.verified_user, color: Color(0xFF3CCB7F), size: 16),
                 SizedBox(width: 8),
                 Text(
-                  'Read-Only Access • Search & Compare Only',
+                  'All Changes Recorded in Audit Trail',
                   style: TextStyle(
-                    color: Color(0xFF42A5F5),
+                    color: Color(0xFF3CCB7F),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -498,7 +499,6 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
           ),
           Row(
             children: [
-              // Edit button removed - profiles are read-only after HQ registration
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -508,15 +508,20 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.lock, color: Color(0xFF3CCB7F), size: 14),
+                    Icon(Icons.verified_user, color: Color(0xFF3CCB7F), size: 14),
                     SizedBox(width: 4),
-                    Text('Read-Only',
+                    Text('Audited',
                         style:
                             TextStyle(color: Color(0xFF3CCB7F), fontSize: 11)),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.edit, color: Color(0xFF42A5F5)),
+                onPressed: () => _showEditDialog(profile),
+                tooltip: 'Edit Profile',
+              ),
               IconButton(
                 icon: const Icon(Icons.print, color: Color(0xFFB0BEC5)),
                 onPressed: () {
@@ -857,6 +862,101 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen>
       child: Text(
         'Custody history will be displayed here',
         style: TextStyle(color: Color(0xFF78909C), fontSize: 14),
+      ),
+    );
+  }
+
+  void _showEditDialog(Map<String, dynamic> profile) {
+    final riflingCtrl = TextEditingController(text: profile['rifling_characteristics'] ?? '');
+    final firingPinCtrl = TextEditingController(text: profile['firing_pin_impression'] ?? '');
+    final ejectorCtrl = TextEditingController(text: profile['ejector_marks'] ?? '');
+    final extractorCtrl = TextEditingController(text: profile['extractor_marks'] ?? '');
+    final chamberCtrl = TextEditingController(text: profile['chamber_marks'] ?? '');
+    final notesCtrl = TextEditingController(text: profile['notes'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF252A3A),
+        title: const Text('Edit Ballistic Profile', style: TextStyle(color: Colors.white)),
+        content: SizedBox(
+          width: 500,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildEditField('Rifling Characteristics', riflingCtrl),
+                _buildEditField('Firing Pin Impression', firingPinCtrl),
+                _buildEditField('Ejector Marks', ejectorCtrl),
+                _buildEditField('Extractor Marks', extractorCtrl),
+                _buildEditField('Chamber Marks', chamberCtrl),
+                _buildEditField('Notes', notesCtrl, maxLines: 3),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF78909C))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E88E5)),
+            onPressed: () async {
+              try {
+                final service = BallisticProfileService();
+                await service.updateProfile(
+                  profile['ballistic_id'] ?? profile['ballistic_profile_id'] ?? '',
+                  riflingCharacteristics: riflingCtrl.text,
+                  firingPinImpression: firingPinCtrl.text,
+                  ejectorMarks: ejectorCtrl.text,
+                  extractorMarks: extractorCtrl.text,
+                  chamberMarks: chamberCtrl.text,
+                  notes: notesCtrl.text,
+                );
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (mounted) {
+                  context.read<BallisticProfileProvider>().loadProfiles();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Profile updated successfully'), backgroundColor: Color(0xFF3CCB7F)),
+                  );
+                }
+              } catch (e) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFE85C5C)),
+                  );
+                }
+              }
+            },
+            child: const Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditField(String label, TextEditingController controller, {int maxLines = 1}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF78909C)),
+          filled: true,
+          fillColor: const Color(0xFF2A3040),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF37404F)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF37404F)),
+          ),
+        ),
       ),
     );
   }

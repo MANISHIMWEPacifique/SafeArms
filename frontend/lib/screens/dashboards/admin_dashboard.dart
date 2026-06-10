@@ -76,6 +76,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       sideNavigation: _buildSideNavigation(),
       topNavigation: _buildTopNavBar(),
       mainContent: _buildMainContent(),
+      desktopBreakpoint: 900,
     );
   }
 
@@ -83,196 +84,200 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.currentUser;
 
-    return Container(
-      width: 220,
-      decoration: const BoxDecoration(
-        color: Color(0xFF252A3A),
-        border: Border(right: BorderSide(color: Color(0xFF37404F), width: 1)),
-      ),
-      child: Column(
-        children: [
-          // Logo Section
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Color(0xFF37404F), width: 1),
-              ),
-            ),
-            child: const Row(
-              children: [
-                Icon(
-                  Icons.shield_outlined,
-                  color: Colors.white,
-                  size: 28,
+    return Material(
+      color: const Color(0xFF252A3A),
+      child: Container(
+        width: 220,
+        decoration: const BoxDecoration(
+          border: Border(right: BorderSide(color: Color(0xFF37404F), width: 1)),
+        ),
+        child: Column(
+          children: [
+            // Logo Section
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Color(0xFF37404F), width: 1),
                 ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'SafeArms',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.shield_outlined,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'SafeArms',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          // User Profile Section
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: const Color(0xFF2A3040),
-            child: Row(
-              children: [
-                UserAvatar(
-                  fullName: user?['full_name']?.toString(),
-                  photoUrl: user?['profile_photo_url']?.toString(),
-                  radius: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user?['full_name'] ?? 'Admin User',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+            // User Profile Section
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: const Color(0xFF2A3040),
+              child: Row(
+                children: [
+                  UserAvatar(
+                    fullName: user?['full_name']?.toString(),
+                    photoUrl: user?['profile_photo_url']?.toString(),
+                    radius: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?['full_name'] ?? 'Admin User',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        const Text(
+                          'System Administrator',
+                          style: TextStyle(
+                            color: Color(0xFFB0BEC5),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Navigation Items
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                itemCount: _navItems.length,
+                itemBuilder: (context, index) {
+                  final item = _navItems[index];
+                  final isSelected = _selectedIndex == index;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() => _selectedIndex = index);
+                          // Close drawer if open (tablet/compact mode)
+                          final scaffoldState = Scaffold.maybeOf(context);
+                          if (scaffoldState?.isDrawerOpen ?? false) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFF1E88E5)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                item.icon,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                item.label,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : const Color(0xFFB0BEC5),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      const Text(
-                        'System Administrator',
-                        style: TextStyle(
-                          color: Color(0xFFB0BEC5),
-                          fontSize: 12,
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // System Status
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF3CCB7F),
+                          shape: BoxShape.circle,
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'System Healthy',
+                        style:
+                            TextStyle(color: Color(0xFF3CCB7F), fontSize: 12),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Navigation Items
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: _navItems.length,
-              itemBuilder: (context, index) {
-                final item = _navItems[index];
-                final isSelected = _selectedIndex == index;
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        setState(() => _selectedIndex = index);
-                        // Close drawer if open (tablet/compact mode)
-                        final scaffoldState = Scaffold.maybeOf(context);
-                        if (scaffoldState?.isDrawerOpen ?? false) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFF1E88E5)
-                              : Colors.transparent,
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _handleLogout,
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Color(0xFFE85C5C),
+                        size: 16,
+                      ),
+                      label: const Text(
+                        'Logout',
+                        style:
+                            TextStyle(color: Color(0xFFE85C5C), fontSize: 14),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF37404F)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              item.icon,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              item.label,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : const Color(0xFFB0BEC5),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ),
-                );
-              },
+                ],
+              ),
             ),
-          ),
-
-          // System Status
-          Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF3CCB7F),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'System Healthy',
-                      style: TextStyle(color: Color(0xFF3CCB7F), fontSize: 12),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _handleLogout,
-                    icon: const Icon(
-                      Icons.logout,
-                      color: Color(0xFFE85C5C),
-                      size: 16,
-                    ),
-                    label: const Text(
-                      'Logout',
-                      style: TextStyle(color: Color(0xFFE85C5C), fontSize: 14),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF37404F)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

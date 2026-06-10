@@ -10,7 +10,8 @@ import '../../models/user_model.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
 import '../../widgets/user_avatar.dart';
 
-const double _desktopBreakpoint = 1024;
+const double _desktopBreakpoint = 900;
+const double _desktopContentBreakpoint = _desktopBreakpoint - 64;
 const double _mobileBreakpoint = 768;
 const int _userColumnFlex = 3;
 const int _roleColumnFlex = 2;
@@ -18,7 +19,8 @@ const int _unitColumnFlex = 2;
 const int _statusColumnFlex = 2;
 const int _actionsColumnFlex = 2;
 
-bool _useCompactUserCards(double width) => width < _desktopBreakpoint;
+bool _useCompactUserCards(double width, bool isDesktopViewport) =>
+    !isDesktopViewport || width < _desktopContentBreakpoint;
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -65,8 +67,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               // Header
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final headerIsDesktop =
-                      constraints.maxWidth >= _desktopBreakpoint;
+                  final headerIsDesktop = isDesktop &&
+                      constraints.maxWidth >= _desktopContentBreakpoint;
 
                   const titleBlock = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +159,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     ),
                   ];
 
-                  if (constraints.maxWidth >= _desktopBreakpoint) {
+                  if (isDesktop &&
+                      constraints.maxWidth >= _desktopContentBreakpoint) {
                     return Row(
                       children: [
                         for (int i = 0; i < cards.length; i++) ...[
@@ -186,8 +189,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               // Filters Row
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final isDesktopFilters =
-                      constraints.maxWidth >= _desktopBreakpoint;
+                  final isDesktopFilters = isDesktop &&
+                      constraints.maxWidth >= _desktopContentBreakpoint;
 
                   final searchField = TextField(
                     controller: _searchController,
@@ -275,7 +278,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               // Users Table
               LayoutBuilder(
                 builder: (context, constraints) {
-                  return _buildUsersTable(provider, constraints.maxWidth);
+                  return _buildUsersTable(
+                    provider,
+                    constraints.maxWidth,
+                    isDesktop,
+                  );
                 },
               ),
 
@@ -363,7 +370,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }).join(' ');
   }
 
-  Widget _buildUsersTable(UserProvider provider, double availableWidth) {
+  Widget _buildUsersTable(
+    UserProvider provider,
+    double availableWidth,
+    bool isDesktopViewport,
+  ) {
     if (provider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
@@ -432,7 +443,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       );
     }
 
-    if (_useCompactUserCards(availableWidth)) {
+    if (_useCompactUserCards(availableWidth, isDesktopViewport)) {
       return Column(
         children: users
             .map((user) => Padding(

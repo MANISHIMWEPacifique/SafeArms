@@ -24,7 +24,8 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   FirearmModel? _selectedFirearmForDetail;
   FirearmModel? _firearmToEdit;
 
-  static const double _desktopLayoutBreakpoint = 1024;
+  static const double _desktopLayoutBreakpoint = 900;
+  static const double _desktopContentBreakpoint = _desktopLayoutBreakpoint - 48;
   static const double _tabletGridBreakpoint = 1200;
 
   bool get _isInvestigator {
@@ -168,6 +169,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 700;
+        final isCompactDesktop = constraints.maxWidth < 1000;
         return Container(
           decoration: const BoxDecoration(
             color: Color(0xFF252A3A),
@@ -246,55 +248,62 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 )
               : Row(
                   children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          hasNationalAccess
-                              ? 'National Firearms Registry'
-                              : 'Unit Firearms Inventory',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Text(
-                              hasNationalAccess
-                                  ? 'Home / Firearms'
-                                  : 'Unit / Firearms',
-                              style: const TextStyle(
-                                  color: Color(0xFF78909C), fontSize: 14),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hasNationalAccess
+                                ? 'National Firearms Registry'
+                                : 'Unit Firearms Inventory',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
-                            if (isInvestigator) ...[
-                              const SizedBox(width: 12),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF42A5F5)
-                                      .withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  'Read-Only',
-                                  style: TextStyle(
-                                      color: Color(0xFF42A5F5),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  hasNationalAccess
+                                      ? 'Home / Firearms'
+                                      : 'Unit / Firearms',
+                                  style: const TextStyle(
+                                      color: Color(0xFF78909C), fontSize: 14),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              if (isInvestigator) ...[
+                                const SizedBox(width: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF42A5F5)
+                                        .withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'Read-Only',
+                                    style: TextStyle(
+                                        color: Color(0xFF42A5F5),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
                             ],
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const Spacer(),
                     Container(
-                      width: 300,
+                      width: isCompactDesktop ? 220 : 300,
                       height: 40,
                       decoration: BoxDecoration(
                         color: const Color(0xFF2A3040),
@@ -325,8 +334,9 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                           _showRegisterModal = true;
                         }),
                         icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Register Firearm',
-                            style: TextStyle(
+                        label: Text(
+                            isCompactDesktop ? 'Register' : 'Register Firearm',
+                            style: const TextStyle(
                                 fontSize: 15, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E88E5),
@@ -354,7 +364,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
       padding: const EdgeInsets.all(20),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isTablet = constraints.maxWidth < _desktopLayoutBreakpoint;
+          final isTablet = constraints.maxWidth < _desktopContentBreakpoint;
           final dropdowns = [
             _buildFilterDropdown(
               label: 'Status',
@@ -527,7 +537,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= _desktopLayoutBreakpoint;
+        final isDesktop = constraints.maxWidth >= _desktopContentBreakpoint;
 
         if (isDesktop) {
           return Container(
@@ -1053,7 +1063,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= _desktopLayoutBreakpoint;
+        final isDesktop = constraints.maxWidth >= _desktopContentBreakpoint;
 
         if (isDesktop) {
           return Column(
@@ -1116,7 +1126,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.8)),
                     ),
-                    SizedBox(width: 80),
+                    SizedBox(width: 160),
                   ],
                 ),
               ),
@@ -1378,7 +1388,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             ),
             // Actions
             SizedBox(
-              width: 120,
+              width: 160,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [

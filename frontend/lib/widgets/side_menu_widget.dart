@@ -30,74 +30,73 @@ class SideMenuWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 260,
-      decoration: const BoxDecoration(
-        color: Color(0xFF252A3A),
-        border: Border(right: BorderSide(color: Color(0xFF37404F), width: 1)),
-      ),
-      child: Column(
-        children: [
-          // Logo / Title
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Color(0xFF37404F), width: 1),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.shield_outlined,
-                    color: Colors.white, size: 28),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (subtitle != null)
-                      Text(
-                        subtitle!,
-                        style: const TextStyle(
-                          color: Color(0xFF78909C),
-                          fontSize: 12,
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          // Navigation items
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                final isSelected = index == selectedIndex;
-                return _buildNavItem(
-                    context, item, isSelected, () => onItemSelected(index));
-              },
-            ),
-          ),
-          // Logout button
-          if (onLogout != null)
+    return Material(
+      color: const Color(0xFF252A3A),
+      child: Container(
+        width: 260,
+        decoration: const BoxDecoration(
+          border: Border(right: BorderSide(color: Color(0xFF37404F), width: 1)),
+        ),
+        child: Column(
+          children: [
+            // Logo / Title
             Container(
+              padding: const EdgeInsets.all(24),
               decoration: const BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: Color(0xFF37404F), width: 1),
+                  bottom: BorderSide(color: Color(0xFF37404F), width: 1),
                 ),
               ),
-              child: Material(
-                color: Colors.transparent,
+              child: Row(
+                children: [
+                  const Icon(Icons.shield_outlined,
+                      color: Colors.white, size: 28),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (subtitle != null)
+                        Text(
+                          subtitle!,
+                          style: const TextStyle(
+                            color: Color(0xFF78909C),
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Navigation items
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  final isSelected = index == selectedIndex;
+                  return _buildNavItem(
+                      context, item, isSelected, () => onItemSelected(index));
+                },
+              ),
+            ),
+            // Logout button
+            if (onLogout != null)
+              Container(
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Color(0xFF37404F), width: 1),
+                  ),
+                ),
                 child: ListTile(
                   leading: const Icon(
                     Icons.logout,
@@ -111,31 +110,34 @@ class SideMenuWidget extends StatelessWidget {
                   onTap: onLogout,
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildNavItem(
       BuildContext context, NavItem item, bool isSelected, VoidCallback onTap) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: Material(
         color: isSelected
             ? const Color(0xFF1E88E5).withValues(alpha: 0.15)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        border: isSelected
-            ? Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.3))
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: isSelected
+              ? BorderSide(
+                  color: const Color(0xFF1E88E5).withValues(alpha: 0.3),
+                )
+              : BorderSide.none,
+        ),
+        clipBehavior: Clip.antiAlias,
         child: ListTile(
           leading: Icon(
             item.icon,
-            color: isSelected ? const Color(0xFF1E88E5) : const Color(0xFF78909C),
+            color:
+                isSelected ? const Color(0xFF1E88E5) : const Color(0xFF78909C),
             size: 20,
           ),
           title: Text(

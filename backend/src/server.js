@@ -129,6 +129,9 @@ if (!fs.existsSync(firearmUploadsDir)) {
     fs.mkdirSync(firearmUploadsDir, { recursive: true });
 }
 app.use('/uploads/firearms', express.static(firearmUploadsDir, { maxAge: 0, setHeaders: (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate') }));
+app.use('/uploads/firearms', (req, res) => {
+    res.status(404).json({ success: false, message: 'Upload file not found' });
+});
 
 // Static user profile photo uploads
 const userUploadsDir = path.join(__dirname, '../uploads/users');
@@ -136,6 +139,9 @@ if (!fs.existsSync(userUploadsDir)) {
     fs.mkdirSync(userUploadsDir, { recursive: true });
 }
 app.use('/uploads/users', express.static(userUploadsDir, { maxAge: 0, setHeaders: (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate') }));
+app.use('/uploads/users', (req, res) => {
+    res.status(404).json({ success: false, message: 'Upload file not found' });
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {

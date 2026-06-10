@@ -59,7 +59,9 @@ class _ReportsScreenState extends State<ReportsScreen>
     _procurementRequests =
         widget.initialProcurementRequests ?? _procurementRequests;
     if (widget.autoLoad) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _refreshDataIfMounted(),
+      );
     }
   }
 
@@ -69,37 +71,50 @@ class _ReportsScreenState extends State<ReportsScreen>
     super.dispose();
   }
 
+  void _refreshDataIfMounted() {
+    if (!mounted) {
+      return;
+    }
+    _loadData();
+  }
+
   Future<void> _loadData() async {
+    if (!mounted) {
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider?>(context, listen: false);
+    final unitId = authProvider?.currentUser?['unit_id']?.toString();
+    final role = authProvider?.currentUser?['role'] ?? _roleFromType();
+    final status = _filterStatus == 'all' ? null : _filterStatus;
+
     setState(() => _isLoading = true);
     try {
-      final authProvider = Provider.of<AuthProvider?>(context, listen: false);
-      final unitId = authProvider?.currentUser?['unit_id']?.toString();
-      final role = authProvider?.currentUser?['role'] ?? _roleFromType();
-
       final futures = <Future>[];
 
       // Load reports based on role
       if (role == 'station_commander') {
-        futures.add(_reportService.getLossReports(
-            unitId: unitId,
-            status: _filterStatus == 'all' ? null : _filterStatus));
-        futures.add(_reportService.getDestructionRequests(
-            unitId: unitId,
-            status: _filterStatus == 'all' ? null : _filterStatus));
-        futures.add(_reportService.getProcurementRequests(
-            unitId: unitId,
-            status: _filterStatus == 'all' ? null : _filterStatus));
+        futures.add(
+          _reportService.getLossReports(unitId: unitId, status: status),
+        );
+        futures.add(
+          _reportService.getDestructionRequests(unitId: unitId, status: status),
+        );
+        futures.add(
+          _reportService.getProcurementRequests(unitId: unitId, status: status),
+        );
         futures.add(_firearmService.getAllFirearms(unitId: unitId));
       } else {
-        futures.add(_reportService.getLossReports(
-            status: _filterStatus == 'all' ? null : _filterStatus));
-        futures.add(_reportService.getDestructionRequests(
-            status: _filterStatus == 'all' ? null : _filterStatus));
-        futures.add(_reportService.getProcurementRequests(
-            status: _filterStatus == 'all' ? null : _filterStatus));
+        futures.add(_reportService.getLossReports(status: status));
+        futures.add(_reportService.getDestructionRequests(status: status));
+        futures.add(_reportService.getProcurementRequests(status: status));
       }
 
       final results = await Future.wait(futures);
+
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         _lossReports = results[0] as List<Map<String, dynamic>>;
@@ -116,14 +131,16 @@ class _ReportsScreenState extends State<ReportsScreen>
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Error loading data: $e'),
-              backgroundColor: const Color(0xFFE85C5C)),
-        );
+      if (!mounted) {
+        return;
       }
+
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Error loading data: $e'),
+            backgroundColor: const Color(0xFFE85C5C)),
+      );
     }
   }
 
@@ -557,7 +574,7 @@ class _ReportsScreenState extends State<ReportsScreen>
           ],
           onChanged: (value) {
             setState(() => _filterStatus = value!);
-            _loadData();
+            _refreshDataIfMounted();
           },
         ),
       ),
@@ -1101,7 +1118,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                           content: Text('Loss report submitted successfully'),
                           backgroundColor: Color(0xFF3CCB7F)),
                     );
-                    _loadData();
+                    _refreshDataIfMounted();
                   }
                 } catch (e) {
                   if (mounted) {
@@ -1217,7 +1234,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                           content: Text('Destruction request submitted'),
                           backgroundColor: Color(0xFF3CCB7F)),
                     );
-                    _loadData();
+                    _refreshDataIfMounted();
                   }
                 } catch (e) {
                   if (mounted) {
@@ -1271,7 +1288,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                         Text('Procurement requests submitted successfully'),
                     backgroundColor: Color(0xFF3CCB7F)),
               );
-              _loadData();
+              _refreshDataIfMounted();
             }
           } catch (e) {
             if (mounted) {
@@ -1389,7 +1406,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                 : const Color(0xFFE85C5C),
           ),
         );
-        _loadData();
+        _refreshDataIfMounted();
         // Refresh approval badge counts and dashboard stats so navigation
         // back to the dashboard overview reflects the updated state
         context.read<ApprovalProvider>().loadPendingApprovals();
@@ -1500,7 +1517,7 @@ class _ReportsScreenState extends State<ReportsScreen>
             backgroundColor: const Color(0xFF3CCB7F),
           ),
         );
-        _loadData();
+        _refreshDataIfMounted();
         context.read<ApprovalProvider>().loadPendingApprovals();
         context.read<DashboardProvider>().loadDashboardStats();
       }

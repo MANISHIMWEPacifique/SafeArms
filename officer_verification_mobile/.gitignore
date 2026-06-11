@@ -33,6 +33,11 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Local release artifacts are built from source and should not be committed.
+/release/
+*.apk
+*.aab
+
 # Symbolication related
 app.*.symbols
 

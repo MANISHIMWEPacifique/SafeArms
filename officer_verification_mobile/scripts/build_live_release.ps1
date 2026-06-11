@@ -81,20 +81,7 @@ try {
         throw "Expected build output not found: $builtApkPath"
     }
 
-    $releaseDir = Join-Path $projectRoot "release"
-    New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
-
-    $releaseApkPath = Join-Path $releaseDir "safearms-officer-verify-v1.0.0+1-live.apk"
-    Copy-Item -Path $builtApkPath -Destination $releaseApkPath -Force
-
-    $hash = Get-FileHash -Algorithm SHA256 -Path $releaseApkPath
-    $hashLine = "$($hash.Hash.ToLowerInvariant())  $([System.IO.Path]::GetFileName($releaseApkPath))"
-    $hashFilePath = Join-Path $releaseDir "SHA256SUMS.txt"
-    Set-Content -Path $hashFilePath -Value $hashLine
-
     Write-Host "Release APK ready: $builtApkPath"
-    Write-Host "Upload-ready APK: $releaseApkPath"
-    Write-Host "Checksum file: $hashFilePath"
     Write-Host "Using API base URL: $normalizedApiBaseUrl"
     if (-not [string]::IsNullOrWhiteSpace($normalizedDiscoveryUrl)) {
         Write-Host "Using discovery URL: $normalizedDiscoveryUrl"

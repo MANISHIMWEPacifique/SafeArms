@@ -134,7 +134,7 @@ cd officer_verification_mobile
   -DeviceToken "YOUR_DEVICE_TOKEN"
 ```
 
-The script validates the API URL, normalizes the `/api` suffix, and writes a SHA256 checksum file for the upload-ready APK.
+The script validates the API URL, normalizes the `/api` suffix, and writes the release APK to Flutter's build output path.
 
 ## Operator Notes
 
@@ -144,8 +144,6 @@ The script validates the API URL, normalizes the `/api` suffix, and writes a SHA
 
 APK output:
 - build/app/outputs/flutter-apk/app-release.apk
-- release/safearms-officer-verify-v1.0.0+1-live.apk (upload-ready copy)
-- release/SHA256SUMS.txt (integrity check)
 
 ## Direct Install and Link Distribution Standard
 

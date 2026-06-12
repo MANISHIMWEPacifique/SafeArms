@@ -728,6 +728,9 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
   Widget _buildAnomalyList() {
     return Consumer<AnomalyProvider>(
       builder: (context, provider, child) {
+        final role = Provider.of<AuthProvider>(context, listen: false)
+            .currentUser?['role'];
+        final canUseAnomalyActions = role != 'investigator';
         final screenWidth = MediaQuery.of(context).size.width;
         final isDesktopTable = screenWidth >= _anomalyDesktopBreakpoint;
         final isMobileTable = screenWidth < _anomalyMobileBreakpoint;
@@ -880,7 +883,8 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                               _buildHeaderCell('Detected', flex: 2),
                               if (!isMobileTable)
                                 _buildHeaderCell('Status', flex: 1),
-                              _buildHeaderCell('Actions', flex: 1),
+                              if (canUseAnomalyActions)
+                                _buildHeaderCell('Actions', flex: 1),
                             ],
                           ),
                         ),
@@ -894,6 +898,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
                               index,
                               isDesktopTable: isDesktopTable,
                               isMobileTable: isMobileTable,
+                              canUseAnomalyActions: canUseAnomalyActions,
                             ),
                           ),
                         ),
@@ -948,6 +953,7 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
     int index, {
     required bool isDesktopTable,
     required bool isMobileTable,
+    required bool canUseAnomalyActions,
   }) {
     final severity = anomaly['severity'] ?? 'medium';
     final status = anomaly['status'] ?? 'open';
@@ -973,162 +979,167 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
     }
 
     return staggeredItem(
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: index % 2 == 0
-              ? const Color(0xFF2A3040)
-              : const Color(0xFF252A3A),
-          border: const Border(
-            bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+      InkWell(
+        onTap: canUseAnomalyActions ? null : () => _showAnomalyDetails(anomaly),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: index % 2 == 0
+                ? const Color(0xFF2A3040)
+                : const Color(0xFF252A3A),
+            border: const Border(
+              bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: Text(
-                '#${anomaly['anomaly_id']?.toString() ?? 'N/A'}',
-                style: const TextStyle(
-                  color: Color(0xFF1E88E5),
-                  fontSize: 13,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                _formatAnomalyType(anomaly['anomaly_type'] ?? 'Unknown'),
-                style: const TextStyle(
-                  color: Color(0xFFB0BEC5),
-                  fontSize: 13,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: severityColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                  border:
-                      Border.all(color: severityColor.withValues(alpha: 0.3)),
-                ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
                 child: Text(
-                  severity.toUpperCase(),
-                  style: TextStyle(
-                    color: severityColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                  '#${anomaly['anomaly_id']?.toString() ?? 'N/A'}',
+                  style: const TextStyle(
+                    color: Color(0xFF1E88E5),
+                    fontSize: 13,
+                    fontFamily: 'monospace',
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ),
-            ),
-            if (!isMobileTable)
+              Expanded(
+                flex: 2,
+                child: Text(
+                  _formatAnomalyType(anomaly['anomaly_type'] ?? 'Unknown'),
+                  style: const TextStyle(
+                    color: Color(0xFFB0BEC5),
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               Expanded(
                 flex: 1,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF37404F),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: score,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: severityColor,
-                              borderRadius: BorderRadius.circular(3),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: severityColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border:
+                        Border.all(color: severityColor.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    severity.toUpperCase(),
+                    style: TextStyle(
+                      color: severityColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              if (!isMobileTable)
+                Expanded(
+                  flex: 1,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF37404F),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: score,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: severityColor,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      (score * 100).toStringAsFixed(0),
-                      style: TextStyle(
-                        color: severityColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(width: 6),
+                      Text(
+                        (score * 100).toStringAsFixed(0),
+                        style: TextStyle(
+                          color: severityColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+              if (!isMobileTable)
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    anomaly['serial_number'] ?? 'N/A',
+                    style: const TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 13,
                     ),
-                  ],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            if (!isMobileTable)
+              if (!isMobileTable)
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    anomaly['officer_name'] ?? 'N/A',
+                    style: const TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              if (isDesktopTable)
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    anomaly['unit_name'] ?? 'N/A',
+                    style: const TextStyle(
+                      color: Color(0xFFB0BEC5),
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               Expanded(
                 flex: 2,
                 child: Text(
-                  anomaly['serial_number'] ?? 'N/A',
+                  _formatDateTime(anomaly['detected_at']),
                   style: const TextStyle(
-                    color: Color(0xFFB0BEC5),
-                    fontSize: 13,
+                    color: Color(0xFF78909C),
+                    fontSize: 12,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            if (!isMobileTable)
-              Expanded(
-                flex: 2,
-                child: Text(
-                  anomaly['officer_name'] ?? 'N/A',
-                  style: const TextStyle(
-                    color: Color(0xFFB0BEC5),
-                    fontSize: 13,
+              if (!isMobileTable)
+                Expanded(
+                  flex: 1,
+                  child: _buildAnomalyStatusBadge(status),
+                ),
+              if (canUseAnomalyActions)
+                Expanded(
+                  flex: 1,
+                  child: IconButton(
+                    icon: const Icon(Icons.info_outline, size: 18),
+                    color: const Color(0xFF1E88E5),
+                    onPressed: () => _showAnomalyDetails(anomaly),
+                    tooltip: 'View Details',
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            if (isDesktopTable)
-              Expanded(
-                flex: 2,
-                child: Text(
-                  anomaly['unit_name'] ?? 'N/A',
-                  style: const TextStyle(
-                    color: Color(0xFFB0BEC5),
-                    fontSize: 13,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                _formatDateTime(anomaly['detected_at']),
-                style: const TextStyle(
-                  color: Color(0xFF78909C),
-                  fontSize: 12,
-                ),
-              ),
-            ),
-            if (!isMobileTable)
-              Expanded(
-                flex: 1,
-                child: _buildAnomalyStatusBadge(status),
-              ),
-            Expanded(
-              flex: 1,
-              child: IconButton(
-                icon: const Icon(Icons.info_outline, size: 18),
-                color: const Color(0xFF1E88E5),
-                onPressed: () => _showAnomalyDetails(anomaly),
-                tooltip: 'View Details',
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       index,
@@ -1790,6 +1801,10 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
   }
 
   Widget _buildResultsHeaderRow() {
+    final role =
+        Provider.of<AuthProvider>(context, listen: false).currentUser?['role'];
+    final canUseAnomalyActions = role != 'investigator';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
@@ -1797,16 +1812,17 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
           bottom: BorderSide(color: Color(0xFF37404F), width: 1),
         ),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Expanded(flex: 2, child: _SearchTableHeader('ID')),
-          Expanded(flex: 2, child: _SearchTableHeader('Type')),
-          Expanded(flex: 1, child: _SearchTableHeader('Severity')),
-          Expanded(flex: 2, child: _SearchTableHeader('Officer')),
-          Expanded(flex: 2, child: _SearchTableHeader('Unit')),
-          Expanded(flex: 2, child: _SearchTableHeader('Detected')),
-          Expanded(flex: 1, child: _SearchTableHeader('Status')),
-          Expanded(flex: 1, child: _SearchTableHeader('Actions')),
+          const Expanded(flex: 2, child: _SearchTableHeader('ID')),
+          const Expanded(flex: 2, child: _SearchTableHeader('Type')),
+          const Expanded(flex: 1, child: _SearchTableHeader('Severity')),
+          const Expanded(flex: 2, child: _SearchTableHeader('Officer')),
+          const Expanded(flex: 2, child: _SearchTableHeader('Unit')),
+          const Expanded(flex: 2, child: _SearchTableHeader('Detected')),
+          const Expanded(flex: 1, child: _SearchTableHeader('Status')),
+          if (canUseAnomalyActions)
+            const Expanded(flex: 1, child: _SearchTableHeader('Actions')),
         ],
       ),
     );
@@ -1815,84 +1831,103 @@ class _InvestigationSearchPanelState extends State<_InvestigationSearchPanel> {
   Widget _buildResultRow(Map<String, dynamic> anomaly, int index) {
     final severity = anomaly['severity']?.toString() ?? 'medium';
     final status = anomaly['status']?.toString() ?? 'open';
+    final role =
+        Provider.of<AuthProvider>(context, listen: false).currentUser?['role'];
+    final canUseAnomalyActions = role != 'investigator';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: index.isEven ? const Color(0xFF2A3040) : const Color(0xFF252A3A),
-        border: const Border(
-          bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+    return InkWell(
+      onTap: canUseAnomalyActions
+          ? null
+          : () {
+              showDialog(
+                context: context,
+                barrierColor: Colors.black.withValues(alpha: 0.5),
+                builder: (_) => _AnomalyDetailModal(
+                  anomaly: anomaly,
+                  onActionComplete: () {},
+                ),
+              );
+            },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color:
+              index.isEven ? const Color(0xFF2A3040) : const Color(0xFF252A3A),
+          border: const Border(
+            bottom: BorderSide(color: Color(0xFF37404F), width: 1),
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              '#${anomaly['anomaly_id'] ?? 'N/A'}',
-              style: const TextStyle(
-                color: Color(0xFF1E88E5),
-                fontSize: 13,
-                fontFamily: 'monospace',
+        child: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: Text(
+                '#${anomaly['anomaly_id'] ?? 'N/A'}',
+                style: const TextStyle(
+                  color: Color(0xFF1E88E5),
+                  fontSize: 13,
+                  fontFamily: 'monospace',
+                ),
               ),
             ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              _formatAnomalyType(anomaly['anomaly_type']?.toString() ?? ''),
-              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Expanded(flex: 1, child: _buildSeverityBadge(severity)),
-          Expanded(
-            flex: 2,
-            child: Text(
-              anomaly['officer_name']?.toString() ?? 'N/A',
-              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              anomaly['unit_name']?.toString() ?? 'N/A',
-              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              _formatDateTime(anomaly['event_at'] ?? anomaly['detected_at']),
-              style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Expanded(flex: 1, child: _buildAnomalyStatusBadge(status)),
-          Expanded(
-            flex: 1,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: IconButton(
-                icon: const Icon(Icons.info_outline, size: 18),
-                color: const Color(0xFF1E88E5),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    barrierColor: Colors.black.withValues(alpha: 0.5),
-                    builder: (_) => _AnomalyDetailModal(
-                      anomaly: anomaly,
-                      onActionComplete: () {},
-                    ),
-                  );
-                },
-                tooltip: 'View Details',
+            Expanded(
+              flex: 2,
+              child: Text(
+                _formatAnomalyType(anomaly['anomaly_type']?.toString() ?? ''),
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-        ],
+            Expanded(flex: 1, child: _buildSeverityBadge(severity)),
+            Expanded(
+              flex: 2,
+              child: Text(
+                anomaly['officer_name']?.toString() ?? 'N/A',
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                anomaly['unit_name']?.toString() ?? 'N/A',
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                _formatDateTime(anomaly['event_at'] ?? anomaly['detected_at']),
+                style: const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(flex: 1, child: _buildAnomalyStatusBadge(status)),
+            if (canUseAnomalyActions)
+              Expanded(
+                flex: 1,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.info_outline, size: 18),
+                    color: const Color(0xFF1E88E5),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        barrierColor: Colors.black.withValues(alpha: 0.5),
+                        builder: (_) => _AnomalyDetailModal(
+                          anomaly: anomaly,
+                          onActionComplete: () {},
+                        ),
+                      );
+                    },
+                    tooltip: 'View Details',
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -2087,6 +2122,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
     final role = authProvider.currentUser?['role'] ?? '';
     final isCritical = severity == 'critical';
     final isOpen = status == 'open' || status == 'investigating';
+    final canManageAnomaly = role == 'station_commander';
     final hasExplanation = widget.anomaly['explanation_message'] != null &&
         widget.anomaly['explanation_message'].toString().isNotEmpty;
 
@@ -2107,7 +2143,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
 
     final actionButtons = <Widget>[];
 
-    if (isOpen && role == 'station_commander') {
+    if (isOpen && canManageAnomaly) {
       actionButtons.addAll([
         OutlinedButton.icon(
           onPressed:
@@ -2144,7 +2180,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
       ]);
     }
 
-    if (role == 'station_commander' && status != 'archived') {
+    if (canManageAnomaly && status != 'archived') {
       actionButtons.add(
         OutlinedButton.icon(
           onPressed: _isProcessing ? null : () => _performAction('archive'),
@@ -2190,10 +2226,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isCritical &&
-              isOpen &&
-              !hasExplanation &&
-              role == 'station_commander') ...[
+          if (isCritical && isOpen && !hasExplanation && canManageAnomaly) ...[
             _buildSectionHeader('Explanation Required'),
             const SizedBox(height: 12),
             const Text(
@@ -2310,7 +2343,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
                   widget.anomaly['investigation_notes'].toString()),
           ]),
           const SizedBox(height: 24),
-          if (isOpen) ...[
+          if (isOpen && canManageAnomaly) ...[
             _buildSectionHeader('Investigation Notes'),
             const SizedBox(height: 12),
             TextFormField(

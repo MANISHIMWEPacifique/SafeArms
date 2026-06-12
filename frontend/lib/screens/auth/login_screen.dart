@@ -7,7 +7,6 @@ import '../../providers/auth_provider.dart';
 import '../../utils/app_transitions.dart';
 import 'otp_screen.dart';
 import 'pending_unit_assignment_screen.dart';
-import 'unit_confirmation_screen.dart';
 import 'change_password_screen.dart' deferred as change_password_screen;
 import '../dashboards/admin_dashboard.dart' deferred as admin_dashboard;
 import '../dashboards/hq_commander_dashboard.dart' deferred as hq_dashboard;
@@ -134,8 +133,6 @@ class _LoginScreenState extends State<LoginScreen> {
         case 'station_commander':
           if (authProvider.isStationCommanderPendingUnitAssignment) {
             screen = const PendingUnitAssignmentScreen();
-          } else if (authProvider.requiresUnitConfirmation) {
-            screen = const UnitConfirmationScreen();
           } else {
             await station_dashboard.loadLibrary();
             screen = station_dashboard.StationCommanderDashboard();

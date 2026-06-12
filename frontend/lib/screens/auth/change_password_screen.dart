@@ -8,6 +8,7 @@ import '../dashboards/admin_dashboard.dart';
 import '../dashboards/hq_commander_dashboard.dart';
 import '../dashboards/station_commander_dashboard.dart';
 import '../dashboards/investigator_dashboard.dart';
+import 'pending_unit_assignment_screen.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -106,7 +107,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         screen = const HqCommanderDashboard();
         break;
       case 'station_commander':
-        screen = const StationCommanderDashboard();
+        if (authProvider.isStationCommanderPendingUnitAssignment) {
+          screen = const PendingUnitAssignmentScreen();
+        } else {
+          screen = const StationCommanderDashboard();
+        }
         break;
       case 'investigator':
         screen = const InvestigatorDashboard();

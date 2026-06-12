@@ -60,6 +60,26 @@ class PreferencesService {
   static const bool defaultNotifyApprovals = true;
   static const bool defaultNotifyCustody = false;
 
+  static Map<String, dynamic> defaultServerSettings() {
+    return {
+      'date_format': defaultDateFormat,
+      'time_format': defaultTimeFormat,
+      'items_per_page': defaultItemsPerPage,
+      'session_timeout': defaultSessionTimeout,
+      'anomaly_threshold': defaultAnomalyThreshold,
+      'critical_threshold': defaultCriticalThreshold,
+      'auto_refresh_enabled': defaultAutoRefreshEnabled,
+      'auto_refresh_interval': defaultAutoRefreshInterval,
+      'min_password_length': defaultMinPasswordLength,
+      'otp_validity_minutes': defaultOtpValidity,
+      'max_otp_attempts': defaultMaxOtpAttempts,
+      'enforce_2fa': defaultEnforce2FA,
+      'notify_critical_anomalies': defaultNotifyCritical,
+      'notify_pending_approvals': defaultNotifyApprovals,
+      'notify_custody_changes': defaultNotifyCustody,
+    };
+  }
+
   // ── Getters ────────────────────────────────────────────────
 
   // General

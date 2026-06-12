@@ -78,6 +78,37 @@ class SettingsProvider with ChangeNotifier {
   bool get hasActiveModel => _mlStatus?['active_model'] != null;
   bool get canTrain => _mlStatus?['can_train'] == true;
 
+  int _settingInt(
+    Map<String, dynamic> settings,
+    String key,
+    int fallback,
+  ) {
+    return int.tryParse(settings[key]?.toString() ?? '') ?? fallback;
+  }
+
+  double _settingDouble(
+    Map<String, dynamic> settings,
+    String key,
+    double fallback,
+  ) {
+    return double.tryParse(settings[key]?.toString() ?? '') ?? fallback;
+  }
+
+  bool _settingBool(
+    Map<String, dynamic> settings,
+    String key,
+    bool fallback,
+  ) {
+    final raw = settings[key];
+    if (raw is bool) return raw;
+    if (raw is String) {
+      final normalized = raw.toLowerCase().trim();
+      if (normalized == 'true') return true;
+      if (normalized == 'false') return false;
+    }
+    return fallback;
+  }
+
   // ── Sync to Backend ──────────────────────
   Future<void> _syncToServer() async {
     try {
@@ -150,43 +181,95 @@ class SettingsProvider with ChangeNotifier {
             await _prefs!.setTimeFormat(dbSettings['time_format'].toString());
           }
           if (dbSettings.containsKey('items_per_page')) {
-            await _prefs!.setItemsPerPage(
-                int.tryParse(dbSettings['items_per_page'].toString()) ??
-                    PreferencesService.defaultItemsPerPage);
+            await _prefs!.setItemsPerPage(_settingInt(
+              dbSettings,
+              'items_per_page',
+              PreferencesService.defaultItemsPerPage,
+            ));
           }
           if (dbSettings.containsKey('session_timeout')) {
-            await _prefs!.setSessionTimeout(
-                int.tryParse(dbSettings['session_timeout'].toString()) ??
-                    PreferencesService.defaultSessionTimeout);
+            await _prefs!.setSessionTimeout(_settingInt(
+              dbSettings,
+              'session_timeout',
+              PreferencesService.defaultSessionTimeout,
+            ));
           }
           if (dbSettings.containsKey('min_password_length')) {
-            await _prefs!.setMinPasswordLength(
-                int.tryParse(dbSettings['min_password_length'].toString()) ??
-                    PreferencesService.defaultMinPasswordLength);
+            await _prefs!.setMinPasswordLength(_settingInt(
+              dbSettings,
+              'min_password_length',
+              PreferencesService.defaultMinPasswordLength,
+            ));
           }
           if (dbSettings.containsKey('enforce_2fa')) {
-            await _prefs!.setEnforce2FA(
-                dbSettings['enforce_2fa'].toString().toLowerCase() == 'true');
+            await _prefs!.setEnforce2FA(_settingBool(
+              dbSettings,
+              'enforce_2fa',
+              PreferencesService.defaultEnforce2FA,
+            ));
           }
           if (dbSettings.containsKey('anomaly_threshold')) {
-            await _prefs!.setAnomalyThreshold(
-                double.tryParse(dbSettings['anomaly_threshold'].toString()) ??
-                    PreferencesService.defaultAnomalyThreshold);
+            await _prefs!.setAnomalyThreshold(_settingDouble(
+              dbSettings,
+              'anomaly_threshold',
+              PreferencesService.defaultAnomalyThreshold,
+            ));
           }
           if (dbSettings.containsKey('critical_threshold')) {
-            await _prefs!.setCriticalThreshold(
-                double.tryParse(dbSettings['critical_threshold'].toString()) ??
-                    PreferencesService.defaultCriticalThreshold);
+            await _prefs!.setCriticalThreshold(_settingDouble(
+              dbSettings,
+              'critical_threshold',
+              PreferencesService.defaultCriticalThreshold,
+            ));
+          }
+          if (dbSettings.containsKey('auto_refresh_enabled')) {
+            await _prefs!.setAutoRefreshEnabled(_settingBool(
+              dbSettings,
+              'auto_refresh_enabled',
+              PreferencesService.defaultAutoRefreshEnabled,
+            ));
+          }
+          if (dbSettings.containsKey('auto_refresh_interval')) {
+            await _prefs!.setAutoRefreshInterval(_settingInt(
+              dbSettings,
+              'auto_refresh_interval',
+              PreferencesService.defaultAutoRefreshInterval,
+            ));
           }
           if (dbSettings.containsKey('otp_validity_minutes')) {
-            await _prefs!.setOtpValidityMinutes(
-                int.tryParse(dbSettings['otp_validity_minutes'].toString()) ??
-                    PreferencesService.defaultOtpValidity);
+            await _prefs!.setOtpValidityMinutes(_settingInt(
+              dbSettings,
+              'otp_validity_minutes',
+              PreferencesService.defaultOtpValidity,
+            ));
           }
           if (dbSettings.containsKey('max_otp_attempts')) {
-            await _prefs!.setMaxOtpAttempts(
-                int.tryParse(dbSettings['max_otp_attempts'].toString()) ??
-                    PreferencesService.defaultMaxOtpAttempts);
+            await _prefs!.setMaxOtpAttempts(_settingInt(
+              dbSettings,
+              'max_otp_attempts',
+              PreferencesService.defaultMaxOtpAttempts,
+            ));
+          }
+          if (dbSettings.containsKey('notify_critical_anomalies')) {
+            await _prefs!.setNotifyCriticalAnomalies(_settingBool(
+              dbSettings,
+              'notify_critical_anomalies',
+              PreferencesService.defaultNotifyCritical,
+            ));
+          }
+          if (dbSettings.containsKey('notify_pending_approvals')) {
+            await _prefs!.setNotifyPendingApprovals(_settingBool(
+              dbSettings,
+              'notify_pending_approvals',
+              PreferencesService.defaultNotifyApprovals,
+            ));
+          }
+          if (dbSettings.containsKey('notify_custody_changes')) {
+            await _prefs!.setNotifyCustodyChanges(_settingBool(
+              dbSettings,
+              'notify_custody_changes',
+              PreferencesService.defaultNotifyCustody,
+            ));
           }
         }
       } catch (e) {
@@ -412,6 +495,9 @@ class SettingsProvider with ChangeNotifier {
   // ── Reset to defaults ─────────────────────────────────────
   Future<void> resetToDefaults() async {
     await _prefs?.resetToDefaults();
+    await _settingsService.updateSettings(
+      PreferencesService.defaultServerSettings(),
+    );
     await loadSettings(force: true);
     _successMessage = 'Settings reset to defaults';
     notifyListeners();

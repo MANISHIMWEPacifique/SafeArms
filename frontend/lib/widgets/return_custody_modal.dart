@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/custody_provider.dart';
+import '../utils/duration_formatter.dart';
 
 class ReturnCustodyModal extends StatefulWidget {
   final Map<String, dynamic> custodyRecord;
@@ -427,7 +428,20 @@ class _ReturnCustodyModalState extends State<ReturnCustodyModal> {
                 );
               },
             );
-            if (picked != null) setState(() => _returnDate = picked);
+            if (picked != null) {
+              setState(() {
+                _returnDate = DateTime(
+                  picked.year,
+                  picked.month,
+                  picked.day,
+                  _returnDate.hour,
+                  _returnDate.minute,
+                  _returnDate.second,
+                  _returnDate.millisecond,
+                  _returnDate.microsecond,
+                );
+              });
+            }
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -664,12 +678,6 @@ class _ReturnCustodyModalState extends State<ReturnCustodyModal> {
   }
 
   String _formatDuration(Duration duration) {
-    if (duration.inDays > 0) {
-      return '${duration.inDays} days';
-    } else if (duration.inHours > 0) {
-      return '${duration.inHours} hours';
-    } else {
-      return '${duration.inMinutes} minutes';
-    }
+    return formatOperationalDuration(duration);
   }
 }

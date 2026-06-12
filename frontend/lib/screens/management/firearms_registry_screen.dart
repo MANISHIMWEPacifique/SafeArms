@@ -80,7 +80,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 child: Column(
                   children: [
                     _buildTopNavBar(context, firearmProvider, isAdmin,
-                        hasNationalAccess, isInvestigator),
+                        isHQCommander, hasNationalAccess, isInvestigator),
                     Expanded(
                       child: SingleChildScrollView(
                         child: Padding(
@@ -165,7 +165,10 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   }
 
   Widget _buildTopNavBar(BuildContext context, FirearmProvider provider,
-      bool isAdmin, bool hasNationalAccess, bool isInvestigator) {
+      bool isAdmin,
+      bool isHQCommander,
+      bool hasNationalAccess,
+      bool isInvestigator) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 700;
@@ -199,7 +202,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                             ),
                           ),
                         ),
-                        if (isAdmin)
+                        if (isAdmin || isHQCommander)
                           ElevatedButton.icon(
                             onPressed: () => setState(() {
                               _firearmToEdit = null;
@@ -327,7 +330,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    if (isAdmin)
+                    if (isAdmin || isHQCommander)
                       ElevatedButton.icon(
                         onPressed: () => setState(() {
                           _firearmToEdit = null;

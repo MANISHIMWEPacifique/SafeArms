@@ -17,12 +17,16 @@ const DEFAULT_SETTINGS = {
     timezone: 'Africa/Kigali',
     date_format: 'DD/MM/YYYY',
     time_format: '24-hour',
+    items_per_page: 25,
     session_timeout: 30,
     concurrent_sessions: false,
     remember_me_duration: 7,
     two_factor_required: false,
     password_expiry_days: 90,
     min_password_length: 8,
+    otp_validity_minutes: 5,
+    max_otp_attempts: 3,
+    enforce_2fa: true,
     max_login_attempts: 5,
     lockout_duration: 15,
     auth_rate_limit_window_minutes: 15,
@@ -37,6 +41,11 @@ const DEFAULT_SETTINGS = {
     anomaly_high_threshold: 0.70,
     anomaly_critical_threshold: 0.85,
     anomaly_critical_min_confidence: 0.60,
+    auto_refresh_enabled: true,
+    auto_refresh_interval: 5,
+    notify_critical_anomalies: true,
+    notify_pending_approvals: true,
+    notify_custody_changes: false,
     notification_email: true,
     notification_sms: false
 };
@@ -62,6 +71,114 @@ const toOptionalNumber = (value) => {
     }
 
     return null;
+};
+
+const ENUM_SETTINGS = {
+    date_format: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'],
+    time_format: ['24-hour', '12-hour']
+};
+
+const INTEGER_SETTINGS = {
+    items_per_page: { min: 5, max: 200 },
+    session_timeout: { min: 5, max: 1440 },
+    min_password_length: { min: 8, max: 128 },
+    otp_validity_minutes: { min: 1, max: 60 },
+    max_otp_attempts: { min: 1, max: 10 },
+    auto_refresh_interval: { min: 1, max: 60 }
+};
+
+const NUMBER_SETTINGS = {
+    anomaly_threshold: { min: 0, max: 1 },
+    critical_threshold: { min: 0, max: 1 },
+    anomaly_trigger_threshold: { min: 0, max: 1 },
+    anomaly_medium_threshold: { min: 0, max: 1 },
+    anomaly_high_threshold: { min: 0, max: 1 },
+    anomaly_critical_threshold: { min: 0, max: 1 },
+    anomaly_critical_min_confidence: { min: 0, max: 1 }
+};
+
+const BOOLEAN_SETTINGS = new Set([
+    'enforce_2fa',
+    'auto_refresh_enabled',
+    'notify_critical_anomalies',
+    'notify_pending_approvals',
+    'notify_custody_changes'
+]);
+
+const parseSettingNumber = (value) => (
+    typeof value === 'number'
+        ? value
+        : (typeof value === 'string' && value.trim().length > 0 ? Number.parseFloat(value) : NaN)
+);
+
+const parseSettingBoolean = (value) => {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+    if (normalized === 'true') {
+        return true;
+    }
+    if (normalized === 'false') {
+        return false;
+    }
+
+    return null;
+};
+
+const normalizeKnownSettings = (settings) => {
+    const normalized = { ...settings };
+    const errors = [];
+
+    for (const [key, value] of Object.entries(settings)) {
+        if (ENUM_SETTINGS[key]) {
+            const normalizedValue = typeof value === 'string' ? value.trim() : '';
+            if (ENUM_SETTINGS[key].includes(normalizedValue)) {
+                normalized[key] = normalizedValue;
+            } else {
+                errors.push(`${key} must be one of: ${ENUM_SETTINGS[key].join(', ')}.`);
+            }
+            continue;
+        }
+
+        const integerBounds = INTEGER_SETTINGS[key];
+        if (integerBounds) {
+            const parsed = parseSettingNumber(value);
+            if (Number.isInteger(parsed) && parsed >= integerBounds.min && parsed <= integerBounds.max) {
+                normalized[key] = parsed;
+            } else {
+                errors.push(`${key} must be a whole number between ${integerBounds.min} and ${integerBounds.max}.`);
+            }
+            continue;
+        }
+
+        const numberBounds = NUMBER_SETTINGS[key];
+        if (numberBounds) {
+            const parsed = parseSettingNumber(value);
+            if (Number.isFinite(parsed) && parsed >= numberBounds.min && parsed <= numberBounds.max) {
+                normalized[key] = parsed;
+            } else {
+                errors.push(`${key} must be a number between ${numberBounds.min} and ${numberBounds.max}.`);
+            }
+            continue;
+        }
+
+        if (BOOLEAN_SETTINGS.has(key)) {
+            const parsed = parseSettingBoolean(value);
+            if (parsed === null) {
+                errors.push(`${key} must be true or false.`);
+            } else {
+                normalized[key] = parsed;
+            }
+        }
+    }
+
+    return {
+        isValid: errors.length === 0,
+        errors,
+        normalized
+    };
 };
 
 const validateAnomalyScoringThresholds = (settings) => {
@@ -253,6 +370,17 @@ router.put('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
     const sanitizedSettings = Object.fromEntries(
         Object.entries(settings).filter(([key]) => typeof key === 'string' && key.trim().length > 0)
     );
+
+    const knownSettingsValidation = normalizeKnownSettings(sanitizedSettings);
+    if (!knownSettingsValidation.isValid) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid system settings.',
+            errors: knownSettingsValidation.errors
+        });
+    }
+
+    Object.assign(sanitizedSettings, knownSettingsValidation.normalized);
 
     const updatesThresholdSettings = Object.keys(sanitizedSettings)
         .some((key) => ANOMALY_SCORING_THRESHOLD_KEYS.includes(key));

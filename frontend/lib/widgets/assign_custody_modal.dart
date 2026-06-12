@@ -53,7 +53,6 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
   String? _selectedDurationType;
   final TextEditingController _reasonController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-  DateTime? _expectedReturnDate;
 
   @override
   void initState() {
@@ -186,7 +185,7 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
       officerId: _selectedOfficerId!,
       custodyType: _custodyType,
       assignmentReason: _reasonController.text.trim(),
-      expectedReturnDate: _expectedReturnDate,
+      expectedReturnDate: null,
       durationType: _custodyType == 'temporary' ? _selectedDurationType : null,
       notes: _notesController.text.trim(),
       verificationDeviceKey: _deviceResolution?.deviceKey,
@@ -750,7 +749,6 @@ class _AssignCustodyModalState extends State<AssignCustodyModal> {
                   onTap: () {
                     setState(() {
                       _selectedDurationType = type;
-                      _expectedReturnDate = _computeExpectedReturn();
                     });
                   },
                   child: Container(

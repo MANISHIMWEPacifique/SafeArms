@@ -309,10 +309,10 @@ const BallisticProfile = {
 
         addFilter({
             value: test_location,
-            condition: (param) => `bp.test_location ILIKE $${param}`,
+            condition: (param) => `(u.location ILIKE $${param} OR u.district ILIKE $${param} OR u.province ILIKE $${param} OR u.unit_name ILIKE $${param})`,
             paramValue: (value) => `%${value}%`,
-            score: 5,
-            label: 'Test location'
+            score: 15,
+            label: 'Recovery Location'
         });
 
         addFilter({

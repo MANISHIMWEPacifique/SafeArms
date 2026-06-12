@@ -2,6 +2,7 @@ const { query, withTransaction } = require('../config/database');
 const logger = require('../utils/logger');
 const { detectAnomaly, recordOverdueAnomaly } = require('../ml/anomalyDetector');
 const CustodyRecord = require('../models/CustodyRecord');
+const { AppError } = require('../middleware/errorHandler');
 
 /**
  * Custody Management Service
@@ -24,6 +25,19 @@ const DURATION_TYPE_HOURS = {
     '8_hours': 8,
     '12_hours': 12,
     '1_day': 24
+};
+
+const getDurationHours = (durationType) => DURATION_TYPE_HOURS[durationType] || null;
+
+const addHours = (date, hours) => new Date(date.getTime() + hours * 60 * 60 * 1000);
+
+const computeExpectedReturnDate = (assignmentTime, durationType) => {
+    const durationHours = getDurationHours(durationType);
+    if (!durationHours) {
+        return null;
+    }
+
+    return addHours(assignmentTime, durationHours).toISOString();
 };
 
 const ANOMALY_RETRY_DELAYS_MS = [0, 1500, 5000];
@@ -107,18 +121,22 @@ const runCustodyListQuery = async ({ whereClause, params, paramCount, limit, off
     return result.rows;
 };
 
-const normalizeExpectedReturnDate = (value) => {
+const normalizeDateValue = (value, fieldName) => {
     if (!value) {
         return null;
     }
 
     const parsed = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(parsed.getTime())) {
-        throw new Error('Invalid expected_return_date value');
+        throw new AppError(`Invalid ${fieldName} value`, 400);
     }
 
     return parsed.toISOString();
 };
+
+const normalizeExpectedReturnDate = (value) => normalizeDateValue(value, 'expected_return_date');
+
+const normalizeReturnDate = (value) => normalizeDateValue(value, 'return_date');
 
 const generateCustodyId = async (client) => {
     // Transaction-scoped advisory lock prevents duplicate MAX+1 IDs under concurrent requests.
@@ -227,15 +245,24 @@ const assignCustody = async (custodyData) => {
 
             const custodyId = await generateCustodyId(client);
 
-            // Compute expected_return_date from duration_type for temporary custody
+            // Compute expected_return_date from duration_type for temporary custody.
+            // Use PostgreSQL transaction time so backend/database time remains authoritative.
+            const nowResult = await client.query('SELECT CURRENT_TIMESTAMP AS assignment_time');
+            const assignmentTime = new Date(nowResult.rows[0].assignment_time);
             let computedExpectedReturn = normalizeExpectedReturnDate(expected_return_date);
-            const validDurationType = (custody_type === 'temporary' && duration_type && DURATION_TYPE_HOURS[duration_type]) ? duration_type : null;
+            let validDurationType = null;
 
-            if (custody_type === 'temporary' && validDurationType && !computedExpectedReturn) {
-                const hours = DURATION_TYPE_HOURS[validDurationType];
-                const returnDate = new Date();
-                returnDate.setHours(returnDate.getHours() + hours);
-                computedExpectedReturn = returnDate.toISOString();
+            if (custody_type === 'temporary') {
+                const durationHours = getDurationHours(duration_type);
+                if (!durationHours) {
+                    throw new AppError('A valid duration_type is required for temporary custody', 400);
+                }
+
+                validDurationType = duration_type;
+
+                if (!computedExpectedReturn) {
+                    computedExpectedReturn = computeExpectedReturnDate(assignmentTime, validDurationType);
+                }
             }
 
             // Create custody record
@@ -325,7 +352,7 @@ const assignCustody = async (custodyData) => {
  * @returns {Promise<Object>}
  */
 const returnCustody = async (custodyId, returnData) => {
-    const { returned_to, return_condition, notes } = returnData;
+    const { returned_to, return_condition, notes, return_date } = returnData;
     
     // Ensure notes is null if undefined (PostgreSQL needs explicit null)
     const safeNotes = notes !== undefined ? notes : null;
@@ -348,19 +375,28 @@ const returnCustody = async (custodyId, returnData) => {
                 throw new Error('Custody already returned');
             }
 
+            const normalizedReturnDate = normalizeReturnDate(return_date);
+            if (normalizedReturnDate) {
+                const issuedAt = new Date(custody.issued_at);
+                const returnedAt = new Date(normalizedReturnDate);
+                if (returnedAt < issuedAt) {
+                    throw new AppError('return_date cannot be before custody issued_at', 400);
+                }
+            }
+
             // Update custody record with return information
             const result = await client.query(
                 `UPDATE custody_records 
-         SET returned_at = CURRENT_TIMESTAMP,
-             returned_to = $1,
-             return_condition = $2,
+         SET returned_at = COALESCE($1::timestamp, CURRENT_TIMESTAMP),
+             returned_to = $2,
+             return_condition = $3,
              notes = CASE 
-               WHEN $3::TEXT IS NOT NULL THEN CONCAT(COALESCE(notes, ''), ' | Return: ', $3::TEXT)
+               WHEN $4::TEXT IS NOT NULL THEN CONCAT(COALESCE(notes, ''), ' | Return: ', $4::TEXT)
                ELSE notes 
              END
-         WHERE custody_id = $4
+         WHERE custody_id = $5
          RETURNING *`,
-                [returned_to, return_condition, safeNotes, custodyId]
+                [normalizedReturnDate, returned_to, return_condition, safeNotes, custodyId]
             );
 
             const updatedRecord = result.rows[0];
@@ -385,9 +421,9 @@ const returnCustody = async (custodyId, returnData) => {
             // Check if this was an overdue return and generate anomaly
             if (custody.expected_return_date) {
                 const expectedReturn = new Date(custody.expected_return_date);
-                const now = new Date();
-                if (now > expectedReturn) {
-                    const hoursOverdue = (now - expectedReturn) / (1000 * 60 * 60);
+                const actualReturn = updatedRecord.returned_at ? new Date(updatedRecord.returned_at) : new Date();
+                if (actualReturn > expectedReturn) {
+                    const hoursOverdue = (actualReturn - expectedReturn) / (1000 * 60 * 60);
                     const { classifyOverdueSeverity } = require('../jobs/overdueDetection.job');
                     const severity = classifyOverdueSeverity(hoursOverdue);
 

@@ -293,7 +293,7 @@ router.get('/:id/stats', authenticate, requireCommander, asyncHandler(async (req
     res.json({ success: true, data: stats });
 }));
 
-router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandler(async (req, res) => {
+router.post('/', authenticate, requireRole([ROLES.ADMIN, ROLES.HQ_COMMANDER]), logCreate, asyncHandler(async (req, res) => {
     const { assigned_unit_id, ballistic_profile } = req.body;
     
     // Validate that unit_id is provided - firearms must be assigned to a unit at registration
@@ -344,29 +344,30 @@ router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandl
         let createdProfile = null;
         
         // If ballistic profile data is provided, create it
-        if (ballistic_profile && (
-            ballistic_profile.rifling_characteristics ||
-            ballistic_profile.firing_pin_impression ||
-            ballistic_profile.ejector_marks ||
-            ballistic_profile.extractor_marks
-        )) {
+        if (ballistic_profile && Object.keys(ballistic_profile).length > 0) {
             // Generate ballistic_id
             const bpIdResult = await client.query(`SELECT COALESCE(MAX(CAST(SUBSTRING(ballistic_id FROM 4) AS INTEGER)), 0) as max_num FROM ballistic_profiles WHERE ballistic_id ~ '^BP-[0-9]+$'`);
             const bpNextNum = parseInt(bpIdResult.rows[0].max_num) + 1;
             const ballistic_id = `BP-${String(bpNextNum).padStart(3, '0')}`;
 
+            ballistic_profile.firearm_id = firearm.firearm_id;
+            ballistic_profile.test_date = ballistic_profile.test_date || new Date().toISOString().split('T')[0];
+            const registrationHash = BallisticProfile.generateRegistrationHash(ballistic_profile);
+
             const profileInsert = `
                 INSERT INTO ballistic_profiles (
-                    ballistic_id, firearm_id, rifling_characteristics, firing_pin_impression,
-                    ejector_marks, extractor_marks, chamber_marks,
+                    ballistic_id, firearm_id, test_date, test_location, rifling_characteristics,
+                    firing_pin_impression, ejector_marks, extractor_marks, chamber_marks,
                     test_ammunition, test_conducted_by, forensic_lab, notes,
-                    created_by
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    created_by, is_locked, locked_at, locked_by, registration_hash
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, CURRENT_TIMESTAMP, $14, $15)
                 RETURNING *
             `;
             const profileValues = [
                 ballistic_id,
                 firearm.firearm_id,
+                ballistic_profile.test_date,
+                ballistic_profile.test_location || null,
                 ballistic_profile.rifling_characteristics || null,
                 ballistic_profile.firing_pin_impression || null,
                 ballistic_profile.ejector_marks || null,
@@ -376,7 +377,8 @@ router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandl
                 ballistic_profile.test_conducted_by || null,
                 ballistic_profile.forensic_lab || null,
                 ballistic_profile.notes || null,
-                req.user.user_id
+                req.user.user_id,
+                registrationHash
             ];
             
             const profileResult = await client.query(profileInsert, profileValues);
@@ -393,7 +395,7 @@ router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandl
     });
 }));
 
-router.put('/:id', authenticate, requireRole([ROLES.ADMIN, ROLES.STATION_COMMANDER]), requireUnitAccess, logUpdate, asyncHandler(async (req, res) => {
+router.put('/:id', authenticate, requireRole([ROLES.ADMIN, ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER]), requireUnitAccess, logUpdate, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
     
     // Station commanders can only update firearms in their own unit

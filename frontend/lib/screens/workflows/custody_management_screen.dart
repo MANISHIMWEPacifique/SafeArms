@@ -9,6 +9,7 @@ import '../../widgets/return_custody_modal.dart';
 import '../../widgets/filter_dropdown_widget.dart';
 import '../../widgets/empty_state_widget.dart';
 import '../../widgets/custody_verification_badge.dart';
+import '../../utils/duration_formatter.dart';
 
 class CustodyManagementScreen extends StatefulWidget {
   const CustodyManagementScreen({super.key});
@@ -352,17 +353,28 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
       return _buildEmptyState();
     }
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.9,
-      ),
-      itemCount: custodyRecords.length,
-      itemBuilder: (context, index) => _buildCustodyCard(custodyRecords[index]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double width;
+        if (constraints.maxWidth < 600) {
+          width = constraints.maxWidth;
+        } else if (constraints.maxWidth < 900) {
+          width = (constraints.maxWidth - 16) / 2;
+        } else {
+          width = (constraints.maxWidth - 32) / 3;
+        }
+
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: custodyRecords
+              .map((c) => SizedBox(
+                    width: width,
+                    child: _buildCustodyCard(c),
+                  ))
+              .toList(),
+        );
+      },
     );
   }
 
@@ -516,7 +528,7 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
           ),
           const SizedBox(height: 10),
           CustodyVerificationBadge(custody: custody),
-          const Spacer(),
+          const SizedBox(height: 16),
 
           // Action buttons
           Row(
@@ -713,12 +725,6 @@ class _CustodyManagementScreenState extends State<CustodyManagementScreen> {
   }
 
   String _formatDuration(Duration duration) {
-    if (duration.inDays > 0) {
-      return '${duration.inDays} days ${duration.inHours % 24} hours';
-    } else if (duration.inHours > 0) {
-      return '${duration.inHours} hours';
-    } else {
-      return '${duration.inMinutes} minutes';
-    }
+    return formatOperationalDuration(duration);
   }
 }

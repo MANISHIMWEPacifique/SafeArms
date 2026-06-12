@@ -136,7 +136,12 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
     if (_riflingController.text.trim().isNotEmpty ||
         _firingPinController.text.trim().isNotEmpty ||
         _ejectorMarksController.text.trim().isNotEmpty ||
-        _extractorMarksController.text.trim().isNotEmpty) {
+        _extractorMarksController.text.trim().isNotEmpty ||
+        _chamberMarksController.text.trim().isNotEmpty ||
+        _testAmmunitionController.text.trim().isNotEmpty ||
+        _testConductedByController.text.trim().isNotEmpty ||
+        _forensicLabController.text.trim().isNotEmpty ||
+        _ballisticNotesController.text.trim().isNotEmpty) {
       ballisticProfile = {
         'rifling_characteristics': _riflingController.text.trim().isNotEmpty
             ? _riflingController.text.trim()
@@ -402,8 +407,8 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildBasicInfoTab(),
-                    _buildBallisticProfileTab(),
+                    _KeepAliveWrapper(child: _buildBasicInfoTab()),
+                    _KeepAliveWrapper(child: _buildBallisticProfileTab()),
                   ],
                 ),
               ),
@@ -1134,5 +1139,26 @@ class _RegisterFirearmModalState extends State<RegisterFirearmModal>
         ),
       ],
     );
+  }
+}
+
+class _KeepAliveWrapper extends StatefulWidget {
+  final Widget child;
+
+  const _KeepAliveWrapper({required this.child});
+
+  @override
+  State<_KeepAliveWrapper> createState() => _KeepAliveWrapperState();
+}
+
+class _KeepAliveWrapperState extends State<_KeepAliveWrapper>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }

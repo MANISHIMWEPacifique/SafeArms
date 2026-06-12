@@ -557,17 +557,26 @@ class _StationCustodyManagementScreenState
       return _buildEmptyState();
     }
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 380,
-        mainAxisExtent: 360,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: custodyRecords.length,
-      itemBuilder: (context, index) => _buildCustodyCard(custodyRecords[index]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double width;
+        if (constraints.maxWidth < 600) {
+          width = constraints.maxWidth;
+        } else if (constraints.maxWidth < 900) {
+          width = (constraints.maxWidth - 16) / 2;
+        } else {
+          width = (constraints.maxWidth - 32) / 3;
+        }
+
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: custodyRecords.map((c) => SizedBox(
+            width: width,
+            child: _buildCustodyCard(c),
+          )).toList(),
+        );
+      },
     );
   }
 

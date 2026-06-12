@@ -154,12 +154,13 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.currentUser;
 
-    return Container(
-      width: 220,
-      decoration: const BoxDecoration(
-        color: Color(0xFF252A3A),
-        border: Border(right: BorderSide(color: Color(0xFF37404F), width: 1)),
-      ),
+    return Material(
+      color: const Color(0xFF252A3A),
+      child: Container(
+        width: 220,
+        decoration: const BoxDecoration(
+          border: Border(right: BorderSide(color: Color(0xFF37404F), width: 1)),
+        ),
       child: Column(
         children: [
           // Logo Section
@@ -376,7 +377,7 @@ class _HqCommanderDashboardState extends State<HqCommanderDashboard> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildTopNavBar() {

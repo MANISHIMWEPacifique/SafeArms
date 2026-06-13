@@ -142,10 +142,11 @@ class CustodyService {
     }
   }
 
-  // Get ML anomaly detection status
+  // Get active ML anomaly status
   Future<Map<String, dynamic>> getAnomalyStatus() async {
     try {
-      final data = await ApiClient.get('${ApiConfig.custody}/anomalies/today');
+      final data =
+          await ApiClient.get('${ApiConfig.custody}/anomalies/active');
       return data['data'] ?? {'count': 0, 'active': true};
     } catch (e) {
       return {'count': 0, 'active': true};

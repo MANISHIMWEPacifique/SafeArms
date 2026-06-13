@@ -111,11 +111,14 @@ router.get('/stats', authenticate, asyncHandler(async (req, res) => {
     res.json({ success: true, data: result.rows[0] || { active: 0, permanent: 0, temporary: 0, personal: 0, total: 0 } });
 }));
 
-// GET /custody/anomalies/today - Get today's anomaly status for custody
-router.get('/anomalies/today', authenticate, asyncHandler(async (req, res) => {
+const getActiveAnomalyStatus = asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
     
-    let whereClause = "WHERE DATE(a.detected_at) = CURRENT_DATE";
+    let whereClause = `
+        WHERE a.archived_at IS NULL
+        AND COALESCE(a.removed_from_dashboard, false) = false
+        AND a.status != 'archived'
+    `;
     let params = [];
     
     // Station commanders only see their unit's anomalies
@@ -137,7 +140,14 @@ router.get('/anomalies/today', authenticate, asyncHandler(async (req, res) => {
             active: true 
         } 
     });
-}));
+});
+
+// GET /custody/anomalies/active - Get active anomaly status for custody
+router.get('/anomalies/active', authenticate, getActiveAnomalyStatus);
+
+// Backward-compatible alias for older clients. This now returns active anomalies,
+// not today-only detections, to match the custody screen badge.
+router.get('/anomalies/today', authenticate, getActiveAnomalyStatus);
 
 // Assign custody - restricted to unit access
 router.post('/assign', authenticate, requireCommander, logCustodyAssignment, asyncHandler(async (req, res) => {

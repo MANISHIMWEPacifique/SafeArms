@@ -452,7 +452,15 @@ class _StationCommanderDashboardState extends State<StationCommanderDashboard> {
     final firearms = stats?['firearms'];
     final totalFirearms = firearms?['total']?.toString() ?? '0';
     final inCustody = stats?['active_custody']?.toString() ?? '0';
-    final anomalyCount = context.watch<AnomalyProvider>().anomalies.length;
+    
+    final anomaliesData = stats?['anomalies'] as List?;
+    int totalAnomalies = 0;
+    if (anomaliesData != null) {
+      for (var item in anomaliesData) {
+        totalAnomalies += int.tryParse(item['count']?.toString() ?? '0') ?? 0;
+      }
+    }
+    final anomalyCount = totalAnomalies;
 
     return LayoutBuilder(
       builder: (context, constraints) {

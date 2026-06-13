@@ -302,6 +302,27 @@ class AnomalyProvider with ChangeNotifier {
     }
   }
 
+  // Request explanation for an anomaly
+  Future<bool> requestExplanation(String id) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _anomalyService.requestExplanation(id);
+      _invalidateAnomalyCache();
+      _error = null;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Search anomalies for investigation
   Future<void> searchForInvestigation({
     String? unitId,

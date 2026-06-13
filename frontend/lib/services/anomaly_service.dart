@@ -201,6 +201,18 @@ class AnomalyService {
     }
   }
 
+  // Request explanation for an anomaly
+  Future<Map<String, dynamic>> requestExplanation(String id) async {
+    try {
+      final data = await ApiClient.post(
+        '${ApiConfig.anomaliesUrl}/$id/request-explanation',
+      );
+      return data['data'];
+    } catch (e) {
+      throw Exception('Error requesting explanation: $e');
+    }
+  }
+
   // Search anomalies for investigation (by unit and time interval)
   Future<List<Map<String, dynamic>>> searchForInvestigation({
     String? unitId,

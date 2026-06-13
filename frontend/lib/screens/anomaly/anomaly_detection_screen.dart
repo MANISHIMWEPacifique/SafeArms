@@ -1126,7 +1126,19 @@ class _AnomalyDetectionScreenState extends State<AnomalyDetectionScreen> {
               if (!isMobileTable)
                 Expanded(
                   flex: 1,
-                  child: _buildAnomalyStatusBadge(status),
+                  child: Row(
+                    children: [
+                      Expanded(child: _buildAnomalyStatusBadge(status)),
+                      if ((anomaly['explanation_requested'] == true || severity == 'critical') &&
+                          (anomaly['explanation_message'] == null ||
+                              anomaly['explanation_message'].toString().isEmpty))
+                        const Tooltip(
+                          message: 'Explanation Required',
+                          child: Icon(Icons.warning_amber_rounded,
+                              color: Color(0xFFE85C5C), size: 16),
+                        ),
+                    ],
+                  ),
                 ),
               if (canUseAnomalyActions)
                 Expanded(
@@ -2074,6 +2086,9 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
         }
         success = await provider.submitExplanation(anomalyId, message: message);
         break;
+      case 'request_explanation':
+        success = await provider.requestExplanation(anomalyId);
+        break;
       default:
         return;
     }
@@ -2091,6 +2106,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
       'archive':
           'Archived from the active dashboard. It remains available in history and system records.',
       'explanation': 'Explanation submitted successfully',
+      'request_explanation': 'Explanation requested successfully',
     };
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -2123,8 +2139,10 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
     final isCritical = severity == 'critical';
     final isOpen = status == 'open' || status == 'investigating';
     final canManageAnomaly = role == 'station_commander';
+    final isHqOrInvestigator = role == 'hq_firearm_commander' || role == 'investigator';
     final hasExplanation = widget.anomaly['explanation_message'] != null &&
         widget.anomaly['explanation_message'].toString().isNotEmpty;
+    final explanationRequested = widget.anomaly['explanation_requested'] == true;
 
     IconData severityIcon;
     switch (severity) {
@@ -2195,6 +2213,21 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
       );
     }
 
+    if (isHqOrInvestigator && !explanationRequested) {
+      actionButtons.add(
+        OutlinedButton.icon(
+          onPressed: _isProcessing ? null : () => _performAction('request_explanation'),
+          icon: const Icon(Icons.help_outline, size: 18),
+          label: Text(hasExplanation ? 'Ask for Better Explanation' : 'Ask for Explanation'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF42A5F5),
+            side: const BorderSide(color: Color(0xFF37404F)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+      );
+    }
+
     if (_isProcessing) {
       actionButtons.add(
         const Padding(
@@ -2211,6 +2244,8 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
       );
     }
 
+    final showExplanationForm = canManageAnomaly && isOpen && (!hasExplanation || explanationRequested);
+
     return BaseModalWidget(
       width: 700,
       headerTitle: 'Anomaly Details',
@@ -2226,12 +2261,16 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isCritical && isOpen && !hasExplanation && canManageAnomaly) ...[
-            _buildSectionHeader('Explanation Required'),
+          if (showExplanationForm) ...[
+            _buildSectionHeader(hasExplanation ? 'Provide Updated Explanation' : 'Provide Explanation'),
             const SizedBox(height: 12),
-            const Text(
-              'As station commander, you must provide an explanation for this critical anomaly detected in your unit.',
-              style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+            Text(
+              explanationRequested
+                  ? 'HQ has explicitly requested an explanation for this anomaly. Please provide details.'
+                  : (isCritical
+                      ? 'As station commander, you must provide an explanation for this critical anomaly detected in your unit.'
+                      : 'You can optionally provide an explanation for this anomaly detected in your unit.'),
+              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -2239,7 +2278,7 @@ class _AnomalyDetailModalState extends State<_AnomalyDetailModal> {
               maxLines: 4,
               style: const TextStyle(color: Colors.white, fontSize: 13),
               decoration: _inputDecoration(
-                'Explain the circumstances of this anomaly...',
+                hasExplanation ? 'Provide additional or updated details...' : 'Explain the circumstances of this anomaly...',
                 Icons.edit_note,
               ),
             ),

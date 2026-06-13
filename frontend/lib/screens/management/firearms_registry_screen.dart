@@ -80,7 +80,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                 child: Column(
                   children: [
                     _buildTopNavBar(context, firearmProvider, isAdmin,
-                        isHQCommander, hasNationalAccess, isInvestigator),
+                        hasNationalAccess, isInvestigator),
                     Expanded(
                       child: SingleChildScrollView(
                         child: Padding(
@@ -166,7 +166,6 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
 
   Widget _buildTopNavBar(BuildContext context, FirearmProvider provider,
       bool isAdmin,
-      bool isHQCommander,
       bool hasNationalAccess,
       bool isInvestigator) {
     return LayoutBuilder(
@@ -202,7 +201,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                             ),
                           ),
                         ),
-                        if (isAdmin || isHQCommander)
+                        if (isAdmin)
                           ElevatedButton.icon(
                             onPressed: () => setState(() {
                               _firearmToEdit = null;
@@ -330,7 +329,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    if (isAdmin || isHQCommander)
+                    if (isAdmin)
                       ElevatedButton.icon(
                         onPressed: () => setState(() {
                           _firearmToEdit = null;
@@ -1449,6 +1448,9 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
 
   Widget _buildEmptyState(FirearmProvider provider) {
     final isFilteredEmpty = provider.isFilteredEmpty;
+    final role = context.read<AuthProvider>().currentUser?['role'];
+    final canRegisterFirearms = role == 'admin';
+
     return EmptyStateWidget(
       icon: Icons.inventory_2_outlined,
       title: isFilteredEmpty
@@ -1456,7 +1458,9 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
           : 'No firearms found',
       subtitle: isFilteredEmpty
           ? 'Clear search or filters to show the full firearm inventory'
-          : 'Register a new firearm to start building the inventory',
+          : canRegisterFirearms
+              ? 'Register a new firearm to start building the inventory'
+              : 'No firearms are currently available in this inventory',
     );
   }
 

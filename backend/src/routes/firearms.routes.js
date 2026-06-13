@@ -293,7 +293,7 @@ router.get('/:id/stats', authenticate, requireCommander, asyncHandler(async (req
     res.json({ success: true, data: stats });
 }));
 
-router.post('/', authenticate, requireRole([ROLES.ADMIN, ROLES.HQ_COMMANDER]), logCreate, asyncHandler(async (req, res) => {
+router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandler(async (req, res) => {
     const { assigned_unit_id, ballistic_profile } = req.body;
     
     // Validate that unit_id is provided - firearms must be assigned to a unit at registration

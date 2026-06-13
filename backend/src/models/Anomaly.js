@@ -489,6 +489,7 @@ const Anomaly = {
                 SET explanation_message = $3,
                     explanation_by = $2,
                     explanation_date = CURRENT_TIMESTAMP,
+                    explanation_requested = false,
                     status = CASE
                         WHEN status = 'open' THEN 'investigating'
                         ELSE status
@@ -514,6 +515,38 @@ const Anomaly = {
                 anomalyId,
                 actionType: 'ANOMALY_EXPLANATION',
                 payload: { message },
+                client
+            });
+
+            return result.rows[0];
+        });
+
+        if (!anomalyRow) return null;
+        return parseDecimalFields(anomalyRow, ANOMALY_DECIMAL_FIELDS);
+    },
+
+    /**
+     * Request explanation for an anomaly (HQ requests from station commander)
+     */
+    async requestExplanation(anomalyId, userId) {
+        const anomalyRow = await withTransaction(async (client) => {
+            const result = await client.query(`
+                UPDATE anomalies
+                SET explanation_requested = true,
+                    explanation_requested_at = CURRENT_TIMESTAMP,
+                    explanation_requested_by = $2,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE anomaly_id = $1
+                RETURNING *
+            `, [anomalyId, userId]);
+
+            if (result.rows.length === 0) return null;
+
+            await createAnomalyAuditLog({
+                userId,
+                anomalyId,
+                actionType: 'ANOMALY_EXPLANATION_REQUEST',
+                payload: { },
                 client
             });
 

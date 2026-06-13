@@ -208,6 +208,16 @@ router.post('/:id/explanation', authenticate, requireStationDecision, asyncHandl
     res.json({ success: true, data: anomaly });
 }));
 
+// Request explanation from station commander (HQ or Investigator)
+router.post('/:id/request-explanation', authenticate, requireRole([ROLES.HQ_COMMANDER, ROLES.INVESTIGATOR]), asyncHandler(async (req, res) => {
+    const scoped = await getScopedAnomaly(req, res, req.params.id);
+    if (!scoped) return;
+
+    const anomaly = await Anomaly.requestExplanation(req.params.id, req.user.user_id);
+    if (!anomaly) return res.status(404).json({ success: false, message: 'Anomaly not found' });
+    res.json({ success: true, data: anomaly });
+}));
+
 const archiveAnomaly = async (req, res) => {
     const scoped = await getScopedAnomaly(req, res, req.params.id);
     if (!scoped) return;

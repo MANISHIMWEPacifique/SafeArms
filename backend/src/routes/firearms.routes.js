@@ -442,35 +442,36 @@ const deleteFirearmHandler = async (req, res) => {
         return res.status(404).json({ success: false, message: 'Firearm not found' });
     }
 
-    const dependencyCounts = await getFirearmDependencyCounts(req.params.id);
-    const blockingDependencies = Object.entries(dependencyCounts)
-        .filter(([, count]) => Number(count) > 0)
-        .reduce((acc, [table, count]) => {
-            acc[table] = Number(count);
-            return acc;
-        }, {});
-
-    if (Object.keys(blockingDependencies).length > 0) {
-        logger.warn('Firearm delete blocked by dependencies', {
-            firearmId: req.params.id,
-            dependencies: blockingDependencies,
-            userId: req.user?.user_id,
-            role: req.user?.role
-        });
-
-        return res.status(409).json({
-            success: false,
-            message: 'Cannot delete firearm with operational history. Set status to destroyed instead.',
-            code: 'FIREARM_DELETE_BLOCKED',
-            dependencies: blockingDependencies
-        });
-    }
-
     try {
-        const deleted = await query(
-            'DELETE FROM firearms WHERE firearm_id = $1 RETURNING firearm_id, serial_number',
-            [req.params.id]
-        );
+        const deleted = await withTransaction(async (client) => {
+            const firearmId = req.params.id;
+
+            // Delete child dependencies of anomalies
+            await client.query('DELETE FROM anomaly_investigations WHERE anomaly_id IN (SELECT anomaly_id FROM anomalies WHERE firearm_id = $1)', [firearmId]);
+
+            // Delete ML features and anomalies
+            await client.query('DELETE FROM ml_training_features WHERE firearm_id = $1', [firearmId]);
+            await client.query('DELETE FROM anomalies WHERE firearm_id = $1', [firearmId]);
+
+            // Delete ballistic dependencies
+            await client.query('DELETE FROM ballistic_access_logs WHERE firearm_id = $1', [firearmId]);
+            await client.query('DELETE FROM ballistic_profiles WHERE firearm_id = $1', [firearmId]);
+
+            // Delete custody and movements
+            await client.query('DELETE FROM firearm_unit_movements WHERE firearm_id = $1', [firearmId]);
+            await client.query('DELETE FROM custody_records WHERE firearm_id = $1', [firearmId]);
+
+            // Delete workflows
+            await client.query('DELETE FROM loss_reports WHERE firearm_id = $1', [firearmId]);
+            await client.query('DELETE FROM destruction_requests WHERE firearm_id = $1', [firearmId]);
+
+            // Finally delete firearm
+            const result = await client.query(
+                'DELETE FROM firearms WHERE firearm_id = $1 RETURNING firearm_id, serial_number',
+                [firearmId]
+            );
+            return result;
+        });
 
         if (firearm.image_url) {
             const oldFileName = path.basename(firearm.image_url);
@@ -486,13 +487,6 @@ const deleteFirearmHandler = async (req, res) => {
             data: deleted.rows[0]
         });
     } catch (error) {
-        if (error.code === '23503') {
-            return res.status(409).json({
-                success: false,
-                message: 'Cannot delete firearm with operational history. Set status to destroyed instead.',
-                code: 'FIREARM_DELETE_BLOCKED'
-            });
-        }
         throw error;
     }
 };

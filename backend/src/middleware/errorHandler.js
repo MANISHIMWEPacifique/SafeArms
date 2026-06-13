@@ -129,8 +129,13 @@ const errorHandler = (err, req, res, next) => {
 
     if (err.code === '23503') {
         // PostgreSQL foreign key violation
-        statusCode = 400;
-        message = 'Invalid reference. Related record not found.';
+        if (req.method === 'DELETE' || (err.message && err.message.includes('still referenced'))) {
+            statusCode = 409;
+            message = 'Action blocked: This record cannot be deleted because it is still referenced by other operational data. Please remove or reassign dependencies first.';
+        } else {
+            statusCode = 400;
+            message = 'Action blocked: Invalid reference. A related record was not found.';
+        }
     }
 
     if (err.code === '23502') {

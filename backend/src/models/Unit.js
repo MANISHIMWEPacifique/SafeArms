@@ -357,16 +357,12 @@ const Unit = {
 
     async delete(unitId) {
         return await withTransaction(async (client) => {
-            const retainedHistory = await client.query(`
-                SELECT
-                    (SELECT COUNT(*)::int FROM anomalies WHERE unit_id = $1) AS anomaly_count,
-                    (SELECT COUNT(*)::int FROM ml_training_features WHERE unit_id = $1) AS feature_count
-            `, [unitId]);
+            // Delete child dependencies of anomalies
+            await client.query('DELETE FROM anomaly_investigations WHERE anomaly_id IN (SELECT anomaly_id FROM anomalies WHERE unit_id = $1)', [unitId]);
 
-            const history = retainedHistory.rows[0] || {};
-            if ((history.anomaly_count || 0) > 0 || (history.feature_count || 0) > 0) {
-                throw new Error('Unit cannot be hard-deleted because retained anomaly or ML training history exists. Deactivate the unit instead.');
-            }
+            // Delete anomalies and ML features
+            await client.query('DELETE FROM anomalies WHERE unit_id = $1', [unitId]);
+            await client.query('DELETE FROM ml_training_features WHERE unit_id = $1', [unitId]);
 
             // Delete records from tables that reference this unit with NOT NULL constraints
             await client.query('DELETE FROM loss_reports WHERE unit_id = $1', [unitId]);

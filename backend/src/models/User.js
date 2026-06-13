@@ -178,6 +178,23 @@ const User = {
             await client.query('UPDATE users SET created_by = NULL WHERE created_by = $1', [userId]);
 
             // Nullify nullable foreign key references
+            await client.query('UPDATE device_enrollment_pins SET created_by = NULL WHERE created_by = $1', [userId]);
+            await client.query('UPDATE officer_devices SET enrolled_by = NULL WHERE enrolled_by = $1', [userId]);
+            await client.query('UPDATE officer_devices SET revoked_by = NULL WHERE revoked_by = $1', [userId]);
+            await client.query('UPDATE officer_verification_requests SET consumed_by = NULL WHERE consumed_by = $1', [userId]);
+            await client.query('UPDATE system_settings SET updated_by = NULL WHERE updated_by = $1', [userId]);
+            await client.query('UPDATE anomalies SET removed_from_dashboard_by = NULL WHERE removed_from_dashboard_by = $1', [userId]);
+            await client.query('UPDATE anomalies SET archived_by = NULL WHERE archived_by = $1', [userId]);
+            const anomalyExplanationColumn = await client.query(
+                `SELECT 1
+                 FROM information_schema.columns
+                 WHERE table_schema = current_schema()
+                   AND table_name = 'anomalies'
+                   AND column_name = 'explanation_by'`
+            );
+            if (anomalyExplanationColumn.rowCount > 0) {
+                await client.query('UPDATE anomalies SET explanation_by = NULL WHERE explanation_by = $1', [userId]);
+            }
             await client.query('UPDATE ballistic_profiles SET locked_by = NULL WHERE locked_by = $1', [userId]);
             await client.query('UPDATE ballistic_profiles SET created_by = NULL WHERE created_by = $1', [userId]);
             await client.query('UPDATE custody_records SET returned_to = NULL WHERE returned_to = $1', [userId]);

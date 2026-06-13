@@ -979,11 +979,11 @@ const getPendingVerificationRequestsForOfficer = async ({ officerId, deviceKey, 
                 f.manufacturer,
                 f.model,
                 u.unit_name,
-                requester.full_name AS requested_by_name
+                COALESCE(requester.full_name, 'Deleted user') AS requested_by_name
          FROM officer_verification_requests vr
          JOIN firearms f ON f.firearm_id = vr.firearm_id
          JOIN units u ON u.unit_id = vr.unit_id
-         JOIN users requester ON requester.user_id = vr.requested_by
+         LEFT JOIN users requester ON requester.user_id = vr.requested_by
          WHERE vr.officer_id = $1
            AND vr.decision = 'pending'
            AND vr.consumed_at IS NULL
@@ -1186,10 +1186,10 @@ const getVerificationStatus = async ({ verificationId }) => {
     }
 
     const result = await query(
-        `SELECT vr.*, u.unit_name, requester.full_name AS requested_by_name
+        `SELECT vr.*, u.unit_name, COALESCE(requester.full_name, 'Deleted user') AS requested_by_name
          FROM officer_verification_requests vr
          JOIN units u ON u.unit_id = vr.unit_id
-         JOIN users requester ON requester.user_id = vr.requested_by
+         LEFT JOIN users requester ON requester.user_id = vr.requested_by
          WHERE vr.verification_id = $1`,
         [verificationId]
     );

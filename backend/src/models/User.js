@@ -161,165 +161,189 @@ const User = {
 
     /**
      * Delete user (hard delete)
-     * Removes or nullifies all foreign key references before deleting
+     * Deletes dependent operational records and clears nullable references
+     * before deleting the user.
      * Wrapped in a transaction to prevent partial deletions
      */
     async delete(userId) {
         return await withTransaction(async (client) => {
-            await client.query(
-                `
-                WITH admin_replacement AS (
-                    SELECT user_id
-                    FROM users
-                    WHERE role = 'admin' AND user_id != $1
-                    ORDER BY user_id
-                    LIMIT 1
-                ),
-                clear_units AS (
-                    UPDATE units
-                    SET commander_user_id = NULL, commander_name = NULL
-                    WHERE commander_user_id = $1
-                    RETURNING 1
-                ),
-                clear_created_users AS (
-                    UPDATE users
-                    SET created_by = NULL
-                    WHERE created_by = $1 AND user_id != $1
-                    RETURNING 1
-                ),
-                clear_enrollment_pins AS (
-                    UPDATE device_enrollment_pins
-                    SET created_by = NULL
-                    WHERE created_by = $1
-                    RETURNING 1
-                ),
-                clear_officer_devices AS (
-                    UPDATE officer_devices
-                    SET
-                        enrolled_by = CASE WHEN enrolled_by = $1 THEN NULL ELSE enrolled_by END,
-                        revoked_by = CASE WHEN revoked_by = $1 THEN NULL ELSE revoked_by END
-                    WHERE enrolled_by = $1 OR revoked_by = $1
-                    RETURNING 1
-                ),
-                clear_verification_requests AS (
-                    UPDATE officer_verification_requests
-                    SET
-                        requested_by = CASE WHEN requested_by = $1 THEN NULL ELSE requested_by END,
-                        consumed_by = CASE WHEN consumed_by = $1 THEN NULL ELSE consumed_by END
-                    WHERE requested_by = $1 OR consumed_by = $1
-                    RETURNING 1
-                ),
-                clear_verification_events AS (
-                    UPDATE officer_verification_events
-                    SET actor_user_id = NULL
-                    WHERE actor_user_id = $1
-                    RETURNING 1
-                ),
-                clear_settings AS (
-                    UPDATE system_settings
-                    SET updated_by = NULL
-                    WHERE updated_by = $1
-                    RETURNING 1
-                ),
-                clear_anomalies AS (
-                    UPDATE anomalies
-                    SET
-                        removed_from_dashboard_by = CASE WHEN removed_from_dashboard_by = $1 THEN NULL ELSE removed_from_dashboard_by END,
-                        archived_by = CASE WHEN archived_by = $1 THEN NULL ELSE archived_by END,
-                        investigated_by = CASE WHEN investigated_by = $1 THEN NULL ELSE investigated_by END,
-                        explanation_by = CASE WHEN explanation_by = $1 THEN NULL ELSE explanation_by END,
-                        explanation_requested_by = CASE WHEN explanation_requested_by = $1 THEN NULL ELSE explanation_requested_by END
-                    WHERE removed_from_dashboard_by = $1
-                       OR archived_by = $1
-                       OR investigated_by = $1
-                       OR explanation_by = $1
-                       OR explanation_requested_by = $1
-                    RETURNING 1
-                ),
-                clear_ballistic_profiles AS (
-                    UPDATE ballistic_profiles
-                    SET
-                        locked_by = CASE WHEN locked_by = $1 THEN NULL ELSE locked_by END,
-                        created_by = CASE WHEN created_by = $1 THEN NULL ELSE created_by END
-                    WHERE locked_by = $1 OR created_by = $1
-                    RETURNING 1
-                ),
-                clear_custody_records AS (
-                    UPDATE custody_records
-                    SET
-                        returned_to = CASE WHEN returned_to = $1 THEN NULL ELSE returned_to END,
-                        issued_by = CASE WHEN issued_by = $1 THEN (SELECT user_id FROM admin_replacement) ELSE issued_by END
-                    WHERE returned_to = $1 OR issued_by = $1
-                    RETURNING 1
-                ),
-                clear_firearms AS (
-                    UPDATE firearms
-                    SET registered_by = CASE WHEN registered_by = $1 THEN (SELECT user_id FROM admin_replacement) ELSE registered_by END
-                    WHERE registered_by = $1
-                    RETURNING 1
-                ),
-                clear_loss_reviews AS (
-                    UPDATE loss_reports
-                    SET reviewed_by = NULL
-                    WHERE reviewed_by = $1 AND reported_by != $1
-                    RETURNING 1
-                ),
-                clear_destruction_reviews AS (
-                    UPDATE destruction_requests
-                    SET reviewed_by = NULL
-                    WHERE reviewed_by = $1 AND requested_by != $1
-                    RETURNING 1
-                ),
-                clear_procurement_reviews AS (
-                    UPDATE procurement_requests
-                    SET reviewed_by = NULL
-                    WHERE reviewed_by = $1 AND requested_by != $1
-                    RETURNING 1
-                ),
-                delete_anomaly_hides AS (
-                    DELETE FROM anomaly_dashboard_hides
-                    WHERE user_id = $1
-                    RETURNING 1
-                ),
-                delete_anomaly_investigations AS (
-                    DELETE FROM anomaly_investigations
-                    WHERE investigator_id = $1
-                    RETURNING 1
-                ),
-                delete_ballistic_access_logs AS (
-                    DELETE FROM ballistic_access_logs
-                    WHERE accessed_by = $1
-                    RETURNING 1
-                ),
-                delete_audit_logs AS (
-                    DELETE FROM audit_logs
-                    WHERE user_id = $1
-                    RETURNING 1
-                ),
-                delete_loss_reports AS (
-                    DELETE FROM loss_reports
-                    WHERE reported_by = $1
-                    RETURNING 1
-                ),
-                delete_destruction_requests AS (
-                    DELETE FROM destruction_requests
-                    WHERE requested_by = $1
-                    RETURNING 1
-                ),
-                delete_procurement_requests AS (
-                    DELETE FROM procurement_requests
-                    WHERE requested_by = $1
-                    RETURNING 1
-                ),
-                delete_unit_movements AS (
-                    DELETE FROM firearm_unit_movements
-                    WHERE authorized_by = $1
-                    RETURNING 1
-                )
-                SELECT 1
-                `,
-                [userId]
-            );
+            await client.query(`
+                UPDATE units
+                SET commander_user_id = NULL, commander_name = NULL
+                WHERE commander_user_id = $1
+            `, [userId]);
+
+            await client.query(`
+                UPDATE users
+                SET created_by = NULL
+                WHERE created_by = $1 AND user_id != $1
+            `, [userId]);
+
+            await client.query(`
+                UPDATE device_enrollment_pins
+                SET created_by = NULL
+                WHERE created_by = $1
+            `, [userId]);
+
+            await client.query(`
+                UPDATE officer_devices
+                SET
+                    enrolled_by = CASE WHEN enrolled_by = $1 THEN NULL ELSE enrolled_by END,
+                    revoked_by = CASE WHEN revoked_by = $1 THEN NULL ELSE revoked_by END
+                WHERE enrolled_by = $1 OR revoked_by = $1
+            `, [userId]);
+
+            await client.query(`
+                UPDATE officer_verification_requests
+                SET
+                    requested_by = CASE WHEN requested_by = $1 THEN NULL ELSE requested_by END,
+                    consumed_by = CASE WHEN consumed_by = $1 THEN NULL ELSE consumed_by END
+                WHERE requested_by = $1 OR consumed_by = $1
+            `, [userId]);
+
+            await client.query(`
+                UPDATE officer_verification_events
+                SET actor_user_id = NULL
+                WHERE actor_user_id = $1
+            `, [userId]);
+
+            await client.query(`
+                UPDATE system_settings
+                SET updated_by = NULL
+                WHERE updated_by = $1
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM anomaly_investigations
+                WHERE investigator_id = $1
+                   OR anomaly_id IN (
+                        SELECT anomaly_id
+                        FROM anomalies
+                        WHERE firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                           OR custody_record_id IN (
+                                SELECT custody_id
+                                FROM custody_records
+                                WHERE issued_by = $1
+                                   OR returned_to = $1
+                                   OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                           )
+                           OR removed_from_dashboard_by = $1
+                           OR archived_by = $1
+                           OR investigated_by = $1
+                           OR explanation_by = $1
+                           OR explanation_requested_by = $1
+                   )
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM ballistic_access_logs
+                WHERE accessed_by = $1
+                   OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                   OR ballistic_id IN (
+                        SELECT ballistic_id
+                        FROM ballistic_profiles
+                        WHERE created_by = $1
+                           OR locked_by = $1
+                           OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                   )
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM ml_training_features
+                WHERE firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                   OR custody_record_id IN (
+                        SELECT custody_id
+                        FROM custody_records
+                        WHERE issued_by = $1
+                           OR returned_to = $1
+                           OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                   )
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM officer_verification_requests
+                WHERE firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                   OR custody_id IN (
+                        SELECT custody_id
+                        FROM custody_records
+                        WHERE issued_by = $1
+                           OR returned_to = $1
+                           OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                   )
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM anomalies
+                WHERE firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                   OR custody_record_id IN (
+                        SELECT custody_id
+                        FROM custody_records
+                        WHERE issued_by = $1
+                           OR returned_to = $1
+                           OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                   )
+                   OR removed_from_dashboard_by = $1
+                   OR archived_by = $1
+                   OR investigated_by = $1
+                   OR explanation_by = $1
+                   OR explanation_requested_by = $1
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM firearm_unit_movements
+                WHERE authorized_by = $1
+                   OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                   OR custody_record_id IN (
+                        SELECT custody_id
+                        FROM custody_records
+                        WHERE issued_by = $1
+                           OR returned_to = $1
+                           OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+                   )
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM loss_reports
+                WHERE reported_by = $1
+                   OR reviewed_by = $1
+                   OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM destruction_requests
+                WHERE requested_by = $1
+                   OR reviewed_by = $1
+                   OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM procurement_requests
+                WHERE requested_by = $1 OR reviewed_by = $1
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM audit_logs
+                WHERE user_id = $1
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM custody_records
+                WHERE issued_by = $1
+                   OR returned_to = $1
+                   OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM ballistic_profiles
+                WHERE created_by = $1
+                   OR locked_by = $1
+                   OR firearm_id IN (SELECT firearm_id FROM firearms WHERE registered_by = $1)
+            `, [userId]);
+
+            await client.query(`
+                DELETE FROM firearms
+                WHERE registered_by = $1
+            `, [userId]);
 
             const result = await client.query(
                 'DELETE FROM users WHERE user_id = $1 RETURNING user_id',

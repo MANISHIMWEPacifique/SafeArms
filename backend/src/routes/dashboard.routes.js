@@ -16,10 +16,10 @@ const cachedQuery = async (cacheKey, queryStr, params = []) => {
     return result;
 };
 
-const parsedDashboardBatchSize = parseInt(process.env.DASHBOARD_QUERY_BATCH_SIZE || '10', 10);
+const parsedDashboardBatchSize = parseInt(process.env.DASHBOARD_QUERY_BATCH_SIZE || '3', 10);
 const DASHBOARD_QUERY_BATCH_SIZE = Number.isFinite(parsedDashboardBatchSize) && parsedDashboardBatchSize > 0
     ? parsedDashboardBatchSize
-    : 5;
+    : 3;
 
 const executeQueryMapInBatches = async (queries, batchSize = DASHBOARD_QUERY_BATCH_SIZE) => {
     const keys = Object.keys(queries);

@@ -8,13 +8,23 @@ import '../utils/auth_error_utils.dart';
 class BallisticProfileProvider with ChangeNotifier {
   final BallisticProfileService _ballisticProfileService =
       BallisticProfileService();
+  static const Map<String, List<String>> _emptyForensicSearchOptions = {
+    'calibers': [],
+    'riflings': [],
+    'firingPins': [],
+    'chamberFeeds': [],
+    'breechFaces': [],
+  };
 
   // State
   List<Map<String, dynamic>> _profiles = [];
   Map<String, dynamic>? _selectedProfile;
   bool _isLoading = false;
+  bool _isLoadingSearchOptions = false;
   String? _errorMessage;
   Map<String, dynamic> _stats = {};
+  Map<String, List<String>> _forensicSearchOptions =
+      _emptyForensicSearchOptions;
 
   // Filters
   String _firearmTypeFilter = 'all';
@@ -25,8 +35,10 @@ class BallisticProfileProvider with ChangeNotifier {
   List<Map<String, dynamic>> get profiles => _profiles;
   Map<String, dynamic>? get selectedProfile => _selectedProfile;
   bool get isLoading => _isLoading;
+  bool get isLoadingSearchOptions => _isLoadingSearchOptions;
   String? get errorMessage => _errorMessage;
   Map<String, dynamic> get stats => _stats;
+  Map<String, List<String>> get forensicSearchOptions => _forensicSearchOptions;
 
   String get firearmTypeFilter => _firearmTypeFilter;
   String get statusFilter => _statusFilter;
@@ -97,6 +109,32 @@ class BallisticProfileProvider with ChangeNotifier {
       }
 
       debugPrint('Error loading stats: $e');
+    }
+  }
+
+  Future<Map<String, List<String>>> loadForensicSearchOptions({
+    bool forceRefresh = false,
+  }) async {
+    final hasCachedOptions =
+        _forensicSearchOptions.values.any((items) => items.isNotEmpty);
+    if (!forceRefresh && hasCachedOptions) {
+      return _forensicSearchOptions;
+    }
+
+    _isLoadingSearchOptions = true;
+    notifyListeners();
+
+    try {
+      _forensicSearchOptions =
+          await _ballisticProfileService.getSearchOptions();
+      _isLoadingSearchOptions = false;
+      notifyListeners();
+      return _forensicSearchOptions;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoadingSearchOptions = false;
+      notifyListeners();
+      return _forensicSearchOptions;
     }
   }
 
@@ -173,9 +211,58 @@ class BallisticProfileProvider with ChangeNotifier {
     }
   }
 
-  // UPDATE REMOVED - Ballistic profiles are immutable after HQ registration
-  // Profiles can only be created during firearm registration at HQ
-  // This ensures forensic integrity for investigative search and matching
+  Future<bool> updateProfile({
+    required String profileId,
+    DateTime? testDate,
+    String? testLocation,
+    String? riflingCharacteristics,
+    String? firingPinImpression,
+    String? ejectorMarks,
+    String? extractorMarks,
+    String? chamberMarks,
+    String? testConductedBy,
+    String? forensicLab,
+    String? testAmmunition,
+    String? notes,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updatedProfile = await _ballisticProfileService.updateProfile(
+        profileId,
+        testDate: testDate,
+        testLocation: testLocation,
+        riflingCharacteristics: riflingCharacteristics,
+        firingPinImpression: firingPinImpression,
+        ejectorMarks: ejectorMarks,
+        extractorMarks: extractorMarks,
+        chamberMarks: chamberMarks,
+        testConductedBy: testConductedBy,
+        forensicLab: forensicLab,
+        testAmmunition: testAmmunition,
+        notes: notes,
+      );
+
+      if (_selectedProfile?['ballistic_id'] == profileId) {
+        _selectedProfile = updatedProfile;
+      }
+
+      _isLoading = false;
+      notifyListeners();
+
+      await loadProfiles();
+      await loadStats();
+
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
 
   // Forensic search by ballistic characteristics
   // Used by investigators to narrow down firearms based on crime scene evidence

@@ -473,12 +473,12 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                 key: ValueKey("procurement-${req['procurement_id'] ?? index}"),
                 reportId: 'PROC-${req['procurement_id'] ?? 'N/A'}',
                 status: req['status'] ?? 'pending',
-                primaryCodeLabel: 'TYPE',
+                primaryCodeLabel: 'TYPE(S)',
                 primaryCodeValue: req['firearm_type'] ?? 'N/A',
                 dateReported: req['created_at'] != null
                     ? DateTime.parse(req['created_at'])
                     : DateTime.now(),
-                location: 'Qty: ${req['quantity'] ?? 'N/A'}',
+                location: 'Total Qty: ${req['quantity'] ?? 'N/A'}',
                 reportingUnit: req['unit_name'],
                 circumstancesLabel: 'JUSTIFICATION',
                 circumstances: req['justification'] ?? 'N/A',
@@ -492,7 +492,7 @@ class _ApprovalsPortalScreenState extends State<ApprovalsPortalScreen>
                 detailsWidget: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailRow('Quantity Requested',
+                    _buildDetailRow('Total Quantity Requested',
                         req['quantity']?.toString() ?? 'N/A'),
                     _buildDetailRow('Priority', req['priority'] ?? 'Standard'),
                   ],

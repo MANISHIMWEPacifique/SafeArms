@@ -228,29 +228,63 @@ const waitForDatabase = async () => {
     }
 };
 
-const syncAuditLogSequence = async () => {
-    try {
-        await query(`
-            SELECT setval(
-                'audit_logs_id_seq',
-                COALESCE(
-                    (
-                        SELECT MAX(
-                            CAST(
-                                NULLIF(REGEXP_REPLACE(log_id, '[^0-9]', '', 'g'), '')
-                                AS INTEGER
-                            )
+const syncSequence = async ({ sequenceName, tableName, idColumn }) => {
+    const sequenceCheck = await query('SELECT to_regclass($1) AS sequence_name', [sequenceName]);
+    if (!sequenceCheck.rows[0]?.sequence_name) {
+        console.warn(`[WARN] Sequence ${sequenceName} is not available; run the latest migrations`);
+        return;
+    }
+
+    await query(`
+        SELECT setval(
+            $1::regclass,
+            COALESCE(
+                (
+                    SELECT MAX(
+                        CAST(
+                            NULLIF(REGEXP_REPLACE(${idColumn}, '[^0-9]', '', 'g'), '')
+                            AS INTEGER
                         )
-                        FROM audit_logs
-                    ),
-                    0
-                ) + 1,
-                false
-            )
-        `);
-        console.log('[OK] audit_logs_id_seq synchronized');
+                    )
+                    FROM ${tableName}
+                ),
+                0
+            ) + 1,
+            false
+        )
+    `, [sequenceName]);
+    console.log(`[OK] ${sequenceName} synchronized`);
+};
+
+const syncIdSequences = async () => {
+    try {
+        await syncSequence({
+            sequenceName: 'audit_logs_id_seq',
+            tableName: 'audit_logs',
+            idColumn: 'log_id'
+        });
+        await syncSequence({
+            sequenceName: 'firearms_id_seq',
+            tableName: 'firearms',
+            idColumn: 'firearm_id'
+        });
+        await syncSequence({
+            sequenceName: 'ballistic_profiles_id_seq',
+            tableName: 'ballistic_profiles',
+            idColumn: 'ballistic_id'
+        });
+        await syncSequence({
+            sequenceName: 'anomalies_id_seq',
+            tableName: 'anomalies',
+            idColumn: 'anomaly_id'
+        });
+        await syncSequence({
+            sequenceName: 'anomaly_investigations_id_seq',
+            tableName: 'anomaly_investigations',
+            idColumn: 'investigation_id'
+        });
     } catch (error) {
-        console.warn('[WARN] Failed to sync audit_logs_id_seq:', error.message);
+        console.warn('[WARN] Failed to sync ID sequences:', error.message);
     }
 };
 
@@ -264,7 +298,7 @@ const syncAuditLogSequence = async () => {
     try {
         await waitForDatabase();
         console.log('[OK] Database connected successfully');
-        await syncAuditLogSequence();
+        await syncIdSequences();
     } catch (error) {
         console.error('[ERROR] Database connection failed:', error.message);
         console.error('[ERROR] Server will not start without a database connection.');

@@ -9,6 +9,7 @@
     "deploy:smoke": "node src/scripts/deploySmokeCheck.js",
     "reports:smoke": "node src/scripts/smokeGeneratedReports.js",
     "ml:verify": "node src/scripts/verifyMlTrainingHardening.js",
+    "forensic-search:verify": "node src/scripts/verifyForensicSearchNarrowing.js",
     "seed": "node src/scripts/seedDatabase.js",
     "seed:training": "node src/scripts/runTrainingWorkflowSeed.js all",
     "seed:training:baseline": "node src/scripts/runTrainingWorkflowSeed.js baseline",
@@ -18,6 +19,7 @@
     "seed:training:generate": "node src/scripts/generateTrainingData.js all",
     "seed:training:generate:baseline": "node src/scripts/generateTrainingData.js baseline",
     "seed:training:generate:anomalies": "node src/scripts/generateTrainingData.js anomalies",
+    "ballistic:demo-diversity": "node src/scripts/updateBallisticDemoDiversity.js --apply",
     "mobile:seed-demo": "node src/scripts/setupOfficerMobileDemo.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

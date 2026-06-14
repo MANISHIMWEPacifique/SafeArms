@@ -627,8 +627,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
     final availableSamples = _formatInt(mlStatus['available_training_samples']);
     final minimumRequired = _formatInt(mlStatus['minimum_required_samples']);
     final recentDetections = _formatInt(mlStatus['recent_detections']);
-    final falsePositiveRate =
-        _safeString(mlStatus['false_positive_rate'], fallback: '0%');
     final readinessLabel = canTrain ? 'Ready to train' : 'Needs more samples';
 
     final lastRunStatus = _prettyTrainingStatus(
@@ -636,7 +634,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
     final lastRunReason = _safeString(lastRun?['reason'], fallback: '');
 
     final trainHint = canTrain
-        ? 'Ready to train from operational records and extracted features'
+        ? 'Ready to train a fresh model from current custody features'
         : 'Need more operational records before training';
 
     return _buildPanel(
@@ -686,11 +684,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
             'color': canTrain ? _successGreen : _warningAmber,
           },
           {'label': 'Recent detections (30d)', 'value': recentDetections},
-          {
-            'label': 'False positive rate',
-            'value': falsePositiveRate,
-            'color': _warningAmber
-          },
           {
             'label': 'Last training run',
             'value': lastRunStatus,

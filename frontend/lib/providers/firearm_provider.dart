@@ -1,6 +1,8 @@
 // Firearm Provider - State management for firearms registry
 // SafeArms Frontend
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import '../models/firearm_model.dart';
 import '../services/firearm_service.dart';
@@ -238,6 +240,10 @@ class FirearmProvider with ChangeNotifier {
     }
   }
 
+  void _refreshStatsInBackground({String? unitId}) {
+    unawaited(loadStats(unitId: unitId));
+  }
+
   // Register new firearm with optional ballistic profile
   Future<bool> registerFirearm({
     required String serialNumber,
@@ -276,7 +282,7 @@ class FirearmProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      await loadStats(unitId: _activeUnitId);
+      _refreshStatsInBackground(unitId: _activeUnitId);
 
       return true;
     } catch (e) {
@@ -379,7 +385,7 @@ class FirearmProvider with ChangeNotifier {
 
       _isLoading = false;
       notifyListeners();
-      await loadStats(unitId: _activeUnitId);
+      _refreshStatsInBackground(unitId: _activeUnitId);
       return true;
     } catch (e) {
       _errorMessage = e.toString();

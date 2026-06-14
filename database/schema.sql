@@ -451,7 +451,9 @@ CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_unit ON users(unit_id);
+CREATE INDEX idx_users_created_by ON users(created_by) WHERE created_by IS NOT NULL;
 CREATE INDEX idx_units_commander_user ON units(commander_user_id);
+CREATE INDEX idx_system_settings_updated_by ON system_settings(updated_by) WHERE updated_by IS NOT NULL;
 
 -- Officers
 CREATE INDEX idx_officers_number ON officers(officer_number);
@@ -463,6 +465,7 @@ CREATE INDEX idx_firearms_serial ON firearms(serial_number);
 CREATE INDEX idx_firearms_unit ON firearms(assigned_unit_id);
 CREATE INDEX idx_firearms_status ON firearms(current_status);
 CREATE INDEX idx_firearms_type ON firearms(firearm_type);
+CREATE INDEX idx_firearms_registered_by ON firearms(registered_by);
 
 -- Custody Records
 CREATE INDEX idx_custody_firearm ON custody_records(firearm_id);
@@ -471,6 +474,8 @@ CREATE INDEX idx_custody_unit ON custody_records(unit_id);
 CREATE INDEX idx_custody_issued_at ON custody_records(issued_at);
 CREATE INDEX idx_custody_returned_at ON custody_records(returned_at);
 CREATE INDEX idx_custody_firearm_time ON custody_records(firearm_id, issued_at DESC);
+CREATE INDEX idx_custody_issued_by ON custody_records(issued_by);
+CREATE INDEX idx_custody_returned_to ON custody_records(returned_to) WHERE returned_to IS NOT NULL;
 CREATE INDEX idx_custody_duration_type ON custody_records(duration_type) WHERE duration_type IS NOT NULL;
 CREATE INDEX idx_custody_overdue_check ON custody_records(expected_return_date, returned_at)
 WHERE returned_at IS NULL AND expected_return_date IS NOT NULL;
@@ -484,11 +489,17 @@ CREATE INDEX idx_anomalies_status ON anomalies(status);
 CREATE INDEX idx_anomalies_detected_at ON anomalies(detected_at);
 CREATE INDEX idx_anomalies_removed_from_dashboard ON anomalies(removed_from_dashboard);
 CREATE INDEX idx_anomalies_archived_at ON anomalies(archived_at);
+CREATE INDEX idx_anomalies_removed_by ON anomalies(removed_from_dashboard_by) WHERE removed_from_dashboard_by IS NOT NULL;
+CREATE INDEX idx_anomalies_archived_by ON anomalies(archived_by) WHERE archived_by IS NOT NULL;
+CREATE INDEX idx_anomalies_investigated_by ON anomalies(investigated_by) WHERE investigated_by IS NOT NULL;
+CREATE INDEX idx_anomalies_explanation_by ON anomalies(explanation_by) WHERE explanation_by IS NOT NULL;
+CREATE INDEX idx_anomalies_explanation_requested_by ON anomalies(explanation_requested_by) WHERE explanation_requested_by IS NOT NULL;
 
 -- Anomaly Dashboard Hide
 CREATE INDEX idx_anomaly_hides_user ON anomaly_dashboard_hides(user_id);
 CREATE INDEX idx_anomaly_hides_anomaly ON anomaly_dashboard_hides(anomaly_id);
 CREATE INDEX idx_anomaly_hides_hidden_at ON anomaly_dashboard_hides(hidden_at);
+CREATE INDEX idx_anomaly_investigations_investigator ON anomaly_investigations(investigator_id);
 
 -- ML Features
 CREATE INDEX idx_ml_features_officer ON ml_training_features(officer_id);
@@ -503,8 +514,11 @@ CREATE INDEX idx_audit_created ON audit_logs(created_at);
 
 -- Workflows
 CREATE INDEX idx_loss_status ON loss_reports(status);
+CREATE INDEX idx_loss_reports_reviewed_by ON loss_reports(reviewed_by) WHERE reviewed_by IS NOT NULL;
 CREATE INDEX idx_destruction_status ON destruction_requests(status);
+CREATE INDEX idx_destruction_requests_reviewed_by ON destruction_requests(reviewed_by) WHERE reviewed_by IS NOT NULL;
 CREATE INDEX idx_procurement_status ON procurement_requests(status);
+CREATE INDEX idx_procurement_requests_reviewed_by ON procurement_requests(reviewed_by) WHERE reviewed_by IS NOT NULL;
 
 -- Ballistic Access Logs
 CREATE INDEX idx_ballistic_access_ballistic ON ballistic_access_logs(ballistic_id);
@@ -512,12 +526,15 @@ CREATE INDEX idx_ballistic_access_firearm ON ballistic_access_logs(firearm_id);
 CREATE INDEX idx_ballistic_access_user ON ballistic_access_logs(accessed_by);
 CREATE INDEX idx_ballistic_access_type ON ballistic_access_logs(access_type);
 CREATE INDEX idx_ballistic_access_time ON ballistic_access_logs(accessed_at);
+CREATE INDEX idx_ballistic_profiles_created_by ON ballistic_profiles(created_by) WHERE created_by IS NOT NULL;
+CREATE INDEX idx_ballistic_profiles_locked_by ON ballistic_profiles(locked_by) WHERE locked_by IS NOT NULL;
 
 -- Firearm Unit Movements
 CREATE INDEX idx_unit_movements_firearm ON firearm_unit_movements(firearm_id);
 CREATE INDEX idx_unit_movements_from_unit ON firearm_unit_movements(from_unit_id);
 CREATE INDEX idx_unit_movements_to_unit ON firearm_unit_movements(to_unit_id);
 CREATE INDEX idx_unit_movements_date ON firearm_unit_movements(authorization_date);
+CREATE INDEX idx_firearm_unit_movements_authorized_by ON firearm_unit_movements(authorized_by);
 
 -- ============================================
 -- ID GENERATION SEQUENCES & FUNCTIONS
@@ -525,6 +542,9 @@ CREATE INDEX idx_unit_movements_date ON firearm_unit_movements(authorization_dat
 
 -- Sequence-based ID generators for tables whose models don't generate PKs
 CREATE SEQUENCE IF NOT EXISTS firearms_id_seq START 1;
+CREATE SEQUENCE IF NOT EXISTS ballistic_profiles_id_seq START 1;
+CREATE SEQUENCE IF NOT EXISTS anomalies_id_seq START 1;
+CREATE SEQUENCE IF NOT EXISTS anomaly_investigations_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS loss_reports_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS destruction_requests_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS procurement_requests_id_seq START 1;
@@ -534,9 +554,16 @@ CREATE SEQUENCE IF NOT EXISTS ballistic_access_id_seq START 1;
 -- Auto-generate firearm_id if not provided
 CREATE OR REPLACE FUNCTION generate_firearm_id()
 RETURNS TRIGGER AS $$
+DECLARE
+    next_id_number TEXT;
 BEGIN
     IF NEW.firearm_id IS NULL OR NEW.firearm_id = '' THEN
-        NEW.firearm_id := 'FA-' || LPAD(nextval('firearms_id_seq')::TEXT, 3, '0');
+        next_id_number := nextval('firearms_id_seq')::TEXT;
+        NEW.firearm_id := 'FA-' ||
+            CASE
+                WHEN LENGTH(next_id_number) >= 3 THEN next_id_number
+                ELSE LPAD(next_id_number, 3, '0')
+            END;
     END IF;
     RETURN NEW;
 END;

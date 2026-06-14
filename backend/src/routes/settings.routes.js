@@ -673,7 +673,9 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
     const anomalyResult = await query(`
         SELECT 
             COUNT(*) as total,
-            COUNT(*) FILTER (WHERE status = 'false_positive') as false_positives
+            COUNT(*) FILTER (WHERE status = 'false_positive') as false_positives,
+            COUNT(*) FILTER (WHERE status IN ('resolved', 'false_positive', 'acceptable_change')) as reviewed,
+            COUNT(*) FILTER (WHERE status IN ('open', 'pending', 'investigating')) as pending_review
         FROM anomalies
         WHERE detected_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
     `);
@@ -681,11 +683,17 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
     const anomalyStats = anomalyResult.rows[0];
     const totalDetections = parseInt(anomalyStats.total);
     const falsePositives = parseInt(anomalyStats.false_positives);
-    const actualFalsePositiveRate = totalDetections > 0
-        ? falsePositives / totalDetections
+    const reviewedDetections = parseInt(anomalyStats.reviewed);
+    const pendingReview = parseInt(anomalyStats.pending_review);
+    const actualFalsePositiveRate = reviewedDetections > 0
+        ? falsePositives / reviewedDetections
         : null;
 
-    const displayFalsePositiveRate = actualFalsePositiveRate;
+    const falsePositiveRateLabel = reviewedDetections === 0
+        ? 'Awaiting review'
+        : (falsePositives === 0
+            ? 'None confirmed'
+            : `${(actualFalsePositiveRate * 100).toFixed(1)}%`);
     const latestTrainingRun = getLatestTrainingRun();
 
     const generationResult = await query(`
@@ -730,10 +738,12 @@ router.get('/ml-status', authenticate, requireAdmin, asyncHandler(async (req, re
             minimum_required_samples: minimumRequiredSamples,
             can_train: availableSamples >= minimumRequiredSamples,
             recent_detections: totalDetections,
-            false_positive_rate: displayFalsePositiveRate === null
-                ? 'N/A'
-                : (displayFalsePositiveRate * 100).toFixed(1) + '%',
-            false_positive_rate_source: displayFalsePositiveRate === null ? 'no_reviewed_detections' : 'reviewed_anomalies',
+            false_positive_rate: falsePositiveRateLabel,
+            false_positive_rate_value: actualFalsePositiveRate,
+            false_positive_rate_source: reviewedDetections === 0 ? 'awaiting_human_review' : 'reviewed_anomalies',
+            false_positive_reviewed_count: reviewedDetections,
+            false_positive_confirmed_count: falsePositives,
+            pending_review_count: pendingReview,
             last_training_run: latestTrainingRun,
             last_generation_run: lastGenerationRun
         }

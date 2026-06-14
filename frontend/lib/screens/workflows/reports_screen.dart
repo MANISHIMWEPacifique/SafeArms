@@ -799,8 +799,9 @@ class _ReportsScreenState extends State<ReportsScreen>
             statusColor: statusColor,
           ),
           const SizedBox(height: 12),
-          _buildInfoRow('Firearm Type', request['firearm_type'] ?? 'N/A'),
-          _buildInfoRow('Quantity', request['quantity']?.toString() ?? 'N/A'),
+          _buildInfoRow('Firearm Type(s)', request['firearm_type'] ?? 'N/A'),
+          _buildInfoRow(
+              'Total Quantity', request['quantity']?.toString() ?? 'N/A'),
           _buildInfoRow('Justification', request['justification'] ?? 'N/A'),
           _buildInfoRow('Date Requested', createdAt),
           if (!isStation && request['unit_name'] != null)
@@ -1268,24 +1269,50 @@ class _ReportsScreenState extends State<ReportsScreen>
         onSubmit: (List<Map<String, dynamic>> requests, String priority,
             DateTime requiredBy, String justification) async {
           try {
-            final formattedDate = DateFormat('MMM dd, yyyy').format(requiredBy);
-            final combinedJustification =
-                "Required by: $formattedDate\n\n$justification";
+            final requestsByType = <String, int>{};
+            for (final requestItem in requests) {
+              final firearmType = requestItem['type']?.toString().trim() ?? '';
+              final rawQuantity = requestItem['quantity'];
+              final quantity = rawQuantity is int
+                  ? rawQuantity
+                  : int.tryParse(rawQuantity?.toString() ?? '') ?? 0;
 
-            // Loop through each firearm type requested and submit sequentially
-            for (var requestItem in requests) {
-              await _reportService.createProcurementRequest(
-                firearmType: requestItem['type'],
-                quantity: requestItem['quantity'],
-                justification: combinedJustification,
-                priority: priority,
-              );
+              if (firearmType.isNotEmpty && quantity > 0) {
+                requestsByType[firearmType] =
+                    (requestsByType[firearmType] ?? 0) + quantity;
+              }
             }
+
+            if (requestsByType.isEmpty) {
+              throw Exception('Please add at least one firearm type');
+            }
+
+            final formattedDate = DateFormat('MMM dd, yyyy').format(requiredBy);
+            final totalQuantity = requestsByType.values
+                .fold<int>(0, (sum, quantity) => sum + quantity);
+            final typeNames = requestsByType.keys.join(', ');
+            final firearmTypeSummary = requestsByType.length == 1
+                ? requestsByType.keys.single
+                : typeNames.length <= 50
+                    ? typeNames
+                    : 'Mixed firearms (${requestsByType.length} types)';
+            final requestedItems = requestsByType.entries
+                .map((entry) => '${entry.key}: ${entry.value}')
+                .join('\n');
+            final combinedJustification =
+                "Firearms requested:\n$requestedItems\n\nRequired by: $formattedDate\n\n$justification";
+
+            await _reportService.createProcurementRequest(
+              firearmType: firearmTypeSummary,
+              quantity: totalQuantity,
+              justification: combinedJustification,
+              priority: priority,
+            );
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content:
-                        Text('Procurement requests submitted successfully'),
+                    content: Text('Procurement request submitted successfully'),
                     backgroundColor: Color(0xFF3CCB7F)),
               );
               _refreshDataIfMounted();

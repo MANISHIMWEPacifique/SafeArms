@@ -5,6 +5,20 @@ import '../config/api_config.dart';
 import 'api_client.dart';
 
 class BallisticProfileService {
+  List<String> _readStringList(dynamic value) {
+    if (value is! List) return [];
+
+    final seen = <String>{};
+    final items = <String>[];
+    for (final item in value) {
+      final text = item?.toString().trim();
+      if (text != null && text.isNotEmpty && seen.add(text)) {
+        items.add(text);
+      }
+    }
+    return items;
+  }
+
   // Get all ballistic profiles with filters
   Future<List<Map<String, dynamic>>> getAllProfiles({
     String? firearmType,
@@ -87,6 +101,7 @@ class BallisticProfileService {
   // Update existing ballistic profile
   Future<Map<String, dynamic>> updateProfile(
     String profileId, {
+    DateTime? testDate,
     String? testLocation,
     String? riflingCharacteristics,
     String? firingPinImpression,
@@ -100,16 +115,39 @@ class BallisticProfileService {
   }) async {
     try {
       final body = <String, dynamic>{};
-      if (testLocation != null) body['test_location'] = testLocation;
-      if (riflingCharacteristics != null) body['rifling_characteristics'] = riflingCharacteristics;
-      if (firingPinImpression != null) body['firing_pin_impression'] = firingPinImpression;
-      if (ejectorMarks != null) body['ejector_marks'] = ejectorMarks;
-      if (extractorMarks != null) body['extractor_marks'] = extractorMarks;
-      if (chamberMarks != null) body['chamber_marks'] = chamberMarks;
-      if (testConductedBy != null) body['test_conducted_by'] = testConductedBy;
-      if (forensicLab != null) body['forensic_lab'] = forensicLab;
-      if (testAmmunition != null) body['test_ammunition'] = testAmmunition;
-      if (notes != null) body['notes'] = notes;
+      if (testDate != null) {
+        body['test_date'] = testDate.toIso8601String();
+      }
+      if (testLocation != null) {
+        body['test_location'] = testLocation;
+      }
+      if (riflingCharacteristics != null) {
+        body['rifling_characteristics'] = riflingCharacteristics;
+      }
+      if (firingPinImpression != null) {
+        body['firing_pin_impression'] = firingPinImpression;
+      }
+      if (ejectorMarks != null) {
+        body['ejector_marks'] = ejectorMarks;
+      }
+      if (extractorMarks != null) {
+        body['extractor_marks'] = extractorMarks;
+      }
+      if (chamberMarks != null) {
+        body['chamber_marks'] = chamberMarks;
+      }
+      if (testConductedBy != null) {
+        body['test_conducted_by'] = testConductedBy;
+      }
+      if (forensicLab != null) {
+        body['forensic_lab'] = forensicLab;
+      }
+      if (testAmmunition != null) {
+        body['test_ammunition'] = testAmmunition;
+      }
+      if (notes != null) {
+        body['notes'] = notes;
+      }
 
       final data = await ApiClient.put(
         '${ApiConfig.ballisticUrl}/$profileId',
@@ -128,6 +166,25 @@ class BallisticProfileService {
       return data['data'] ?? {};
     } catch (e) {
       throw Exception('Error fetching stats: $e');
+    }
+  }
+
+  // Get recorded ballistic criteria values for forensic search controls
+  Future<Map<String, List<String>>> getSearchOptions() async {
+    try {
+      final data =
+          await ApiClient.get('${ApiConfig.ballisticUrl}/search-options');
+      final options = data['data'] as Map<String, dynamic>? ?? {};
+
+      return {
+        'calibers': _readStringList(options['calibers']),
+        'riflings': _readStringList(options['riflings']),
+        'firingPins': _readStringList(options['firingPins']),
+        'chamberFeeds': _readStringList(options['chamberFeeds']),
+        'breechFaces': _readStringList(options['breechFaces']),
+      };
+    } catch (e) {
+      throw Exception('Error fetching forensic search options: $e');
     }
   }
 

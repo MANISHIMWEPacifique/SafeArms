@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class ResponsiveDashboardScaffold extends StatelessWidget {
+class ResponsiveDashboardScaffold extends StatefulWidget {
   final Widget sideNavigation;
   final Widget topNavigation;
   final Widget mainContent;
@@ -17,22 +17,32 @@ class ResponsiveDashboardScaffold extends StatelessWidget {
   });
 
   @override
+  State<ResponsiveDashboardScaffold> createState() =>
+      _ResponsiveDashboardScaffoldState();
+}
+
+class _ResponsiveDashboardScaffoldState
+    extends State<ResponsiveDashboardScaffold> {
+  final GlobalKey _mainContentKey =
+      GlobalKey(debugLabel: 'responsive-dashboard-main-content');
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= desktopBreakpoint;
+        final isDesktop = constraints.maxWidth >= widget.desktopBreakpoint;
 
         if (isDesktop) {
           return Scaffold(
-            backgroundColor: backgroundColor,
+            backgroundColor: widget.backgroundColor,
             body: Row(
               children: [
-                sideNavigation,
+                widget.sideNavigation,
                 Expanded(
                   child: Column(
                     children: [
-                      topNavigation,
-                      Expanded(child: mainContent),
+                      widget.topNavigation,
+                      Expanded(child: _buildMainContent()),
                     ],
                   ),
                 ),
@@ -44,24 +54,31 @@ class ResponsiveDashboardScaffold extends StatelessWidget {
         // Tablet / compact mode: use drawer for navigation,
         // let content fill available width naturally.
         return Scaffold(
-          backgroundColor: backgroundColor,
+          backgroundColor: widget.backgroundColor,
           drawer: Drawer(
             width: 260,
             backgroundColor: Colors.transparent,
             elevation: 0,
             child: SafeArea(
-              child: sideNavigation,
+              child: widget.sideNavigation,
             ),
           ),
           body: Column(
             children: [
               _CompactMenuBar(),
-              topNavigation,
-              Expanded(child: mainContent),
+              widget.topNavigation,
+              Expanded(child: _buildMainContent()),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMainContent() {
+    return KeyedSubtree(
+      key: _mainContentKey,
+      child: widget.mainContent,
     );
   }
 }

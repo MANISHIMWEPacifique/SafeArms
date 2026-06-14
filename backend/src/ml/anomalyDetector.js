@@ -10,6 +10,7 @@ const {
 const { evaluateRules } = require('./rulesEngine');
 const { sendAnomalyAlert } = require('../services/email.service');
 const { getSystemSettings } = require('../services/systemSettings.service');
+const { nextAnomalyId } = require('../utils/idGenerator');
 const logger = require('../utils/logger');
 
 const SCORING_THRESHOLD_SETTING_KEYS = [
@@ -19,26 +20,11 @@ const SCORING_THRESHOLD_SETTING_KEYS = [
     'anomaly_critical_threshold',
     'anomaly_critical_min_confidence'
 ];
-const ANOMALY_ID_LOCK_KEY = 947215;
-
 const hasValidThresholdOrdering = (thresholds) => (
     thresholds.anomaly_trigger_threshold <= thresholds.anomaly_medium_threshold &&
     thresholds.anomaly_medium_threshold <= thresholds.anomaly_high_threshold &&
     thresholds.anomaly_high_threshold <= thresholds.anomaly_critical_threshold
 );
-
-const generateAnomalyId = async (client) => {
-    await client.query('SELECT pg_advisory_xact_lock($1)', [ANOMALY_ID_LOCK_KEY]);
-
-    const idResult = await client.query(`
-        SELECT COALESCE(MAX(CAST(SUBSTRING(anomaly_id FROM 6) AS INTEGER)), 0) as max_num
-        FROM anomalies
-        WHERE anomaly_id ~ '^ANOM-[0-9]+$'
-    `);
-
-    const nextNum = parseInt(idResult.rows[0].max_num, 10) + 1;
-    return `ANOM-${String(nextNum).padStart(3, '0')}`;
-};
 
 const toOptionalNumber = (value) => {
     if (value === undefined || value === null) {
@@ -239,7 +225,7 @@ const recordAnomaly = async (custodyRecord, features, detectionResult, modelId) 
                 };
             }
 
-            const anomalyId = await generateAnomalyId(client);
+            const anomalyId = await nextAnomalyId(client);
 
             await client.query(`
                 INSERT INTO anomalies (
@@ -473,7 +459,7 @@ const recordOverdueAnomaly = async (overdueRecord, hoursOverdue, severity) => {
         }
 
         const anomaly_id = await withTransaction(async (client) => {
-            const nextAnomalyId = await generateAnomalyId(client);
+            const anomalyId = await nextAnomalyId(client);
 
             await client.query(`
                 INSERT INTO anomalies (
@@ -483,7 +469,7 @@ const recordOverdueAnomaly = async (overdueRecord, hoursOverdue, severity) => {
                     is_mandatory_review, event_context, ballistic_access_context
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             `, [
-                nextAnomalyId,
+                anomalyId,
                 overdueRecord.custody_id,
                 overdueRecord.firearm_id,
                 overdueRecord.officer_id,
@@ -501,7 +487,7 @@ const recordOverdueAnomaly = async (overdueRecord, hoursOverdue, severity) => {
                 JSON.stringify(null) // No ballistic context for overdue
             ]);
 
-            return nextAnomalyId;
+            return anomalyId;
         });
 
         logger.info(`OVERDUE anomaly recorded: ${anomaly_id} (custody: ${overdueRecord.custody_id}, ${daysOverdue}d ${remainingHours}h overdue, severity: ${severity})`);

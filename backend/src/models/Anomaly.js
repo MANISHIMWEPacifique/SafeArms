@@ -1,9 +1,9 @@
 const { query, withTransaction } = require('../config/database');
 const { parseDecimalFields } = require('../utils/helpers');
+const { nextInvestigationId } = require('../utils/idGenerator');
 
 const ANOMALY_DECIMAL_FIELDS = ['anomaly_score', 'confidence_level', 'avg_score'];
 const toBoolean = (value) => value === true || value === 'true';
-const INVESTIGATION_ID_LOCK_KEY = 947214;
 const activeAnomalyCondition = (alias = 'a') => (
     `COALESCE(${alias}.removed_from_dashboard, false) = false ` +
     `AND ${alias}.archived_at IS NULL ` +
@@ -25,17 +25,7 @@ const createInvestigationRecord = async ({
     client
 }) => {
     const executor = getExecutor(client);
-
-    if (client) {
-        await executor.query('SELECT pg_advisory_xact_lock($1)', [INVESTIGATION_ID_LOCK_KEY]);
-    }
-
-    const idResult = await executor.query(`
-        SELECT COALESCE(MAX(CAST(SUBSTRING(investigation_id FROM 5) AS INTEGER)), 0) as max_num
-        FROM anomaly_investigations WHERE investigation_id ~ '^INV-[0-9]+$'
-    `);
-    const nextNum = parseInt(idResult.rows[0].max_num) + 1;
-    const investigationId = `INV-${String(nextNum).padStart(3, '0')}`;
+    const investigationId = await nextInvestigationId(executor);
 
     await executor.query(`
         INSERT INTO anomaly_investigations (investigation_id, anomaly_id, investigator_id, findings, action_taken, outcome)

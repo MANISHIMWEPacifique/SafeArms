@@ -1,6 +1,8 @@
 // User Provider - State management for user management
 // SafeArms Frontend
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
@@ -123,6 +125,10 @@ class UserProvider with ChangeNotifier {
     }
   }
 
+  void _refreshStatsInBackground() {
+    unawaited(loadStats());
+  }
+
   // Create user
   Future<bool> createUser({
     required String username,
@@ -167,8 +173,7 @@ class UserProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      // Reload stats
-      await loadStats();
+      _refreshStatsInBackground();
 
       return true;
     } catch (e) {
@@ -247,8 +252,7 @@ class UserProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      // Reload stats
-      await loadStats();
+      _refreshStatsInBackground();
 
       return true;
     } catch (e) {

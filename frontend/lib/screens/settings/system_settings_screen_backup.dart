@@ -649,11 +649,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen>
           {'label': 'Available records', 'value': '182'},
           {'label': 'Minimum required', 'value': '100'},
           {'label': 'Recent detections (30d)', 'value': '4'},
-          {
-            'label': 'False positive rate',
-            'value': '75.0%',
-            'color': _warningAmber
-          },
         ]),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),

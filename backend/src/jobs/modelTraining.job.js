@@ -29,6 +29,8 @@ let latestTrainingRun = {
     model_id: null,
     training_samples: null,
     prepared_features: null,
+    training_data_fingerprint: null,
+    training_data_summary: null,
     silhouette_score: null,
     outlier_threshold: null
 };
@@ -47,6 +49,8 @@ const runModelTraining = async (options = {}) => {
         model_id: null,
         training_samples: null,
         prepared_features: null,
+        training_data_fingerprint: null,
+        training_data_summary: null,
         silhouette_score: null,
         outlier_threshold: null
     };
@@ -93,6 +97,7 @@ const runModelTraining = async (options = {}) => {
         logger.info(`Training samples: ${result.training_samples}`);
         logger.info(`Silhouette score: ${result.silhouette_score?.toFixed(4)}`);
         logger.info(`Outlier threshold: ${result.outlier_threshold?.toFixed(4)}`);
+        logger.info(`Training fingerprint: ${result.training_data_fingerprint || 'n/a'}`);
 
         const completedResult = {
             success: true,
@@ -103,6 +108,8 @@ const runModelTraining = async (options = {}) => {
             model_id: result.model_id,
             training_samples: result.training_samples,
             prepared_features: result.prepared_features,
+            training_data_fingerprint: result.training_data_fingerprint || null,
+            training_data_summary: result.training_data_summary || null,
             silhouette_score: result.silhouette_score,
             outlier_threshold: result.outlier_threshold,
             started_at: startedAt,
@@ -116,6 +123,8 @@ const runModelTraining = async (options = {}) => {
             model_id: result.model_id,
             training_samples: result.training_samples,
             prepared_features: result.prepared_features,
+            training_data_fingerprint: result.training_data_fingerprint || null,
+            training_data_summary: result.training_data_summary || null,
             silhouette_score: result.silhouette_score,
             outlier_threshold: result.outlier_threshold,
             finished_at: completedResult.finished_at

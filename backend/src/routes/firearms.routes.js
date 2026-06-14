@@ -19,6 +19,7 @@ const { logCreate, logUpdate, logDelete } = require('../middleware/auditLogger')
 const { asyncHandler } = require('../middleware/errorHandler');
 const { query, withTransaction } = require('../config/database');
 const logger = require('../utils/logger');
+const { nextFirearmId, nextBallisticProfileId } = require('../utils/idGenerator');
 
 const firearmUploadsDir = path.join(__dirname, '../../uploads/firearms');
 if (!fs.existsSync(firearmUploadsDir)) {
@@ -305,10 +306,7 @@ router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandl
     }
     
     const result = await withTransaction(async (client) => {
-        // Generate firearm_id
-        const faIdResult = await client.query(`SELECT COALESCE(MAX(CAST(SUBSTRING(firearm_id FROM 4) AS INTEGER)), 0) as max_num FROM firearms WHERE firearm_id ~ '^FA-[0-9]+$'`);
-        const faNextNum = parseInt(faIdResult.rows[0].max_num) + 1;
-        const firearm_id = `FA-${String(faNextNum).padStart(3, '0')}`;
+        const firearm_id = await nextFirearmId(client);
 
         // Create the firearm
         const firearmData = { ...req.body, registered_by: req.user.user_id, registration_level: 'hq' };
@@ -345,10 +343,7 @@ router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandl
         
         // If ballistic profile data is provided, create it
         if (ballistic_profile && Object.keys(ballistic_profile).length > 0) {
-            // Generate ballistic_id
-            const bpIdResult = await client.query(`SELECT COALESCE(MAX(CAST(SUBSTRING(ballistic_id FROM 4) AS INTEGER)), 0) as max_num FROM ballistic_profiles WHERE ballistic_id ~ '^BP-[0-9]+$'`);
-            const bpNextNum = parseInt(bpIdResult.rows[0].max_num) + 1;
-            const ballistic_id = `BP-${String(bpNextNum).padStart(3, '0')}`;
+            const ballistic_id = await nextBallisticProfileId(client);
 
             ballistic_profile.firearm_id = firearm.firearm_id;
             ballistic_profile.test_date = ballistic_profile.test_date || new Date().toISOString().split('T')[0];

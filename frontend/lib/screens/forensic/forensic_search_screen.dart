@@ -36,6 +36,51 @@ class _BallisticSummary {
       remainingCount > 0 ? '$primaryText +$remainingCount more' : primaryText;
 }
 
+class _ForensicSearchFilters {
+  final String? generalSearch;
+  final String? firingPin;
+  final String? caliber;
+  final String? rifling;
+  final String? chamberFeed;
+  final String? breechFace;
+  final String? testLocation;
+  final String? incidentDate;
+
+  const _ForensicSearchFilters({
+    required this.generalSearch,
+    required this.firingPin,
+    required this.caliber,
+    required this.rifling,
+    required this.chamberFeed,
+    required this.breechFace,
+    required this.testLocation,
+    required this.incidentDate,
+  });
+
+  bool get hasAny =>
+      generalSearch != null ||
+      firingPin != null ||
+      caliber != null ||
+      rifling != null ||
+      chamberFeed != null ||
+      breechFace != null ||
+      testLocation != null ||
+      incidentDate != null;
+
+  List<String> get summaryParts {
+    return [
+      if (generalSearch != null) 'General: $generalSearch',
+      if (incidentDate != null) 'Incident: $incidentDate',
+      if (caliber != null) 'Caliber: $caliber',
+      if (firingPin != null) 'Firing pin: $firingPin',
+      if (rifling != null) 'Rifling: $rifling',
+      if (chamberFeed != null) 'Chamber/feed: $chamberFeed',
+      if (breechFace != null) 'Breech face: $breechFace',
+      if (testLocation != null) 'Location: $testLocation',
+    ];
+  }
+}
+
 class ForensicSearchScreen extends StatefulWidget {
   final List<Map<String, dynamic>> initialSearchResults;
   final int? initialTotalResults;
@@ -73,11 +118,13 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
   bool _isSearching = false;
   List<Map<String, dynamic>> _searchResults = [];
   String? _errorMessage;
+  _ForensicSearchFilters? _lastSubmittedFilters;
 
   // Pagination state
   int _currentPage = 1;
   int _totalResults = 0;
   int _totalPages = 0;
+  int _latestSearchRequestId = 0;
   static const int _resultsPerPage = 20;
 
   // Custody timeline state
@@ -90,6 +137,32 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
 
   final ForensicTraceabilityService _traceabilityService =
       ForensicTraceabilityService();
+  static const Map<String, List<String>> _defaultSearchOptions = {
+    'calibers': [
+      '7.62x39mm',
+      '5.56x45mm NATO',
+      '9x19mm Parabellum',
+    ],
+    'riflings': [
+      '4 grooves, right-hand twist, 1:9.5 pitch',
+      '6 grooves, right-hand twist, 1:10 pitch',
+      '6 grooves, right-hand twist, 1:7 pitch',
+    ],
+    'firingPins': [
+      'Circular, centered, 0.82.mm with smooth primer rim',
+      'Rectangular, centered, 1.20mm x 0.80mm with shallow drag tail',
+    ],
+    'chamberFeeds': [
+      'Polygonal chamber with shallow feed-ramp polish',
+      'Stamped receiver marks with diagonal feed-ramp striation',
+    ],
+    'breechFaces': [
+      'Semi-circular ejector mark at 4 o clock, polished edge',
+      'Fine linear extractor mark at 10 o clock',
+    ],
+  };
+  Map<String, List<String>> _searchOptions = _defaultSearchOptions;
+  int _dropdownResetToken = 0;
 
   @override
   void initState() {
@@ -106,6 +179,11 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
     if (widget.initialIncidentDate != null) {
       _incidentDateController.text = widget.initialIncidentDate!;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadSearchOptions();
+      }
+    });
   }
 
   @override
@@ -122,17 +200,72 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
   }
 
   bool get _hasAnyFilter {
-    return _generalSearchController.text.isNotEmpty ||
-        _firingPinController.text.isNotEmpty ||
-        _caliberController.text.isNotEmpty ||
-        _riflingController.text.isNotEmpty ||
-        _chamberFeedController.text.isNotEmpty ||
-        _breechFaceController.text.isNotEmpty ||
-        _testLocationController.text.isNotEmpty ||
-        _incidentDateController.text.isNotEmpty;
+    return _buildSearchFilters().hasAny;
+  }
+
+  String? _normalizedText(TextEditingController controller) {
+    final text = controller.text.trim();
+    return text.isEmpty ? null : text;
+  }
+
+  _ForensicSearchFilters _buildSearchFilters() {
+    return _ForensicSearchFilters(
+      generalSearch: _normalizedText(_generalSearchController),
+      firingPin: _normalizedText(_firingPinController),
+      caliber: _normalizedText(_caliberController),
+      rifling: _normalizedText(_riflingController),
+      chamberFeed: _normalizedText(_chamberFeedController),
+      breechFace: _normalizedText(_breechFaceController),
+      testLocation: _normalizedText(_testLocationController),
+      incidentDate: _normalizedText(_incidentDateController),
+    );
+  }
+
+  Future<void> _loadSearchOptions() async {
+    try {
+      final provider = Provider.of<BallisticProfileProvider>(
+        context,
+        listen: false,
+      );
+      final options = await provider.loadForensicSearchOptions();
+      if (!mounted) return;
+
+      setState(() {
+        _searchOptions = {
+          'calibers': options['calibers'] ?? const [],
+          'riflings': options['riflings'] ?? const [],
+          'firingPins': options['firingPins'] ?? const [],
+          'chamberFeeds': options['chamberFeeds'] ?? const [],
+          'breechFaces': options['breechFaces'] ?? const [],
+        };
+      });
+    } catch (_) {
+      // Some isolated widget tests render this screen without a provider.
+      // Keep the seed-aligned defaults in that case.
+    }
+  }
+
+  List<String> _optionList(String key) => _searchOptions[key] ?? const [];
+
+  String _compactOptionText(String value) {
+    return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+  }
+
+  bool _matchesDropdownOption(String option, String query) {
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) return true;
+
+    final lowerOption = option.toLowerCase();
+    final lowerQuery = cleanQuery.toLowerCase();
+    if (lowerOption.contains(lowerQuery)) return true;
+
+    final compactQuery = _compactOptionText(cleanQuery);
+    return compactQuery.isNotEmpty &&
+        _compactOptionText(option).contains(compactQuery);
   }
 
   void _clearAllFilters() {
+    _latestSearchRequestId++;
     setState(() {
       _generalSearchController.clear();
       _firingPinController.clear();
@@ -143,6 +276,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       _testLocationController.clear();
       _searchResults = [];
       _errorMessage = null;
+      _lastSubmittedFilters = null;
       _selectedFirearmId = null;
       _selectedFirearmLabel = null;
       _custodyTimeline = [];
@@ -152,6 +286,7 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       _totalResults = 0;
       _totalPages = 0;
       _incidentDateController.clear();
+      _dropdownResetToken++;
     });
   }
 
@@ -254,7 +389,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
   }
 
   Future<void> _performSearch({int page = 1}) async {
-    if (!_hasAnyFilter) {
+    final filters = _buildSearchFilters();
+    if (!filters.hasAny) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Enter at least one search criterion'),
@@ -265,6 +401,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       );
       return;
     }
+
+    final requestId = ++_latestSearchRequestId;
 
     setState(() {
       _isSearching = true;
@@ -280,34 +418,20 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       );
 
       final response = await provider.forensicSearch(
-        firingPin: _firingPinController.text.trim().isNotEmpty
-            ? _firingPinController.text.trim()
-            : null,
-        caliber: _caliberController.text.trim().isNotEmpty
-            ? _caliberController.text.trim()
-            : null,
-        rifling: _riflingController.text.trim().isNotEmpty
-            ? _riflingController.text.trim()
-            : null,
-        chamberFeed: _chamberFeedController.text.trim().isNotEmpty
-            ? _chamberFeedController.text.trim()
-            : null,
-        breechFace: _breechFaceController.text.trim().isNotEmpty
-            ? _breechFaceController.text.trim()
-            : null,
-        testLocation: _testLocationController.text.trim().isNotEmpty
-            ? _testLocationController.text.trim()
-            : null,
-        generalSearch: _generalSearchController.text.trim().isNotEmpty
-            ? _generalSearchController.text.trim()
-            : null,
-        incidentDate: _incidentDateController.text.trim().isNotEmpty
-            ? _incidentDateController.text.trim()
-            : null,
+        firingPin: filters.firingPin,
+        caliber: filters.caliber,
+        rifling: filters.rifling,
+        chamberFeed: filters.chamberFeed,
+        breechFace: filters.breechFace,
+        testLocation: filters.testLocation,
+        generalSearch: filters.generalSearch,
+        incidentDate: filters.incidentDate,
         incidentDateMode: 'annotate',
         page: page,
         limit: _resultsPerPage,
       );
+
+      if (!mounted || requestId != _latestSearchRequestId) return;
 
       setState(() {
         _searchResults =
@@ -315,11 +439,15 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         _totalResults = response['total'] ?? 0;
         _currentPage = response['page'] ?? 1;
         _totalPages = response['totalPages'] ?? 0;
+        _lastSubmittedFilters = filters;
         _isSearching = false;
       });
     } catch (e) {
+      if (!mounted || requestId != _latestSearchRequestId) return;
+
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _lastSubmittedFilters = filters;
         _isSearching = false;
       });
     }
@@ -337,6 +465,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
     try {
       final response = await _traceabilityService.getCustodyTimeline(firearmId);
       final timelineData = response['timeline'];
+      if (!mounted) return;
+
       setState(() {
         _custodyTimeline = timelineData is List
             ? List<Map<String, dynamic>>.from(timelineData)
@@ -345,6 +475,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         _isLoadingTimeline = false;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         _timelineError = 'Unable to load custody timeline';
         _isLoadingTimeline = false;
@@ -475,21 +607,15 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                       child: _buildDropdownField(
                         controller: _caliberController,
                         label: 'Caliber / Ammunition',
-                        items: [
-                          '9x19mm Parabellum',
-                          '7.62x39mm',
-                          '5.56x45mm NATO',
-                          '7.62x51mm NATO',
-                          '12 Gauge',
-                          '.45 ACP'
-                        ],
+                        items: _optionList('calibers'),
                       ),
                     ),
                     SizedBox(
                       width: fieldWidth,
-                      child: _buildField(
+                      child: _buildDropdownField(
                         controller: _firingPinController,
                         label: 'Firing Pin Impression',
+                        items: _optionList('firingPins'),
                       ),
                     ),
                     SizedBox(
@@ -497,27 +623,23 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                       child: _buildDropdownField(
                         controller: _riflingController,
                         label: 'Rifling Characteristics',
-                        items: [
-                          '4 grooves, right-hand twist, 1:9.5 pitch',
-                          '6 grooves, right-hand twist, 1:10 pitch',
-                          '6 grooves, right-hand twist, 1:7 pitch',
-                          '4 grooves, right-hand twist, 1:16 pitch',
-                          'Smoothbore'
-                        ],
+                        items: _optionList('riflings'),
                       ),
                     ),
                     SizedBox(
                       width: fieldWidth,
-                      child: _buildField(
+                      child: _buildDropdownField(
                         controller: _chamberFeedController,
                         label: 'Chamber / Feed Marks',
+                        items: _optionList('chamberFeeds'),
                       ),
                     ),
                     SizedBox(
                       width: fieldWidth,
-                      child: _buildField(
+                      child: _buildDropdownField(
                         controller: _breechFaceController,
                         label: 'Breech Face (Ejector / Extractor)',
+                        items: _optionList('breechFaces'),
                       ),
                     ),
                     SizedBox(
@@ -719,26 +841,27 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         SizedBox(
           height: 44,
           child: Autocomplete<String>(
+            key: ValueKey('$label-$_dropdownResetToken'),
             initialValue: TextEditingValue(text: controller.text),
             optionsBuilder: (TextEditingValue textEditingValue) {
-              if (textEditingValue.text.isEmpty) {
-                return items;
+              final query = textEditingValue.text.trim();
+              if (query.isNotEmpty &&
+                  items.any(
+                    (option) => option.toLowerCase() == query.toLowerCase(),
+                  )) {
+                return const Iterable<String>.empty();
               }
-              return items.where((String option) {
-                return option
-                    .toLowerCase()
-                    .contains(textEditingValue.text.toLowerCase());
-              });
+
+              return items.where(
+                (String option) => _matchesDropdownOption(option, query),
+              );
             },
             onSelected: (String selection) {
               controller.text = selection;
-              _performSearch();
+              setState(() {});
             },
             fieldViewBuilder:
                 (context, txtController, focusNode, onFieldSubmitted) {
-              txtController.addListener(() {
-                controller.text = txtController.text;
-              });
               return TextField(
                 controller: txtController,
                 focusNode: focusNode,
@@ -764,8 +887,11 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                         const BorderSide(color: Color(0xFF1E88E5), width: 2),
                   ),
                 ),
+                onChanged: (value) {
+                  controller.text = value;
+                },
                 onSubmitted: (_) {
-                  onFieldSubmitted();
+                  focusNode.unfocus();
                   _performSearch();
                 },
               );
@@ -1017,23 +1143,35 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
         color: const Color(0xFF232838),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: const Center(
+      child: Center(
         child: Column(
           children: [
-            Icon(Icons.search_off, size: 36, color: Color(0xFF546E7A)),
-            SizedBox(height: 12),
-            Text(
+            const Icon(Icons.search_off, size: 36, color: Color(0xFF546E7A)),
+            const SizedBox(height: 12),
+            const Text(
               'No matching ballistic profiles found',
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 15,
                   fontWeight: FontWeight.w500),
             ),
-            SizedBox(height: 4),
-            Text(
+            const SizedBox(height: 4),
+            const Text(
               'Try adjusting your search criteria or using fewer filters',
               style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
             ),
+            if (_lastSubmittedFilters?.summaryParts.isNotEmpty ?? false) ...[
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Submitted: ${_lastSubmittedFilters!.summaryParts.join(' | ')}',
+                  textAlign: TextAlign.center,
+                  style:
+                      const TextStyle(color: Color(0xFF78909C), fontSize: 12),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1150,6 +1288,8 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final submittedSummary =
+              _lastSubmittedFilters?.summaryParts.join(' | ');
           final status = Row(
             children: [
               Container(
@@ -1183,6 +1323,16 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
             ),
             overflow: TextOverflow.ellipsis,
           );
+          final summary = submittedSummary == null || submittedSummary.isEmpty
+              ? null
+              : Text(
+                  'Submitted: $submittedSummary',
+                  style: const TextStyle(
+                    color: Color(0xFF78909C),
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                );
 
           if (constraints.maxWidth < 620) {
             return Column(
@@ -1191,15 +1341,28 @@ class _ForensicSearchScreenState extends State<ForensicSearchScreen> {
                 status,
                 const SizedBox(height: 6),
                 hint,
+                if (summary != null) ...[
+                  const SizedBox(height: 6),
+                  summary,
+                ],
               ],
             );
           }
 
-          return Row(
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: status),
-              const SizedBox(width: 16),
-              Flexible(child: hint),
+              Row(
+                children: [
+                  Expanded(child: status),
+                  const SizedBox(width: 16),
+                  Flexible(child: hint),
+                ],
+              ),
+              if (summary != null) ...[
+                const SizedBox(height: 6),
+                summary,
+              ],
             ],
           );
         },

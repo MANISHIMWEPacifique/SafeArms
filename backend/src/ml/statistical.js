@@ -39,7 +39,7 @@ const detectStatisticalOutliers = async (features) => {
                 feature: 'custody_duration',
                 zscore: features.custody_duration_zscore,
                 severity: durationZScore > 3.0 ? 'high' : 'medium',
-                description: durationZScore > 0
+                description: (features.custody_duration_zscore || 0) > 0
                     ? 'Unusually long custody duration'
                     : 'Unusually short custody duration'
             });

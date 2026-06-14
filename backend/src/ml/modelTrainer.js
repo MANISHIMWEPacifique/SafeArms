@@ -24,7 +24,7 @@ const SCORING_THRESHOLD_SETTING_KEYS = [
 
 const getMinTrainingSamples = () => MIN_TRAINING_SAMPLES;
 
-const getMissingFeatureCustodyRecords = async () => {
+const getFeatureExtractionCandidates = async ({ refreshExisting = false } = {}) => {
     const result = await query(`
         SELECT cr.custody_id, cr.officer_id, cr.firearm_id, cr.unit_id,
                cr.issued_at, cr.returned_at, cr.custody_type,
@@ -34,19 +34,26 @@ const getMissingFeatureCustodyRecords = async () => {
                cr.is_night_issue, cr.is_weekend_issue
         FROM custody_records cr
         WHERE cr.issued_at IS NOT NULL
-          AND NOT EXISTS (
-              SELECT 1
-              FROM ml_training_features mf
-              WHERE mf.custody_record_id = cr.custody_id
+          AND (
+              $1::boolean = true
+              OR NOT EXISTS (
+                  SELECT 1
+                  FROM ml_training_features mf
+                  WHERE mf.custody_record_id = cr.custody_id
+              )
+          )
+          AND (
+              $1::boolean = false
+              OR cr.issued_at >= CURRENT_TIMESTAMP - INTERVAL '6 months'
           )
         ORDER BY cr.issued_at ASC
-    `);
+    `, [refreshExisting]);
 
     return result.rows;
 };
 
-const prepareTrainingFeatures = async () => {
-    const records = await getMissingFeatureCustodyRecords();
+const prepareTrainingFeatures = async ({ refreshExisting = false } = {}) => {
+    const records = await getFeatureExtractionCandidates({ refreshExisting });
     const summary = {
         checked_records: records.length,
         extracted: 0,
@@ -247,7 +254,9 @@ const promoteCandidateModel = async ({ modelResult, minSamples }) => {
                     training_samples: candidate.training_samples,
                     num_clusters: candidate.num_clusters,
                     silhouette_score: candidate.silhouette_score,
-                    outlier_threshold: candidate.outlier_threshold
+                    outlier_threshold: candidate.outlier_threshold,
+                    training_data_fingerprint: modelResult.training_data_fingerprint || null,
+                    training_data_summary: modelResult.training_data_summary || null
                 },
                 preserved_thresholds: thresholds,
                 minimum_required_samples: minSamples
@@ -294,7 +303,8 @@ const promoteCandidateModel = async ({ modelResult, minSamples }) => {
         return {
             previous_active_model_id: previousActiveModel?.model_id || null,
             promoted_model_id: promoted.rows[0].model_id,
-            preserved_thresholds: thresholds
+            preserved_thresholds: thresholds,
+            training_data_fingerprint: modelResult.training_data_fingerprint || null
         };
     });
 };
@@ -311,10 +321,17 @@ const promoteCandidateModel = async ({ modelResult, minSamples }) => {
  */
 const trainModel = async (options = {}) => {
     try {
-        const { k = 6, minSamples = getMinTrainingSamples() } = options;
+        const {
+            k = 6,
+            minSamples = getMinTrainingSamples(),
+            reuseExistingCandidate = false,
+            refreshExistingFeatures = false
+        } = options;
 
         logger.info('Starting model training...');
-        const preparedFeatures = await prepareTrainingFeatures();
+        const preparedFeatures = await prepareTrainingFeatures({
+            refreshExisting: refreshExistingFeatures
+        });
         logger.info(
             `Training preparation complete. Missing records checked: ${preparedFeatures.checked_records}, ` +
             `extracted: ${preparedFeatures.extracted}, failed: ${preparedFeatures.failed}`
@@ -339,15 +356,20 @@ const trainModel = async (options = {}) => {
             throw new Error(`Insufficient training data. Need at least ${minSamples} samples, got ${sampleCount}`);
         }
 
-        let modelResult = await findLatestPromotableCandidate({
-            minSamples,
-            requiredSampleCount: sampleCount
-        });
+        let modelResult = null;
 
-        if (modelResult) {
-            logger.info(`Promoting existing validated K-Means candidate ${modelResult.model_id}`);
-        } else {
-            // Train K-Means model as an inactive candidate.
+        if (reuseExistingCandidate) {
+            modelResult = await findLatestPromotableCandidate({
+                minSamples,
+                requiredSampleCount: sampleCount
+            });
+
+            if (modelResult) {
+                logger.info(`Promoting existing validated K-Means candidate ${modelResult.model_id}`);
+            }
+        }
+
+        if (!modelResult) {
             modelResult = await trainKMeansModel(k);
         }
 
@@ -424,10 +446,12 @@ const checkRetrainingNeeded = async () => {
             };
         }
 
-        // Check model performance (false positive rate)
+        // Check model performance using reviewed outcomes only. Open anomalies
+        // are pending review, not confirmed non-false-positives.
         const performanceResult = await query(`
       SELECT 
         COUNT(*) FILTER (WHERE status = 'false_positive') as false_positives,
+        COUNT(*) FILTER (WHERE status IN ('resolved', 'false_positive', 'acceptable_change')) as reviewed_detections,
         COUNT(*) as total_detections
       FROM anomalies
       WHERE model_id = $1
@@ -435,21 +459,26 @@ const checkRetrainingNeeded = async () => {
     `, [model.model_id]);
 
         const performance = performanceResult.rows[0];
-        const fpRate = performance.total_detections > 0
-            ? performance.false_positives / performance.total_detections
-            : 0;
+        const reviewedDetections = parseInt(performance.reviewed_detections || 0, 10);
+        const fpRate = reviewedDetections > 0
+            ? parseInt(performance.false_positives || 0, 10) / reviewedDetections
+            : null;
 
         // Retrain if false positive rate > 30%
-        if (fpRate > 0.30 && performance.total_detections > 20) {
+        if (fpRate !== null && fpRate > 0.30 && reviewedDetections > 20) {
             return {
                 needed: true,
                 reason: `High false positive rate: ${(fpRate * 100).toFixed(1)}% (threshold: 30%)`
             };
         }
 
+        const reviewSummary = fpRate === null
+            ? 'review outcomes pending'
+            : `reviewed FP rate: ${(fpRate * 100).toFixed(1)}%`;
+
         return {
             needed: false,
-            reason: `Model is performing well (age: ${modelAgeDays} days, new samples: ${newSamples}, FP rate: ${(fpRate * 100).toFixed(1)}%)`
+            reason: `Model is current (age: ${modelAgeDays} days, new samples: ${newSamples}, ${reviewSummary})`
         };
     } catch (error) {
         logger.error('Check retraining needed error:', error);
@@ -477,6 +506,7 @@ const getModelMetrics = async (modelId) => {
         COUNT(*) FILTER (WHERE severity = 'low') as low_count,
         COUNT(*) FILTER (WHERE status = 'false_positive') as false_positives,
         COUNT(*) FILTER (WHERE status = 'resolved') as resolved_count,
+        COUNT(*) FILTER (WHERE status IN ('resolved', 'false_positive', 'acceptable_change')) as reviewed_count,
         AVG(anomaly_score) as avg_anomaly_score,
         AVG(confidence_level) as avg_confidence
       FROM anomalies
@@ -485,9 +515,10 @@ const getModelMetrics = async (modelId) => {
 
         const stats = result.rows[0];
 
-        const falsePositiveRate = stats.total_detections > 0
-            ? parseFloat(stats.false_positives) / parseFloat(stats.total_detections)
-            : 0;
+        const reviewedDetections = parseInt(stats.reviewed_count || 0, 10);
+        const falsePositiveRate = reviewedDetections > 0
+            ? parseFloat(stats.false_positives) / reviewedDetections
+            : null;
 
         return {
             total_detections: parseInt(stats.total_detections),
@@ -498,6 +529,7 @@ const getModelMetrics = async (modelId) => {
                 low: parseInt(stats.low_count)
             },
             false_positive_rate: falsePositiveRate,
+            reviewed_detections: reviewedDetections,
             resolution_rate: stats.total_detections > 0
                 ? parseFloat(stats.resolved_count) / parseFloat(stats.total_detections)
                 : 0,

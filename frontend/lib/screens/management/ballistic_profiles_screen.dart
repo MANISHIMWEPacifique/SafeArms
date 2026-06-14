@@ -334,8 +334,8 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
   }
 
   Widget _buildProfileRow(Map<String, dynamic> profile) {
-    final status = profile['profile_status'] ?? 'pending';
-    final isComplete = status == 'complete' || status == 'verified';
+    final status = _displayProfileStatus(profile);
+    final isAvailable = _isAvailableProfileStatus(status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -401,7 +401,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: isComplete
+                color: isAvailable
                     ? const Color(0xFF3CCB7F).withValues(alpha: 0.2)
                     : const Color(0xFFFFC857).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
@@ -410,7 +410,7 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
                 _formatStatus(status),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: isComplete
+                  color: isAvailable
                       ? const Color(0xFF3CCB7F)
                       : const Color(0xFFFFC857),
                   fontSize: 12,
@@ -458,6 +458,21 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
       if (word.isEmpty) return word;
       return word[0].toUpperCase() + word.substring(1);
     }).join(' ');
+  }
+
+  String _displayProfileStatus(Map<String, dynamic> profile) {
+    final rawStatus =
+        profile['profile_status']?.toString().trim().toLowerCase() ?? '';
+    if (rawStatus.isEmpty || rawStatus == 'pending') {
+      return 'available';
+    }
+    return rawStatus;
+  }
+
+  bool _isAvailableProfileStatus(String status) {
+    return status == 'available' ||
+        status == 'complete' ||
+        status == 'verified';
   }
 
   void _showProfileDetails(Map<String, dynamic> profile) {
@@ -525,31 +540,6 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF3CCB7F).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.lock,
-                                color: Color(0xFF3CCB7F), size: 14),
-                            SizedBox(width: 4),
-                            Text(
-                              'IMMUTABLE',
-                              style: TextStyle(
-                                color: Color(0xFF3CCB7F),
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: const Icon(Icons.close, color: Colors.white54),
@@ -738,13 +728,360 @@ class _BallisticProfilesScreenState extends State<BallisticProfilesScreen> {
     );
   }
 
-  void _showEditProfileDialog(Map<String, dynamic> profile) {
-    // Ballistic profiles are immutable after HQ registration
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ballistic profiles are read-only after registration'),
-        backgroundColor: Color(0xFF78909C),
+  String _formatDateForInput(dynamic date) {
+    if (date == null) return '';
+    try {
+      final parsed = date is DateTime ? date : DateTime.parse(date.toString());
+      final month = parsed.month.toString().padLeft(2, '0');
+      final day = parsed.day.toString().padLeft(2, '0');
+      return '${parsed.year}-$month-$day';
+    } catch (e) {
+      return date.toString();
+    }
+  }
+
+  DateTime? _parseEditDate(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+    return DateTime.tryParse(trimmed);
+  }
+
+  Widget _buildEditTextField(
+    TextEditingController controller,
+    String label, {
+    int maxLines = 1,
+    String? hintText,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      validator: validator,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        labelStyle: const TextStyle(color: Color(0xFFB0BEC5)),
+        hintStyle: const TextStyle(color: Color(0xFF78909C)),
+        filled: true,
+        fillColor: const Color(0xFF1A1F2E),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF37404F)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF37404F)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF1E88E5)),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE85C5C)),
+        ),
       ),
     );
+  }
+
+  Future<void> _showEditProfileDialog(Map<String, dynamic> profile) async {
+    final profileId = profile['ballistic_id']?.toString() ?? '';
+    if (profileId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to edit profile without a ballistic ID'),
+          backgroundColor: Color(0xFFE85C5C),
+        ),
+      );
+      return;
+    }
+
+    final formKey = GlobalKey<FormState>();
+    final testDateController =
+        TextEditingController(text: _formatDateForInput(profile['test_date']));
+    final testLocationController =
+        TextEditingController(text: profile['test_location']?.toString() ?? '');
+    final riflingController = TextEditingController(
+        text: profile['rifling_characteristics']?.toString() ?? '');
+    final firingPinController = TextEditingController(
+        text: profile['firing_pin_impression']?.toString() ?? '');
+    final ejectorController =
+        TextEditingController(text: profile['ejector_marks']?.toString() ?? '');
+    final extractorController = TextEditingController(
+        text: profile['extractor_marks']?.toString() ?? '');
+    final chamberController =
+        TextEditingController(text: profile['chamber_marks']?.toString() ?? '');
+    final conductedByController = TextEditingController(
+        text: profile['test_conducted_by']?.toString() ?? '');
+    final forensicLabController =
+        TextEditingController(text: profile['forensic_lab']?.toString() ?? '');
+    final ammunitionController = TextEditingController(
+        text: profile['test_ammunition']?.toString() ?? '');
+    final notesController =
+        TextEditingController(text: profile['notes']?.toString() ?? '');
+
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierColor: Colors.transparent,
+        builder: (dialogContext) {
+          bool isSaving = false;
+
+          return StatefulBuilder(
+            builder: (dialogContext, setDialogState) {
+              return Dialog(
+                backgroundColor: const Color(0xFF2A3040),
+                insetPadding: const EdgeInsets.all(24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: 720,
+                    maxHeight: MediaQuery.sizeOf(dialogContext).height * 0.9,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Color(0xFF37404F)),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A1F2E),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.edit,
+                                  color: Color(0xFF1E88E5), size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Edit Ballistic Profile #$profileId',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    profile['serial_number']?.toString() ??
+                                        profile['firearm_id']?.toString() ??
+                                        'Unknown firearm',
+                                    style: const TextStyle(
+                                      color: Color(0xFF78909C),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: isSaving
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
+                              icon: const Icon(Icons.close,
+                                  color: Colors.white54),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Flexible(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(20),
+                          child: Form(
+                            key: formKey,
+                            child: Column(
+                              children: [
+                                _buildEditTextField(
+                                  testDateController,
+                                  'Test Date',
+                                  hintText: 'YYYY-MM-DD',
+                                  validator: (value) {
+                                    final trimmed = value?.trim() ?? '';
+                                    if (trimmed.isEmpty) return null;
+                                    if (DateTime.tryParse(trimmed) == null) {
+                                      return 'Use YYYY-MM-DD';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                _buildEditTextField(
+                                    testLocationController, 'Test Location'),
+                                const SizedBox(height: 14),
+                                _buildEditTextField(riflingController,
+                                    'Rifling Characteristics'),
+                                const SizedBox(height: 14),
+                                _buildEditTextField(firingPinController,
+                                    'Firing Pin Impression'),
+                                const SizedBox(height: 14),
+                                _buildEditTextField(
+                                    ejectorController, 'Ejector Marks'),
+                                const SizedBox(height: 14),
+                                _buildEditTextField(
+                                    extractorController, 'Extractor Marks'),
+                                const SizedBox(height: 14),
+                                _buildEditTextField(
+                                    chamberController, 'Chamber Marks'),
+                                const SizedBox(height: 14),
+                                _buildEditTextField(
+                                    conductedByController, 'Test Conducted By'),
+                                const SizedBox(height: 14),
+                                _buildEditTextField(
+                                    forensicLabController, 'Forensic Lab'),
+                                const SizedBox(height: 14),
+                                _buildEditTextField(
+                                    ammunitionController, 'Test Ammunition'),
+                                const SizedBox(height: 14),
+                                _buildEditTextField(
+                                  notesController,
+                                  'Notes',
+                                  maxLines: 4,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF1A1F2E),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: isSaving
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(color: Color(0xFFB0BEC5)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton(
+                              onPressed: isSaving
+                                  ? null
+                                  : () async {
+                                      if (!formKey.currentState!.validate()) {
+                                        return;
+                                      }
+
+                                      setDialogState(() => isSaving = true);
+                                      final provider = context
+                                          .read<BallisticProfileProvider>();
+                                      final success =
+                                          await provider.updateProfile(
+                                        profileId: profileId,
+                                        testDate: _parseEditDate(
+                                            testDateController.text),
+                                        testLocation:
+                                            testLocationController.text.trim(),
+                                        riflingCharacteristics:
+                                            riflingController.text.trim(),
+                                        firingPinImpression:
+                                            firingPinController.text.trim(),
+                                        ejectorMarks:
+                                            ejectorController.text.trim(),
+                                        extractorMarks:
+                                            extractorController.text.trim(),
+                                        chamberMarks:
+                                            chamberController.text.trim(),
+                                        testConductedBy:
+                                            conductedByController.text.trim(),
+                                        forensicLab:
+                                            forensicLabController.text.trim(),
+                                        testAmmunition:
+                                            ammunitionController.text.trim(),
+                                        notes: notesController.text.trim(),
+                                      );
+
+                                      if (!dialogContext.mounted) return;
+
+                                      if (success) {
+                                        Navigator.pop(dialogContext);
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'Ballistic profile updated'),
+                                            backgroundColor: Color(0xFF3CCB7F),
+                                          ),
+                                        );
+                                      } else {
+                                        setDialogState(() => isSaving = false);
+                                        ScaffoldMessenger.of(dialogContext)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(provider
+                                                    .errorMessage ??
+                                                'Unable to update ballistic profile'),
+                                            backgroundColor:
+                                                const Color(0xFFE85C5C),
+                                          ),
+                                        );
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E88E5),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: isSaving
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('Save Changes'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      testDateController.dispose();
+      testLocationController.dispose();
+      riflingController.dispose();
+      firingPinController.dispose();
+      ejectorController.dispose();
+      extractorController.dispose();
+      chamberController.dispose();
+      conductedByController.dispose();
+      forensicLabController.dispose();
+      ammunitionController.dispose();
+      notesController.dispose();
+    }
   }
 }

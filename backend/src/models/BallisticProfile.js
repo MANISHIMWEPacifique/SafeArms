@@ -1,10 +1,25 @@
-const { query } = require('../config/database');
+const { query, withTransaction } = require('../config/database');
 const crypto = require('crypto');
+const { nextBallisticProfileId } = require('../utils/idGenerator');
 
 const normalizeSearchValue = (value) => (
     typeof value === 'string' && value.trim().length > 0
         ? value.trim()
         : null
+);
+
+const normalizeCompactSearchValue = (value) => {
+    const cleanValue = normalizeSearchValue(value);
+    if (!cleanValue) return null;
+
+    const compactValue = cleanValue.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return compactValue.length > 0 ? compactValue : null;
+};
+
+const searchableSql = (expression) => `BTRIM(COALESCE(${expression}::text, ''))`;
+
+const compactSearchableSql = (expression) => (
+    `regexp_replace(lower(${searchableSql(expression)}), '[^a-z0-9]+', '', 'g')`
 );
 
 const evidenceStrength = (score, heldAtIncident) => {
@@ -169,28 +184,27 @@ const BallisticProfile = {
         // Generate integrity hash
         const registrationHash = this.generateRegistrationHash(profileData);
 
-        // Generate ballistic_id
-        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(ballistic_id FROM 4) AS INTEGER)), 0) as max_num FROM ballistic_profiles WHERE ballistic_id ~ '^BP-[0-9]+$'`);
-        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
-        const ballistic_id = `BP-${String(nextNum).padStart(3, '0')}`;
+        return await withTransaction(async (client) => {
+            const ballistic_id = await nextBallisticProfileId(client);
 
-        const result = await query(`
-            INSERT INTO ballistic_profiles (
-                ballistic_id, firearm_id, test_date, test_location, rifling_characteristics,
+            const result = await client.query(`
+                INSERT INTO ballistic_profiles (
+                    ballistic_id, firearm_id, test_date, test_location, rifling_characteristics,
+                    firing_pin_impression, ejector_marks, extractor_marks, chamber_marks,
+                    test_conducted_by, forensic_lab, test_ammunition, notes,
+                    created_by, is_locked, locked_at, locked_by, registration_hash
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, CURRENT_TIMESTAMP, $14, $15)
+                RETURNING *
+            `, [
+                ballistic_id,
+                firearm_id, test_date, test_location, rifling_characteristics,
                 firing_pin_impression, ejector_marks, extractor_marks, chamber_marks,
                 test_conducted_by, forensic_lab, test_ammunition, notes,
-                created_by, is_locked, locked_at, locked_by, registration_hash
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, CURRENT_TIMESTAMP, $14, $15)
-            RETURNING *
-        `, [
-            ballistic_id,
-            firearm_id, test_date, test_location, rifling_characteristics, 
-            firing_pin_impression, ejector_marks, extractor_marks, chamber_marks,
-            test_conducted_by, forensic_lab, test_ammunition, notes,
-            createdByUserId, registrationHash
-        ]);
+                createdByUserId, registrationHash
+            ]);
 
-        return result.rows[0];
+            return result.rows[0];
+        });
     },
 
     /**
@@ -293,107 +307,124 @@ const BallisticProfile = {
         let joins = '';
         let params = [];
         let pCount = 0;
+        const hardClauses = [];
         const scoreParts = [];
         const matchedFieldParts = [];
 
-        const addFilter = ({ value, condition, paramValue, score, label }) => {
+        const buildTextCondition = (expressions, value) => {
             const cleanValue = normalizeSearchValue(value);
-            if (!cleanValue) return;
+            if (!cleanValue) return null;
 
             pCount++;
-            where += ` AND ${condition(pCount)}`;
-            params.push(paramValue(cleanValue));
-            scoreParts.push(`CASE WHEN ${condition(pCount)} THEN ${score} ELSE 0 END`);
-            matchedFieldParts.push(`CASE WHEN ${condition(pCount)} THEN '${label}' ELSE NULL END`);
+            const rawParam = pCount;
+            params.push(`${cleanValue}%`);
+
+            const clauses = expressions.map((expression) => `${searchableSql(expression)} ILIKE $${rawParam}`);
+            const compactValue = normalizeCompactSearchValue(cleanValue);
+
+            if (compactValue) {
+                pCount++;
+                const compactParam = pCount;
+                params.push(`${compactValue}%`);
+                clauses.push(
+                    ...expressions.map((expression) => `${compactSearchableSql(expression)} LIKE $${compactParam}`)
+                );
+            }
+
+            return `(${clauses.join(' OR ')})`;
         };
 
-        addFilter({
+        const addTextFilter = ({ value, expressions, score, label }) => {
+            const condition = buildTextCondition(expressions, value);
+            if (!condition) return;
+
+            hardClauses.push(condition);
+            scoreParts.push(`CASE WHEN ${condition} THEN ${score} ELSE 0 END`);
+            matchedFieldParts.push(`CASE WHEN ${condition} THEN '${label}' ELSE NULL END`);
+        };
+
+        addTextFilter({
             value: test_location,
-            condition: (param) => `(u.location ILIKE $${param} OR u.district ILIKE $${param} OR u.province ILIKE $${param} OR u.unit_name ILIKE $${param})`,
-            paramValue: (value) => `%${value}%`,
+            expressions: ['u.location', 'u.district', 'u.province', 'u.unit_name'],
             score: 15,
             label: 'Recovery Location'
         });
 
-        addFilter({
+        addTextFilter({
             value: forensic_lab,
-            condition: (param) => `bp.forensic_lab ILIKE $${param}`,
-            paramValue: (value) => `%${value}%`,
+            expressions: ['bp.forensic_lab'],
             score: 5,
             label: 'Forensic lab'
         });
 
-        addFilter({
+        addTextFilter({
             value: firearm_serial,
-            condition: (param) => `f.serial_number ILIKE $${param}`,
-            paramValue: (value) => `%${value}%`,
+            expressions: ['f.serial_number'],
             score: 20,
             label: 'Serial number'
         });
 
         // 1. Firing Pin Shape/Pattern
-        addFilter({
+        addTextFilter({
             value: firing_pin,
-            condition: (param) => `bp.firing_pin_impression ILIKE $${param}`,
-            paramValue: (value) => `%${value}%`,
+            expressions: ['bp.firing_pin_impression'],
             score: 20,
             label: 'Firing pin'
         });
 
         // 2. Caliber/Chambering
-        addFilter({
+        addTextFilter({
             value: caliber,
-            condition: (param) => `f.caliber ILIKE $${param}`,
-            paramValue: (value) => `%${value}%`,
+            expressions: ['f.caliber'],
             score: 15,
             label: 'Caliber'
         });
 
         // 3. Barrel Rifling
-        addFilter({
+        addTextFilter({
             value: rifling,
-            condition: (param) => `bp.rifling_characteristics ILIKE $${param}`,
-            paramValue: (value) => `%${value}%`,
+            expressions: ['bp.rifling_characteristics'],
             score: 20,
             label: 'Rifling'
         });
 
         // 4. Chamber/Feed System
-        addFilter({
+        addTextFilter({
             value: chamber_feed,
-            condition: (param) => `bp.chamber_marks ILIKE $${param}`,
-            paramValue: (value) => `%${value}%`,
+            expressions: ['bp.chamber_marks'],
             score: 15,
             label: 'Chamber/feed'
         });
 
         // 5. Breech Face Pattern (searches both ejector and extractor marks)
-        addFilter({
+        addTextFilter({
             value: breech_face,
-            condition: (param) => `(bp.ejector_marks ILIKE $${param} OR bp.extractor_marks ILIKE $${param})`,
-            paramValue: (value) => `%${value}%`,
+            expressions: ['bp.ejector_marks', 'bp.extractor_marks'],
             score: 20,
             label: 'Breech face'
         });
 
         // General search across all characteristics
-        addFilter({
+        addTextFilter({
             value: search,
-            condition: (param) => `(
-                f.serial_number ILIKE $${param} OR
-                f.manufacturer ILIKE $${param} OR
-                f.model ILIKE $${param} OR
-                f.caliber ILIKE $${param} OR
-                bp.firing_pin_impression ILIKE $${param} OR
-                bp.rifling_characteristics ILIKE $${param} OR
-                bp.chamber_marks ILIKE $${param} OR
-                bp.ejector_marks ILIKE $${param} OR
-                bp.extractor_marks ILIKE $${param}
-            )`,
-            paramValue: (value) => `%${value}%`,
+            expressions: [
+                'f.serial_number',
+                'f.manufacturer',
+                'f.model',
+                'f.caliber',
+                'bp.firing_pin_impression',
+                'bp.rifling_characteristics',
+                'bp.chamber_marks',
+                'bp.ejector_marks',
+                'bp.extractor_marks'
+            ],
             score: 10,
             label: 'General evidence'
         });
+
+        if (hardClauses.length > 0) {
+            where += ` AND ${hardClauses.map((clause) => `(${clause})`).join(' AND ')}`;
+        }
 
         // Date-based custody search: find firearms that had custody on a specific date
         if (hasIncidentDate) {
@@ -514,6 +545,65 @@ const BallisticProfile = {
             pageSize,
             totalPages: Math.ceil(total / pageSize)
         };
+    },
+
+    /**
+     * Distinct recorded values for forensic search dropdown suggestions.
+     */
+    async getSearchOptions() {
+        const result = await query(`
+            WITH option_values AS (
+                SELECT 'calibers' AS category, NULLIF(BTRIM(f.caliber), '') AS value
+                FROM ballistic_profiles bp
+                JOIN firearms f ON bp.firearm_id = f.firearm_id
+
+                UNION ALL
+
+                SELECT 'riflings' AS category, NULLIF(BTRIM(bp.rifling_characteristics), '') AS value
+                FROM ballistic_profiles bp
+
+                UNION ALL
+
+                SELECT 'firingPins' AS category, NULLIF(BTRIM(bp.firing_pin_impression), '') AS value
+                FROM ballistic_profiles bp
+
+                UNION ALL
+
+                SELECT 'chamberFeeds' AS category, NULLIF(BTRIM(bp.chamber_marks), '') AS value
+                FROM ballistic_profiles bp
+
+                UNION ALL
+
+                SELECT 'breechFaces' AS category, NULLIF(BTRIM(bp.ejector_marks), '') AS value
+                FROM ballistic_profiles bp
+
+                UNION ALL
+
+                SELECT 'breechFaces' AS category, NULLIF(BTRIM(bp.extractor_marks), '') AS value
+                FROM ballistic_profiles bp
+            )
+            SELECT category, value
+            FROM option_values
+            WHERE value IS NOT NULL
+            GROUP BY category, value
+            ORDER BY category, lower(value)
+        `);
+
+        const options = {
+            calibers: [],
+            riflings: [],
+            firingPins: [],
+            chamberFeeds: [],
+            breechFaces: []
+        };
+
+        for (const row of result.rows) {
+            if (options[row.category]) {
+                options[row.category].push(row.value);
+            }
+        }
+
+        return options;
     },
 
     /**

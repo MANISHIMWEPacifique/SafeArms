@@ -44,8 +44,15 @@ const extractTemporalFeatures = (custodyRecord) => {
  * @param {string} firearmId
  * @returns {Promise<Object>}
  */
-const extractBehavioralFeatures = async (officerId, firearmId) => {
+const getReferenceTimestamp = (custodyRecord = {}) => {
+    const parsed = new Date(custodyRecord.issued_at || Date.now());
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
+const extractBehavioralFeatures = async (officerId, firearmId, custodyRecord = {}) => {
     try {
+        const referenceAt = getReferenceTimestamp(custodyRecord);
+
         // Officer's recent activity (last 30 days)
         const officerStats = await query(
             `SELECT 
@@ -54,8 +61,9 @@ const extractBehavioralFeatures = async (officerId, firearmId) => {
         STDDEV(custody_duration_seconds) as stddev_duration_30d
        FROM custody_records
        WHERE officer_id = $1 
-       AND issued_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'`,
-            [officerId]
+       AND issued_at >= $2::timestamp - INTERVAL '30 days'
+       AND issued_at <= $2::timestamp`,
+            [officerId, referenceAt]
         );
 
         // Firearm's recent exchange rate (last 7 days)
@@ -65,16 +73,19 @@ const extractBehavioralFeatures = async (officerId, firearmId) => {
         COUNT(DISTINCT officer_id) as unique_officers_7d
        FROM custody_records
        WHERE firearm_id = $1 
-       AND issued_at >= CURRENT_TIMESTAMP - INTERVAL '7 days'`,
-            [firearmId]
+       AND issued_at >= $2::timestamp - INTERVAL '7 days'
+       AND issued_at <= $2::timestamp`,
+            [firearmId, referenceAt]
         );
 
         // Officer's consecutive same firearm count
         const consecutiveCount = await query(
             `SELECT COUNT(*) as consecutive_same_firearm
        FROM custody_records
-       WHERE officer_id = $1 AND firearm_id = $2`,
-            [officerId, firearmId]
+       WHERE officer_id = $1
+         AND firearm_id = $2
+         AND issued_at <= $3::timestamp`,
+            [officerId, firearmId, referenceAt]
         );
 
         const officerData = officerStats.rows[0] || {};
@@ -106,15 +117,17 @@ const extractBehavioralFeatures = async (officerId, firearmId) => {
 const extractPatternFlags = async (custodyRecord) => {
     try {
         const { firearm_id, officer_id, unit_id } = custodyRecord;
+        const referenceAt = getReferenceTimestamp(custodyRecord);
 
-        // Check for rapid exchange (firearm returned and reissued within 1 hour)
+        // Check for rapid exchange before this custody event.
         const rapidExchange = await query(
             `SELECT COUNT(*) as count
        FROM custody_records
        WHERE firearm_id = $1
        AND returned_at IS NOT NULL
-       AND returned_at >= CURRENT_TIMESTAMP - INTERVAL '1 hour'`,
-            [firearm_id]
+       AND returned_at >= $2::timestamp - INTERVAL '1 hour'
+       AND returned_at <= $2::timestamp`,
+            [firearm_id, referenceAt]
         );
 
         // Check for cross-unit movement in officer's history
@@ -123,8 +136,9 @@ const extractPatternFlags = async (custodyRecord) => {
        FROM custody_records cr
        JOIN officers o ON cr.officer_id = o.officer_id
        WHERE cr.officer_id = $1
-       AND o.unit_id != $2`,
-            [officer_id, unit_id]
+       AND o.unit_id != $2
+       AND cr.issued_at <= $3::timestamp`,
+            [officer_id, unit_id, referenceAt]
         );
 
         // Time since last return for this firearm
@@ -132,16 +146,16 @@ const extractPatternFlags = async (custodyRecord) => {
             `SELECT returned_at
        FROM custody_records
        WHERE firearm_id = $1 AND returned_at IS NOT NULL
+       AND returned_at <= $2::timestamp
        ORDER BY returned_at DESC
        LIMIT 1`,
-            [firearm_id]
+            [firearm_id, referenceAt]
         );
 
         let timeSinceLastReturn = null;
         if (lastReturn.rows.length > 0) {
             const lastReturnTime = new Date(lastReturn.rows[0].returned_at);
-            const now = new Date();
-            timeSinceLastReturn = Math.round((now - lastReturnTime) / 1000); // seconds
+            timeSinceLastReturn = Math.round((referenceAt - lastReturnTime) / 1000);
         }
 
         return {
@@ -167,13 +181,17 @@ const extractPatternFlags = async (custodyRecord) => {
  */
 const extractStatisticalFeatures = async (custodyRecord, behavioralFeatures) => {
     try {
+        const referenceAt = getReferenceTimestamp(custodyRecord);
+
         // Get population statistics for custody duration
         const durationStats = await query(
             `SELECT 
         AVG(custody_duration_seconds) as mean,
         STDDEV(custody_duration_seconds) as stddev
        FROM custody_records
-       WHERE custody_duration_seconds IS NOT NULL`
+       WHERE custody_duration_seconds IS NOT NULL
+       AND issued_at <= $1::timestamp`,
+            [referenceAt]
         );
 
         // Get population statistics for issue frequency
@@ -184,9 +202,11 @@ const extractStatisticalFeatures = async (custodyRecord, behavioralFeatures) => 
        FROM (
          SELECT officer_id, COUNT(*)::DECIMAL / 30 as issue_frequency
          FROM custody_records
-         WHERE issued_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
+         WHERE issued_at >= $1::timestamp - INTERVAL '30 days'
+         AND issued_at <= $1::timestamp
          GROUP BY officer_id
-       ) freq_table`
+       ) freq_table`,
+            [referenceAt]
         );
 
         const durationData = durationStats.rows[0] || {};
@@ -259,13 +279,22 @@ const extractBallisticContext = async (firearmId, custodyRecord = null) => {
         }
 
         // Get ballistic access count in last 7 days and 24 hours
+        const referenceAt = custodyRecord?.issued_at
+            ? getReferenceTimestamp(custodyRecord)
+            : new Date();
         const accessCounts = await query(
             `SELECT 
-                COUNT(*) FILTER (WHERE accessed_at >= CURRENT_TIMESTAMP - INTERVAL '7 days') as accesses_7d,
-                COUNT(*) FILTER (WHERE accessed_at >= CURRENT_TIMESTAMP - INTERVAL '24 hours') as accesses_24h
+                COUNT(*) FILTER (
+                    WHERE accessed_at >= $2::timestamp - INTERVAL '7 days'
+                      AND accessed_at <= $2::timestamp
+                ) as accesses_7d,
+                COUNT(*) FILTER (
+                    WHERE accessed_at >= $2::timestamp - INTERVAL '24 hours'
+                      AND accessed_at <= $2::timestamp
+                ) as accesses_24h
              FROM ballistic_access_logs
              WHERE firearm_id = $1`,
-            [firearmId]
+            [firearmId, referenceAt]
         );
 
         const accesses7d = parseInt(accessCounts.rows[0]?.accesses_7d || 0);
@@ -372,7 +401,7 @@ const extractAllFeatures = async (custodyRecord, options = {}) => {
             patternFlags,
             ballisticContext
         ] = await Promise.all([
-            extractBehavioralFeatures(officer_id, firearm_id),
+            extractBehavioralFeatures(officer_id, firearm_id, custodyRecord),
             extractPatternFlags(custodyRecord),
             extractBallisticContext(firearm_id, custodyRecord) // Pass custody for timing context
         ]);
@@ -488,7 +517,8 @@ const storeFeatures = async (custodyRecord, features, options = {}) => {
           custody_duration_zscore = EXCLUDED.custody_duration_zscore,
           issue_frequency_zscore = EXCLUDED.issue_frequency_zscore,
           has_ballistic_profile = EXCLUDED.has_ballistic_profile,
-          ballistic_accesses_7d = EXCLUDED.ballistic_accesses_7d`,
+          ballistic_accesses_7d = EXCLUDED.ballistic_accesses_7d,
+          feature_extraction_date = CURRENT_TIMESTAMP`,
             [
                 featureId,
                 custodyRecord.officer_id,

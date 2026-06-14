@@ -67,6 +67,7 @@ const trainMLModel = async () => {
         console.log(`Number of clusters: ${result.num_clusters}`);
         console.log(`Silhouette score: ${result.silhouette_score?.toFixed(4)}`);
         console.log(`Outlier threshold: ${result.outlier_threshold?.toFixed(4)}`);
+        console.log(`Feature fingerprint: ${result.training_data_fingerprint || 'n/a'}`);
         console.log(`Training date: ${new Date().toISOString()}`);
 
         // Verify model is active

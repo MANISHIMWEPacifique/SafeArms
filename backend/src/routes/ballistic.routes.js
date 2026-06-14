@@ -121,6 +121,12 @@ router.get('/forensic-search', authenticate, requireBallisticAccess, auditBallis
     res.json({ success: true, data: result.data, total: result.total, page: result.page, pageSize: result.pageSize, totalPages: result.totalPages });
 }));
 
+// Recorded search option values for forensic criteria dropdowns
+router.get('/search-options', authenticate, requireBallisticAccess, auditBallisticAccess, asyncHandler(async (req, res) => {
+    const options = await BallisticProfile.getSearchOptions();
+    res.json({ success: true, data: options });
+}));
+
 // Get single profile with access logging
 router.get('/:id', authenticate, requireBallisticAccess, auditBallisticAccess, asyncHandler(async (req, res) => {
     const profile = await BallisticProfile.findById(

@@ -479,6 +479,12 @@ class SettingsProvider with ChangeNotifier {
       } else if (extractedFeatures > 0) {
         _successMessage =
             'Extracted $extractedFeatures feature records and trained the model';
+      } else if (status == 'completed') {
+        final modelId = payload['model_id']?.toString();
+        final samples = payload['training_samples']?.toString();
+        _successMessage = modelId == null || modelId.isEmpty
+            ? 'Fresh model training completed'
+            : 'Fresh model $modelId trained using ${samples ?? 'current'} records';
       } else {
         _successMessage =
             result['message']?.toString() ?? 'Model training completed';

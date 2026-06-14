@@ -1,4 +1,5 @@
 const ml = require('ml-kmeans');
+const crypto = require('crypto');
 const { query } = require('../config/database');
 const logger = require('../utils/logger');
 const KMEANS_SEED = Number.parseInt(process.env.ML_KMEANS_SEED || '42', 10);
@@ -54,6 +55,58 @@ const normalizeCentroid = (centroid) => {
     return [];
 };
 
+const generateModelId = () => (
+    `MDL-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`
+);
+
+const buildTrainingFingerprint = (rows) => {
+    const payload = rows.map((row) => ({
+        custody_record_id: row.custody_record_id,
+        officer_issue_frequency_30d: row.officer_issue_frequency_30d,
+        officer_avg_custody_duration_30d: row.officer_avg_custody_duration_30d,
+        firearm_exchange_rate_7d: row.firearm_exchange_rate_7d,
+        issue_hour: row.issue_hour,
+        is_night_issue: row.is_night_issue,
+        is_weekend_issue: row.is_weekend_issue,
+        rapid_exchange_flag: row.rapid_exchange_flag,
+        cross_unit_movement_flag: row.cross_unit_movement_flag,
+        custody_duration_zscore: row.custody_duration_zscore,
+        issue_frequency_zscore: row.issue_frequency_zscore
+    }));
+
+    return crypto
+        .createHash('sha256')
+        .update(JSON.stringify(payload))
+        .digest('hex');
+};
+
+const summarizeTrainingRows = (rows) => {
+    const distinct = (field) => new Set(rows.map((row) => row[field]).filter(Boolean)).size;
+    const countFlag = (field) => rows.filter((row) => row[field] === true || row[field] === 'true').length;
+    const numericValues = (field) => rows
+        .map((row) => Number.parseFloat(row[field]))
+        .filter(Number.isFinite);
+    const average = (values) => (
+        values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0) / values.length
+    );
+
+    const durations = numericValues('custody_duration_seconds');
+
+    return {
+        sample_count: rows.length,
+        distinct_officers: distinct('officer_id'),
+        distinct_firearms: distinct('firearm_id'),
+        distinct_units: distinct('unit_id'),
+        night_samples: countFlag('is_night_issue'),
+        weekend_samples: countFlag('is_weekend_issue'),
+        rapid_exchange_samples: countFlag('rapid_exchange_flag'),
+        cross_unit_samples: countFlag('cross_unit_movement_flag'),
+        avg_custody_hours: average(durations) === null
+            ? null
+            : Number((average(durations) / 3600).toFixed(2))
+    };
+};
+
 /**
  * Train K-Means model on custody features.
  * The trainer uses the full recent feature window, including features already
@@ -71,10 +124,19 @@ const trainKMeansModel = async (k = 6) => {
         // baseline, not disposable one-shot training data.
         const result = await query(`
       SELECT
+        custody_record_id,
+        officer_id,
+        firearm_id,
+        unit_id,
+        custody_duration_seconds,
         officer_issue_frequency_30d,
         officer_avg_custody_duration_30d,
         firearm_exchange_rate_7d,
         issue_hour,
+        is_night_issue,
+        is_weekend_issue,
+        rapid_exchange_flag,
+        cross_unit_movement_flag,
         CASE WHEN is_night_issue THEN 1.0 ELSE 0.0 END as night_flag,
         CASE WHEN is_weekend_issue THEN 1.0 ELSE 0.0 END as weekend_flag,
         CASE WHEN rapid_exchange_flag THEN 1.0 ELSE 0.0 END as rapid_flag,
@@ -83,6 +145,7 @@ const trainKMeansModel = async (k = 6) => {
         issue_frequency_zscore
             FROM ml_training_features
             WHERE feature_extraction_date >= CURRENT_TIMESTAMP - INTERVAL '6 months'
+            ORDER BY custody_record_id
     `);
 
         // Adapt k to available data (need at least k*3 samples for stable clusters)
@@ -93,6 +156,9 @@ const trainKMeansModel = async (k = 6) => {
         }
 
         logger.info(`Training with ${result.rows.length} samples, K=${effectiveK}`);
+
+        const trainingDataFingerprint = buildTrainingFingerprint(result.rows);
+        const trainingDataSummary = summarizeTrainingRows(result.rows);
 
         // Convert to feature matrix
         const data = result.rows.map(row => [
@@ -161,10 +227,7 @@ const trainKMeansModel = async (k = 6) => {
         // after metrics and preservation snapshots are written by modelTrainer.
         const modelVersion = '1.0.' + Date.now();
 
-        // Generate model_id
-        const idResult = await query(`SELECT COALESCE(MAX(CAST(SUBSTRING(model_id FROM 5) AS INTEGER)), 0) as max_num FROM ml_model_metadata WHERE model_id ~ '^MDL-[0-9]+$'`);
-        const nextNum = parseInt(idResult.rows[0].max_num) + 1;
-        const modelId = `MDL-${String(nextNum).padStart(3, '0')}`;
+        const modelId = generateModelId();
 
         const modelResult = await query(`
       INSERT INTO ml_model_metadata (
@@ -195,7 +258,9 @@ const trainKMeansModel = async (k = 6) => {
             silhouette_score: silhouetteScore,
             outlier_threshold: outlierThreshold,
             cluster_centers: kmeansResult.centroids.map(normalizeCentroid),
-            normalization_params: normParams
+            normalization_params: normParams,
+            training_data_fingerprint: trainingDataFingerprint,
+            training_data_summary: trainingDataSummary
         };
     } catch (error) {
         logger.error('K-Means training error:', error);

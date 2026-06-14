@@ -142,6 +142,7 @@ const runTrainingVerification = async () => {
     const result = await trainModel({ minSamples: getMinTrainingSamples() });
     assert(result.success === true, 'trainModel did not return success');
     assert(result.promotion?.promoted_model_id === result.model_id, 'promoted model id does not match training result');
+    assert(result.training_data_fingerprint, 'training did not report a data fingerprint');
 
     await verifyActiveModelInvariant();
 
@@ -166,7 +167,9 @@ const run = async () => {
     await verifyThresholdSettings();
     await verifyFeatureUniqueness();
     await verifyTrainingReadiness();
-    await verifyActiveModelInvariant();
+    if (!shouldTrain) {
+        await verifyActiveModelInvariant();
+    }
     verifyRulesOnlyScoring();
 
     if (shouldTrain) {

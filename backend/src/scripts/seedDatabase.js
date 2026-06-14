@@ -8,6 +8,25 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+
+const escapeSql = (value) => {
+  if (value === null || value === undefined) return 'NULL';
+  return `'${String(value).replace(/'/g, "''")}'`;
+};
+
+const generateRegistrationHash = (profileData) => {
+  const dataString = JSON.stringify({
+    firearm_id: profileData.firearm_id,
+    test_date: profileData.test_date,
+    rifling_characteristics: profileData.rifling_characteristics,
+    firing_pin_impression: profileData.firing_pin_impression,
+    ejector_marks: profileData.ejector_marks,
+    extractor_marks: profileData.extractor_marks,
+    chamber_marks: profileData.chamber_marks
+  });
+  return crypto.createHash('sha256').update(dataString).digest('hex');
+};
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -232,20 +251,104 @@ async function seedDatabase() {
     // ============================================
     console.log('\n[SEED] Seeding Ballistic Profiles...');
 
-    
+    const pistolTraits = [
+      {
+        rifling_characteristics: '6 grooves, right-hand twist, 1:10 pitch',
+        firing_pin_impression: 'Circular, centered, 0.82.mm with smooth primer rim',
+        ejector_marks: 'Semi-circular ejector mark at 4 o clock, polished edge',
+        extractor_marks: 'Fine linear extractor mark at 10 o clock',
+        chamber_marks: 'Polygonal chamber with shallow feed-ramp polish',
+        notes: 'Glock service sidearm reference profile with punctuation-sensitive firing-pin measurement'
+      },
+      {
+        rifling_characteristics: '6 grooves, right-hand twist, 1:10 pitch',
+        firing_pin_impression: 'Circular, perfectly centered, 0.81mm with smooth rim',
+        ejector_marks: 'Clean rectangular ejector mark at 3 o clock',
+        extractor_marks: 'Light linear extractor mark at 9 o clock',
+        chamber_marks: 'Factory-clean feed ramp with shallow chamber polish',
+        notes: 'Factory-clean pistol profile for dropdown search diversity'
+      },
+      {
+        rifling_characteristics: '6 grooves, right-hand twist, 1:10 pitch',
+        firing_pin_impression: 'Oval, centered, 0.88mm x 0.70mm with polished lower edge',
+        ejector_marks: 'Semi-circular ejector mark at 4 o clock with broad contact',
+        extractor_marks: 'Long linear extractor mark at 10 o clock',
+        chamber_marks: 'Open-slide chamber with curved feed-ramp polish',
+        notes: 'Open-slide pistol profile with distinctive chamber feed marks'
+      }
+    ];
+    const rifleTraits = [
+      {
+        rifling_characteristics: '4 grooves, right-hand twist, 1:9.45 pitch',
+        firing_pin_impression: 'Rectangular, centered, 1.20mm x 0.80mm with shallow drag tail',
+        ejector_marks: 'Rectangular ejector mark at 3 o clock, light brass smear',
+        extractor_marks: 'Linear extractor score at 9 o clock, medium depth',
+        chamber_marks: 'Stamped receiver marks with diagonal feed-ramp striation',
+        notes: 'AK-pattern profile with diagonal chamber striation'
+      },
+      {
+        rifling_characteristics: '4 grooves, right-hand twist, 1:9.45 pitch',
+        firing_pin_impression: 'Rectangular, slight left offset, 1.12mm x 0.76mm',
+        ejector_marks: 'Rectangular ejector mark at 4 o clock with chipped lower edge',
+        extractor_marks: 'Double linear extractor mark at 8 o clock',
+        chamber_marks: 'Chamber rub with two short parallel tool marks',
+        notes: 'AK-pattern profile with distinct extractor double line'
+      },
+      {
+        rifling_characteristics: '6 grooves, right-hand twist, 1:7 pitch',
+        firing_pin_impression: 'Circular, centered, 1.00mm diameter with crisp rim',
+        ejector_marks: 'Rectangular ejector mark at 2 o clock, clean shoulder',
+        extractor_marks: 'Linear extractor mark at 8 o clock with short secondary scratch',
+        chamber_marks: 'Clean chamber with moderate parallel tool marks',
+        notes: 'NATO-pattern rifle profile for broad forensic comparison'
+      },
+      {
+        rifling_characteristics: '4 grooves, right-hand twist, 1:9.45 pitch',
+        firing_pin_impression: 'Rectangular, centered, 1.15mm x 0.80mm with bright rim',
+        ejector_marks: 'Rectangular ejector mark at 3 o clock, sharp right corner',
+        extractor_marks: 'Angular extractor mark at 9 o clock, deep start point',
+        chamber_marks: 'Tight headspace with narrow chamber scrape',
+        notes: 'AK-pattern profile with sharp right ejector corner'
+      }
+    ];
+
     let bpInserts = [];
     // faCount now holds total firearms created + 1
     for (let i = 1; i < faCount; i++) {
       const faId = `FA-${i.toString().padStart(3, '0')}`;
       const bpId = `BP-${i.toString().padStart(3, '0')}`;
       const isRifle = i % 5 !== 1; // Simplistic but matches our manual generation where 1st of 5 is Glock
-      const rifling = isRifle ? '4 grooves, right-hand twist, 1:9.45 pitch' : '6 grooves, right-hand twist, 1:10 pitch';
-      
-      bpInserts.push(`('${bpId}', '${faId}', '2023-01-10', 'RNP Forensic Laboratory', '${rifling}', 'Circular, centered, 0.8mm diameter', 'Semi-circular', 'Dr. Kamanzi Eric', 'RNP Central Forensic Lab', 'USR-008')`);
+      const traits = isRifle
+        ? rifleTraits[i % rifleTraits.length]
+        : pistolTraits[Math.floor(i / 5) % pistolTraits.length];
+      const profileData = {
+        firearm_id: faId,
+        test_date: '2023-01-10',
+        ...traits
+      };
+      const registrationHash = generateRegistrationHash(profileData);
+      const values = [
+        bpId,
+        faId,
+        profileData.test_date,
+        'RNP Forensic Laboratory',
+        traits.rifling_characteristics,
+        traits.firing_pin_impression,
+        traits.ejector_marks,
+        traits.extractor_marks,
+        traits.chamber_marks,
+        'Dr. Kamanzi Eric',
+        'RNP Central Forensic Lab',
+        traits.notes,
+        'USR-008',
+        registrationHash
+      ].map(escapeSql).join(', ');
+
+      bpInserts.push(`(${values})`);
       
       if (bpInserts.length === 50) {
         await client.query(`
-          INSERT INTO ballistic_profiles (ballistic_id, firearm_id, test_date, test_location, rifling_characteristics, firing_pin_impression, ejector_marks, test_conducted_by, forensic_lab, created_by)
+          INSERT INTO ballistic_profiles (ballistic_id, firearm_id, test_date, test_location, rifling_characteristics, firing_pin_impression, ejector_marks, extractor_marks, chamber_marks, test_conducted_by, forensic_lab, notes, created_by, registration_hash)
           VALUES ${bpInserts.join(', ')}
         `);
         bpInserts = [];
@@ -254,7 +357,7 @@ async function seedDatabase() {
     
     if (bpInserts.length > 0) {
       await client.query(`
-        INSERT INTO ballistic_profiles (ballistic_id, firearm_id, test_date, test_location, rifling_characteristics, firing_pin_impression, ejector_marks, test_conducted_by, forensic_lab, created_by)
+        INSERT INTO ballistic_profiles (ballistic_id, firearm_id, test_date, test_location, rifling_characteristics, firing_pin_impression, ejector_marks, extractor_marks, chamber_marks, test_conducted_by, forensic_lab, notes, created_by, registration_hash)
         VALUES ${bpInserts.join(', ')}
       `);
     }

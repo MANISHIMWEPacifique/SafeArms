@@ -7,9 +7,13 @@ import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
 import '../utils/auth_error_utils.dart';
+import '../utils/error_message_utils.dart';
 
 class UserProvider with ChangeNotifier {
-  final UserService _userService = UserService();
+  final UserService _userService;
+
+  UserProvider({UserService? userService})
+      : _userService = userService ?? UserService();
 
   // State
   List<UserModel> _users = [];
@@ -103,7 +107,7 @@ class UserProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = userFacingErrorMessage(e);
       _isLoading = false;
       notifyListeners();
     }
@@ -177,7 +181,7 @@ class UserProvider with ChangeNotifier {
 
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = userFacingErrorMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -232,7 +236,7 @@ class UserProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = userFacingErrorMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -256,7 +260,7 @@ class UserProvider with ChangeNotifier {
 
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = userFacingErrorMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -272,7 +276,7 @@ class UserProvider with ChangeNotifier {
       }
       return success;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = userFacingErrorMessage(e);
       notifyListeners();
       return false;
     }
@@ -293,7 +297,7 @@ class UserProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = userFacingErrorMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;

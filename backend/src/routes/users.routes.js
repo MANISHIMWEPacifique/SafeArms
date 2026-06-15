@@ -59,6 +59,26 @@ const handleProfileUpload = (req, res, next) => {
     });
 };
 
+const ensureUniqueUserIdentity = async ({ username, email, userId = null }) => {
+    if (username) {
+        const existingUsername = await User.findByUsernameExcludingUser(username, userId);
+        if (existingUsername) {
+            const error = new Error('Username is already used by another user.');
+            error.statusCode = 409;
+            throw error;
+        }
+    }
+
+    if (email) {
+        const existingEmail = await User.findByEmailExcludingUser(email, userId);
+        if (existingEmail) {
+            const error = new Error('Email address is already used by another user.');
+            error.statusCode = 409;
+            throw error;
+        }
+    }
+};
+
 router.get('/', authenticate, requireAdminOrHQ, asyncHandler(async (req, res) => {
     const { role, unit_id, is_active, limit, offset } = req.query;
     const users = await User.findAll({ role, unit_id, is_active, limit, offset });
@@ -120,6 +140,8 @@ router.post('/', authenticate, requireAdmin, logCreate, asyncHandler(async (req,
         });
     }
 
+    await ensureUniqueUserIdentity({ username, email });
+
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const user = await User.create({ ...req.body, password_hash, created_by: req.user.user_id });
 
@@ -129,9 +151,32 @@ router.post('/', authenticate, requireAdmin, logCreate, asyncHandler(async (req,
 router.put('/:id', authenticate, requireAdminOrHQ, logUpdate, asyncHandler(async (req, res) => {
     // Prevent direct password_hash modification - use change-password endpoint instead
     const { password_hash, password, otp_code, otp_expires_at, otp_verified, ...safeUpdates } = req.body;
+
+    const existingUser = await User.findById(req.params.id);
+    if (!existingUser) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (safeUpdates.email && !isValidEmail(safeUpdates.email)) {
+        return res.status(400).json({ success: false, message: 'Invalid email format' });
+    }
+
+    if (safeUpdates.role && !isValidRole(safeUpdates.role)) {
+        return res.status(400).json({ success: false, message: 'Invalid role' });
+    }
+
+    if (safeUpdates.unit_id && !isValidEntityId(safeUpdates.unit_id, 'UNIT')) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid unit_id format. Expected format: UNIT-XXX'
+        });
+    }
+
+    await ensureUniqueUserIdentity({
+        username: safeUpdates.username,
+        email: safeUpdates.email,
+        userId: req.params.id
+    });
     
     const user = await User.update(req.params.id, safeUpdates);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     res.json({ success: true, data: user });
 }));
 

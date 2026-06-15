@@ -139,6 +139,25 @@ class FirearmService {
     }
   }
 
+  Future<FirearmModel> updateMaintenanceStatus({
+    required String firearmId,
+    required String action,
+  }) async {
+    try {
+      final data = await ApiClient.patch(
+        '${ApiConfig.firearms}/$firearmId/maintenance',
+        body: {
+          'action': action,
+        },
+      );
+      return FirearmModel.fromJson(data['data']);
+    } on ApiException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Error updating maintenance status: $e');
+    }
+  }
+
   // Upload or replace firearm image
   Future<FirearmModel> uploadFirearmImage({
     required String firearmId,

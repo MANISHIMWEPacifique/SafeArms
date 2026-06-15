@@ -12,12 +12,16 @@ class FirearmDetailModal extends StatefulWidget {
   final FirearmModel firearm;
   final VoidCallback onClose;
   final VoidCallback? onEdit;
+  final String? userRole;
+  final Future<String?> Function(String action)? onMaintenanceAction;
 
   const FirearmDetailModal({
     super.key,
     required this.firearm,
     required this.onClose,
     this.onEdit,
+    this.userRole,
+    this.onMaintenanceAction,
   });
 
   @override
@@ -26,6 +30,37 @@ class FirearmDetailModal extends StatefulWidget {
 
 class _FirearmDetailModalState extends State<FirearmDetailModal> {
   final CustodyService _custodyService = CustodyService();
+  bool _isUpdatingMaintenance = false;
+
+  bool get _canManageMaintenance =>
+      widget.userRole == 'admin' && widget.onMaintenanceAction != null;
+
+  bool get _canStartMaintenance =>
+      _canManageMaintenance && widget.firearm.currentStatus == 'available';
+
+  bool get _canCompleteMaintenance =>
+      _canManageMaintenance && widget.firearm.currentStatus == 'maintenance';
+
+  Future<void> _handleMaintenanceAction(String action) async {
+    final isStart = action == 'start';
+
+    setState(() => _isUpdatingMaintenance = true);
+    final error = await widget.onMaintenanceAction!(action);
+    if (!mounted) return;
+    setState(() => _isUpdatingMaintenance = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error ??
+            (isStart
+                ? 'Firearm sent to maintenance'
+                : 'Firearm returned to available status')),
+        backgroundColor:
+            error == null ? const Color(0xFF3CCB7F) : const Color(0xFFE85C5C),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   void _showCustodyHistory() async {
     showDialog(
@@ -475,6 +510,64 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
           ),
           const SizedBox(height: 12),
         ],
+        if (_canStartMaintenance) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isUpdatingMaintenance
+                  ? null
+                  : () => _handleMaintenanceAction('start'),
+              icon: _isUpdatingMaintenance
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.build, size: 18),
+              label: const Text('Send to Maintenance'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFC857),
+                foregroundColor: const Color(0xFF1A1F2E),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (_canCompleteMaintenance) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isUpdatingMaintenance
+                  ? null
+                  : () => _handleMaintenanceAction('complete'),
+              icon: _isUpdatingMaintenance
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle, size: 18),
+              label: const Text('Return to Available'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3CCB7F),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -625,7 +718,8 @@ class _FirearmDetailModalState extends State<FirearmDetailModal> {
       return null;
     }
     String url = rawImageUrl;
-    if (!rawImageUrl.startsWith('http://') && !rawImageUrl.startsWith('https://')) {
+    if (!rawImageUrl.startsWith('http://') &&
+        !rawImageUrl.startsWith('https://')) {
       url = '${ApiConfig.baseUrl}$rawImageUrl';
     }
     if (url.contains('?')) {

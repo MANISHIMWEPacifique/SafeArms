@@ -79,6 +79,48 @@ void main() {
       expect(provider.stats['total'], 30);
       expect(provider.errorMessage, contains('operational history'));
     });
+
+    test('maintenance start updates firearm and stats immediately', () async {
+      final service = _FakeFirearmService(_buildFirearms(30));
+      final provider = FirearmProvider(firearmService: service);
+
+      await provider.loadRegistry();
+      final success = await provider.updateMaintenanceStatus(
+        firearmId: 'FA-001',
+        action: 'start',
+      );
+
+      final updated =
+          provider.firearms.firstWhere((f) => f.firearmId == 'FA-001');
+      expect(success, isTrue);
+      expect(updated.currentStatus, 'maintenance');
+      expect(provider.stats['available'], 23);
+      expect(provider.stats['maintenance'], 1);
+    });
+
+    test('maintenance complete updates firearm and stats immediately',
+        () async {
+      final service = _FakeFirearmService(_buildFirearms(30));
+      service.firearms = service.firearms
+          .map((firearm) => firearm.firearmId == 'FA-001'
+              ? _copyFirearmWithStatus(firearm, 'maintenance')
+              : firearm)
+          .toList();
+      final provider = FirearmProvider(firearmService: service);
+
+      await provider.loadRegistry();
+      final success = await provider.updateMaintenanceStatus(
+        firearmId: 'FA-001',
+        action: 'complete',
+      );
+
+      final updated =
+          provider.firearms.firstWhere((f) => f.firearmId == 'FA-001');
+      expect(success, isTrue);
+      expect(updated.currentStatus, 'available');
+      expect(provider.stats['available'], 24);
+      expect(provider.stats['maintenance'], 0);
+    });
   });
 }
 
@@ -135,6 +177,23 @@ class _FakeFirearmService extends FirearmService {
     }
     firearms = firearms.where((f) => f.firearmId != firearmId).toList();
   }
+
+  @override
+  Future<FirearmModel> updateMaintenanceStatus({
+    required String firearmId,
+    required String action,
+  }) async {
+    final index = firearms.indexWhere((f) => f.firearmId == firearmId);
+    if (index == -1) {
+      throw Exception('Firearm not found');
+    }
+
+    final firearm = firearms[index];
+    final newStatus = action == 'start' ? 'maintenance' : 'available';
+    final updated = _copyFirearmWithStatus(firearm, newStatus);
+    firearms[index] = updated;
+    return updated;
+  }
 }
 
 List<FirearmModel> _buildFirearms(int count) {
@@ -156,4 +215,27 @@ List<FirearmModel> _buildFirearms(int count) {
       isActive: true,
     );
   });
+}
+
+FirearmModel _copyFirearmWithStatus(FirearmModel firearm, String status) {
+  return FirearmModel(
+    firearmId: firearm.firearmId,
+    serialNumber: firearm.serialNumber,
+    manufacturer: firearm.manufacturer,
+    model: firearm.model,
+    firearmType: firearm.firearmType,
+    caliber: firearm.caliber,
+    manufactureYear: firearm.manufactureYear,
+    acquisitionDate: firearm.acquisitionDate,
+    acquisitionSource: firearm.acquisitionSource,
+    registrationLevel: firearm.registrationLevel,
+    registeredBy: firearm.registeredBy,
+    assignedUnitId: firearm.assignedUnitId,
+    assignedUnitName: firearm.assignedUnitName,
+    imageUrl: firearm.imageUrl,
+    currentStatus: status,
+    isActive: firearm.isActive,
+    createdAt: firearm.createdAt,
+    updatedAt: firearm.updatedAt,
+  );
 }

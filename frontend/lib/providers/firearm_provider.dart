@@ -244,6 +244,46 @@ class FirearmProvider with ChangeNotifier {
     unawaited(loadStats(unitId: unitId));
   }
 
+  void _replaceFirearm(FirearmModel updatedFirearm) {
+    final index =
+        _firearms.indexWhere((f) => f.firearmId == updatedFirearm.firearmId);
+    if (index != -1) {
+      _firearms[index] = updatedFirearm;
+    }
+    if (_selectedFirearm?.firearmId == updatedFirearm.firearmId) {
+      _selectedFirearm = updatedFirearm;
+    }
+    _clampCurrentPage();
+  }
+
+  int _statsCount(String key) {
+    final value = _stats[key];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  void _adjustStatusStats(String? oldStatus, String newStatus) {
+    if (_stats.isEmpty || oldStatus == null || oldStatus == newStatus) return;
+
+    final updatedStats = Map<String, dynamic>.from(_stats);
+    updatedStats[oldStatus] = (_statsCount(oldStatus) - 1).clamp(0, 1 << 31);
+    updatedStats[newStatus] = _statsCount(newStatus) + 1;
+    _stats = updatedStats;
+  }
+
+  void _adjustDeleteStats(String? deletedStatus) {
+    if (_stats.isEmpty) return;
+
+    final updatedStats = Map<String, dynamic>.from(_stats);
+    updatedStats['total'] = (_statsCount('total') - 1).clamp(0, 1 << 31);
+    if (deletedStatus != null) {
+      updatedStats[deletedStatus] =
+          (_statsCount(deletedStatus) - 1).clamp(0, 1 << 31);
+    }
+    _stats = updatedStats;
+  }
+
   // Register new firearm with optional ballistic profile
   Future<bool> registerFirearm({
     required String serialNumber,
@@ -312,17 +352,47 @@ class FirearmProvider with ChangeNotifier {
         updates: updates,
       );
 
-      final index = _firearms.indexWhere((f) => f.firearmId == firearmId);
-      if (index != -1) {
-        _firearms[index] = updatedFirearm;
-      }
-      if (_selectedFirearm?.firearmId == firearmId) {
-        _selectedFirearm = updatedFirearm;
-      }
-      _clampCurrentPage();
+      _replaceFirearm(updatedFirearm);
 
       _isLoading = false;
       notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateMaintenanceStatus({
+    required String firearmId,
+    required String action,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      String? oldStatus;
+      for (final firearm in _firearms) {
+        if (firearm.firearmId == firearmId) {
+          oldStatus = firearm.currentStatus;
+          break;
+        }
+      }
+
+      final updatedFirearm = await _firearmService.updateMaintenanceStatus(
+        firearmId: firearmId,
+        action: action,
+      );
+
+      _replaceFirearm(updatedFirearm);
+      _adjustStatusStats(oldStatus, updatedFirearm.currentStatus);
+
+      _isLoading = false;
+      notifyListeners();
+      _refreshStatsInBackground(unitId: _activeUnitId);
       return true;
     } catch (e) {
       _errorMessage = e.toString();
@@ -348,15 +418,7 @@ class FirearmProvider with ChangeNotifier {
         fileName: fileName,
       );
 
-      final index = _firearms.indexWhere((f) => f.firearmId == firearmId);
-      if (index != -1) {
-        _firearms[index] = updatedFirearm;
-      }
-
-      if (_selectedFirearm?.firearmId == firearmId) {
-        _selectedFirearm = updatedFirearm;
-      }
-      _clampCurrentPage();
+      _replaceFirearm(updatedFirearm);
 
       _isLoading = false;
       notifyListeners();
@@ -375,12 +437,21 @@ class FirearmProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      String? deletedStatus;
+      for (final firearm in _firearms) {
+        if (firearm.firearmId == firearmId) {
+          deletedStatus = firearm.currentStatus;
+          break;
+        }
+      }
+
       await _firearmService.deleteFirearm(firearmId);
 
       _firearms.removeWhere((f) => f.firearmId == firearmId);
       if (_selectedFirearm?.firearmId == firearmId) {
         _selectedFirearm = null;
       }
+      _adjustDeleteStats(deletedStatus);
       _clampCurrentPage();
 
       _isLoading = false;

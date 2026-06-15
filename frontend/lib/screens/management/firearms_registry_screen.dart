@@ -148,6 +148,31 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
             FirearmDetailModal(
               firearm: _selectedFirearmForDetail!,
               onClose: () => setState(() => _selectedFirearmForDetail = null),
+              userRole: userRole,
+              onMaintenanceAction: isAdmin
+                  ? (action) async {
+                      final firearmId = _selectedFirearmForDetail!.firearmId;
+                      final success =
+                          await firearmProvider.updateMaintenanceStatus(
+                        firearmId: firearmId,
+                        action: action,
+                      );
+
+                      if (!success) {
+                        return firearmProvider.errorMessage ??
+                            'Unable to update maintenance status';
+                      }
+
+                      final updatedFirearm = firearmProvider.firearms
+                          .where((f) => f.firearmId == firearmId)
+                          .first;
+                      if (mounted) {
+                        setState(
+                            () => _selectedFirearmForDetail = updatedFirearm);
+                      }
+                      return null;
+                    }
+                  : null,
               onEdit: isInvestigator
                   ? null
                   : () {
@@ -165,9 +190,7 @@ class _FirearmsRegistryScreenState extends State<FirearmsRegistryScreen> {
   }
 
   Widget _buildTopNavBar(BuildContext context, FirearmProvider provider,
-      bool isAdmin,
-      bool hasNationalAccess,
-      bool isInvestigator) {
+      bool isAdmin, bool hasNationalAccess, bool isInvestigator) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 700;

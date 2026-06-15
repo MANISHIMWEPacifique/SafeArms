@@ -68,6 +68,9 @@ const handleImageUpload = (req, res, next) => {
     });
 };
 
+const generateAuditLogId = () =>
+    `L-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+
 /**
  * Firearms Routes - Chain of Custody and Registry Management
  * 
@@ -390,8 +393,124 @@ router.post('/', authenticate, requireRole([ROLES.ADMIN]), logCreate, asyncHandl
     });
 }));
 
+router.patch('/:id/maintenance', authenticate, requireRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+    const firearmId = req.params.id;
+    const action = String(req.body?.action || '').trim();
+
+    if (!['start', 'complete'].includes(action)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid maintenance action. Use start or complete.'
+        });
+    }
+
+    const updatedFirearm = await withTransaction(async (client) => {
+        const firearmResult = await client.query(
+            `SELECT *
+             FROM firearms
+             WHERE firearm_id = $1
+             FOR UPDATE`,
+            [firearmId]
+        );
+
+        if (firearmResult.rows.length === 0) {
+            return null;
+        }
+
+        const firearm = firearmResult.rows[0];
+        const currentStatus = firearm.current_status;
+        const nextStatus = action === 'start' ? 'maintenance' : 'available';
+
+        if (action === 'start') {
+            if (!firearm.is_active) {
+                const error = new Error('Inactive firearms cannot be sent to maintenance.');
+                error.statusCode = 409;
+                throw error;
+            }
+
+            if (currentStatus !== 'available') {
+                const error = new Error(`Only available firearms can be sent to maintenance. Current status: ${currentStatus}.`);
+                error.statusCode = 409;
+                throw error;
+            }
+
+            const activeCustody = await client.query(
+                `SELECT custody_id
+                 FROM custody_records
+                 WHERE firearm_id = $1 AND returned_at IS NULL
+                 LIMIT 1`,
+                [firearmId]
+            );
+
+            if (activeCustody.rows.length > 0) {
+                const error = new Error('Firearm has active custody and cannot be sent to maintenance.');
+                error.statusCode = 409;
+                throw error;
+            }
+        } else if (currentStatus !== 'maintenance') {
+            const error = new Error(`Only firearms in maintenance can be returned to available. Current status: ${currentStatus}.`);
+            error.statusCode = 409;
+            throw error;
+        }
+
+        await client.query(
+            `UPDATE firearms
+             SET current_status = $1, updated_at = CURRENT_TIMESTAMP
+             WHERE firearm_id = $2`,
+            [nextStatus, firearmId]
+        );
+
+        await client.query(
+            `INSERT INTO audit_logs (
+                log_id, user_id, action_type, table_name, record_id,
+                old_values, new_values, reason, actor_role, subject_type,
+                subject_id, is_chain_of_custody_event, ip_address, user_agent, success
+            ) VALUES ($1, $2, 'STATUS_CHANGE', 'firearms', $3, $4, $5, $6, $7, 'firearm', $3, true, $8, $9, true)`,
+            [
+                generateAuditLogId(),
+                req.user.user_id,
+                firearmId,
+                JSON.stringify({ current_status: currentStatus }),
+                JSON.stringify({
+                    current_status: nextStatus,
+                    maintenance_action: action,
+                    changed_at: new Date().toISOString()
+                }),
+                'Maintenance status update',
+                req.user.role,
+                req.ip,
+                req.get('user-agent')
+            ]
+        );
+
+        const refreshed = await client.query(
+            `SELECT f.*, u.unit_name
+             FROM firearms f
+             LEFT JOIN units u ON f.assigned_unit_id = u.unit_id
+             WHERE f.firearm_id = $1`,
+            [firearmId]
+        );
+
+        return refreshed.rows[0];
+    });
+
+    if (!updatedFirearm) {
+        return res.status(404).json({ success: false, message: 'Firearm not found' });
+    }
+
+    return res.json({
+        success: true,
+        message: action === 'start'
+            ? 'Firearm sent to maintenance successfully'
+            : 'Firearm returned to available status successfully',
+        data: updatedFirearm
+    });
+}));
+
 router.put('/:id', authenticate, requireRole([ROLES.ADMIN, ROLES.HQ_COMMANDER, ROLES.STATION_COMMANDER]), requireUnitAccess, logUpdate, asyncHandler(async (req, res) => {
     const { role, unit_id: userUnitId } = req.user;
+    req.body = req.body || {};
+    delete req.body.current_status;
     
     // Station commanders can only update firearms in their own unit
     if (role === ROLES.STATION_COMMANDER) {

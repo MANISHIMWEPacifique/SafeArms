@@ -41,6 +41,38 @@ const User = {
         return result.rows[0];
     },
 
+    async findByUsernameExcludingUser(username, userId = null) {
+        const params = [username];
+        let where = 'username = $1';
+
+        if (userId) {
+            params.push(userId);
+            where += ' AND user_id != $2';
+        }
+
+        const result = await query(
+            `SELECT user_id, username FROM users WHERE ${where} LIMIT 1`,
+            params
+        );
+        return result.rows[0];
+    },
+
+    async findByEmailExcludingUser(email, userId = null) {
+        const params = [email];
+        let where = 'email = $1';
+
+        if (userId) {
+            params.push(userId);
+            where += ' AND user_id != $2';
+        }
+
+        const result = await query(
+            `SELECT user_id, email FROM users WHERE ${where} LIMIT 1`,
+            params
+        );
+        return result.rows[0];
+    },
+
     /**
      * Get all users with filters
      */

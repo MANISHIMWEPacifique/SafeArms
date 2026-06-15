@@ -124,7 +124,13 @@ const errorHandler = (err, req, res, next) => {
     if (err.code === '23505') {
         // PostgreSQL unique violation
         statusCode = 409;
-        message = 'Duplicate entry. Record already exists.';
+        if (err.constraint === 'users_email_key') {
+            message = 'Email address is already used by another user.';
+        } else if (err.constraint === 'users_username_key') {
+            message = 'Username is already used by another user.';
+        } else {
+            message = 'Duplicate entry. Record already exists.';
+        }
     }
 
     if (err.code === '23503') {

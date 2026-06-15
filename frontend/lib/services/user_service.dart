@@ -91,6 +91,8 @@ class UserService {
         },
       );
       return UserModel.fromJson(data['data']);
+    } on ApiException {
+      rethrow;
     } catch (e) {
       throw Exception('Error creating user: $e');
     }
@@ -126,6 +128,8 @@ class UserService {
         body: updates,
       );
       return UserModel.fromJson(data['data']);
+    } on ApiException {
+      rethrow;
     } catch (e) {
       throw Exception('Error updating user: $e');
     }
@@ -142,6 +146,8 @@ class UserService {
         body: {'new_password': newPassword},
       );
       return true;
+    } on ApiException {
+      rethrow;
     } catch (e) {
       throw Exception('Error resetting password: $e');
     }
@@ -151,6 +157,8 @@ class UserService {
   Future<void> deleteUser(String userId) async {
     try {
       await ApiClient.delete('${ApiConfig.users}/$userId');
+    } on ApiException {
+      rethrow;
     } catch (e) {
       throw Exception('Error deleting user: $e');
     }
